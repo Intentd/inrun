@@ -75,7 +75,7 @@ jobs:
 
       - name: Package Helm chart and push to gh-pages
         env:
-          GH_TOKEN: ${{ secrets.INRUN_PUBLISH_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eux
           INRUN="${{ inputs.inrun }}"

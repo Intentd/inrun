@@ -43,7 +43,7 @@ jobs:
       - name: Clean up old caches (hours)
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.INRUN_PUBLISH_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ inputs.owner }}
           REPO: ${{ inputs.repo }}
           OLDER_THAN_HOURS: ${{ inputs.older_than_hours }}
@@ -52,7 +52,7 @@ jobs:
           set -euo pipefail
 
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "GH_TOKEN (secrets.INRUN_PUBLISH_PAT) is not set. Exiting."
+            echo "GH_TOKEN (secrets.GITHUB_TOKEN) is not set. Exiting."
             exit 1
           fi
 
