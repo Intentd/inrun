@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/types"
@@ -97,26 +95,6 @@ func extractMetaName(body []byte) string {
 		return obj.Metadata.Name
 	}
 	return ""
-}
-
-// seedManagedMeta pre-populates managed labels and annotations on the CR so the
-// reconciler's idempotency guards skip those patches in every cycle.
-func seedManagedMeta(cr *unstructured.Unstructured, catalogName string) {
-	lbls := cr.GetLabels()
-	if lbls == nil {
-		lbls = map[string]string{}
-	}
-	lbls[labels.ManagedKey] = labels.ManagedValue
-	lbls[labels.DeletionProtectionLabel] = labels.DeletionProtectionValue
-	cr.SetLabels(lbls)
-
-	ann := cr.GetAnnotations()
-	if ann == nil {
-		ann = map[string]string{}
-	}
-	ann[labels.AnnotationManagedBy] = catalogName
-	ann[labels.AnnotationManagedSince] = time.Now().UTC().Format(time.RFC3339)
-	cr.SetAnnotations(ann)
 }
 
 // opsMatch returns true when two op slices have the same verb+resource sequence.

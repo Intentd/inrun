@@ -22,7 +22,8 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
-	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/runtime/informer/observe"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
@@ -184,8 +185,6 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	shared.ops = shared.ops[:0]
 	shared.mu.Unlock()
 
-	seedManagedMeta(cr, cat.Metadata().Name)
-
 	gvk := schema.GroupVersionKind{
 		Group:   crdEntry.APITypes.Group,
 		Version: crdEntry.APITypes.Version,
@@ -306,20 +305,22 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 		return nil, err
 	}
 
-	r = wrapWithGate(r, box.PreReconcile, cat.Notes, getFromIndexerOrFallback(infFactory.IndexerFor(gvk), key, cr))
-
-	prepInput := prepare.Input{
-		Entry: contract.RegistryEntry{
-			CRD:      crdEntry,
-			Informer: inf,
-		},
-		Key:      key,
-		Cat:      cat,
+	deps := reconcile.Deps{
 		Kube:     recKube,
+		Event:    event.Discard(),
+		Cat:      cat,
 		Registry: peerRegistry,
 	}
+	input := reconcile.Input{
+		GVK:        crdEntry.GVKString(),
+		Key:        key,
+		Entry:      contract.RegistryEntry{CRD: crdEntry, Informer: inf},
+		Reconciler: r,
+		Health:     vitals.NewCRDHealth(crdEntry.Name),
+	}
 
-	loopResult := runLoop(ctx, r, recKube, key, maxCycles, prepInput)
+	// The same pass the runtime runs.
+	loopResult := runLoop(ctx, deps, input, recKube, maxCycles)
 	loopResult.Notes = result.Notes
 	return loopResult, nil
 }

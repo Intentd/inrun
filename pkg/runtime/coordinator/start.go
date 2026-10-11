@@ -48,7 +48,6 @@ func (dc *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string
 	dc.crdHealthMap[gvk].SetTotalWorkers(int32(workers))
 	dc.crdHealthMap[gvk].SetGVK(gvk)
 	dc.started[gvk] = true
-	dc.total[gvk]++
 	dc.mu.Unlock()
 
 	dc.launchWorkers(crdCtx, gvk, workers, wg)

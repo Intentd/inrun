@@ -133,47 +133,18 @@ func (f *Factory) allowEnqueue(
 	if wq == nil {
 		return false
 	}
+	a := f.admission(gvkStr, wq)
 
-	// Namespace restriction.
-	namespace := domain.ExtractNamespace(obj)
-	if !f.namespaceAllowed(gvkStr, namespace) {
-		logger.Debug().
-			Str("gvk", gvkStr).
-			Str("namespace", namespace).
-			Msg("informer: event dropped — namespace not allowed")
-		return false
-	}
-
-	domObj, ok := domain.ToDomainObject(obj)
-	if !ok {
-		return true
-	}
-
-	if f.catalog == nil {
-		return true
-	}
-
-	// A CR being deleted always gets through: its finalizing reconcile is what
-	// releases Inrun's finalizer, so no condition may hold it back.
-	if domObj.GetDeletionTimestamp() != nil {
-		return true
-	}
-
-	// Queue behaviour conditions.
-	if wq.NeedsBehaviourEval() {
-		if !f.catalog.EvaluateQueueBehaviourConditions(ctx, gvkStr, domObj, domain.EvaluateOptions{Sentinels: sentinels}) {
-			return false
-		}
-	}
-
-	// Enqueue-gate conditions.
 	// Secondary informers evaluate their declared observation entry's enqueueGate.
 	switch opts.Source {
 	case EnqueueSourceWatch:
+		domObj, verdict, decided := admitCommon(ctx, a, gvkStr, obj, sentinels)
+		if decided {
+			return verdict
+		}
 		if opts.WatchSecondaryGVK == "" {
 			return true
 		}
-
 		return f.catalog.EvaluateWatchEnqueueFilter(
 			ctx,
 			gvkStr,
@@ -187,10 +158,13 @@ func (f *Factory) allowEnqueue(
 		)
 
 	case EnqueueSourceEvent:
+		domObj, verdict, decided := admitCommon(ctx, a, gvkStr, obj, sentinels)
+		if decided {
+			return verdict
+		}
 		if opts.SourceName == "" {
 			return true
 		}
-
 		return f.catalog.EvaluateEventEnqueueFilter(
 			ctx,
 			gvkStr,
@@ -205,15 +179,7 @@ func (f *Factory) allowEnqueue(
 	}
 
 	// Primary informers evaluate preReconcile.enqueueGate.
-	if !f.catalog.EvaluateEnqueueFilter(ctx, gvkStr, domObj, f.cs, domain.EvaluateOptions{Sentinels: sentinels}) {
-		logger.Debug().
-			Str("gvk", gvkStr).
-			Str("name", domObj.GetName()).
-			Msg("informer: event dropped — enqueue filter")
-		return false
-	}
-
-	return true
+	return AdmitPrimary(ctx, a, gvkStr, obj, sentinels)
 }
 
 // enqueue routes an admitted primary event using the object's own key.

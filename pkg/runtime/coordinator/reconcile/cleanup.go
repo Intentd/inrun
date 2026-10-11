@@ -1,4 +1,4 @@
-package coordinator
+package reconcile
 
 import (
 	"context"
@@ -215,7 +215,7 @@ func patchAnnotations(ctx context.Context, kube annotationPatcher, obj domain.Ob
 // deleteCR issues a foreground delete for obj. Called by the worker after
 // maintain has removed deletion-protection labels (ForCleanup=true path).
 // No-ops when the CR already has a deletionTimestamp (deletion in progress).
-func (c *Controller) deleteCR(ctx context.Context, obj domain.Object, reason string) error {
+func deleteCR(ctx context.Context, d Deps, obj domain.Object, reason string) error {
 	if !obj.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
@@ -224,12 +224,12 @@ func (c *Controller) deleteCR(ctx context.Context, obj domain.Object, reason str
 	ns := obj.GetNamespace()
 
 	propagation := metav1.DeletePropagationForeground
-	if err := c.kube.Delete(ctx, obj, metav1.DeleteOptions{
+	if err := d.Kube.Delete(ctx, obj, metav1.DeleteOptions{
 		PropagationPolicy: &propagation,
 	}); err != nil {
 		return fmt.Errorf("cleanup: deleting CR %s/%s: %w", ns, name, err)
 	}
-	c.event.Eventf(obj, corev1.EventTypeNormal, "CleanedUp", "Deleted %s/%s: %s", ns, name, reason)
+	d.Event.Eventf(obj, corev1.EventTypeNormal, "CleanedUp", "Deleted %s/%s: %s", ns, name, reason)
 	logger.Info().
 		Str("key", ns+"/"+name).
 		Str("reason", reason).

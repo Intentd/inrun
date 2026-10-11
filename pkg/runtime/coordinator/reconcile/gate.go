@@ -1,4 +1,4 @@
-package coordinator
+package reconcile
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 // objectFromCache retrieves the live CR from the informer cache for the given
 // key. Returns nil if the entry has no informer or the key is not found.
-func (c *Controller) objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Unstructured {
+func objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Unstructured {
 	if entry.Informer == nil {
 		return nil
 	}
@@ -29,17 +29,18 @@ func (c *Controller) objectFromCache(entry contract.RegistryEntry, key string) *
 // given CR. Returns (true, reason) when gated — reconciler must not be called.
 // Returns (false, "") when conditions pass.
 //
-// Delegates to c.cat.EvaluatePreReconcile which holds the full resolver chain
+// Delegates to Catalog.EvaluatePreReconcile which holds the full resolver chain
 // (profiles, notes, serve intent) — no duplication of eval logic here.
-func (c *Controller) evaluatePreReconcileCheck(
+func evaluatePreReconcileCheck(
 	ctx context.Context,
+	d Deps,
 	obj *unstructured.Unstructured,
 	crdName string,
 	sentinels map[string]string,
 ) (gated bool, reason string) {
-	if c.cat == nil || obj == nil {
+	if d.Cat == nil || obj == nil {
 		return false, ""
 	}
-	allowed, reason := c.cat.EvaluatePreReconcile(ctx, crdName, obj, c.kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
+	allowed, reason := d.Cat.EvaluatePreReconcile(ctx, crdName, obj, d.Kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
 	return !allowed, reason
 }

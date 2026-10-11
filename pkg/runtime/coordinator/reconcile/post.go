@@ -1,4 +1,4 @@
-package coordinator
+package reconcile
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// PostInput holds everything runPost needs from the worker.
-type PostInput struct {
+// postInput holds everything runPost needs from the pass.
+type postInput struct {
 	Kube      kubeclient.Interface
 	Event     event.Recorder
 	Health    *vitals.CRDHealth
@@ -26,7 +26,7 @@ type PostInput struct {
 
 // runPost runs the full post-reconcile sequence and returns the final reconcile error.
 // Status patch and declarative event emission via post.Apply.
-func runPost(ctx context.Context, in PostInput, reconcileErr error) error {
+func runPost(ctx context.Context, in postInput, reconcileErr error) error {
 	box := prepare.BoxFrom(in.Prepared)
 	resolver := in.Prepared.Context.(*template.Resolver)
 	post.Apply(ctx, post.Input{
@@ -39,4 +39,30 @@ func runPost(ctx context.Context, in PostInput, reconcileErr error) error {
 	}, in.Prepared.Object, resolver, box, reconcileErr, in.ValResult)
 
 	return reconcileErr
+}
+
+// toPostValResult converts a prepare.ValidationResult to the post package's
+// equivalent type for status condition writing.
+func toPostValResult(v *prepare.ValidationResult) *post.ValidationResult {
+	if v == nil {
+		return nil
+	}
+	r := &post.ValidationResult{Deny: v.Deny}
+	for _, viol := range v.Violations {
+		r.Violations = append(r.Violations, post.ValidationViolation{
+			Field:   viol.Field,
+			Rule:    viol.Rule,
+			Value:   viol.Value,
+			Message: viol.Message,
+		})
+	}
+	for _, w := range v.Warnings {
+		r.Warnings = append(r.Warnings, post.ValidationViolation{
+			Field:   w.Field,
+			Rule:    w.Rule,
+			Value:   w.Value,
+			Message: w.Message,
+		})
+	}
+	return r
 }

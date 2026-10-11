@@ -2,17 +2,10 @@ package simulate
 
 import (
 	"context"
-	"fmt"
-	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
-	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/intentd/inrun/pkg/template"
-	apitypes "k8s.io/apimachinery/pkg/types"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
+	"github.com/intentd/inrun/pkg/runtime/informer"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -27,55 +20,21 @@ type loopKube interface {
 	MarkDeploymentReady(namespace, name string)
 }
 
-// runLoop runs the reconciler for up to maxCycles and returns the aggregate
-// result. Notes must be appended by the caller.
-func runLoop(ctx context.Context, r domain.Reconciler, kube loopKube, key string, maxCycles int, prepInput prepare.Input) *Result {
+// runLoop runs one reconcile pass per cycle for up to maxCycles — the same
+// reconcile.Run the runtime's workers call — and returns the aggregate result.
+// What the runtime gets from its informer and a controller-manager happens
+// here instead: the enqueue gate before each pass, and Deployments marked
+// ready after it. Notes must be appended by the caller.
+func runLoop(ctx context.Context, deps reconcile.Deps, in reconcile.Input, kube loopKube, maxCycles int) *Result {
 	result := &Result{}
 	var prevCycleOps []Op
 
 	for cycle := 1; cycle <= maxCycles; cycle++ {
 		kube.AdvanceCycle()
-
 		cycleResult := CycleResult{Cycle: cycle}
-		ns, name, _ := cache.SplitMetaNamespaceKey(key)
 
-		prepared, _, err := prepare.Prepare(ctx, prepInput)
-		if err != nil {
-			cycleResult.Error = fmt.Errorf("prepare: %w", err)
-			result.Cycles = append(result.Cycles, cycleResult)
-			continue
-		}
-		if prepared == nil {
-			// Object not found, deleted, or namespace-blocked — nothing to reconcile.
-			result.Cycles = append(result.Cycles, cycleResult)
-			continue
-		}
-
-		req := domain.Request{
-			Key:            key,
-			NamespacedName: apitypes.NamespacedName{Namespace: ns, Name: name},
-			Prepared:       prepared,
-		}
-		req.Prepared.Args = prepare.Args(prepared)
-		res, err := r.Reconcile(ctx, req)
-		// Apply the Result's writes the way the coordinator worker does.
-		if err == nil {
-			prune := prepInput.Entry.CRD.EffectivePrune(intent.Target(prepared.Object.GetAnnotations()))
-			_, err = apply.Result(ctx, kube, prepared.Object, prepInput.Entry.CRD.AllManagedResources(), prune, res)
-		}
-		cycleResult.Error = err
-
-		// Post-reconcile: status patch + emit — mirrors the coordinator worker.
-		// Status patching lives in post.Apply; without this call the CR's status
-		// fields would never be written and status-subresource assertions would fail.
-		if resolver, ok := prepared.Context.(*template.Resolver); ok {
-			box := prepare.BoxFrom(prepared)
-			post.Apply(ctx, post.Input{
-				CRD:      prepInput.Entry.CRD,
-				Kube:     kube,
-				Recorder: event.Discard(),
-				Status:   res.Status,
-			}, prepared.Object, resolver, box, cycleResult.Error, nil)
+		if enqueued(ctx, deps, in) {
+			cycleResult.Error = reconcile.Run(ctx, deps, in).Err
 		}
 
 		cycleResult.Ops = kube.OpsForCycle(cycle)
@@ -99,6 +58,29 @@ func runLoop(ctx context.Context, r domain.Reconciler, kube loopKube, key string
 
 	result.AllOps = kube.Ops()
 	return result
+}
+
+// enqueued admits the key the way the runtime's informer does before it is
+// queued (informer.AdmitPrimary): the CRD's namespace rules and
+// preReconcile.enqueueGate. There is no live queue, so its behaviour
+// conditions do not apply.
+func enqueued(ctx context.Context, deps reconcile.Deps, in reconcile.Input) bool {
+	if in.Entry.Informer == nil {
+		return true
+	}
+	raw, exists, err := in.Entry.Informer.GetIndexer().GetByKey(in.Key)
+	if err != nil || !exists {
+		return true
+	}
+	crd := in.Entry.CRD
+	return informer.AdmitPrimary(ctx, informer.Admission{
+		Catalog:   deps.Cat,
+		Clientset: deps.Kube.Clientset(),
+		Namespace: &informer.NamespaceFilter{
+			AllowedNamespaces:    []string(crd.AllAllowedNamespaces()),
+			RestrictedNamespaces: []string(crd.AllRestrictedNamespaces()),
+		},
+	}, in.GVK, raw, nil)
 }
 
 // compile-time check that *FakeKubeclient satisfies loopKube.

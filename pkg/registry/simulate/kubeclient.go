@@ -373,6 +373,7 @@ func (f *FakeKubeclient) PatchFinalizers(_ context.Context, obj runtime.Object, 
 		At:       time.Now(),
 	})
 	f.shared.mu.Unlock()
+	f.persistMeta(obj, func(mo metav1.Object) { mo.SetFinalizers(finalizers) })
 	return nil
 }
 
@@ -389,9 +390,7 @@ func (f *FakeKubeclient) PatchLabels(_ context.Context, obj runtime.Object, base
 		At:       time.Now(),
 	})
 	f.shared.mu.Unlock()
-	if mo, ok := obj.(metav1.Object); ok {
-		mo.SetLabels(desired)
-	}
+	f.persistMeta(obj, func(mo metav1.Object) { mo.SetLabels(desired) })
 	return nil
 }
 
@@ -405,10 +404,8 @@ func (f *FakeKubeclient) PatchAnnotations(_ context.Context, obj runtime.Object,
 		At:       time.Now(),
 	})
 	f.shared.mu.Unlock()
-	// Persist to the in-memory object so subsequent cycles see the update
-	// and the idempotency guard in ensureManagedAnnotations skips the patch.
 	// A merge patch adds to the existing annotations; it does not replace them.
-	if mo, ok := obj.(metav1.Object); ok {
+	f.persistMeta(obj, func(mo metav1.Object) {
 		merged := mo.GetAnnotations()
 		if merged == nil {
 			merged = map[string]string{}
@@ -417,8 +414,48 @@ func (f *FakeKubeclient) PatchAnnotations(_ context.Context, obj runtime.Object,
 			merged[k] = v
 		}
 		mo.SetAnnotations(merged)
-	}
+	})
 	return nil
+}
+
+// persistMeta applies a metadata patch the way the API server would: to obj,
+// and to the copy the informer holds, which the next cycle prepares from.
+// Without it, maintain would find its finalizer and labels missing and patch
+// them again on every cycle.
+func (f *FakeKubeclient) persistMeta(obj runtime.Object, mutate func(metav1.Object)) {
+	mo, ok := obj.(metav1.Object)
+	if !ok {
+		return
+	}
+	mutate(mo)
+	if f.informer == nil {
+		return
+	}
+	key := mo.GetName()
+	if ns := mo.GetNamespace(); ns != "" {
+		key = ns + "/" + key
+	}
+	idx := f.informer.GetIndexer()
+	raw, exists, err := idx.GetByKey(key)
+	if err != nil || !exists {
+		return
+	}
+	storedObj, ok := raw.(runtime.Object)
+	if !ok || !sameKind(storedObj, obj) {
+		return
+	}
+	stored, ok := raw.(metav1.Object)
+	if !ok || stored == mo {
+		return
+	}
+	mutate(stored)
+	_ = idx.Update(raw)
+}
+
+// sameKind reports whether a and b are the same kind, when both say.
+func sameKind(a, b runtime.Object) bool {
+	ka, kb := a.GetObjectKind().GroupVersionKind().Kind, b.GetObjectKind().GroupVersionKind().Kind
+	return ka == "" || kb == "" || ka == kb
 }
 
 func (f *FakeKubeclient) PatchStatus(_ context.Context, obj domain.Object, _ map[string]interface{}, _ metav1.PatchOptions) error {

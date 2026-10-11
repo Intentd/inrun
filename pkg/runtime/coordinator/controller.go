@@ -53,10 +53,6 @@ type Controller struct {
 	// runtimeMap holds per-CRD concurrency and autoscale state (semaphore,
 	// AutoMetrics, Autoscaler, resync interval). Populated by startCRDWorkers.
 	runtimeMap map[string]*perCRDRuntime
-
-	// Error rate
-	total  map[string]int
-	failed map[string]int
 }
 
 func NewController(
@@ -88,8 +84,6 @@ func NewController(
 		started:          make(map[string]bool),
 		deactivated:      make(map[string]bool),
 		cancelFuncs:      make(map[string]context.CancelFunc),
-		total:            make(map[string]int),
-		failed:           make(map[string]int),
 		wgs:              make(map[string]*sync.WaitGroup),
 		reconcilers:      make(map[string]domain.Reconciler),
 		failureThreshold: make(map[string]int),
@@ -163,20 +157,4 @@ func (c *Controller) Shutdown(ctx context.Context) {}
 // Controller name
 func (c *Controller) Name() string {
 	return "inrun controller"
-}
-
-// Handle failure writes for concurrency
-func (c *Controller) failedReconcile(gvk string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.failed[gvk]++
-}
-
-// Handle success writes for concurrency
-func (c *Controller) successReconcile(gvk string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.total[gvk]++
 }

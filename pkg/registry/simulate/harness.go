@@ -15,7 +15,8 @@ import (
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
-	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/rs/zerolog/log"
@@ -170,10 +171,6 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		return nil, err
 	}
 
-	// Pre-seed managed labels/annotations so the reconciler's idempotency
-	// guards skip those patches on every cycle.
-	seedManagedMeta(cr, cat.Metadata().Name)
-
 	// For typed CRDs, the indexer must hold the concrete Go type — not
 	// *unstructured.Unstructured — so that constructor type-assertions
 	// (raw.(*MyType)) and hook BindToObjectHooks closures succeed.
@@ -269,20 +266,24 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		return nil, err
 	}
 
-	r = wrapWithGate(r, boxCopy.PreReconcile, cat.Notes, getFromIndexerOrFallback(indexer, key, cr))
-
-	prepInput := prepare.Input{
-		Entry: contract.RegistryEntry{
-			CRD:      effectiveCRDEntry,
-			Informer: informer,
-		},
-		Key:      key,
+	deps := reconcile.Deps{
+		Kube:     fakeKube.WithInformer(informer),
+		Event:    event.Discard(),
 		Cat:      cat,
-		Kube:     fakeKube,
 		Registry: peerRegistry,
 	}
+	input := reconcile.Input{
+		GVK:        effectiveCRDEntry.GVKString(),
+		Key:        key,
+		Entry:      contract.RegistryEntry{CRD: effectiveCRDEntry, Informer: informer},
+		Reconciler: r,
+		Health:     vitals.NewCRDHealth(effectiveCRDEntry.Name),
+	}
 
-	loopResult := runLoop(ctx, r, fakeKube, key, maxCycles, prepInput)
+	// The same pass the runtime runs. The fake kubeclient carries the informer
+	// so maintain's finalizer, label and annotation patches land on the cached
+	// CR the next cycle prepares from, as they would through the API server.
+	loopResult := runLoop(ctx, deps, input, fakeKube, maxCycles)
 	loopResult.Notes = result.Notes
 	return loopResult, nil
 }
