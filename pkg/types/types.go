@@ -506,7 +506,7 @@ func (s *QueueBehaviourSetting) HasDrop() bool {
 
 // ShouldDrop reports whether drop is true.
 func (s *QueueBehaviourSetting) ShouldDrop() bool {
-	return s.HasDrop() && s.Drop == boolPtr(true)
+	return s.HasDrop() && *s.Drop
 }
 
 // HasValue reports whether value is declared.

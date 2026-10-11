@@ -2,280 +2,63 @@ package validate
 
 import (
 	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate/admission"
+	"github.com/intentd/inrun/pkg/catalog/validate/crds"
+	"github.com/intentd/inrun/pkg/catalog/validate/emit"
+	"github.com/intentd/inrun/pkg/catalog/validate/gateway"
+	"github.com/intentd/inrun/pkg/catalog/validate/internal/check"
+	"github.com/intentd/inrun/pkg/catalog/validate/metadata"
+	"github.com/intentd/inrun/pkg/catalog/validate/notes"
+	"github.com/intentd/inrun/pkg/catalog/validate/observe"
+	"github.com/intentd/inrun/pkg/catalog/validate/profiles"
+	"github.com/intentd/inrun/pkg/catalog/validate/publish"
+	"github.com/intentd/inrun/pkg/catalog/validate/reconcile"
+	"github.com/intentd/inrun/pkg/catalog/validate/runtime"
+	"github.com/intentd/inrun/pkg/catalog/validate/security"
+	"github.com/intentd/inrun/pkg/catalog/validate/serve"
 	"github.com/intentd/inrun/pkg/config"
 )
 
-type executor struct {
-	cat *catalog.Catalog
-	cfg *config.Config
+// blocks are the Catalog's blocks in the order its schema reference documents
+// them. Checks read only what the user declared and write nothing but
+// warnings, so the order between blocks is free; the first error stops the run.
+var blocks = []func(*catalog.Catalog, *config.Config) error{
+	metadata.Check,
+	crds.Check,
+	reconcile.Check,
+	runtime.Check,
+	observe.Check,
+	emit.Check,
+	admission.Check,
+	security.Check,
+	notes.Check,
+	profiles.Check,
+	serve.Check,
+	gateway.Check,
+	publish.Check,
 }
 
-// Execute runs the full validation pipeline on k, mutating it in place.
-// k must have already been populated via BuildRuntimeCatalog.
+// Execute validates cat block by block, then fills in defaults. cat must have
+// been populated by BuildRuntimeCatalog.
 func Execute(cat *catalog.Catalog, cfg *config.Config) error {
-	e := &executor{cat: cat, cfg: cfg}
-	return e.run()
+	if err := config.Validate().Struct(cat); err != nil {
+		check.HandleValidationErrors(err)
+		return err
+	}
+	for _, check := range blocks {
+		if err := check(cat, cfg); err != nil {
+			return err
+		}
+	}
+	return applyDefaults(cat)
 }
 
-// DetectCycles exposes dependency cycle detection for external packages (integration tests).
-func DetectCycles(cat *catalog.Catalog) error {
-	return (&executor{cat: cat}).detectDependencyCycles()
-}
+// DetectCycles reports a dependsOn cycle between CRDs.
+func DetectCycles(cat *catalog.Catalog) error { return crds.DetectCycles(cat) }
 
-// ValidateGatewayClusters validates the gateway clusters configuration.
-func ValidateGatewayClusters(cat *catalog.Catalog) error {
-	return (&executor{cat: cat}).ValidateGatewayClusters()
-}
+// ValidateGatewayClusters checks gateway.clusters and the serve targets that
+// reference them.
+func ValidateGatewayClusters(cat *catalog.Catalog) error { return gateway.Clusters(cat) }
 
-// ValidateServe validates the serve configuration across all CRDs.
-func ValidateServe(cat *catalog.Catalog) error {
-	return (&executor{cat: cat}).ValidateServe()
-}
-
-func (e *executor) run() error {
-	// 1. Struct-level field validation
-	if valErr := config.Validate().Struct(e.cat); valErr != nil {
-		e.handleValidationErrors(valErr)
-		return valErr
-	}
-
-	// 2. Lifecycle
-	if err := e.validateLifecycle(); err != nil {
-		return err
-	}
-
-	// 3. Policy
-	if err := e.validatePolicy(); err != nil {
-		return err
-	}
-
-	// 4. Uniqueness
-	if err := e.validateUniqueness(); err != nil {
-		return err
-	}
-
-	// 5. dependsOn (existence + cycle detection)
-	if err := e.validateDependsOn(); err != nil {
-		return err
-	}
-
-	// 6. Reconciler config
-	if err := e.validateReconciler(); err != nil {
-		return err
-	}
-
-	// 7–11. Registrations: constructors, object types and hooks
-	if err := e.validateRegistrations(); err != nil {
-		return err
-	}
-
-	// 12. Status
-	e.validateStatus()
-
-	// 13. Autoscale profile
-	if err := e.validateAutoscaleProfile(); err != nil {
-		return err
-	}
-
-	// 14. Resource profile
-	if err := e.validateResourceProfile(); err != nil {
-		return err
-	}
-
-	// 15. Probe profiles
-	if err := e.validateProbeProfiles(); err != nil {
-		return err
-	}
-
-	// 16. Autoscaler metrics
-	if err := e.validateAutoscalerMetrics(); err != nil {
-		return err
-	}
-
-	// 17. Namespace protection
-	if err := e.validateNamespaceProtection(); err != nil {
-		return err
-	}
-
-	// 18. Time duration
-	if err := e.validateTimeDuration(); err != nil {
-		return err
-	}
-
-	// 19. HPA reference
-	if err := e.validateHPAReference(); err != nil {
-		return err
-	}
-
-	// 22. Services
-	if err := e.validateService(); err != nil {
-		return err
-	}
-
-	// 23. Custom resources
-	if err := e.validateCustomResources(); err != nil {
-		return err
-	}
-
-	// 24. Gateway requirement
-	if err := e.validateGateway(); err != nil {
-		return err
-	}
-
-	// 25. Enrich config
-	if err := e.validateEnrich(); err != nil {
-		return err
-	}
-
-	// 26. Deletion protection
-	if err := e.validateDeletionProtection(); err != nil {
-		return err
-	}
-
-	// 27. Security profiles
-	if err := e.validateSecurityProfiles(); err != nil {
-		return err
-	}
-
-	// 28. Capability names
-	if err := e.validateSecurityCapabilities(); err != nil {
-		return err
-	}
-
-	// 29. User profiles
-	if err := e.validateUserProfiles(); err != nil {
-		return err
-	}
-
-	// 30. HPA behavior profiles
-	if err := e.validateHPABehaviorProfiles(); err != nil {
-		return err
-	}
-
-	// 31. User notes
-	if err := e.validateUserNotes(); err != nil {
-		return err
-	}
-
-	// 32. PDB behavior profiles
-	if err := e.validatePDBBehaviorProfiles(); err != nil {
-		return err
-	}
-
-	// 33. Rolling update profiles
-	if err := e.validateRollingUpdateProfiles(); err != nil {
-		return err
-	}
-
-	// 34. NetworkPolicy profiles
-	if err := e.validateNetworkPolicyProfiles(); err != nil {
-		return err
-	}
-
-	// 35. ResourceQuota profiles
-	if err := e.validateResourceQuotaProfiles(); err != nil {
-		return err
-	}
-
-	// 36. LimitRange profiles
-	if err := e.validateLimitRangeProfiles(); err != nil {
-		return err
-	}
-
-	// 37. Cross-namespace ops
-	if err := e.validateCrossNamespaceOps(); err != nil {
-		return err
-	}
-
-	// 38. Port protocols
-	if err := e.validatePortProtocols(); err != nil {
-		return err
-	}
-
-	// 39. Workload autoscale
-	if err := e.validateWorkloadAutoscale(); err != nil {
-		return err
-	}
-
-	// 40. External calls
-	if err := e.validateExternalCalls(); err != nil {
-		return err
-	}
-
-	// 41. Watch entries
-	if err := e.validateWatchEntries(); err != nil {
-		return err
-	}
-
-	// 42. CRD entry metadata
-	if err := e.validateCRDEntryMetadata(); err != nil {
-		return err
-	}
-
-	// 43. envFrom refs
-	if err := e.validateEnvFromRefs(); err != nil {
-		return err
-	}
-
-	// 44. Serve config
-	if err := e.ValidateServe(); err != nil {
-		return err
-	}
-
-	// 45. Admission rules
-	if err := e.validateAdmissionRules(); err != nil {
-		return err
-	}
-
-	// 46. Gateway tokens
-	if err := e.validateGatewayTokens(); err != nil {
-		return err
-	}
-
-	// 48. Gateway clusters
-	if err := e.ValidateGatewayClusters(); err != nil {
-		return err
-	}
-
-	// 49. Publish config
-	if err := e.validatePublish(); err != nil {
-		return err
-	}
-
-	// 50. Retry backoff
-	if err := e.validateRetryBackoff(); err != nil {
-		return err
-	}
-
-	// 51. Requeue
-	if err := e.validateRequeue(); err != nil {
-		return err
-	}
-
-	// 51b. Finalizer timeout
-	if err := e.validateFinalizerTimeout(); err != nil {
-		return err
-	}
-
-	// 52. Cross declaration
-	if err := e.validateCrossDecl(); err != nil {
-		return err
-	}
-
-	// 53. PreReconcile
-	if err := e.validatePreReconcile(); err != nil {
-		return err
-	}
-
-	// 54. Events
-	if err := e.validateEventEntries(); err != nil {
-		return err
-	}
-
-	// 55. Emit
-	if err := e.validateEmit(); err != nil {
-		return err
-	}
-
-	return nil
-}
+// ValidateServe checks every CRD's serve configuration.
+func ValidateServe(cat *catalog.Catalog) error { return serve.Validate(cat) }
