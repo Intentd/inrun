@@ -14,7 +14,9 @@ import (
 // after a successful reconcile. Returns 0 when no requeue is needed.
 //
 // Evaluation order:
-//  1. If requeue: is absent or effectively empty, return 0.
+//  1. If requeue: is absent or effectively empty, return 0. For a CR being
+//     deleted, a requeue without when/or conditions is a periodic refresh, not
+//     a wait: return 0 so it does not hold the CR's finalizer.
 //  2. Evaluate when/or conditions — if conditions are declared and fail, return 0.
 //  3. Render the after: template against the live CR; parse as a Go duration.
 //  4. Return the parsed duration (0 on parse failure — fail-open for requeue).
@@ -33,6 +35,9 @@ func (c *Catalog) EvaluateRequeue(ctx context.Context, crdName string, obj *unst
 		return 0
 	}
 	rq := rc.Requeue
+	if obj.GetDeletionTimestamp() != nil && len(rq.When) == 0 && len(rq.Or) == 0 {
+		return 0
+	}
 
 	if !types.EvaluateConditions(resolver.Data(), rq.When, rq.Or, resolver.TemplateEvaluator()) {
 		return 0

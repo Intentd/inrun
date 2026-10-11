@@ -37,8 +37,8 @@ func Init(filenames ...string) (*Config, error) {
 		//   ENABLE_ADMISSION_WEBHOOK    → security.Webhooks.Admission.Enabled
 		//   ENABLE_CONVERSION           → security.Conversion.Enabled
 		//   WEBHOOK_FAILURE_POLICY      → security.Webhooks.FailurePolicy
-		//   INRUN_SERVICE_NAME       → security.Webhooks.ServiceName
-		//                               → security.DeletionProtection.ServiceName
+		//   INRUN_SERVICE_NAME          → security.ServiceName.Runtime
+		//   INRUN_GATEWAY_SERVICE_NAME  → security.ServiceName.Gateway (every webhook)
 		//   CONVERSION_WINDOW           → security.Conversion.ConversionWindow
 		//   TLS_CERT / TLS_KEY          → security.Webhooks.TLSCert / TLSKey (initial
 		//                                 values; overwritten by ensureSecurity() when
@@ -55,10 +55,6 @@ func Init(filenames ...string) (*Config, error) {
 			s.Webhooks.Admission.Enabled = GetBoolEnv("ENABLE_ADMISSION_WEBHOOK", false)
 			s.Conversion.Enabled = GetBoolEnv("ENABLE_CONVERSION", false)
 			s.Webhooks.FailurePolicy = GetStrEnv("WEBHOOK_FAILURE_POLICY", "Ignore")
-
-			s.DeletionProtection.ServiceName = gatewaySvc
-			s.Webhooks.ServiceName = gatewaySvc
-			s.NamespaceProtection.ServiceName = gatewaySvc
 
 			s.Conversion.ConversionWindow = GetIntEnv("CONVERSION_WINDOW", 100)
 			s.Webhooks.TLSCert = GetStrEnv("TLS_CERT", "")

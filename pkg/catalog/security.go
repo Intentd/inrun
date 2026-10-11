@@ -24,19 +24,16 @@ func (c *Catalog) securityEnvDefaults() interface {
 	RuntimeServiceName() string
 	GatewayServiceName() string
 	DeletionProtectionEnabled() bool
-	DeletionProtectionSvcName() string
 	DeletionProtectionPolicy() string
 	DeletionProtectionCleanup() bool
 	AdmissionEnabled() bool
 	ConversionEnabled() bool
-	WebhooksSvcName() string
 	WebhooksPolicy() string
 	WebhookCleanup() bool
 	ConversionWindowVal() int
 	HousekeeperEnabled() bool
 	HousekeeperSyncInterval() time.Duration
 	NamespaceProtectionEnabled() bool
-	NamespaceProtectionSvcName() string
 	NamespaceProtectionPolicy() string
 	NamespaceProtectionCleanup() bool
 	CertAutoRotate() bool
@@ -75,12 +72,6 @@ func (r *envSecurityReader) DeletionProtectionEnabled() bool {
 	}
 	return r.cat.config.Security().DeletionProtection.Enabled
 }
-func (r *envSecurityReader) DeletionProtectionSvcName() string {
-	if r.cat.config == nil {
-		return inrunGate
-	}
-	return r.cat.config.Security().DeletionProtection.ServiceName
-}
 func (r *envSecurityReader) DeletionProtectionPolicy() string {
 	if r.cat.config == nil {
 		return "Fail"
@@ -98,12 +89,6 @@ func (r *envSecurityReader) ConversionEnabled() bool {
 		return false
 	}
 	return r.cat.config.Security().Conversion.Enabled
-}
-func (r *envSecurityReader) WebhooksSvcName() string {
-	if r.cat.config == nil {
-		return inrunGate
-	}
-	return r.cat.config.Security().Webhooks.ServiceName
 }
 func (r *envSecurityReader) WebhooksPolicy() string {
 	if r.cat.config == nil {
@@ -161,12 +146,6 @@ func (r *envSecurityReader) NamespaceProtectionPolicy() string {
 	}
 	return r.cat.config.Security().NamespaceProtection.FailurePolicy
 }
-func (r *envSecurityReader) NamespaceProtectionSvcName() string {
-	if r.cat.config == nil {
-		return inrunGate
-	}
-	return r.cat.config.Security().NamespaceProtection.ServiceName
-}
 
 func (r *envSecurityReader) CertAutoRotate() bool {
 	if r.cat.config == nil {
@@ -205,13 +184,6 @@ func (c *Catalog) IsDeletionProtectionEnabled() bool {
 		return c.Security.IsDeletionProtectionEnabled()
 	}
 	return c.securityEnvDefaults().DeletionProtectionEnabled()
-}
-
-// DeletionProtectionServiceName returns the effective service name for deletion protection.
-// YAML value takes precedence over ENV.
-func (c *Catalog) DeletionProtectionServiceName() string {
-	env := c.securityEnvDefaults()
-	return c.Security.DeletionProtectionServiceName(env.DeletionProtectionSvcName())
 }
 
 // Runtime Service Name returns the effective service name for inrun runtime.
@@ -261,13 +233,6 @@ func (c *Catalog) IsNamespaceProtectionEnabled() bool {
 		return c.Security.IsNamespaceProtectionEnabled()
 	}
 	return c.securityEnvDefaults().NamespaceProtectionEnabled()
-}
-
-// NamespaceProtectionServiceName returns the effective service name for namespace protection.
-// YAML value takes precedence over ENV.
-func (c *Catalog) NamespaceProtectionServiceName() string {
-	env := c.securityEnvDefaults()
-	return c.Security.NamespaceProtectionServiceName(env.NamespaceProtectionSvcName())
 }
 
 // NamespaceProtectionFailurePolicy returns the effective failure policy string.
@@ -320,13 +285,6 @@ func (c *Catalog) IsConversionEnabled() bool {
 		return c.Security.IsConversionEnabled()
 	}
 	return c.securityEnvDefaults().ConversionEnabled()
-}
-
-// WebhooksServiceName returns the effective service name for admission/conversion webhooks.
-// YAML value takes precedence over ENV.
-func (c *Catalog) WebhooksServiceName() string {
-	env := c.securityEnvDefaults()
-	return c.Security.WebhooksServiceName(env.WebhooksSvcName())
 }
 
 // WebhooksFailurePolicy returns the effective failure policy for admission webhooks.

@@ -453,37 +453,6 @@ func validatePatternStructure(dir, url, version string) error {
 	return nil
 }
 
-// ── Registry URL resolution ───────────────────────────────────────────────────
-
-func (m *Merger) resolveRegistryURL(srcURL string) (string, error) {
-	if srcURL != "" {
-		return srcURL, nil
-	}
-
-	env := os.Getenv("INRUN_REGISTRY")
-	if env != "" {
-		return env, nil
-	}
-
-	if m.registryURL != "" {
-		return m.registryURL, nil
-	}
-
-	return "", fmt.Errorf(
-		"no registry URL configured for this source.\n\n" +
-			"Set the registry URL using one of:\n" +
-			"  1. INRUN_REGISTRY environment variable:\n" +
-			"       export INRUN_REGISTRY=https://github.com/myorg/inrun-registry\n\n" +
-			"  2. Explicit url in the source block:\n" +
-			"       imports:\n" +
-			"         registry:\n" +
-			"           - url: https://github.com/myorg/inrun-registry\n" +
-			"             catalog:\n" +
-			"               website:\n" +
-			"                 branch: main",
-	)
-}
-
 // ── URL construction ──────────────────────────────────────────────────────────
 
 func isGitHubURL(u string) bool {

@@ -766,14 +766,19 @@ func (c *CRDEntry) IsConversionParticipant() bool {
 	return cv.Participant
 }
 
-// UpdateCRDCaBundle reports whether this CRD declares an updateCRD field
-// Used to update the crd when certificate is autogenerted by inrun
-func (c *CRDEntry) UpdateCRDCaBundle() bool {
+// ShouldManageCRD reports whether Inrun owns this CRD's spec.conversion when
+// it generates the webhook certificate: manageCRD when set; otherwise true for
+// the entry that declares conversion paths, which knows the storage version,
+// and false for a participant.
+func (c *CRDEntry) ShouldManageCRD() bool {
 	cv := c.EffectiveConversion()
 	if cv == nil {
 		return false
 	}
-	return cv.UpdateCRD
+	if cv.ManageCRD != nil {
+		return *cv.ManageCRD
+	}
+	return len(cv.Paths) > 0
 }
 
 // InvolvedInConversion reports whether this CRD is involved in version conversion.

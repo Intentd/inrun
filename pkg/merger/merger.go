@@ -61,8 +61,6 @@ type Merger struct {
 	// used by cli and health endpoints
 	apiMetadata apiMetadata
 
-	registryURL string // set from INRUN_REGISTRY via SetRegistryURL
-
 	// Refresh bypasses all local caches — git charts, remote Helm repos, and
 	// remote file fetches are re-downloaded and the cached copies are overwritten.
 	Refresh bool
@@ -441,15 +439,6 @@ func (m *Merger) FirstEntryDir() string {
 		return ""
 	}
 	return filepath.Dir(m.entryPoints[0])
-}
-
-func (m *Merger) SetRegistryURL(url string) {
-	m.registryURL = url
-}
-
-func (m *Merger) GetRegistryURL() string {
-	m.mustBeMerged()
-	return m.registryURL
 }
 
 // ToUI returns a UI-friendly representation of the merged Catalog.

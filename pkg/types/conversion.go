@@ -46,13 +46,13 @@ type CRDConversion struct {
 	//   - storage → old  (down-conversion)
 	Paths []ConversionPath `yaml:"paths,omitempty" json:"paths,omitempty"`
 
-	// UpdateCRD — when true, Inrun patches the CRD's
-	// spec.conversion.webhook.clientConfig.caBundle with the CA bundle
-	// from the generated (or configured) TLS certificate at startup.
-	// Set this to true when you let Inrun manage TLS; set it to false
-	// when you manage caBundle injection yourself (e.g. cert-manager).
-	// Default: false.
-	UpdateCRD bool `yaml:"updateCRD,omitempty" json:"updateCRD,omitempty"`
+	// ManageCRD — when true and Inrun generates the webhook certificate, Inrun
+	// owns the CRD's spec.conversion: it points the conversion webhook at the
+	// gateway with the generated CA, at startup and again whenever it drifts.
+	// With a certificate configured in security.webhooks you configure
+	// spec.conversion yourself, and this field has no effect.
+	// Default: true on the entry that declares paths, false on a participant.
+	ManageCRD *bool `yaml:"manageCRD,omitempty" json:"manageCRD,omitempty"`
 }
 
 // ConversionPath declares one explicit conversion mapping.

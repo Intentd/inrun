@@ -154,7 +154,7 @@ func (c *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 		})
 
 		// CRD patching with CA bundle and watching for MODIFIED event by housekeeper
-		if crd.EffectiveConversion() != nil && crd.UpdateCRDCaBundle() {
+		if crd.EffectiveConversion() != nil && crd.ShouldManageCRD() {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups:     []string{"apiextensions.k8s.io"},
 				Resources:     []string{"customresourcedefinitions"},
@@ -574,7 +574,7 @@ func (c *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// CRD CA bundle patching (conversion webhooks)
 	// ───────────────────────────────────────────────
 	for _, crd := range c.Enabled() {
-		if crd.EffectiveConversion() != nil && crd.UpdateCRDCaBundle() {
+		if crd.EffectiveConversion() != nil && crd.ShouldManageCRD() {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups:     []string{"apiextensions.k8s.io"},
 				Resources:     []string{"customresourcedefinitions"},
@@ -723,7 +723,7 @@ func (c *Catalog) RBACRulesForCRD(crd types.CRDEntry) []rbacv1.PolicyRule {
 				},
 			)
 		}
-		if crd.EffectiveConversion() != nil && crd.UpdateCRDCaBundle() {
+		if crd.EffectiveConversion() != nil && crd.ShouldManageCRD() {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups:     []string{"apiextensions.k8s.io"},
 				Resources:     []string{"customresourcedefinitions"},

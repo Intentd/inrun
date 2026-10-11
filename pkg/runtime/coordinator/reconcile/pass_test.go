@@ -86,3 +86,67 @@ func TestRun_ObjectGoneIsSkipped(t *testing.T) {
 	assert.Negative(t, out.Next)
 	assert.Nil(t, rec.got, "nothing to reconcile")
 }
+
+// finalizingFixture is passFixture with default/a being deleted and the CRD
+// declaring requeue; spec.waiting says whether the CR's cleanup is pending.
+func finalizingFixture(t *testing.T, requeue *types.RequeueConfig, waiting string) (reconcile.Deps, contract.RegistryEntry) {
+	t.Helper()
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"app": {
+		APITypes:    types.APITypes{Group: "demo.inrun.dev", Version: "v1", Kind: "App", Plural: "apps"},
+		OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{Requeue: requeue}},
+	}})
+	crd := cat.EnabledCRDs()["app"]
+
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "demo.inrun.dev/v1",
+		"kind":       "App",
+		"metadata": map[string]interface{}{
+			"name": "a", "namespace": "default",
+			"deletionTimestamp": time.Now().UTC().Format(time.RFC3339),
+			"finalizers":        []interface{}{"inrun.dev/cleanup"},
+		},
+		"spec": map[string]interface{}{"waiting": waiting},
+	}}
+	inf := cache.NewSharedIndexInformer(&cache.ListWatch{}, &unstructured.Unstructured{}, 0, cache.Indexers{})
+	require.NoError(t, inf.GetIndexer().Add(obj))
+
+	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
+	require.NoError(t, kube.Seed(obj.DeepCopy()))
+	return reconcile.Deps{Kube: kube, Event: event.Discard(), Cat: cat}, contract.RegistryEntry{CRD: crd, Informer: inf}
+}
+
+func runFinalizing(t *testing.T, deps reconcile.Deps, entry contract.RegistryEntry) (reconcile.Outcome, *recordingReconciler) {
+	t.Helper()
+	rec := &recordingReconciler{}
+	out := reconcile.Run(context.Background(), deps, reconcile.Input{
+		GVK: entry.CRD.GVKString(), Key: "default/a", Entry: entry,
+		Reconciler: rec, Health: vitals.NewCRDHealth("app"),
+	})
+	require.NotNil(t, rec.got, "the reconciler was called")
+	assert.True(t, rec.got.Finalizing())
+	return out, rec
+}
+
+func TestRun_Finalizing_ConditionalRequeueHolds(t *testing.T) {
+	waitWhilePending := &types.RequeueConfig{
+		After: "10s",
+		When:  []types.Condition{{Field: "spec.waiting", Equals: "true"}},
+	}
+
+	deps, entry := finalizingFixture(t, waitWhilePending, "true")
+	out, _ := runFinalizing(t, deps, entry)
+	require.NoError(t, out.Err)
+	assert.Equal(t, 10*time.Second, out.Next, "a conditional requeue that holds keeps the CR finalizing")
+
+	deps, entry = finalizingFixture(t, waitWhilePending, "false")
+	out, _ = runFinalizing(t, deps, entry)
+	require.NoError(t, out.Err)
+	assert.Negative(t, out.Next, "once the condition fails the CR is released")
+}
+
+func TestRun_Finalizing_BareRequeueDoesNotHold(t *testing.T) {
+	deps, entry := finalizingFixture(t, &types.RequeueConfig{After: "10s"}, "true")
+	out, _ := runFinalizing(t, deps, entry)
+	require.NoError(t, out.Err)
+	assert.Negative(t, out.Next, "a periodic requeue is a refresh, not a wait")
+}

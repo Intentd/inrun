@@ -10,5 +10,5 @@ metadata:
 
 imports:
   - ./admission/e2e.yaml
-  - ./deletion-protection/e2e.yaml
-  - ./namespace-protection/e2e.yaml
+  - ./deletion/e2e.yaml
+  - ./namespace/e2e.yaml

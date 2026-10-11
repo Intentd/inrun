@@ -53,7 +53,6 @@ type SecurityConfig struct {
 	DeletionProtection struct {
 		Enabled           bool
 		CleanupOnShutdown bool
-		ServiceName       string
 		FailurePolicy     string
 	}
 	Webhooks struct {
@@ -62,7 +61,6 @@ type SecurityConfig struct {
 		}
 		CleanupOnShutdown bool
 		FailurePolicy     string
-		ServiceName       string
 		// TLS paths — shared with deletion protection, admission, and conversion.
 		// Set by ensureSecurity() after cert generation/loading.
 		TLSCert string
@@ -96,7 +94,6 @@ type SecurityConfig struct {
 	NamespaceProtection struct {
 		Enabled           bool
 		FailurePolicy     string
-		ServiceName       string
 		CleanupOnShutdown bool
 	}
 

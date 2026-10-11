@@ -1,9 +1,8 @@
-// Package internal wires the runtime and gateway processes together. It
-// builds every component, threads their dependencies, and hands them to
-// pkg/process to start and stop in order.
+// Package internal runs the runtime and gateway processes. Each Run function
+// builds its process with an app package (pkg/runtime/app, pkg/gateway/app),
+// starts it and waits for ctx to end; the app works out the rest.
 //
-// RunRuntime starts the runtime (informers, reconcile loop, leader
-// election). RunGateway starts the in-cluster gateway with TLS and
-// admission webhooks. RunGatewayDev starts the gateway's HTTP API locally,
-// without TLS or webhooks, for the developer build.
+// RunRuntime runs the runtime and leader election; only the leader
+// reconciles. RunGateway runs the gateway: with TLS and the admission and
+// conversion webhooks inside a pod, and the HTTP API alone outside one.
 package internal

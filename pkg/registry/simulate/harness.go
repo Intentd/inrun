@@ -17,7 +17,7 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -108,36 +108,11 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		cr = cr.DeepCopy()
 		intent.SetTarget(cr, opts.Target)
 	}
-	// Strip cross-namespace copy resources (fromNamespace / toNamespaces) from
-	// all hook phases before the fake reconciler runs. These require a live API
-	// server to read the source object; in simulation they would error and block
-	// all subsequent resources in the same cycle.
-	//
-	// The removed resources are surfaced as notes in the result so the simulate
-	// output explains exactly what was omitted and why.
+	// Templates that need a live API server (cross-namespace copies) are left
+	// out of a copy of the entry, so the Catalog's own is untouched; the notes
+	// say what was omitted and why.
 	result := &Result{}
-	box := effectiveOperatorBox(crdEntry, cr, opts.Target)
-	// Copy the effective box so we don't mutate the original CRD entry.
-	boxCopy := *box
-	if boxCopy.Reconcile != nil {
-		reconcileCopy := *boxCopy.Reconcile
-		for _, phase := range []*types.HookTemplates{
-			reconcileCopy.OnCreate,
-			reconcileCopy.OnReconcile,
-			reconcileCopy.OnDelete,
-		} {
-			if phase == nil {
-				continue
-			}
-			filtered, skipped := types.FilterSimulatable(*phase)
-			*phase = filtered
-			result.Notes = append(result.Notes, skipped...)
-		}
-		boxCopy.Reconcile = &reconcileCopy
-	}
-	// Build effective CRD entry — reconciler uses target's operatorBox, not the CRD-level one.
-	effectiveCRDEntry := crdEntry
-	effectiveCRDEntry.OperatorBox = &boxCopy
+	crdEntry, result.Notes = simulatable(crdEntry)
 
 	scheme, err := cat.Scheme()
 	if err != nil {
@@ -176,7 +151,6 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 	// (raw.(*MyType)) and hook BindToObjectHooks closures succeed.
 	// Convert via JSON round-trip: unstructured.Object → JSON → typed struct.
 	seedObj := interface{}(cr)
-	newObjFn := func() domain.Object { return &unstructured.Unstructured{} }
 
 	if objFactory, ok := types.ObjectRegistry[gvk]; ok {
 		typed := objFactory()
@@ -184,9 +158,6 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 			if json.Unmarshal(jsonBytes, typed) == nil {
 				if domObj, ok := typed.(domain.Object); ok {
 					seedObj = domObj
-					newObjFn = func() domain.Object {
-						return types.ObjectRegistry[gvk]().(domain.Object)
-					}
 				}
 			}
 		}
@@ -198,16 +169,6 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		return nil, fmt.Errorf("adding CR to indexer: %w", err)
 	}
 	informer := newFakeInformer(indexer)
-
-	// Look up hooks from the registry. In the standard inrun binary the map is
-	// empty for custom types and hookBinder stays nil.
-	// In a custom operator binary produced by `make registry && make build`,
-	// the init() in zz_generated_typeregistry.go populates HookRegistry so
-	// the actual hook function runs inside the fake cluster.
-	var hookBinder domain.AnyReconcileHooks
-	if fn, ok := types.HookRegistry[gvk]; ok {
-		hookBinder = fn()
-	}
 
 	// Build a peer registry so cross: declarations can read sibling CRDs' CRs
 	// from the fake informer cache rather than returning empty results.
@@ -237,28 +198,20 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		peerRegistry.Register(peerGVKStr, peerEntry, peerInf, nil)
 	}
 
-	// Build the reconciler. Constructor path: use it directly with the fake
-	// kubeclient and a discarding event recorder.
-	// Fallback: generic.Reconciler with the typed newObj factory and peer registry
-	// so hook BindToObjectHooks type-assertions and cross: lookups both work.
-	var r domain.Reconciler
-	if crdEntry.WithRemoteDecl() {
-		r, err = newRemoteReconciler(&crdEntry, fakeKube.WithInformer(informer), outsidePodNamespace)
-		if err != nil {
-			return nil, err
-		}
+	// The reconciler the runtime would build for this CRD, over the fake cluster.
+	factory, err := reconcilers.Factory(crdEntry, reconcilers.Deps{
+		Kube:         fakeKube,
+		Informer:     informer,
+		Event:        event.Discard(),
+		Catalog:      cat,
+		OwnNamespace: outsidePodNamespace,
+	})
+	if err != nil {
+		return nil, err
+	}
+	r := factory()
+	if crdEntry.WithRemoteDecl() || crdEntry.HasTargetRemoteDeclarations() {
 		result.Notes = append(result.Notes, remoteNote)
-	} else if factoryFn, ok := types.ReconcilerRegistry[gvk]; ok {
-		r = factoryFn(fakeKube.WithInformer(informer).WithEventRecorder(event.Discard()))
-	} else {
-		r = generic.New(
-			effectiveCRDEntry,
-			informer,
-			fakeKube,
-			hookBinder,
-			newObjFn,
-			cat,
-		)
 	}
 
 	key, err := resolveCacheKey(cr)
@@ -273,11 +226,11 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		Registry: peerRegistry,
 	}
 	input := reconcile.Input{
-		GVK:        effectiveCRDEntry.GVKString(),
+		GVK:        crdEntry.GVKString(),
 		Key:        key,
-		Entry:      contract.RegistryEntry{CRD: effectiveCRDEntry, Informer: informer},
+		Entry:      contract.RegistryEntry{CRD: crdEntry, Informer: informer},
 		Reconciler: r,
-		Health:     vitals.NewCRDHealth(effectiveCRDEntry.Name),
+		Health:     vitals.NewCRDHealth(crdEntry.Name),
 	}
 
 	// The same pass the runtime runs. The fake kubeclient carries the informer

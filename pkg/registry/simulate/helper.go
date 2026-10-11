@@ -1,18 +1,16 @@
 package simulate
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/runtime/informer"
-	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/inrun/pkg/utils"
 	"github.com/stretchr/testify/assert/yaml"
@@ -20,22 +18,58 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/rest"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/cache"
 )
 
-// outsidePodNamespace is the namespace the runtime uses outside a pod; a
-// remote reconciler's secretRef without a namespace resolves to it.
-const outsidePodNamespace = "default"
+const (
+	// outsidePodNamespace is the namespace the runtime uses outside a pod; a
+	// remote reconciler's secretRef without a namespace resolves to it.
+	outsidePodNamespace = "default"
 
-// effectiveOperatorBox returns the effective operatorBox for a given CR.
-func effectiveOperatorBox(entry types.CRDEntry, cr *unstructured.Unstructured, target string) *types.OperatorBoxConfig {
-	if target != "" {
-		return entry.EffectiveOperatorBox(target)
+	// remoteNote tells the user the run depends on their reconciler process.
+	remoteNote = "remote reconciler: each cycle calls the endpoint in reconcile.remote — start the reconciler before simulating"
+)
+
+// simulatable returns a copy of crd whose templates, CRD-level and per serve
+// target, leave out what a simulation cannot run: cross-namespace copies need
+// a live API server to read their source. The notes say what was left out.
+// The Catalog's own entry is not touched.
+func simulatable(crd types.CRDEntry) (types.CRDEntry, []string) {
+	var notes []string
+	filter := func(box *types.OperatorBoxConfig) *types.OperatorBoxConfig {
+		if box == nil || box.Reconcile == nil {
+			return box
+		}
+		b, rc := *box, *box.Reconcile
+		for _, phase := range []**types.HookTemplates{&rc.OnCreate, &rc.OnReconcile, &rc.OnDelete} {
+			if *phase == nil {
+				continue
+			}
+			filtered, skipped := types.FilterSimulatable(**phase)
+			*phase = &filtered
+			notes = append(notes, skipped...)
+		}
+		b.Reconcile = &rc
+		return &b
 	}
 
-	effectiveTarget := intent.Target(cr.GetAnnotations())
-	return entry.EffectiveOperatorBox(effectiveTarget)
+	crd.OperatorBox = filter(crd.OperatorBox)
+	if crd.Serve != nil && len(crd.Serve.Target.Entries) > 0 {
+		serve := *crd.Serve
+		entries := make(map[string]*types.ServeTargetConfig, len(serve.Target.Entries))
+		for name, e := range serve.Target.Entries {
+			if e != nil {
+				cp := *e
+				cp.OperatorBox = filter(e.OperatorBox)
+				e = &cp
+			}
+			entries[name] = e
+		}
+		serve.Target.Entries = entries
+		crd.Serve = &serve
+	}
+	return crd, notes
 }
 
 // getFromIndexerOrFallback returns a func that fetches CR from indexer or returns fallback.
@@ -149,38 +183,32 @@ func listKindsForSeeds(scheme *runtime.Scheme, seeds []runtime.Object) map[schem
 	return listKinds
 }
 
-func informerFactory(kube *kubeclient.Kubeclient, restConfig *rest.Config, scheme *runtime.Scheme, cat *catalog.Catalog, qr *queue.QueueRegistry) *informer.Factory {
-	provider := kube.NewClientProvider()
-
-	for _, crd := range cat.Enabled() {
-		crd := crd
-		if crd.IsDynamic() {
-			continue
-		}
-		object, list := crd.GetRuntimeObjects()
-
-		provider.Register(object, func(k *kubeclient.Kubeclient) (informer.GenericClient, error) {
-			return k.NewClient(list, kubeclient.CRDInfo{
-				Kind:          crd.APITypes.Kind,
-				Group:         crd.APITypes.Group,
-				Version:       crd.APITypes.Version,
-				APIPath:       crd.APITypes.APIPath,
-				GroupVersion:  crd.GroupVersion,
-				Plural:        crd.APITypes.Plural,
-				Namespace:     crd.Namespace,
-				Namespaced:    crd.IsNamespaced(),
-				ForceConflict: crd.ResolveForceConflict(),
-			})
-		})
+// setupObjects reads the CRD's setup.apply files: the objects inrun applies
+// before the operator starts, such as a remote reconciler's token Secret.
+// The merger has already made the paths absolute.
+func setupObjects(crd *types.CRDEntry) ([]*unstructured.Unstructured, error) {
+	if crd.Setup == nil {
+		return nil, nil
 	}
-
-	return informer.SharedInformerFactory(restConfig, informer.FactoryOptions{
-		Provider:      provider,
-		Scheme:        scheme,
-		DefaultWq:     queue.NewWorkqueue("default-harness-workqueue"),
-		Config:        config.NewDefaultConfig(),
-		Catalog:       cat,
-		ClientSet:     kube.Clientset(),
-		QueueRegistry: qr,
-	})
+	var objs []*unstructured.Unstructured
+	for _, entry := range crd.Setup.Apply {
+		data, err := utils.ReadLocal(entry.Path)
+		if err != nil {
+			return nil, fmt.Errorf("setup %s: %w", entry.Path, err)
+		}
+		dec := utilyaml.NewYAMLOrJSONDecoder(bytes.NewReader(data), 4096)
+		for {
+			u := &unstructured.Unstructured{}
+			if err := dec.Decode(&u.Object); err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				return nil, fmt.Errorf("setup %s: %w", entry.Path, err)
+			}
+			if u.GetKind() != "" {
+				objs = append(objs, u)
+			}
+		}
+	}
+	return objs, nil
 }

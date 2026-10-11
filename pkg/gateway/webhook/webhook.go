@@ -142,7 +142,7 @@ func NewWebhookServer(kubeClient kubernetes.Interface, cat *catalog.Catalog, cfg
 	hookReg := WebhookRegistrationOptions{
 		FailurePolicy:       admissionFailurePolicy,
 		Port:                cfg.HTTPSPortInt32(),
-		ServiceName:         cat.WebhooksServiceName(),
+		ServiceName:         cat.GatewayServiceName(),
 		ServiceNamespace:    cfg.Cluster().Namespace(),
 		TLSCertFile:         cfg.Security().Webhooks.TLSCert,
 		InrunResourceLabels: labels.InrunResourceLabels(),
@@ -482,7 +482,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 				return
 			}
 
-			svcName := cat.NamespaceProtectionServiceName()
+			svcName := cat.GatewayServiceName()
 			failurePolicy := cat.NamespaceProtectionFailurePolicy()
 			if err := registerNamespaceProtectionWebhook(wctx, ws.kubeClient, npGVRs, caBundle, ws.hookReg, svcName, failurePolicy); err != nil {
 				logger.Error().Err(err).Msg("namespace protection webhook registration failed")

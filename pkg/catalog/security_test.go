@@ -29,20 +29,6 @@ func TestIsDeletionProtectionEnabled(t *testing.T) {
 	})
 }
 
-func TestDeletionProtectionServiceName(t *testing.T) {
-	t.Run("YAML value takes precedence", func(t *testing.T) {
-		cat := &Catalog{Security: types.CatalogSecurity{
-			DeletionProtection: &types.DeletionProtectionConfig{ServiceName: "custom-svc"},
-		}}
-		assert.Equal(t, "custom-svc", cat.DeletionProtectionServiceName())
-	})
-
-	t.Run("falls back to hard default when no config", func(t *testing.T) {
-		cat := &Catalog{}
-		assert.Equal(t, inrunGate, cat.DeletionProtectionServiceName())
-	})
-}
-
 func TestDeletionProtectionFailurePolicy(t *testing.T) {
 	t.Run("YAML value takes precedence", func(t *testing.T) {
 		cat := &Catalog{Security: types.CatalogSecurity{
@@ -103,20 +89,6 @@ func TestIsNamespaceProtectionEnabled(t *testing.T) {
 			NamespaceProtection: &types.NamespaceProtectionConfig{Enabled: boolPtr(false)},
 		}}
 		assert.False(t, cat.IsNamespaceProtectionEnabled())
-	})
-}
-
-func TestNamespaceProtectionServiceName(t *testing.T) {
-	t.Run("YAML value takes precedence", func(t *testing.T) {
-		cat := &Catalog{Security: types.CatalogSecurity{
-			NamespaceProtection: &types.NamespaceProtectionConfig{ServiceName: "ns-svc"},
-		}}
-		assert.Equal(t, "ns-svc", cat.NamespaceProtectionServiceName())
-	})
-
-	t.Run("falls back to hard default when no config", func(t *testing.T) {
-		cat := &Catalog{}
-		assert.Equal(t, inrunGate, cat.NamespaceProtectionServiceName())
 	})
 }
 
@@ -185,18 +157,6 @@ func TestIsConversionEnabled(t *testing.T) {
 	t.Run("explicitly enabled", func(t *testing.T) {
 		cat := &Catalog{Security: types.CatalogSecurity{Conversion: &types.ConversionConfig{Enabled: boolPtr(true)}}}
 		assert.True(t, cat.IsConversionEnabled())
-	})
-}
-
-func TestWebhooksServiceName(t *testing.T) {
-	t.Run("YAML value takes precedence", func(t *testing.T) {
-		cat := &Catalog{Security: types.CatalogSecurity{Webhooks: &types.WebhooksConfig{ServiceName: "wh-svc"}}}
-		assert.Equal(t, "wh-svc", cat.WebhooksServiceName())
-	})
-
-	t.Run("falls back to hard default when no config", func(t *testing.T) {
-		cat := &Catalog{}
-		assert.Equal(t, inrunGate, cat.WebhooksServiceName())
 	})
 }
 

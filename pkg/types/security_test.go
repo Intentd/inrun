@@ -139,19 +139,7 @@ func TestNamespaceProtectionFailurePolicy_Custom(t *testing.T) {
 	assert.Equal(t, "Ignore", s.NamespaceProtectionFailurePolicy())
 }
 
-// ── DeletionProtectionServiceName / InrunServiceName ──────────────────────
-
-func TestDeletionProtectionServiceName_FallsBackToEnvDefault(t *testing.T) {
-	var s *types.CatalogSecurity
-	assert.Equal(t, "inrun-webhook", s.DeletionProtectionServiceName("inrun-webhook"))
-}
-
-func TestDeletionProtectionServiceName_Custom(t *testing.T) {
-	s := &types.CatalogSecurity{
-		DeletionProtection: &types.DeletionProtectionConfig{ServiceName: "my-webhook"},
-	}
-	assert.Equal(t, "my-webhook", s.DeletionProtectionServiceName("default"))
-}
+// ── RuntimeServiceName / GatewayServiceName ──────────────────────
 
 func TestRuntimeServiceName_FallsBackToEnvDefault(t *testing.T) {
 	var s *types.CatalogSecurity

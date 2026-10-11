@@ -123,13 +123,16 @@ func Run(ctx context.Context, d Deps, in Input) Outcome {
 	// safeReconcile catches panics
 	result, reconcileErr := safeReconcile(ctx, in, prepared)
 
-	// A CR being deleted: Inrun's cleanup finalizer holds it until the
-	// reconciler returns without a requeue, or until runtime.finalizers.timeout
-	// passes. Only that requeue counts; the Result's writes are ignored so
-	// nothing recreates children of a CR on its way out.
+	// A CR being deleted: Inrun's cleanup finalizer holds it until neither the
+	// Result nor a conditional reconcile.requeue asks to wait, or until
+	// runtime.finalizers.timeout passes. Only that requeue counts; the Result's
+	// writes are ignored so nothing recreates children of a CR on its way out.
 	finalizing := prepared.Finalizing
 	if finalizing {
 		after, reason := result.EffectiveRequeue()
+		if after <= 0 && reconcileErr == nil {
+			after, reason = declarativeRequeue(ctx, d, in, prepared), "reconcile.requeue"
+		}
 		done := reconcileErr == nil && after <= 0
 		expired, left := finalizeDeadline(prepared.Object, box.EffectiveFinalizerConfig(), time.Now())
 		ns, name := prepared.Object.GetNamespace(), prepared.Object.GetName()

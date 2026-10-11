@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -24,16 +24,14 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/runtime/informer/crds"
 	"github.com/intentd/inrun/pkg/runtime/informer/observe"
 	"github.com/intentd/inrun/pkg/runtime/queue"
-	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
-	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers"
 	"github.com/rs/zerolog/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"k8s.io/client-go/tools/cache"
@@ -107,19 +105,9 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 		cr = cr.DeepCopy()
 		intent.SetTarget(cr, opts.Target)
 	}
-	box := effectiveOperatorBox(crdEntry, cr, opts.Target)
-	for _, phase := range []*types.HookTemplates{
-		box.EffectiveOnCreate(),
-		box.EffectiveOnReconcile(),
-		box.EffectiveOnDelete(),
-	} {
-		if phase == nil {
-			continue
-		}
-		filtered, skipped := types.FilterSimulatable(*phase)
-		*phase = filtered
-		result.Notes = append(result.Notes, skipped...)
-	}
+	// Templates that need a live API server's cross-namespace reads are left
+	// out of a copy of the entry; the notes say what was omitted and why.
+	crdEntry, result.Notes = simulatable(crdEntry)
 
 	scheme, err := cat.Scheme()
 	if err != nil {
@@ -185,51 +173,13 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	shared.ops = shared.ops[:0]
 	shared.mu.Unlock()
 
-	gvk := schema.GroupVersionKind{
-		Group:   crdEntry.APITypes.Group,
-		Version: crdEntry.APITypes.Version,
-		Kind:    crdEntry.APITypes.Kind,
-	}
-
-	newObjFn := func() domain.Object { return &unstructured.Unstructured{} }
-	if objFactory, ok := types.ObjectRegistry[gvk]; ok {
-		if _, ok := objFactory().(domain.Object); ok {
-			newObjFn = func() domain.Object {
-				return types.ObjectRegistry[gvk]().(domain.Object)
-			}
-		}
-	}
-
-	// Build a real SharedIndexInformer backed by the envtest API server via a
-	// dynamic ListWatch. This gives the reconciler real watch stream delivery and
-	// real object state between cycles — unlike the static fakeInformer.
-	lw := &cache.ListWatch{
-		ListFunc: func(lopts metav1.ListOptions) (k8sruntime.Object, error) {
-			if ns == "" {
-				return recKube.DynamicClient().Resource(gvr).List(ctx, lopts)
-			}
-			return recKube.DynamicClient().Resource(gvr).Namespace(ns).List(ctx, lopts)
-		},
-		WatchFunc: func(lopts metav1.ListOptions) (watch.Interface, error) {
-			if ns == "" {
-				return recKube.DynamicClient().Resource(gvr).Watch(ctx, lopts)
-			}
-			return recKube.DynamicClient().Resource(gvr).Namespace(ns).Watch(ctx, lopts)
-		},
-	}
-	inf := cache.NewSharedIndexInformer(lw, &unstructured.Unstructured{}, 0, cache.Indexers{})
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	go inf.Run(stopCh)
-	if !cache.WaitForCacheSync(ctx.Done(), inf.HasSynced) {
-		return nil, fmt.Errorf("envtest: informer cache sync timed out")
-	}
-
-	// observe skips a CRD without a work queue, as in the runtime, so register
-	// one for the CRD under test.
+	// The CRD's informer and the shared factory, built as the runtime builds
+	// them; the factory also holds the watches observe adds. Their queues are
+	// never drained: each cycle runs the pass directly.
 	qr := queue.NewQueueRegistry()
-	qr.Register(crdEntry.GVKString(), nil)
-	infFactory := informerFactory(realKube, restCfg, scheme, cat, qr)
+	infFactory := crds.NewFactory(config.NewDefaultConfig(), cat, realKube, scheme,
+		queue.NewWorkqueue("default-harness-workqueue"), qr)
+	inf := crds.Informer(ctx, crdEntry, realKube, infFactory, qr)
 	infFactory.Start(ctx)
 
 	// Observe secondary resources declared in operatorBox.observe.watch/events.
@@ -242,14 +192,9 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	})
 	obs.Observe(ctx, crdEntry)
 
-	// Wait after Observe, so cycle 1 reads synced watch caches and indexes.
+	// Wait after Observe, so cycle 1 reads the synced CR, watch caches and indexes.
 	if !infFactory.WaitForCacheSync(ctx) {
-		return nil, fmt.Errorf("envtest: secondary informer cache sync timed out")
-	}
-
-	var hookBinder domain.AnyReconcileHooks
-	if fn, ok := types.HookRegistry[gvk]; ok {
-		hookBinder = fn()
+		return nil, fmt.Errorf("envtest: informer cache sync timed out")
 	}
 
 	peerRegistry := coordinator.NewCoordinatorRegistry()
@@ -276,28 +221,22 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 		peerRegistry.Register(peerGVKStr, peerEntry, peerInf, nil)
 	}
 
-	var r domain.Reconciler
-	if crdEntry.WithRemoteDecl() {
-		r, err = newRemoteReconciler(&crdEntry, recKube.WithInformer(inf), outsidePodNamespace)
-		if err != nil {
-			return nil, err
-		}
+	// The reconciler the runtime would build for this CRD.
+	recFactory, err := reconcilers.Factory(crdEntry, reconcilers.Deps{
+		Kube:         recKube,
+		Informer:     inf,
+		Event:        event.Discard(),
+		StoreFor:     infFactory.StoreFor,
+		IndexerFor:   infFactory.IndexerFor,
+		Catalog:      cat,
+		OwnNamespace: outsidePodNamespace,
+	})
+	if err != nil {
+		return nil, err
+	}
+	r := recFactory()
+	if crdEntry.WithRemoteDecl() || crdEntry.HasTargetRemoteDeclarations() {
 		result.Notes = append(result.Notes, remoteNote)
-	} else if factoryFn, ok := types.ReconcilerRegistry[gvk]; ok {
-		r = factoryFn(
-			recKube.WithInformer(inf).
-				WithIndexerFor(infFactory.IndexerFor).
-				WithStoreFor(infFactory.StoreFor).
-				WithEventRecorder(event.Discard()))
-	} else {
-		r = generic.New(
-			crdEntry,
-			inf,
-			recKube,
-			hookBinder,
-			newObjFn,
-			cat,
-		)
 	}
 
 	key, err := resolveCacheKey(cr)

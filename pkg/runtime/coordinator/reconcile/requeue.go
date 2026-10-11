@@ -33,7 +33,22 @@ func resolveRequeueAfter(
 		}
 		return after
 	}
-	obj := objectFromCache(in.Entry, key)
+	if after := declarativeRequeue(ctx, d, in, prepared); after > 0 {
+		return after
+	}
+	if prepared != nil {
+		if box := prepare.BoxFrom(prepared); box.HasCleanup() {
+			return 0
+		}
+	}
+	return -1
+}
+
+// declarativeRequeue evaluates the CRD's reconcile.requeue against the cached
+// CR; 0 when none applies. For a CR being deleted only a conditional requeue
+// (when/or) applies, and it holds the CR like a Result's requeue does.
+func declarativeRequeue(ctx context.Context, d Deps, in Input, prepared *domain.PreparedRequest) time.Duration {
+	obj := objectFromCache(in.Entry, in.Key)
 	var resolver *template.Resolver
 	if prepared != nil {
 		resolver = prepared.Context.(*template.Resolver)
@@ -45,13 +60,5 @@ func resolveRequeueAfter(
 				WithMetrics(in.Health.GetAutoMetrics())
 		}
 	}
-	if after := d.Cat.EvaluateRequeue(ctx, in.Entry.CRD.Name, obj, resolver); after > 0 {
-		return after
-	}
-	if prepared != nil {
-		if box := prepare.BoxFrom(prepared); box.HasCleanup() {
-			return 0
-		}
-	}
-	return -1
+	return d.Cat.EvaluateRequeue(ctx, in.Entry.CRD.Name, obj, resolver)
 }

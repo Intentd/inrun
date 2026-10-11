@@ -8,6 +8,7 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/runtime/app"
 	"github.com/intentd/inrun/pkg/runtime/leader"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/utils"
@@ -25,27 +26,32 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 		version.Version,
 	))
 
-	// create domain component and build inrun
-	startup := constructRuntime(cfg, m, ctx)
+	rt := app.New(cfg, m, ctx)
 	for _, f := range onCatalog {
-		f(startup.catalog)
+		f(rt.Catalog)
 	}
 
 	// ── Start ─────────────────────────────────────────────────────────────────
 	go func() {
-		if err := startup.inrun.Start(ctx); err != nil {
+		if err := rt.Process.Start(ctx); err != nil {
 			logger.Fatal().AnErr("inrun startup error", err)
 			utils.Exit(err)
 		}
 	}()
 
 	ko := leader.NewLeaderElection(
-		startup.kube,
-		startup.event,
-		func(ctx context.Context) { startup.cord.Coordinate(ctx) },
+		rt.Kube,
+		rt.Event,
+		func(ctx context.Context) { rt.Coordinator.Coordinate(ctx) },
 		func(leader string) {
-			// Banner prints here — leader is the actual winner
-			printBanner(startup, leader)
+			// Only the replica that won gets here.
+			logger.Info().
+				Str("leader", leader).
+				Str("namespace", cfg.Cluster().Namespace()).
+				Int("crds", len(rt.Catalog.Enabled())).
+				Bool("webhooks", rt.Catalog.HasMutationRules() || rt.Catalog.HasValidationRules() ||
+					rt.Catalog.IsDeletionProtectionEnabled() || rt.Catalog.IsNamespaceProtectionEnabled()).
+				Msg("leading: reconciling")
 		},
 		leader.Options{
 			Namespace:     cfg.Leader().Namespace(),
@@ -56,11 +62,11 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 		})
 
 	// start leader election as postStartHook after  inrun is ready
-	startup.inrun.AddPostStartHook(ko, func(ctx context.Context) {
+	rt.Process.AddPostStartHook(ko, func(ctx context.Context) {
 		logger.Info().Msg("starting leader election...")
 		ko.Start(ctx)
 	})
 
 	// Keep running until cancelled
-	startup.inrun.Wait()
+	rt.Process.Wait()
 }

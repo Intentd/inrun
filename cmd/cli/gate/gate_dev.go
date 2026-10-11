@@ -265,7 +265,7 @@ Example:
 			return fmt.Errorf("merging catalogs: %w", err)
 		}
 
-		internal.RunGatewayDev(cmdutil.Cfg, m, cmdutil.Ctx)
+		internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx)
 		return nil
 	},
 }

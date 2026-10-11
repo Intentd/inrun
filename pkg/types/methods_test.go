@@ -313,17 +313,36 @@ func TestInvolvedInConversion_Participant(t *testing.T) {
 	assert.True(t, c.InvolvedInConversion())
 }
 
-// ── UpdateCRDCaBundle ─────────────────────────────────────────────────────────
+// ── ShouldManageCRD ────────────────────────────────────────────────────────
 
-func TestUpdateCRDCaBundle_Nil(t *testing.T) {
+func TestShouldManageCRD_NoConversion(t *testing.T) {
 	c := emptyCRD()
-	assert.False(t, c.UpdateCRDCaBundle())
+	assert.False(t, c.ShouldManageCRD())
 }
 
-func TestUpdateCRDCaBundle_True(t *testing.T) {
+func TestShouldManageCRD_DefaultsOnWithPaths(t *testing.T) {
 	c := emptyCRD()
-	c.Admission = &types.AdmissionConfig{Conversion: &types.CRDConversion{UpdateCRD: true}}
-	assert.True(t, c.UpdateCRDCaBundle())
+	c.Admission = &types.AdmissionConfig{Conversion: &types.CRDConversion{
+		StorageVersion: "v1",
+		Paths:          []types.ConversionPath{{From: "v1alpha1", To: "v1"}},
+	}}
+	assert.True(t, c.ShouldManageCRD())
+}
+
+func TestShouldManageCRD_DefaultsOffForParticipant(t *testing.T) {
+	c := emptyCRD()
+	c.Admission = &types.AdmissionConfig{Conversion: &types.CRDConversion{Participant: true}}
+	assert.False(t, c.ShouldManageCRD())
+}
+
+func TestShouldManageCRD_ExplicitFalse(t *testing.T) {
+	c := emptyCRD()
+	off := false
+	c.Admission = &types.AdmissionConfig{Conversion: &types.CRDConversion{
+		Paths:     []types.ConversionPath{{From: "v1alpha1", To: "v1"}},
+		ManageCRD: &off,
+	}}
+	assert.False(t, c.ShouldManageCRD())
 }
 
 // ── HasNamespaceRules ─────────────────────────────────────────────────────────

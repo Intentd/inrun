@@ -15,9 +15,10 @@ import (
 	"github.com/intentd/inrun/pkg/utils"
 )
 
-// NewCatalog returns a fully built and validated Catalog.
-// Exits the process on any error
-func NewCatalog(cfg *config.Config, m *merger.Merger) *catalog.Catalog {
+// NewCatalog marks this process as instance (runtime or gateway) and returns
+// a fully built and validated Catalog. Exits the process on any error.
+func NewCatalog(cfg *config.Config, m *merger.Merger, instance config.Instance) *catalog.Catalog {
+	cfg.SetInstance(instance)
 	cat := &catalog.Catalog{}
 	cat.SetConfig(cfg)
 

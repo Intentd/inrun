@@ -2,14 +2,13 @@ package process
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/utils"
 )
@@ -21,7 +20,6 @@ type Manager struct {
 	postStart       []postStart
 	shutdownHooks   []func(context.Context) // called after all components stop
 	timeout         time.Duration
-	logLevel        string
 	done            chan struct{}
 	runningInstance string // Which instance (runtime or gateway) is running
 }
@@ -31,13 +29,17 @@ type postStart struct {
 	comp domain.Component
 }
 
-func New(instance string, timeout time.Duration, logLevel string) *Manager {
-	return &Manager{
-		runningInstance: instance,
-		timeout:         timeout,
-		logLevel:        logLevel,
+// New returns the Manager for this process's instance (runtime or gateway)
+// with components registered in start order. They stop in reverse order
+// within the Catalog's shutdown grace period.
+func New(cfg *config.Config, components []domain.Component) *Manager {
+	m := &Manager{
+		runningInstance: cfg.RunningInstance(),
+		timeout:         cfg.Catalog().ShutdownGracePeriod(),
 		done:            make(chan struct{}),
 	}
+	m.Register(components)
+	return m
 }
 
 // OnShutdown registers a function to be called after all components have
@@ -52,16 +54,15 @@ func New(instance string, timeout time.Duration, logLevel string) *Manager {
 // Hooks are called in registration order, sequentially.
 // If the shutdown timeout is exceeded before all hooks run, remaining hooks
 // are skipped — the process is exiting regardless.
-func (o *Manager) OnShutdown(fn func(context.Context)) {
-	o.shutdownHooks = append(o.shutdownHooks, fn)
+func (m *Manager) OnShutdown(fn func(context.Context)) {
+	m.shutdownHooks = append(m.shutdownHooks, fn)
 }
 
-func (o *Manager) Start(ctx context.Context) error {
+func (m *Manager) Start(ctx context.Context) error {
 	mCtx, mCancel := context.WithCancel(ctx)
 	defer mCancel()
 
-	logger.Info().Msgf("Starting %s components...", o.runningInstance)
-	for _, comp := range o.components {
+	for _, comp := range m.components {
 		name := comp.Name()
 
 		logger.Debug().Msgf("[%s] starting...", name)
@@ -69,46 +70,27 @@ func (o *Manager) Start(ctx context.Context) error {
 			logger.Error().Err(err).Msgf("failed to start: %s", name)
 			return err
 		}
-		utils.Sleep(1)
 		logger.Debug().Msgf("%s status: %v", name, utils.StatusOnline)
 	}
 
 	// Run post-start hooks (leader election goes here)
-	logger.Info().Msg("Running post-start hooks...")
-	for _, p := range o.postStart {
+	for _, p := range m.postStart {
 		go p.hook(mCtx)
 	}
 
-	logger.Info().Msgf("%s All components started successfully", utils.SuccessMarkPlain())
-
-	if strings.ToLower(o.logLevel) == "debug" {
-		// Display started components
-		fmt.Println("===============================")
-		fmt.Println("STARTED COMPONENTS:")
-
-		n := 1
-		for _, comp := range o.components {
-			fmt.Printf("%d. %s\n", n, comp.Name())
-			n++
-		}
-
-		for _, p := range o.postStart {
-			fmt.Printf("%d. %s\n", n, p.comp.Name())
-			n++
-		}
-		fmt.Println("===============================")
-
+	names := m.componentNames()
+	for _, p := range m.postStart {
+		names = append(names, p.comp.Name())
 	}
+	logger.Info().Str("instance", m.runningInstance).Strs("components", names).Msg("running")
 
-	logger.Info().Msgf("%s Inrun %s is running...", utils.SuccessMarkPlain(), o.runningInstance)
-
-	o.gracefulShutdown(mCtx, mCancel)
+	m.gracefulShutdown(mCtx, mCancel)
 	return nil
 }
 
-func (o *Manager) Shutdown(ctx context.Context) {}
+func (m *Manager) Shutdown(ctx context.Context) {}
 
-func (o *Manager) gracefulShutdown(ctx context.Context, cancel context.CancelFunc) {
+func (m *Manager) gracefulShutdown(ctx context.Context, cancel context.CancelFunc) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
@@ -118,17 +100,17 @@ func (o *Manager) gracefulShutdown(ctx context.Context, cancel context.CancelFun
 		cancel()
 
 		shutdownCtx, shutdownCancel := context.WithTimeout(
-			context.Background(), o.timeout,
+			context.Background(), m.timeout,
 		)
 		defer shutdownCancel()
 
 		// Stop components in reverse start order
-		for _, comp := range utils.Reversed(o.components) {
+		for _, comp := range utils.Reversed(m.components) {
 			// Respect the timeout between iterations
 			select {
 			case <-shutdownCtx.Done():
 				logger.Warn().Msg("shutdown timeout exceeded — stopping")
-				close(o.done)
+				close(m.done)
 				return
 			default:
 			}
@@ -144,20 +126,20 @@ func (o *Manager) gracefulShutdown(ctx context.Context, cancel context.CancelFun
 		}
 
 		// Event handler always last
-		if ev := o.GetComponent(eventHandler); ev != nil {
+		if ev := m.GetComponent(eventHandler); ev != nil {
 			ev.Shutdown(shutdownCtx)
 			logger.Warn().Msgf("%s: offline", ev.Name())
 		}
 
 		// Run shutdown hooks after all components have stopped
 		// Hooks run in registration order — RBAC cleanup, webhook removal, etc.
-		for i, hook := range o.shutdownHooks {
+		for i, hook := range m.shutdownHooks {
 			select {
 			case <-shutdownCtx.Done():
 				logger.Warn().
-					Int("remaining", len(o.shutdownHooks)-i).
+					Int("remaining", len(m.shutdownHooks)-i).
 					Msg("shutdown timeout exceeded — skipping remaining hooks")
-				close(o.done)
+				close(m.done)
 				return
 			default:
 			}
@@ -165,37 +147,31 @@ func (o *Manager) gracefulShutdown(ctx context.Context, cancel context.CancelFun
 		}
 
 		logger.Warn().Msg("all components shut down gracefully")
-		close(o.done)
+		close(m.done)
 
 	case <-ctx.Done():
 		return
 	}
 }
 
-// Register all components
-func (o *Manager) Register(c []domain.Component) {
-	logger.Info().Msgf("Registering inrun %s components...", o.runningInstance)
-	for _, comp := range c {
-		o.components = append(o.components, comp)
-		logger.Info().Msgf("[%s] registered", comp.Name())
-	}
-	logger.Info().Msgf("%s All components registered successfully", utils.SuccessMarkPlain())
+// Register adds components in start order.
+func (m *Manager) Register(c []domain.Component) {
+	m.components = append(m.components, c...)
+	logger.Info().Str("instance", m.runningInstance).Strs("components", m.componentNames()).Msg("registered")
+}
 
-	if strings.ToLower(o.logLevel) == "debug" {
-		// Display registered components
-		fmt.Println("==================================")
-		fmt.Println("REGISTERED COMPONENTS:")
-		n := 1
-		for _, comp := range o.components {
-			fmt.Printf("%d. %s\n", n, comp.Name())
-			n++
-		}
+// componentNames lists the registered components in start order.
+func (m *Manager) componentNames() []string {
+	names := make([]string, 0, len(m.components))
+	for _, comp := range m.components {
+		names = append(names, comp.Name())
 	}
+	return names
 }
 
 // GetComponent returns a component if present
-func (o *Manager) GetComponent(name string) domain.Component {
-	for _, comp := range o.components {
+func (m *Manager) GetComponent(name string) domain.Component {
+	for _, comp := range m.components {
 		if comp.Name() == name {
 			return comp
 		}
@@ -204,14 +180,14 @@ func (o *Manager) GetComponent(name string) domain.Component {
 }
 
 // AddPostStartHook: for services that need to start after the manager has started
-func (o *Manager) AddPostStartHook(comp domain.Component, hook func(context.Context)) {
-	o.postStart = append(o.postStart, postStart{
+func (m *Manager) AddPostStartHook(comp domain.Component, hook func(context.Context)) {
+	m.postStart = append(m.postStart, postStart{
 		hook: hook,
 		comp: comp,
 	})
 }
 
 // Listening to done channel
-func (o *Manager) Wait() {
-	<-o.done
+func (m *Manager) Wait() {
+	<-m.done
 }

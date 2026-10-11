@@ -273,7 +273,7 @@ func (ws *WebhookServer) maybeRotateCert(ctx context.Context, existing *corev1.S
 		Float64("days_until_expiry", daysLeft).
 		Msg("housekeeper: TLS cert within rotation window — pre-emptive rotation")
 
-	svcName := ws.config.GatewayServiceName()
+	svcName := ws.catalog.GatewayServiceName()
 	ns := ws.certSecretNamespace
 
 	newBundle, err := certmanager.GenerateClusterBundle(svcName, ns, certmanager.BundleOpts{ValidFor: ws.catalog.CertValidForStr()})
@@ -597,7 +597,7 @@ func (ws *WebhookServer) reconcileNamespaceProtectionWebhook() {
 	ctx, cancel := context.WithTimeout(context.Background(), highTimeout)
 	defer cancel()
 
-	svcName := cat.NamespaceProtectionServiceName()
+	svcName := cat.GatewayServiceName()
 	failurePolicy := cat.NamespaceProtectionFailurePolicy()
 	if err := registerNamespaceProtectionWebhook(ctx, ws.kubeClient, npGVRs, caBundle, ws.hookReg, svcName, failurePolicy); err != nil {
 		logger.Error().Err(err).Msgf("%s: namespace protection registration failed", housekeeper)

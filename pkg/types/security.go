@@ -121,8 +121,9 @@ type ServiceName struct {
 	// components. This is typically the name used for wiring and enrichment.
 	Runtime string `json:"runtime,omitempty" yaml:"runtime,omitempty"`
 
-	// Gateway is the externally visible service name used by ingress, gateway,
-	// or routing layers. This may differ from the runtime name.
+	// Gateway is the gateway's Service. Every webhook Inrun registers
+	// (deletion and namespace protection, admission, conversion) points at it,
+	// and the generated TLS certificate is issued for it.
 	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
 }
 
@@ -131,11 +132,6 @@ type DeletionProtectionConfig struct {
 	// Enabled controls whether deletion protection is active.
 	// Default: true when the deletionProtection block is declared.
 	Enabled *bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
-
-	// ServiceName is the Kubernetes Service fronting Inrun's HTTPS server.
-	// The API server sends webhook requests to this Service.
-	// Default: INRUN_SERVICE_NAME env / "inrun".
-	ServiceName string `yaml:"serviceName,omitempty" json:"serviceName,omitempty"`
 
 	// FailurePolicy controls what the API server does when Inrun is unreachable.
 	// "Fail" — reject the DELETE (recommended for protection; this is the default).
@@ -160,11 +156,6 @@ type NamespaceProtectionConfig struct {
 	// Enabled controls whether namespace protection is active.
 	// Default: true when the namespaceProtection block is declared.
 	Enabled *bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
-
-	// ServiceName is the Kubernetes Service fronting Inrun's HTTPS server.
-	// The API server sends webhook requests to this Service.
-	// Default: INRUN_SERVICE_NAME env / "inrun".
-	ServiceName string `yaml:"serviceName,omitempty" json:"serviceName,omitempty"`
 
 	// FailurePolicy controls what the API server does when Inrun is unreachable.
 	// "Fail"   — reject the CREATE/UPDATE (recommended; this is the default).
@@ -196,11 +187,6 @@ type WebhooksConfig struct {
 	// for admission calls. "Fail" or "Ignore".
 	// Default: WEBHOOKS_FAILURE_POLICY env / "Ignore".
 	FailurePolicy string `yaml:"failurePolicy,omitempty" json:"failurePolicy,omitempty"`
-
-	// ServiceName is the Kubernetes Service fronting Inrun's HTTPS server.
-	// Shared with deletion protection when both are enabled.
-	// Default: INRUN_SERVICE_NAME env / "inrun".
-	ServiceName string `yaml:"serviceName,omitempty" json:"serviceName,omitempty"`
 
 	// CleanupOnShutdown controls whether Admission webhook is deleted on graceful shutdown.
 	// Default: false — Admission webhook persists across restarts.
@@ -262,19 +248,10 @@ func (s *CatalogSecurity) IsConversionEnabled() bool {
 	return *s.Conversion.Enabled
 }
 
-// DeletionProtectionServiceName returns the effective service name for deletion protection.
-// Falls back to the provided ENV default.
-func (s *CatalogSecurity) DeletionProtectionServiceName(envDefault string) string {
-	if s != nil && s.DeletionProtection != nil && s.DeletionProtection.ServiceName != "" {
-		return s.DeletionProtection.ServiceName
-	}
-	return envDefault
-}
-
 // RuntimeServiceName returns the effective service name for inrun runtime.
 // Falls back to the provided ENV default.
 func (s *CatalogSecurity) RuntimeServiceName(envDefault string) string {
-	if s != nil && s.ServiceName != nil {
+	if s != nil && s.ServiceName != nil && s.ServiceName.Runtime != "" {
 		return s.ServiceName.Runtime
 	}
 	return envDefault
@@ -283,7 +260,7 @@ func (s *CatalogSecurity) RuntimeServiceName(envDefault string) string {
 // GatewayServiceName returns the effective service name for inrun gateway.
 // Falls back to the provided ENV default.
 func (s *CatalogSecurity) GatewayServiceName(envDefault string) string {
-	if s != nil && s.ServiceName != nil {
+	if s != nil && s.ServiceName != nil && s.ServiceName.Gateway != "" {
 		return s.ServiceName.Gateway
 	}
 	return envDefault
@@ -309,15 +286,6 @@ func (s *CatalogSecurity) IsNamespaceProtectionEnabled() bool {
 	return *s.NamespaceProtection.Enabled
 }
 
-// NamespaceProtectionServiceName returns the effective service name for namespace protection.
-// Falls back to the provided ENV default.
-func (s *CatalogSecurity) NamespaceProtectionServiceName(envDefault string) string {
-	if s != nil && s.NamespaceProtection != nil && s.NamespaceProtection.ServiceName != "" {
-		return s.NamespaceProtection.ServiceName
-	}
-	return envDefault
-}
-
 // NamespaceProtectionFailurePolicy returns the effective failure policy string.
 // Falls back to "Fail" when not configured — protecting by default.
 func (s *CatalogSecurity) NamespaceProtectionFailurePolicy() string {
@@ -325,15 +293,6 @@ func (s *CatalogSecurity) NamespaceProtectionFailurePolicy() string {
 		return s.NamespaceProtection.FailurePolicy
 	}
 	return "Fail"
-}
-
-// WebhooksServiceName returns the effective service name for admission webhooks.
-// Falls back to the provided ENV default.
-func (s *CatalogSecurity) WebhooksServiceName(envDefault string) string {
-	if s != nil && s.Webhooks != nil && s.Webhooks.ServiceName != "" {
-		return s.Webhooks.ServiceName
-	}
-	return envDefault
 }
 
 // WebhooksFailurePolicy returns the effective failure policy for admission webhooks.

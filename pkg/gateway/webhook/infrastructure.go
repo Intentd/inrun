@@ -53,12 +53,12 @@ type CRDWatcher interface {
 }
 
 // ConversionCRDPatchFn patches the caBundle on a single CRD's conversion webhook.
-// Called by the housekeeper for each CRD that declares conversion.updateCRD: true.
+// Called by the housekeeper for each CRD whose conversion.manageCRD is in effect.
 // The closure captures serviceName, serviceNamespace, and the apiextensions client.
-type ConversionCRDPatchFn func(ctx context.Context, crdName, caBundle64, storageVersion string) error
+type ConversionCRDPatchFn func(ctx context.Context, crdName, caBundle64 string) error
 
 // SetConversionCRDPatcher provides the housekeeper with the function it needs to
-// re-patch CRD conversion webhooks. Called from cmd/internal after the kubeclient
+// re-patch CRD conversion webhooks. Called from the gateway app after the kubeclient
 // and catalog are available.
 func (ws *WebhookServer) SetConversionCRDPatcher(fn ConversionCRDPatchFn) {
 	ws.patchConversionCRD = fn
@@ -161,9 +161,10 @@ func (ws *WebhookServer) operatorNamespace() string {
 
 // ── CRD conversion caBundle reconciler ────────────────────────────────────────
 
-// reconcileCRDConversionWebhooks ensures every CRD with conversion.updateCRD: true
-// has the correct caBundle in its spec.conversion.webhook.clientConfig.caBundle.
-// No-op when conversion is not enabled or no patcher is registered.
+// reconcileCRDConversionWebhooks ensures every CRD whose conversion.manageCRD
+// is in effect has the correct caBundle in its spec.conversion.webhook.clientConfig.caBundle.
+// No-op when conversion is not enabled, no patcher is registered or the
+// certificate is configured rather than generated.
 func (ws *WebhookServer) reconcileCRDConversionWebhooks() {
 	if !ws.convEnabled {
 		return
@@ -172,34 +173,22 @@ func (ws *WebhookServer) reconcileCRDConversionWebhooks() {
 		return
 	}
 
-	var caPEM []byte
-	if ws.certSecretData != nil {
-		caPEM = ws.certSecretData.caPEM
-	} else {
-		var err error
-		caPEM, err = readCABundle(ws.hookReg.TLSCertFile)
-		if err != nil {
-			logger.Error().Err(err).
-				Msg("housekeeper: cannot read CA bundle for CRD conversion patch")
-			metrics.RecordWebhookReconciliationFailure(infraConversionBundle)
-			return
-		}
+	// A configured certificate's owner configures spec.conversion.
+	if ws.certSecretData == nil {
+		return
 	}
-
-	caBundle64 := base64.StdEncoding.EncodeToString(caPEM)
+	caBundle64 := base64.StdEncoding.EncodeToString(ws.certSecretData.caPEM)
 
 	ctx, cancel := context.WithTimeout(context.Background(), highTimeout)
 	defer cancel()
 
 	for _, crd := range ws.catalog.EnabledCRDs() {
-		if !crd.UpdateCRDCaBundle() {
+		if !crd.ShouldManageCRD() {
 			continue
 		}
 
 		crdName := crd.APITypes.Plural + "." + crd.APITypes.Group
-		storageVersion := crd.EffectiveConversion().StorageVersion
-
-		if err := ws.patchConversionCRD(ctx, crdName, caBundle64, storageVersion); err != nil {
+		if err := ws.patchConversionCRD(ctx, crdName, caBundle64); err != nil {
 			logger.Error().Err(err).Str("crd", crdName).
 				Msg("housekeeper: failed to patch CRD conversion caBundle")
 			metrics.RecordWebhookReconciliationFailure(infraConversionBundle)
@@ -218,14 +207,15 @@ func (ws *WebhookServer) reconcileCRDConversionWebhooks() {
 // caBundle is restored within a single API round-trip rather than at the next
 // safety-ticker interval.
 //
-// No-op when no CRD watcher is set or conversion is not enabled.
+// No-op when no CRD watcher is set, conversion is not enabled or the
+// certificate is configured rather than generated.
 func (ws *WebhookServer) watchConversionCRDs(ctx context.Context, trigger chan<- struct{}) {
-	if ws.crdWatcher == nil || !ws.convEnabled || ws.catalog == nil {
+	if ws.crdWatcher == nil || !ws.convEnabled || ws.catalog == nil || ws.certSecretData == nil {
 		return
 	}
 
 	for _, crd := range ws.catalog.EnabledCRDs() {
-		if !crd.UpdateCRDCaBundle() {
+		if !crd.ShouldManageCRD() {
 			continue
 		}
 		crdName := crd.APITypes.Plural + "." + crd.APITypes.Group

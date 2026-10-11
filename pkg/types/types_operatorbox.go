@@ -374,7 +374,10 @@ type ReconcilerConfig struct {
 }
 
 // RequeueConfig declares per-object requeue behavior after a successful reconcile.
-// Errors are retried via queue.retryBackoff, not requeue.
+// Errors are retried via queue.retryBackoff, not requeue. While a CR is being
+// deleted, a requeue with when/or conditions holds its finalizer like a
+// Result's requeue (up to runtime.finalizers.timeout); one without conditions
+// is a periodic refresh and does not.
 type RequeueConfig struct {
 	// After is a template expression resolving to a Go duration string (e.g. "{{ .spec.checkInterval }}").
 	// Empty means no requeue — wait for the next informer event.
