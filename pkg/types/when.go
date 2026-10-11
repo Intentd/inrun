@@ -30,6 +30,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/inrundev/inrun/pkg/utils"
 	"regexp"
 	"strings"
 	"time"
@@ -406,7 +407,7 @@ func ResolveConditionOp(c Condition) (ConditionOperator, string) {
 
 // ── Private string/numeric helpers ───────────────────────────────────────────
 
-func typesSplitDot(s string) []string   { return typesSplitOn(s, '.') }
+func typesSplitDot(s string) []string   { return utils.SplitField(s) }
 func typesSplitComma(s string) []string { return typesSplitOn(s, ',') }
 
 func typesSplitOn(s string, sep byte) []string {

@@ -357,59 +357,55 @@ func TestDeepCopyMap_PreservesAllFields(t *testing.T) {
 
 // ── buildJSONPatch ────────────────────────────────────────────────────────────
 
-func TestBuildJSONPatch_AddForAbsentField(t *testing.T) {
-	changes := []fieldChange{
-		{Field: "spec.replicas", OldValue: "", NewValue: "2", TypedValue: "2", ChangeType: "default"},
-	}
-
-	raw, err := buildJSONPatch(changes)
+func patchOps(t *testing.T, original, mutated map[string]interface{}) []map[string]interface{} {
+	t.Helper()
+	raw, err := buildJSONPatch(original, mutated)
 	require.NoError(t, err)
-
-	var ops []JSONPatchOp
+	var ops []map[string]interface{}
 	require.NoError(t, json.Unmarshal(raw, &ops))
+	return ops
+}
+
+func TestBuildJSONPatch_AddForAbsentField(t *testing.T) {
+	ops := patchOps(t,
+		map[string]interface{}{"spec": map[string]interface{}{}},
+		map[string]interface{}{"spec": map[string]interface{}{"replicas": "2"}})
 	require.Len(t, ops, 1)
-	assert.Equal(t, "add", ops[0].Op)
-	assert.Equal(t, "/spec/replicas", ops[0].Path)
-	assert.Equal(t, "2", ops[0].Value)
+	assert.Equal(t, "add", ops[0]["op"])
+	assert.Equal(t, "/spec/replicas", ops[0]["path"])
+	assert.Equal(t, "2", ops[0]["value"])
 }
 
 func TestBuildJSONPatch_ReplaceForExistingField(t *testing.T) {
-	changes := []fieldChange{
-		{Field: "metadata.labels.managed-by", OldValue: "helm", NewValue: "inrun", ChangeType: "override"},
+	labels := func(v string) map[string]interface{} {
+		return map[string]interface{}{"metadata": map[string]interface{}{"labels": map[string]interface{}{"managed-by": v}}}
 	}
-
-	raw, err := buildJSONPatch(changes)
-	require.NoError(t, err)
-
-	var ops []JSONPatchOp
-	require.NoError(t, json.Unmarshal(raw, &ops))
+	ops := patchOps(t, labels("helm"), labels("inrun"))
 	require.Len(t, ops, 1)
-	assert.Equal(t, "replace", ops[0].Op)
-	assert.Equal(t, "/metadata/labels/managed-by", ops[0].Path)
+	assert.Equal(t, "replace", ops[0]["op"])
+	assert.Equal(t, "/metadata/labels/managed-by", ops[0]["path"])
 }
 
-func TestBuildJSONPatch_MultipleChanges(t *testing.T) {
-	changes := []fieldChange{
-		{Field: "spec.replicas", OldValue: "", NewValue: "2", ChangeType: "default"},
-		{Field: "spec.logLevel", OldValue: "", NewValue: "info", ChangeType: "default"},
-		{Field: "metadata.labels.managed-by", OldValue: "helm", NewValue: "inrun", ChangeType: "override"},
-	}
-
-	raw, err := buildJSONPatch(changes)
-	require.NoError(t, err)
-
-	var ops []JSONPatchOp
-	require.NoError(t, json.Unmarshal(raw, &ops))
-	assert.Len(t, ops, 3)
+func TestBuildJSONPatch_KeyWithDotsAndSlash(t *testing.T) {
+	ops := patchOps(t,
+		map[string]interface{}{"metadata": map[string]interface{}{"labels": map[string]interface{}{}}},
+		map[string]interface{}{"metadata": map[string]interface{}{"labels": map[string]interface{}{"app.kubernetes.io/name": "web"}}})
+	require.Len(t, ops, 1)
+	assert.Equal(t, "/metadata/labels/app.kubernetes.io~1name", ops[0]["path"])
 }
 
-func TestBuildJSONPatch_EmptyChanges(t *testing.T) {
-	raw, err := buildJSONPatch(nil)
-	require.NoError(t, err)
+func TestBuildJSONPatch_AddsMissingParent(t *testing.T) {
+	ops := patchOps(t,
+		map[string]interface{}{"metadata": map[string]interface{}{"name": "a"}},
+		map[string]interface{}{"metadata": map[string]interface{}{"name": "a", "labels": map[string]interface{}{"tier": "gold"}}})
+	require.Len(t, ops, 1)
+	assert.Equal(t, "add", ops[0]["op"])
+	assert.Equal(t, "/metadata/labels", ops[0]["path"])
+}
 
-	var ops []JSONPatchOp
-	require.NoError(t, json.Unmarshal(raw, &ops))
-	assert.Empty(t, ops)
+func TestBuildJSONPatch_NoChanges(t *testing.T) {
+	obj := map[string]interface{}{"spec": map[string]interface{}{"replicas": "2"}}
+	assert.Empty(t, patchOps(t, obj, obj))
 }
 
 // ── gvrToKey ──────────────────────────────────────────────────────────────────

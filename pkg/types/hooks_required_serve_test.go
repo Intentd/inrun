@@ -134,7 +134,7 @@ func TestRequiredServeFieldRules_LabelFallsBackToFieldName(t *testing.T) {
 	}
 }
 
-func TestRequiredServeFieldRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
+func TestRequiredServeFieldRules_LabelsAndAnnotationsUsePaths(t *testing.T) {
 	c := &CRDEntry{Serve: &ServeConfig{
 		Labels: map[string]ServeFieldConfig{
 			"team": {Label: "Team", Required: true},
@@ -149,18 +149,16 @@ func TestRequiredServeFieldRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
 		t.Fatalf("got %d rules, want 2: %+v", len(rules), rules)
 	}
 
-	labelRule := findValidationRule(t, rules, `{{ getLabel . "team" }}`)
+	labelRule := findValidationRule(t, rules, `metadata.labels.team`)
 	if labelRule.Message != "Team is required" || labelRule.Operator != ConditionExists {
-		t.Errorf("label rule = %+v, want a getLabel-based exists rule", labelRule)
+		t.Errorf("label rule = %+v, want an exists rule on the label path", labelRule)
 	}
 
-	// A dotted annotation key must go through getAnnotation, not a raw
-	// dot-path — dot-path resolution would misparse the dots inside the key
-	// itself as extra path segments.
-	annotationField := `{{ getAnnotation . "platform.myorg.io/jira-ticket" }}`
+	// A dotted annotation key is escaped, so it stays one path segment.
+	annotationField := `metadata.annotations.platform\.myorg\.io/jira-ticket`
 	annotationRule := findValidationRule(t, rules, annotationField)
 	if annotationRule.Message != "Jira Ticket is required" || annotationRule.Operator != ConditionExists {
-		t.Errorf("annotation rule = %+v, want a getAnnotation-based exists rule", annotationRule)
+		t.Errorf("annotation rule = %+v, want an exists rule on the annotation path", annotationRule)
 	}
 }
 
@@ -184,12 +182,12 @@ func TestRequiredServeFieldRules_LinkSetForLabelsAndAnnotationsOnly(t *testing.T
 		t.Errorf("spec field rule.Link = %q, want empty — \"spec.team\" is already a clean display name", specRule.Link)
 	}
 
-	labelRule := findValidationRule(t, rules, `{{ getLabel . "environment" }}`)
+	labelRule := findValidationRule(t, rules, `metadata.labels.environment`)
 	if labelRule.Link != "environment" {
 		t.Errorf("label field rule.Link = %q, want %q", labelRule.Link, "environment")
 	}
 
-	annotationRule := findValidationRule(t, rules, `{{ getAnnotation . "platform.myorg.io/jira-ticket" }}`)
+	annotationRule := findValidationRule(t, rules, `metadata.annotations.platform\.myorg\.io/jira-ticket`)
 	if annotationRule.Link != "platform.myorg.io/jira-ticket" {
 		t.Errorf("annotation field rule.Link = %q, want %q", annotationRule.Link, "platform.myorg.io/jira-ticket")
 	}
@@ -295,8 +293,8 @@ func TestRequiredServeFieldRules_AllThreeBucketsCombine(t *testing.T) {
 		t.Fatalf("got %d rules, want 3 (one per bucket): %+v", len(rules), rules)
 	}
 	findValidationRule(t, rules, "spec.image")
-	findValidationRule(t, rules, `{{ getLabel . "team" }}`)
-	findValidationRule(t, rules, `{{ getAnnotation . "expose" }}`)
+	findValidationRule(t, rules, `metadata.labels.team`)
+	findValidationRule(t, rules, `metadata.annotations.expose`)
 }
 
 func TestEnumServeFieldRules_NilCases(t *testing.T) {
@@ -400,7 +398,7 @@ func TestEnumServeFieldRules_ExistsGateIndependentOfRequired(t *testing.T) {
 	}
 }
 
-func TestEnumServeFieldRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
+func TestEnumServeFieldRules_LabelsAndAnnotationsUsePaths(t *testing.T) {
 	c := &CRDEntry{Serve: &ServeConfig{
 		Labels: map[string]ServeFieldConfig{
 			"tier": {Label: "Tier", Type: "enum", Enum: []string{"free", "pro", "enterprise"}},
@@ -412,13 +410,13 @@ func TestEnumServeFieldRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
 		t.Fatalf("got %d rules, want 1: %+v", len(rules), rules)
 	}
 
-	field := `{{ getLabel . "tier" }}`
+	field := `metadata.labels.tier`
 	r := findValidationRule(t, rules, field)
 	if r.Value != "free,pro,enterprise" {
 		t.Errorf("Value = %q, want %q", r.Value, "free,pro,enterprise")
 	}
 	if len(r.When) != 1 || r.When[0].Field != field || r.When[0].Operator != ConditionExists {
-		t.Errorf("When = %+v, want a single synthesized exists gate using the same getLabel expression", r.When)
+		t.Errorf("When = %+v, want a single synthesized exists gate on the same label path", r.When)
 	}
 	if r.Link != "tier" {
 		t.Errorf("Link = %q, want %q", r.Link, "tier")
@@ -587,7 +585,7 @@ func TestServeFieldMutationRules_SpecFieldInheritsWhenAndOr(t *testing.T) {
 	}
 }
 
-func TestServeFieldMutationRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
+func TestServeFieldMutationRules_LabelsAndAnnotationsUsePaths(t *testing.T) {
 	c := &CRDEntry{Serve: &ServeConfig{
 		Labels: map[string]ServeFieldConfig{
 			"team":       {Override: "payments"},
@@ -605,8 +603,8 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
 	}
 
 	// Labels
-	labelRule1 := findMutationRule(t, rules, `{{ getLabel . "team" }}`)
-	labelRule2 := findMutationRule(t, rules, `{{ getLabel . "department" }}`)
+	labelRule1 := findMutationRule(t, rules, `metadata.labels.team`)
+	labelRule2 := findMutationRule(t, rules, `metadata.labels.department`)
 	if labelRule1.Override != "payments" || labelRule1.Default != nil {
 		t.Errorf("label rule1 = %+v, want override as payments and default absent", labelRule1)
 	}
@@ -615,8 +613,8 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsUseNotes(t *testing.T) {
 	}
 
 	// Annotations
-	annotationRule1 := findMutationRule(t, rules, `{{ getAnnotation . "platform.myorg.io/jira-ticket" }}`)
-	annotationRule2 := findMutationRule(t, rules, `{{ getAnnotation . "platform.myorg.io/confluence-link" }}`)
+	annotationRule1 := findMutationRule(t, rules, `metadata.annotations.platform\.myorg\.io/jira-ticket`)
+	annotationRule2 := findMutationRule(t, rules, `metadata.annotations.platform\.myorg\.io/confluence-link`)
 	if annotationRule1.Override != "PAY-123" || annotationRule1.Default != nil {
 		t.Errorf("annotation rule1 = %+v, want override as PAY-123 and default absent", annotationRule1)
 	}
@@ -650,7 +648,7 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testin
 	}
 
 	// Labels
-	teamRule := findMutationRule(t, rules, `{{ getLabel . "team" }}`)
+	teamRule := findMutationRule(t, rules, `metadata.labels.team`)
 	if len(teamRule.When) != 1 || teamRule.When[0].Field != "spec.workloadType" || teamRule.When[0].Equals != "app" {
 		t.Errorf("team rule.When = %+v, want the field's own When condition carried through", teamRule.When)
 	}
@@ -658,7 +656,7 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testin
 		t.Errorf("team rule.Or = %+v, want empty — the field declared When, not Or", teamRule.Or)
 	}
 
-	deptRule := findMutationRule(t, rules, `{{ getLabel . "department" }}`)
+	deptRule := findMutationRule(t, rules, `metadata.labels.department`)
 	if len(deptRule.When) != 1 || deptRule.When[0].Field != "spec.workloadType" || deptRule.When[0].Equals != "app" {
 		t.Errorf("department rule.When = %+v, want the field's own When condition carried through", deptRule.When)
 	}
@@ -667,7 +665,7 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testin
 	}
 
 	// Annotations
-	jiraRule := findMutationRule(t, rules, `{{ getAnnotation . "platform.myorg.io/jira-ticket" }}`)
+	jiraRule := findMutationRule(t, rules, `metadata.annotations.platform\.myorg\.io/jira-ticket`)
 	if len(jiraRule.When) != 1 || jiraRule.When[0].Field != "spec.workloadType" || jiraRule.When[0].Equals != "app" {
 		t.Errorf("JIRA rule.When = %+v, want the field's own When condition carried through", jiraRule.When)
 	}
@@ -675,7 +673,7 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testin
 		t.Errorf("JIRA rule.Or = %+v, want empty — the field declared When, not Or", jiraRule.Or)
 	}
 
-	confluenceRule := findMutationRule(t, rules, `{{ getAnnotation . "platform.myorg.io/confluence-link" }}`)
+	confluenceRule := findMutationRule(t, rules, `metadata.annotations.platform\.myorg\.io/confluence-link`)
 	if len(confluenceRule.When) != 1 || confluenceRule.When[0].Field != "spec.workloadType" || confluenceRule.When[0].Equals != "app" {
 		t.Errorf("confluence rule.When = %+v, want the field's own When condition carried through", confluenceRule.When)
 	}
@@ -683,7 +681,7 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testin
 		t.Errorf("confluence rule.Or = %+v, want the field's own Or conditions carried through", confluenceRule.Or)
 	}
 
-	githubRule := findMutationRule(t, rules, `{{ getAnnotation . "platform.myorg.io/github-org" }}`)
+	githubRule := findMutationRule(t, rules, `metadata.annotations.platform\.myorg\.io/github-org`)
 	if len(githubRule.When) != 0 {
 		t.Errorf("GitHub rule.Or = %+v, want empty — the field declared no conditions", githubRule.Or)
 	}

@@ -1,11 +1,16 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"sort"
 	"strings"
 
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
@@ -73,4 +78,48 @@ func Merge(target *string, incoming, sep string) {
 func IsRunningInPod() bool {
 	_, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	return err == nil
+}
+
+// DumpCRsJSON writes each object in crs to w, grouped by kind (sorted) and
+// indented as pretty-printed JSON. It is meant for debugging and test logs,
+// not for machine-readable output — marshal errors are reported inline and do
+// not stop the walk, so a single bad object doesn't hide the rest.
+func DumpCRsJSON(w io.Writer, crs map[string][]*unstructured.Unstructured) {
+	for _, kind := range sortedKinds(crs) {
+		for i, u := range crs[kind] {
+			b, err := json.MarshalIndent(u.Object, "", "  ")
+			if err != nil {
+				fmt.Fprintf(w, "%s[%d]: marshal error: %v\n", kind, i, err)
+				continue
+			}
+			fmt.Fprintf(w, "%s[%d]:\n%s\n", kind, i, b)
+		}
+	}
+}
+
+// DumpCRsYAML is DumpCRsJSON with YAML output. Same contract: grouped by kind
+// (sorted), best-effort on per-object marshal errors, intended for humans
+// reading debug or test output.
+func DumpCRsYAML(w io.Writer, crs map[string][]*unstructured.Unstructured) {
+	for _, kind := range sortedKinds(crs) {
+		for i, u := range crs[kind] {
+			b, err := yaml.Marshal(u.Object)
+			if err != nil {
+				fmt.Fprintf(w, "%s[%d]: marshal error: %v\n", kind, i, err)
+				continue
+			}
+			fmt.Fprintf(w, "%s[%d]:\n%s\n", kind, i, b)
+		}
+	}
+}
+
+// sortedKinds returns the keys of crs in ascending order so dumps are stable
+// across runs — Go map iteration order is randomized.
+func sortedKinds(crs map[string][]*unstructured.Unstructured) []string {
+	kinds := make([]string, 0, len(crs))
+	for k := range crs {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds)
+	return kinds
 }

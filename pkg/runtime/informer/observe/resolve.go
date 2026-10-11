@@ -2,7 +2,7 @@
 package observe
 
 import (
-	"strings"
+	"github.com/inrundev/inrun/pkg/utils"
 
 	"github.com/inrundev/inrun/domain"
 	"github.com/inrundev/inrun/pkg/logger"
@@ -104,13 +104,7 @@ func (o *Observer) resolveWatchKeys(opts watchOptions, obj interface{}) []string
 }
 
 func splitWatchField(field string) []string {
-	field = strings.TrimPrefix(field, ".")
-
-	if field == "" {
-		return nil
-	}
-
-	return strings.Split(field, ".")
+	return utils.SplitField(field)
 }
 
 // resolveGVR resolves a ManagedResource into a concrete GroupVersionResource

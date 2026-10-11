@@ -61,19 +61,10 @@ func DeepCopyMap(src map[string]interface{}) map[string]interface{} {
 	return dst
 }
 
-// SetNestedPath sets a value at a dot-notation path in a map.
-// Creates intermediate maps as needed.
-//
-// Example:
-//
-//	SetNestedPath(spec, "app.repository", "myorg/payments-api")
-//	→ spec["app"]["repository"] = "myorg/payments-api"
+// SetNestedPath sets a value at a dot-notation path (see SplitField), creating
+// intermediate maps. It errors when a segment on the way is not a map.
 func SetNestedPath(m map[string]interface{}, path string, value interface{}) error {
-	if path == "" {
-		return fmt.Errorf("empty path")
-	}
-
-	parts := strings.Split(path, ".")
+	parts := SplitField(path)
 	if len(parts) == 0 {
 		return fmt.Errorf("empty path")
 	}
@@ -97,14 +88,13 @@ func SetNestedPath(m map[string]interface{}, path string, value interface{}) err
 	return nil
 }
 
-// GetNestedPath retrieves a value from a dot-notation path in a map.
-// Returns nil, false if the path doesn't exist.
+// GetNestedPath returns the value at a dot-notation path (see SplitField), and
+// whether it exists.
 func GetNestedPath(m map[string]interface{}, path string) (interface{}, bool) {
-	if path == "" {
+	parts := SplitField(path)
+	if len(parts) == 0 {
 		return nil, false
 	}
-
-	parts := strings.Split(path, ".")
 	current := m
 	for i, key := range parts {
 		val, ok := current[key]
@@ -123,26 +113,20 @@ func GetNestedPath(m map[string]interface{}, path string) (interface{}, bool) {
 	return nil, false
 }
 
-// DeleteNestedPath removes a dot-notation path from a nested map in place.
-// Silently does nothing when the path does not exist — partial paths are not
-// errors. Supports arbitrary depth: "metadata.managedFields",
-// "status.observedGeneration", "metadata.annotations.internal-key".
+// DeleteNestedPath removes the key at a dot-notation path (see SplitField) in
+// place. A path that does not exist is not an error.
 func DeleteNestedPath(obj map[string]interface{}, path string) {
-	parts := strings.SplitN(path, ".", 2)
-	if len(parts) == 0 || obj == nil {
-		return
-	}
-
-	key := parts[0]
-	if len(parts) == 1 {
-		// Leaf — delete this key.
-		delete(obj, key)
-		return
-	}
-
-	// Intermediate — recurse into the nested map if it exists.
-	if nested, ok := obj[key].(map[string]interface{}); ok {
-		DeleteNestedPath(nested, parts[1])
+	parts := SplitField(path)
+	current := obj
+	for i, key := range parts {
+		if current == nil {
+			return
+		}
+		if i == len(parts)-1 {
+			delete(current, key)
+			return
+		}
+		current, _ = current[key].(map[string]interface{})
 	}
 }
 
@@ -151,10 +135,10 @@ func IsNestedPath(path string) bool {
 	return strings.Contains(path, ".")
 }
 
-// SplitPath splits a dot-notation path into its parts, ignoring empty segments.
+// SplitPath is SplitField without empty segments.
 func SplitPath(path string) []string {
 	var parts []string
-	for _, p := range strings.Split(path, ".") {
+	for _, p := range SplitField(path) {
 		if p != "" {
 			parts = append(parts, p)
 		}
@@ -162,8 +146,10 @@ func SplitPath(path string) []string {
 	return parts
 }
 
+// SetFieldPath sets a value at a dot-notation path (see SplitField), replacing
+// anything on the way that is not a map.
 func SetFieldPath(obj map[string]interface{}, path string, value interface{}) {
-	parts := strings.Split(path, ".")
+	parts := SplitField(path)
 	current := obj
 
 	for i, part := range parts {
