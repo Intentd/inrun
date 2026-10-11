@@ -90,7 +90,9 @@ jobs:
 
           git clone --branch gh-pages "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh-pages
 
-          cp ".cr-release-packages/${INRUN}-${VERSION}.tgz" /tmp/gh-pages/
+          # Charts live under versions/; index.yaml stays at the root.
+          mkdir -p /tmp/gh-pages/versions
+          cp ".cr-release-packages/${INRUN}-${VERSION}.tgz" /tmp/gh-pages/versions/
 
           # Sync README with version badges
           cp "${CHART_DIR}/README.md" /tmp/gh-pages/README.md
@@ -101,16 +103,18 @@ jobs:
 
           cp "charts/${INRUN}/values.yaml" /tmp/gh-pages/values.yaml
 
+          # helm repo index also reads versions/*.tgz and writes versions/<file>
+          # into each entry's URL.
           cd /tmp/gh-pages
           if [[ -f index.yaml ]]; then
-            helm repo index . --url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" --merge index.yaml
+            helm repo index . --url "${{ inputs.helm_repo_url }}" --merge index.yaml
           else
-            helm repo index . --url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+            helm repo index . --url "${{ inputs.helm_repo_url }}"
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "*.tgz" index.yaml README.md values.yaml
+          git add "versions/*.tgz" index.yaml README.md values.yaml
           git commit -m "Release ${INRUN}-${VERSION}"
           git push origin gh-pages
 

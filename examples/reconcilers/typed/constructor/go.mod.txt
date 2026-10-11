@@ -1,6 +1,6 @@
 module github.com/intentd/inrun-constructor-demo
 
-go 1.26.3
+go 1.26.9
 
 require (
 	github.com/intentd/inrun {{ .InrunVersion }}

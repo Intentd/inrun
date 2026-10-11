@@ -1,6 +1,6 @@
 module github.com/intentd/from-controller-runtime-demo
 
-go 1.26.3
+go 1.26.9
 
 require (
 	github.com/intentd/inrun {{ .InrunVersion }}
