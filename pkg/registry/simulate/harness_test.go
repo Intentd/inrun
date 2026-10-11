@@ -2,6 +2,7 @@ package simulate
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,7 +11,11 @@ import (
 	"github.com/inrundev/inrun/pkg/catalog/pipeline"
 	"github.com/inrundev/inrun/pkg/config"
 	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 const uniqueTestCRD = `
@@ -154,5 +159,92 @@ func TestRun_OperatorUnique_Duplicate(t *testing.T) {
 	}
 	if result.Cycles[0].Error == nil {
 		t.Fatal("expected a validation-denied reconcile error, got none")
+	}
+}
+
+func TestListKindsForSeeds_IncludesSeededCRD(t *testing.T) {
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group: "demo.inrun.dev", Version: "v1alpha1", Kind: "Website",
+	})
+
+	got := listKindsForSeeds(clientgoscheme.Scheme, []runtime.Object{u})
+
+	gvr := schema.GroupVersionResource{
+		Group: "demo.inrun.dev", Version: "v1alpha1", Resource: "websites",
+	}
+	assert.Equal(t, "WebsiteList", got[gvr])
+
+	// And the built-in baseline is still present.
+	cmGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
+	assert.Equal(t, "ConfigMapList", got[cmGVR])
+}
+
+func TestParseAPIRequest(t *testing.T) {
+	cases := []struct {
+		name          string
+		method        string
+		path          string
+		wantVerb      string
+		wantResource  string
+		wantNamespace string
+		wantName      string
+	}{
+		// Core group, namespaced.
+		{"core ns named", "PATCH", "/api/v1/namespaces/default/configmaps/foo", "patch", "configmaps", "default", "foo"},
+		{"core ns collection", "POST", "/api/v1/namespaces/default/configmaps", "", "", "", ""}, // handled by parseCollectionURL
+		{"core ns subresource", "PUT", "/api/v1/namespaces/default/configmaps/foo/status", "update", "configmaps", "default", "foo"},
+
+		// Core group, cluster-scoped.
+		{"core cluster named", "PUT", "/api/v1/namespaces/default", "update", "namespaces", "", "default"},
+		{"core cluster collection", "POST", "/api/v1/namespaces", "", "", "", ""}, // handled by parseCollectionURL
+
+		// Non-core, namespaced.
+		{"apps ns named", "PATCH", "/apis/apps/v1/namespaces/default/deployments/foo", "patch", "deployments", "default", "foo"},
+		{"apps ns collection", "POST", "/apis/apps/v1/namespaces/default/deployments", "", "", "", ""}, // handled by parseCollectionURL
+		{"apps ns subresource", "PUT", "/apis/apps/v1/namespaces/default/deployments/foo/status", "update", "deployments", "default", "foo"},
+
+		// Non-core, cluster-scoped.
+		{"rbac cluster named", "PUT", "/apis/rbac.authorization.k8s.io/v1/clusterroles/admin", "update", "clusterroles", "", "admin"},
+		{"rbac cluster collection", "POST", "/apis/rbac.authorization.k8s.io/v1/clusterroles", "", "", "", ""}, // handled by parseCollectionURL
+
+		// SSE apply.
+		{"apply patch", "PATCH", "/apis/apps/v1/namespaces/default/deployments/foo", "apply", "deployments", "default", "foo"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(tc.method, "http://localhost"+tc.path, nil)
+			if tc.wantVerb == "apply" {
+				req.Header.Set("Content-Type", "application/apply-patch+yaml")
+			}
+			gotVerb, gotResource, gotNS, gotName := parseAPIRequest(req)
+			assert.Equal(t, tc.wantVerb, gotVerb)
+			assert.Equal(t, tc.wantResource, gotResource)
+			assert.Equal(t, tc.wantNamespace, gotNS)
+			assert.Equal(t, tc.wantName, gotName)
+		})
+	}
+}
+
+func TestParseCollectionURL(t *testing.T) {
+	cases := []struct {
+		name          string
+		path          string
+		wantResource  string
+		wantNamespace string
+	}{
+		{"core ns", "/api/v1/namespaces/default/configmaps", "configmaps", "default"},
+		{"core cluster", "/api/v1/namespaces", "namespaces", ""},
+		{"apps ns", "/apis/apps/v1/namespaces/default/deployments", "deployments", "default"},
+		{"rbac cluster", "/apis/rbac.authorization.k8s.io/v1/clusterroles", "clusterroles", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest("POST", "http://localhost"+tc.path, nil)
+			gotResource, gotNS := parseCollectionURL(req)
+			assert.Equal(t, tc.wantResource, gotResource)
+			assert.Equal(t, tc.wantNamespace, gotNS)
+		})
 	}
 }

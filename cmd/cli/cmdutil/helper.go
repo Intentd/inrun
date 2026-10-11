@@ -70,6 +70,8 @@ var (
 	ContainsTag         = utils.ContainsFold
 	IsTerminal          = utils.IsTerminal
 	HumanDuration       = utils.FormatDuration
+	DumpCRsJSON         = utils.DumpCRsJSON
+	DumpCRsYAML         = utils.DumpCRsYAML
 )
 
 // SortedKeys returns a sorted slice of all keys from the given map.
@@ -904,4 +906,9 @@ func ExtractBinaryFromTarGz(r io.Reader, binary string, dst io.Writer) error {
 	}
 
 	return fmt.Errorf("binary %q not found in archive", binary)
+}
+
+// CRKey is the key CRs are grouped and looked up by: the kind, lowercased.
+func CRKey(kind string) string {
+	return strings.ToLower(kind)
 }

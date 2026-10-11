@@ -38,6 +38,8 @@ spec:
       containers:
         - name: dev-server
           image: ghcr.io/inrundev/inrun-dev-server:latest
+          # Use a locally loaded image when there is one.
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9999
           readinessProbe:

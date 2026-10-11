@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/inrundev/inrun/pkg/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +19,6 @@ import (
 
 	"github.com/inrundev/inrun/pkg/catalog"
 	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
 	"github.com/inrundev/inrun/pkg/merger"
 	"github.com/inrundev/inrun/pkg/registry/e2e"
 	"github.com/inrundev/inrun/pkg/registry/simulate"
@@ -35,6 +36,7 @@ type CliSimulateOptions struct {
 	Target       string
 	SkipExternal bool
 	DebugOps     bool
+	Verbose      bool // print reconciler logs and each stage of building a CR from spec.intent
 	UseEnvtest   bool
 	K8sVersion   string
 }
@@ -59,6 +61,7 @@ should produce so the run is repeatable and verifiable:
 		cliOpts.Target, _ = cmd.Flags().GetString("target")
 		cliOpts.SkipExternal, _ = cmd.Flags().GetBool("skip-external")
 		cliOpts.DebugOps, _ = cmd.Flags().GetBool("debug-ops")
+		cliOpts.Verbose, _ = cmd.Flags().GetBool("verbose")
 		cliOpts.UseEnvtest, _ = cmd.Flags().GetBool("envtest")
 		cliOpts.K8sVersion, _ = cmd.Flags().GetString("k8s-version")
 
@@ -92,12 +95,12 @@ should produce so the run is repeatable and verifiable:
 		}
 
 		// Simulate kind: assert mode
-		if isSimulateDoc(catalogFile) {
+		if simulate.IsSimulateDoc(catalogFile) {
 			return RunSimulateFromSpec(cmd.Context(), catalogFile, cliOpts)
 		}
 
 		// Reject E2E files with a clear message
-		if isE2EDoc(catalogFile) {
+		if e2e.IsE2EDoc(catalogFile) {
 			return fmt.Errorf("%s is an E2E file — use 'inrun e2e' for cluster testing, or run 'inrun simulate init' to generate a simulate.yaml", catalogFile)
 		}
 
@@ -123,7 +126,8 @@ func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSim
 	if err := m.Merge(); err != nil {
 		return fmt.Errorf("merging Catalog: %w", err)
 	}
-	kat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	crdPaths := CatalogCRDPaths(m)
+	cat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
 	if err != nil {
 		var typedErr *catalog.TypedOperatorError
 		if errors.As(err, &typedErr) {
@@ -148,20 +152,20 @@ func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSim
 	if cliOpts.CRDName != "" {
 		targets = []string{cliOpts.CRDName}
 	} else {
-		targets = kat.CRDNames()
+		targets = cat.CRDNames()
 	}
 
 	baseOpts := simulate.RunOptions{SkipExternal: cliOpts.SkipExternal, Target: cliOpts.Target}
 
 	for _, name := range targets {
-		crdEntry, ok := kat.CRDEntry(name)
+		crdEntry, ok := cat.CRDEntry(name)
 		if !ok {
 			continue
 		}
 		in, ok := cmdutil.ResolveCRInputs(crs, crdEntry.APITypes.Kind)
 		if !ok {
 			if len(targets) > 1 {
-				fmt.Printf("  %s no CR found for %s — skipped\n\n", cmdutil.Dim("note:"), crdEntry.APITypes.Kind)
+				fmt.Printf("  %s\n\n", cmdutil.Dim(fmt.Sprintf("note: no CR found for %s — skipped", crdEntry.APITypes.Kind)))
 				continue
 			}
 			return fmt.Errorf("no CR found for CRD %q (kind: %s) in %s", name, crdEntry.APITypes.Kind, crFile)
@@ -169,32 +173,48 @@ func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSim
 		crdOpts := baseOpts
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
-		if err := SimulateOne(ctx, kat, name, in.CR, maxCycles, crdOpts, cliOpts, nil, nil); err != nil {
+		if err := SimulateOne(ctx, cat, name, in.CR, maxCycles, crdOpts, cliOpts, crdPaths, nil); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func SimulateOne(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstructured.Unstructured, maxCycles int, opts simulate.RunOptions, cliOpts CliSimulateOptions, crdPaths []string, expect *types.SimulateExpect) error {
-	fmt.Printf("Simulating %s/%s\n", crdName, cr.GetName())
+func SimulateOne(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstructured.Unstructured, maxCycles int, opts simulate.RunOptions, cliOpts CliSimulateOptions, crdPaths []string, expect *types.SimulateExpect) error {
+	if cliOpts.UseEnvtest {
+		version := cliOpts.K8sVersion
+		if version == "" {
+			version = simulate.DefaultEnvtestK8sVersion
+		}
+		fmt.Printf("Simulating %s/%s   %s\n", crdName, cr.GetName(), cmdutil.Gray("(envtest · kube-apiserver "+version+")"))
+	} else {
+		fmt.Printf("Simulating %s/%s\n", crdName, cr.GetName())
+	}
 
 	// Emit notes for operatorBox blocks that cannot execute in the fake cluster.
-	crdEntry, _ := kat.CRDEntry(crdName)
+	crdEntry, _ := cat.CRDEntry(crdName)
 	if crdEntry.Box().EffectiveOnReconcile() != nil && len(crdEntry.Box().EffectiveOnReconcile().External) > 0 {
 		if opts.SkipExternal {
-			fmt.Printf("  %s external: calls stubbed — result fields will be empty\n", cmdutil.Dim("note:"))
+			fmt.Printf("  %s\n", cmdutil.Dim("note: external: calls stubbed — result fields will be empty"))
 		} else {
-			fmt.Printf("  %s external: calls will hit the real network (pass --skip-external to stub)\n", cmdutil.Dim("note:"))
+			fmt.Printf("  %s\n", cmdutil.Dim("note: external: calls will hit the real network (pass --skip-external to stub)"))
 		}
 	}
 	if len(crdEntry.Box().EffectiveCross()) > 0 && len(opts.Peers) == 0 {
-		fmt.Printf("  %s cross: peer CRs not provided — cross.* fields will be empty (add sibling CRs to the CR file)\n", cmdutil.Dim("note:"))
+		fmt.Printf("  %s\n", cmdutil.Dim("note: cross: peer CRs not provided — cross.* fields will be empty (add sibling CRs to the CR file)"))
 	}
 	printSimulateAutoscaleSummary(crdEntry)
 	fmt.Println()
 
-	spin := cmdutil.StartSpinner(fmt.Sprintf("Running %d cycles...", maxCycles))
+	// The reconciler's own logs show only with --verbose; errors always do.
+	// With --verbose there is no spinner, so log lines don't break into it.
+	var spin *utils.Spinner
+	if cliOpts.Verbose {
+		fmt.Printf("Running %d cycles...\n", maxCycles)
+	} else {
+		defer logger.Quiet()()
+		spin = cmdutil.StartSpinner(fmt.Sprintf("Running %d cycles...", maxCycles))
+	}
 	start := time.Now()
 	var result *simulate.Result
 	var err error
@@ -202,16 +222,20 @@ func SimulateOne(ctx context.Context, kat *catalog.Catalog, crdName string, cr *
 		if len(crdPaths) == 0 {
 			return fmt.Errorf("%s --envtest requires spec.crd or spec.crdFiles to be set", cmdutil.FailureMark())
 		}
-		result, err = simulate.RunWithEnvtest(ctx, kat, crdName, cr, maxCycles, opts, crdPaths, cliOpts.K8sVersion)
+		result, err = simulate.RunWithEnvtest(ctx, cat, crdName, cr, maxCycles, opts, crdPaths, cliOpts.K8sVersion)
 	} else {
-		result, err = simulate.Run(ctx, kat, crdName, cr, maxCycles, opts)
+		result, err = simulate.Run(ctx, cat, crdName, cr, maxCycles, opts)
 	}
 	if err != nil {
-		spin.Failure()
+		if spin != nil {
+			spin.Failure()
+		}
 		fmt.Printf("\n  %s %v\n", cmdutil.Red("error:"), err)
 		return err
 	}
-	spin.Stop()
+	if spin != nil {
+		spin.Stop()
+	}
 	elapsed := time.Since(start)
 
 	if cliOpts.DebugOps {
@@ -224,7 +248,7 @@ func SimulateOne(ctx context.Context, kat *catalog.Catalog, crdName string, cr *
 	}
 
 	for _, note := range result.Notes {
-		fmt.Printf("  %s %s\n", cmdutil.Dim("note:"), note)
+		fmt.Printf("  %s\n", cmdutil.Dim("note: "+note))
 	}
 	if len(result.Notes) > 0 {
 		fmt.Println()
@@ -283,208 +307,6 @@ func SimulateOne(ctx context.Context, kat *catalog.Catalog, crdName string, cr *
 		}
 	}
 	return nil
-}
-
-func boolInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-func printAssertions(errs []simulate.AssertionError, expect *types.SimulateExpect) {
-	failSet := map[string]bool{}
-	for _, e := range errs {
-		failSet[e.Field] = true
-	}
-
-	if expect.Steady != nil {
-		if failSet["steady"] {
-			fmt.Printf("  %s steady\n", cmdutil.FailureMark())
-		} else {
-			fmt.Printf("  %s steady\n", cmdutil.SuccessMark())
-		}
-	}
-	if expect.SteadyAt != nil {
-		field := "steadyAt"
-		if failSet[field] {
-			fmt.Printf("  %s steadyAt ≤%d\n", cmdutil.FailureMark(), *expect.SteadyAt)
-		} else {
-			fmt.Printf("  %s steadyAt ≤%d\n", cmdutil.SuccessMark(), *expect.SteadyAt)
-		}
-	}
-	if expect.NoErrors {
-		hasErr := false
-		for f := range failSet {
-			if len(f) > 6 && f[:6] == "cycles" {
-				hasErr = true
-				break
-			}
-		}
-		if hasErr {
-			fmt.Printf("  %s noErrors\n", cmdutil.FailureMark())
-		} else {
-			fmt.Printf("  %s noErrors\n", cmdutil.SuccessMark())
-		}
-	}
-	for i, rule := range expect.Ops {
-		field := fmt.Sprintf("ops[%d]", i)
-		desc := rule.Verb + " " + rule.Resource
-		if rule.Name != "" {
-			desc += "/" + rule.Name
-		}
-		desc += fmt.Sprintf(" (cycle %d)", rule.Cycle)
-		if failSet[field] {
-			fmt.Printf("  %s %s\n", cmdutil.FailureMark(), desc)
-		} else {
-			fmt.Printf("  %s %s\n", cmdutil.SuccessMark(), desc)
-		}
-	}
-	for i, rule := range expect.Absent {
-		field := fmt.Sprintf("absent[%d]", i)
-		desc := "absent: " + rule.Verb + " " + rule.Resource
-		if rule.Name != "" {
-			desc += "/" + rule.Name
-		}
-		desc += fmt.Sprintf(" (cycle %d)", rule.Cycle)
-		if failSet[field] {
-			fmt.Printf("  %s %s\n", cmdutil.FailureMark(), desc)
-		} else {
-			fmt.Printf("  %s %s\n", cmdutil.SuccessMark(), desc)
-		}
-	}
-	fmt.Println()
-
-	if len(errs) > 0 {
-		fmt.Printf("  %s\n\n", cmdutil.Red("FAIL"))
-	} else {
-		fmt.Printf("  %s\n\n", cmdutil.Green("PASS"))
-	}
-}
-
-// printSimulateAutoscaleSummary prints a one-line autoscale marker for each workload
-// that declares autoscale:, so the policy is visible in simulate output.
-func printSimulateAutoscaleSummary(entry types.CRDEntry) {
-	type workload struct {
-		name      string
-		autoscale *types.WorkloadAutoscale
-	}
-	var workloads []workload
-	for _, ht := range []*types.HookTemplates{entry.Box().EffectiveOnCreate(), entry.Box().EffectiveOnReconcile()} {
-		if ht == nil {
-			continue
-		}
-		for _, d := range ht.Deployments {
-			if d.Autoscale != nil {
-				workloads = append(workloads, workload{d.Name, d.Autoscale})
-			}
-		}
-		for _, s := range ht.StatefulSets {
-			if s.Autoscale != nil {
-				workloads = append(workloads, workload{s.Name, s.Autoscale})
-			}
-		}
-		for _, r := range ht.ReplicaSets {
-			if r.Autoscale != nil {
-				workloads = append(workloads, workload{r.Name, r.Autoscale})
-			}
-		}
-	}
-	for _, w := range workloads {
-		a := w.autoscale
-		min := int32(0)
-		if a.Min != nil {
-			min = *a.Min
-		}
-		cooldown := a.EffectiveCooldown().Duration.String()
-		fmt.Printf("  %s %s  %s\n", cmdutil.Dim("autoscale:"), cmdutil.Gray(w.name),
-			cmdutil.Gray(fmt.Sprintf("min=%d max=%d cooldown=%s", min, a.Max, cooldown)))
-	}
-}
-
-// printCycleOps prints one cycle's ops, coalescing duplicate resource+name entries.
-// If a resource is both created and updated in the same cycle (e.g. reconcile: true),
-// only the create icon (+) is shown.
-func printCycleOps(ops []simulate.Op) {
-	type entry struct {
-		resource  string
-		name      string
-		hasCreate bool
-		hasDelete bool
-	}
-	seen := map[string]*entry{}
-	var order []string
-	for _, op := range ops {
-		key := op.Resource + "/" + op.Name
-		if _, ok := seen[key]; !ok {
-			seen[key] = &entry{resource: op.Resource, name: op.Name}
-			order = append(order, key)
-		}
-		switch op.Verb {
-		case "create":
-			seen[key].hasCreate = true
-		case "delete":
-			seen[key].hasDelete = true
-		case "apply":
-			// SSA ops display as ~ (changed), same as update/patch
-		}
-	}
-	for _, key := range order {
-		e := seen[key]
-		var icon string
-		switch {
-		case e.hasCreate:
-			icon = cmdutil.IconAdded()
-		case e.hasDelete:
-			icon = cmdutil.IconRemoved()
-		default:
-			icon = cmdutil.IconChanged()
-		}
-		fmt.Printf("    %s %s/%s\n", icon, e.resource, e.name)
-	}
-}
-
-// opsKey returns a stable string key for a slice of ops, used to detect identical cycles.
-func opsKey(ops []simulate.Op) string {
-	var b strings.Builder
-	for _, op := range ops {
-		b.WriteString(op.Verb)
-		b.WriteByte('/')
-		b.WriteString(op.Resource)
-		b.WriteByte('/')
-		b.WriteString(op.Name)
-		b.WriteByte('|')
-	}
-	return b.String()
-}
-
-func filterOps(ops []simulate.Op, verbs ...string) []simulate.Op {
-	verbSet := make(map[string]bool)
-	for _, v := range verbs {
-		verbSet[v] = true
-	}
-	var result []simulate.Op
-	for _, op := range ops {
-		if verbSet[op.Verb] {
-			result = append(result, op)
-		}
-	}
-	return result
-}
-
-// ── Simulate kind entry points ─────────────────────────────────────────────────
-
-// isSimulateDoc returns true when the file's kind is "Simulate".
-func isSimulateDoc(path string) bool {
-	data, err := cmdutil.ReadLocal(path)
-	if err != nil {
-		return false
-	}
-	var head struct {
-		Kind string `yaml:"kind"`
-	}
-	_ = yaml.Unmarshal(data, &head)
-	return head.Kind == "Simulate"
 }
 
 // RunSimulateFromSpec loads a simulate.yaml and runs it in assert mode.
@@ -562,8 +384,11 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 	if err := m.Merge(); err != nil {
 		return fmt.Errorf("merging Catalog: %w", err)
 	}
+	if len(crdPaths) == 0 {
+		crdPaths = CatalogCRDPaths(m)
+	}
 
-	kat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	cat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
 	if err != nil {
 		var typedErr *catalog.TypedOperatorError
 		if errors.As(err, &typedErr) {
@@ -572,40 +397,43 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		return fmt.Errorf("parsing Catalog: %w", err)
 	}
 
-	// Read all CR files (cr: + crFiles:) and concatenate for multi-doc parsing.
-	var crBuf []byte
-	for _, p := range doc.Spec.AllCRPaths() {
-		abs := p
-		if !filepath.IsAbs(abs) {
-			abs = filepath.Join(dir, abs)
+	var crs map[string][]*unstructured.Unstructured
+	if doc.Spec.Intent != "" {
+		// The CR comes from the intent, built as the gateway would.
+		if PlayIntent == nil {
+			return fmt.Errorf("%s: spec.intent is not supported in this build", path)
 		}
-		data, err := cmdutil.ReadLocal(abs)
+		obj, err := PlayIntent(PlayRequest{
+			Catalog:     cat,
+			CatalogFile: catalogPath,
+			IntentFile:  filepath.Join(dir, doc.Spec.Intent),
+			Token:       doc.Spec.Token,
+			Op:          types.ServeOpCreate,
+			Cycles:      doc.Spec.Cycles,
+			Verbose:     cliOpts.Verbose,
+		})
 		if err != nil {
-			return fmt.Errorf("reading CR %s: %w", abs, err)
+			return fmt.Errorf("playing %s: %w", doc.Spec.Intent, err)
 		}
-		if len(crBuf) > 0 {
-			crBuf = append(crBuf, '\n')
+
+		crs = map[string][]*unstructured.Unstructured{cmdutil.CRKey(obj.GetKind()): {obj}}
+	} else {
+		var err error
+		if crs, err = readSpecCRs(dir, doc.Spec.AllCRPaths()); err != nil {
+			return fmt.Errorf("%s: %w", path, err)
 		}
-		crBuf = append(crBuf, data...)
-	}
-	if len(crBuf) == 0 {
-		return fmt.Errorf("%s: spec.cr or spec.crFiles is required", path)
-	}
-	crs := cmdutil.ParseMultiDocCRs(crBuf)
-	if len(crs) == 0 {
-		return fmt.Errorf("no valid CR documents in CR file(s)")
 	}
 
 	var targets []string
 	if cliOpts.CRDName != "" {
 		targets = []string{cliOpts.CRDName}
 	} else {
-		targets = kat.CRDNames()
+		targets = cat.CRDNames()
 	}
 
 	var failed []string
 	for _, name := range targets {
-		crdEntry, ok := kat.CRDEntry(name)
+		crdEntry, ok := cat.CRDEntry(name)
 		if !ok {
 			continue
 		}
@@ -620,7 +448,7 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
 		expect := simulate.ExpectForCRD(doc.Spec.Expect, name)
-		if err := SimulateOne(ctx, kat, name, in.CR, cycles, crdOpts, cliOpts, crdPaths, expect); err != nil {
+		if err := SimulateOne(ctx, cat, name, in.CR, cycles, crdOpts, cliOpts, crdPaths, expect); err != nil {
 			failed = append(failed, name)
 		}
 	}
@@ -628,19 +456,6 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		return fmt.Errorf("simulate failed for: %s", strings.Join(failed, ", "))
 	}
 	return nil
-}
-
-// isE2EDoc returns true when the file's kind is "E2E".
-func isE2EDoc(path string) bool {
-	data, err := cmdutil.ReadLocal(path)
-	if err != nil {
-		return false
-	}
-	var head struct {
-		Kind string `yaml:"kind"`
-	}
-	_ = yaml.Unmarshal(data, &head)
-	return config.IsE2EKind(head.Kind)
 }
 
 // ── Discovery mode ─────────────────────────────────────────────────────────────
@@ -775,7 +590,7 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 			crFile = abs
 		}
 
-		kat, err := catalog.ParseFile(catalogFile)
+		cat, err := catalog.ParseFile(catalogFile)
 		if err != nil {
 			return fmt.Errorf("parsing Catalog: %w", err)
 		}
@@ -796,12 +611,12 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 		}
 
 		opts := simulate.RunOptions{}
-		targets := kat.CRDNames()
+		targets := cat.CRDNames()
 
 		var results []crdOps
 
 		for _, name := range targets {
-			crdEntry, ok := kat.CRDEntry(name)
+			crdEntry, ok := cat.CRDEntry(name)
 			if !ok {
 				continue
 			}
@@ -812,7 +627,7 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 			crdOpts := opts
 			crdOpts.Peers = in.Peers
 			crdOpts.ExistingInstances = in.Existing
-			result, err := simulate.Run(cmd.Context(), kat, name, in.CR, 10, crdOpts)
+			result, err := simulate.Run(cmd.Context(), cat, name, in.CR, 10, crdOpts)
 			if err != nil && crdEntry.WithRemoteDecl() {
 				fmt.Printf("  %s %s: remote reconciler unreachable — start it and re-run (%v)\n", cmdutil.Dim("note:"), name, err)
 				continue
@@ -833,7 +648,7 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 		relCatalog := relFromDir(cmdutil.DirTest, catalogFile)
 		relCR := relFromDir(cmdutil.DirTest, crFile)
 
-		doc := generateSimulateDoc(relCatalog, relCR, kat.Metadata().Name, results)
+		doc := generateSimulateDoc(relCatalog, relCR, cat.Metadata().Name, results)
 
 		var buf bytes.Buffer
 		enc := yaml.NewEncoder(&buf)
@@ -1102,6 +917,7 @@ func init() {
 	simulateCmd.Flags().StringSlice("skip", []string{}, "Comma-separated path patterns to skip during ./... discovery (e.g. vendor,cr-e2e.yaml)")
 	simulateCmd.Flags().Bool("skip-external", false, "Stub external: HTTP calls with empty 200 responses instead of hitting the real network")
 	simulateCmd.Flags().Bool("debug-ops", false, "Print every recorded op with its cycle number (diagnostic)")
+	simulateCmd.Flags().Bool("verbose", false, "Print the reconciler's logs, and each stage of building a CR from spec.intent")
 	simulateCmd.Flags().Bool("dev-server", false, "Start the mock dev server for external: examples")
 	simulateCmd.Flags().Int("dev-server-port", devserver.Port, "Port for the mock dev server")
 	simulateCmd.Flags().Bool("envtest", false, "Run against a local kube-apiserver + etcd instead of fake clients (binaries auto-downloaded to ~/.inrun/envtest-bins on first use)")

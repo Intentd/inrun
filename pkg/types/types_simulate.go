@@ -22,9 +22,14 @@ type SimulateMeta struct {
 }
 
 type SimulateSpec struct {
-	Catalog      string          `yaml:"catalog"`
-	CR           string          `yaml:"cr,omitempty"`
-	CRFiles      []string        `yaml:"crFiles,omitempty"`
+	Catalog string   `yaml:"catalog"`
+	CR      string   `yaml:"cr,omitempty"`
+	CRFiles []string `yaml:"crFiles,omitempty"`
+	// Intent is a serve intent file (JSON or YAML) to build the CR from, the
+	// way the gateway and inrun serve play do. Used instead of cr/crFiles.
+	Intent string `yaml:"intent,omitempty"`
+	// Token is the gateway token the intent is sent with; required with Intent.
+	Token        string          `yaml:"token,omitempty"`
 	CRD          string          `yaml:"crd,omitempty"`
 	CRDFiles     []string        `yaml:"crdFiles,omitempty"`
 	Cycles       int             `yaml:"cycles,omitempty"` // default 10 when unset

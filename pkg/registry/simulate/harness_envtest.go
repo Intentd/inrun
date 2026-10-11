@@ -18,10 +18,13 @@ import (
 	"github.com/inrundev/inrun/domain"
 	"github.com/inrundev/inrun/pkg/catalog"
 	"github.com/inrundev/inrun/pkg/event"
+	"github.com/inrundev/inrun/pkg/intent"
 	"github.com/inrundev/inrun/pkg/kubeclient"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/inrundev/inrun/pkg/runtime/informer/observe"
+	"github.com/inrundev/inrun/pkg/runtime/queue"
 	"github.com/inrundev/inrun/pkg/runtime/reconcilers/generic"
 	"github.com/inrundev/inrun/pkg/types"
 	"github.com/rs/zerolog/log"
@@ -52,7 +55,7 @@ const (
 // crdPaths must contain at least one CRD YAML — set via spec.crd / spec.crdFiles.
 // Binaries are auto-downloaded to ~/.inrun/envtest-bins on first run; KUBEBUILDER_ASSETS
 // overrides this.
-func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
+func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	cr *unstructured.Unstructured, maxCycles int, opts RunOptions, crdPaths []string, k8sVersion string) (*Result, error) {
 
 	prev := log.Logger
@@ -93,11 +96,16 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 	}
 	defer env.Stop() //nolint:errcheck
 
-	crdEntry, ok := kat.CRDEntry(crdName)
+	crdEntry, ok := cat.CRDEntry(crdName)
 	if !ok {
 		return nil, fmt.Errorf("CRD %q not found in Catalog", crdName)
 	}
 	result := &Result{}
+	if opts.Target != "" {
+		// As if created through that target, so the reconcile resolves it.
+		cr = cr.DeepCopy()
+		intent.SetTarget(cr, opts.Target)
+	}
 	box := effectiveOperatorBox(crdEntry, cr, opts.Target)
 	for _, phase := range []*types.HookTemplates{
 		box.EffectiveOnCreate(),
@@ -112,7 +120,7 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 		result.Notes = append(result.Notes, skipped...)
 	}
 
-	scheme, err := kat.Scheme()
+	scheme, err := cat.Scheme()
 	if err != nil {
 		return nil, fmt.Errorf("building scheme: %w", err)
 	}
@@ -176,7 +184,7 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 	shared.ops = shared.ops[:0]
 	shared.mu.Unlock()
 
-	seedManagedMeta(cr, kat.Metadata().Name)
+	seedManagedMeta(cr, cat.Metadata().Name)
 
 	gvk := schema.GroupVersionKind{
 		Group:   crdEntry.APITypes.Group,
@@ -218,17 +226,39 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 		return nil, fmt.Errorf("envtest: informer cache sync timed out")
 	}
 
+	// observe skips a CRD without a work queue, as in the runtime, so register
+	// one for the CRD under test.
+	qr := queue.NewQueueRegistry()
+	qr.Register(crdEntry.GVKString(), nil)
+	infFactory := informerFactory(realKube, restCfg, scheme, cat, qr)
+	infFactory.Start(ctx)
+
+	// Observe secondary resources declared in operatorBox.observe.watch/events.
+	// It starts its own informers and registers them with the factory.
+	obs := observe.New(observe.Dependencies{
+		Kube:          realKube,
+		Informer:      infFactory,
+		QueueRegistry: qr,
+		Catalog:       cat,
+	})
+	obs.Observe(ctx, crdEntry)
+
+	// Wait after Observe, so cycle 1 reads synced watch caches and indexes.
+	if !infFactory.WaitForCacheSync(ctx) {
+		return nil, fmt.Errorf("envtest: secondary informer cache sync timed out")
+	}
+
 	var hookBinder domain.AnyReconcileHooks
 	if fn, ok := types.HookRegistry[gvk]; ok {
 		hookBinder = fn()
 	}
 
 	peerRegistry := coordinator.NewCoordinatorRegistry()
-	for _, peerName := range kat.CRDNames() {
+	for _, peerName := range cat.CRDNames() {
 		if peerName == crdEntry.Name {
 			continue
 		}
-		peerEntry, ok := kat.CRDEntry(peerName)
+		peerEntry, ok := cat.CRDEntry(peerName)
 		if !ok {
 			continue
 		}
@@ -255,7 +285,11 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 		}
 		result.Notes = append(result.Notes, remoteNote)
 	} else if factoryFn, ok := types.ReconcilerRegistry[gvk]; ok {
-		r = factoryFn(recKube.WithInformer(inf).WithEventRecorder(event.Discard()))
+		r = factoryFn(
+			recKube.WithInformer(inf).
+				WithIndexerFor(infFactory.IndexerFor).
+				WithStoreFor(infFactory.StoreFor).
+				WithEventRecorder(event.Discard()))
 	} else {
 		r = generic.New(
 			crdEntry,
@@ -264,7 +298,7 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 			recKube,
 			hookBinder,
 			newObjFn,
-			kat,
+			cat,
 		)
 	}
 
@@ -273,7 +307,7 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 		return nil, err
 	}
 
-	r = wrapWithGate(r, box.PreReconcile, kat.Notes, getFromIndexerOrFallback(inf.GetIndexer(), key, cr))
+	r = wrapWithGate(r, box.PreReconcile, cat.Notes, getFromIndexerOrFallback(infFactory.IndexerFor(gvk), key, cr))
 
 	prepInput := prepare.Input{
 		Entry: contract.RegistryEntry{
@@ -281,7 +315,7 @@ func RunWithEnvtest(ctx context.Context, kat *catalog.Catalog, crdName string,
 			Informer: inf,
 		},
 		Key:      key,
-		Kat:      kat,
+		Cat:      cat,
 		Kube:     recKube,
 		Registry: peerRegistry,
 	}
@@ -347,8 +381,14 @@ func isWriteMethod(method string) bool {
 }
 
 // parseAPIRequest extracts (verb, resource, namespace, name) from a Kubernetes
-// API request. Returns empty strings for requests that don't target a named object
-// (e.g. list, watch) or for subresource paths we intentionally skip.
+// API request. Returns empty strings for requests that don't target a named
+// object (e.g. list, watch, collection-level POST) or for subresource paths
+// we intentionally skip.
+//
+// The cases are ordered so that a namespaced URL cannot be mistaken for a
+// cluster-scoped one: namespaced branches require the "namespaces" segment at
+// the expected position, and the cluster-scoped fallbacks are bounded so they
+// cannot match a longer namespaced path.
 //
 // Supported URL formats:
 //
@@ -362,27 +402,38 @@ func parseAPIRequest(req *http.Request) (verb, resource, namespace, name string)
 
 	var res, ns, n string
 	switch {
+	// Core group, namespaced:
+	//   /api/v1/namespaces/{ns}/{resource}[/{name}][/subresource]
 	case len(parts) >= 5 && parts[0] == "api" && parts[2] == "namespaces":
-		// /api/v1/namespaces/{ns}/{resource}/{name}[/subresource]
-		ns, res, n = parts[3], parts[4], ""
+		ns, res = parts[3], parts[4]
 		if len(parts) >= 6 {
 			n = parts[5]
 		}
-	case len(parts) >= 4 && parts[0] == "api":
-		// /api/v1/{resource}/{name}
-		res, n = parts[2], ""
+
+	// Core group, cluster-scoped:
+	//   /api/v1/{resource}[/{name}][/subresource]
+	// Bounded so it cannot match a longer namespaced path; namespaced paths
+	// always have at least 5 segments with parts[2] == "namespaces" and are
+	// handled by the case above.
+	case len(parts) >= 3 && len(parts) < 5 && parts[0] == "api":
+		res = parts[2]
 		if len(parts) >= 4 {
 			n = parts[3]
 		}
-	case len(parts) >= 7 && parts[0] == "apis" && parts[3] == "namespaces":
-		// /apis/{group}/{version}/namespaces/{ns}/{resource}/{name}[/subresource]
-		ns, res, n = parts[4], parts[5], ""
+
+	// Non-core, namespaced:
+	//   /apis/{group}/{version}/namespaces/{ns}/{resource}[/{name}][/subresource]
+	case len(parts) >= 6 && parts[0] == "apis" && parts[3] == "namespaces":
+		ns, res = parts[4], parts[5]
 		if len(parts) >= 7 {
 			n = parts[6]
 		}
-	case len(parts) >= 5 && parts[0] == "apis":
-		// /apis/{group}/{version}/{resource}/{name}
-		res, n = parts[3], ""
+
+	// Non-core, cluster-scoped:
+	//   /apis/{group}/{version}/{resource}[/{name}][/subresource]
+	// Bounded so it cannot match a namespaced path.
+	case len(parts) >= 4 && len(parts) < 6 && parts[0] == "apis":
+		res = parts[3]
 		if len(parts) >= 5 {
 			n = parts[4]
 		}

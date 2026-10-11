@@ -59,6 +59,10 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 		clusterCtx, _ := cmd.Flags().GetString("cluster")
 		workers, _ := cmd.Flags().GetInt("workers")
 		version, _ := cmd.Flags().GetString("version")
+		chart, err := chartFlag(cmd)
+		if err != nil {
+			return err
+		}
 		valuesFiles, _ := cmd.Flags().GetStringSlice("values")
 		helmArgRaw, _ := cmd.Flags().GetStringSlice("set")
 		var helmArgs []string
@@ -91,7 +95,7 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 		runner, err := e2e.New(file, e2e.Options{
 			ClusterCtx: clusterCtx, UseCurrentCtx: useCurrentCtx,
 			KeepCluster: keepCluster, Workers: workers,
-			DevServer: devServer, InrunVersion: version,
+			DevServer: devServer, InrunVersion: version, InrunChart: chart,
 			ValueFiles: valuesFiles, HelmArgs: helmArgs,
 			ReportFile: reportFile, NoRuntime: noRuntime,
 		})
@@ -140,6 +144,10 @@ func dryRunDiscovery(root string, skip []string) error {
 // runDiscovery finds all *e2e.yaml leaf files under root, builds a temp
 // aggregator, and runs it as a normal suite.
 func runDiscovery(cmd *cobra.Command, root, wait string, skip []string, clusterCtx string, useCurrentCtx, keepCluster, devServer bool, workers int, version string, valuesFiles, helmArgs []string) error {
+	chart, err := chartFlag(cmd)
+	if err != nil {
+		return err
+	}
 	// Expand comma-separated skip entries
 	var patterns []string
 	for _, s := range skip {
@@ -181,7 +189,7 @@ func runDiscovery(cmd *cobra.Command, root, wait string, skip []string, clusterC
 	}
 	tmp.Close()
 
-	runner, err := e2e.New(tmp.Name(), e2e.Options{ClusterCtx: clusterCtx, UseCurrentCtx: useCurrentCtx, KeepCluster: keepCluster, Workers: workers, DevServer: devServer, InrunVersion: version, ValueFiles: valuesFiles, HelmArgs: helmArgs})
+	runner, err := e2e.New(tmp.Name(), e2e.Options{ClusterCtx: clusterCtx, UseCurrentCtx: useCurrentCtx, KeepCluster: keepCluster, Workers: workers, DevServer: devServer, InrunVersion: version, InrunChart: chart, ValueFiles: valuesFiles, HelmArgs: helmArgs})
 	if err != nil {
 		return err
 	}
@@ -230,7 +238,7 @@ func e2eInitScaffold(cmd *cobra.Command) error {
 		return err
 	}
 
-	kat, err := catalog.ParseFile(catalogFile)
+	cat, err := catalog.ParseFile(catalogFile)
 	if err != nil {
 		return fmt.Errorf("parsing Catalog: %w", err)
 	}
@@ -247,10 +255,10 @@ func e2eInitScaffold(cmd *cobra.Command) error {
 	relCRD := relFromDir(cmdutil.DirTest, projectFile(catalogFile, cmdutil.FileCrd, cmdutil.DirManifests))
 	relCR := relFromDir(cmdutil.DirTest, projectFile(catalogFile, cmdutil.FileCr, cmdutil.DirManifests))
 
-	crdNames := kat.CRDNames()
+	crdNames := cat.CRDNames()
 	var crds []crdInfo
 	for _, n := range crdNames {
-		entry, ok := kat.CRDEntry(n)
+		entry, ok := cat.CRDEntry(n)
 		if !ok {
 			continue
 		}
@@ -258,7 +266,7 @@ func e2eInitScaffold(cmd *cobra.Command) error {
 	}
 	sort.Slice(crds, func(i, j int) bool { return crds[i].name < crds[j].name })
 
-	output := buildE2EScaffoldYAML(kat.Metadata().Name, relCatalog, relCRD, relCR, crds)
+	output := buildE2EScaffoldYAML(cat.Metadata().Name, relCatalog, relCRD, relCR, crds)
 
 	if dryRun {
 		fmt.Print(output)
@@ -489,6 +497,7 @@ func init() {
 	e2eCmd.Flags().String("cluster", "", "Use an existing kubectl context instead of creating a cluster")
 	e2eCmd.Flags().Int("workers", 0, "Number of kind worker nodes to provision (default: 0, control-plane only)")
 	e2eCmd.Flags().String("version", "", "Inrun version to install (e.g., v1.2.3)")
+	e2eCmd.Flags().String("chart", "", "Local Inrun chart directory to install instead of the published chart (e.g. ./charts/inrun)")
 	e2eCmd.Flags().StringSlice("values", []string{}, "Helm values files to pass to Inrun installation")
 	e2eCmd.Flags().StringSlice("set", []string{}, "Additional Helm --set arguments (e.g., key=value)")
 	e2eCmd.Flags().Bool("dev-server", false, "Deploy the mock dev server into the cluster for external: examples")
@@ -500,4 +509,21 @@ func init() {
 
 	// Shadow global flags so they don't appear under `inrun e2e`
 	cmdutil.ShadowGlobalCommandFlags(e2eCmd)
+}
+
+// chartFlag returns --chart as an absolute path, or "" when unset. The path
+// must be a chart directory: e2e may change directory before installing.
+func chartFlag(cmd *cobra.Command) (string, error) {
+	chart, _ := cmd.Flags().GetString("chart")
+	if chart == "" {
+		return "", nil
+	}
+	abs, err := filepath.Abs(chart)
+	if err != nil {
+		return "", fmt.Errorf("--chart %q: %w", chart, err)
+	}
+	if _, err := os.Stat(filepath.Join(abs, "Chart.yaml")); err != nil {
+		return "", fmt.Errorf("--chart %q: not a Helm chart directory (no Chart.yaml)", chart)
+	}
+	return abs, nil
 }

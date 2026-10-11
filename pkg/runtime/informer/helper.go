@@ -128,7 +128,10 @@ func (f *Factory) WaitForCacheSync(ctx context.Context) bool {
 	syncFuncs := make([]cache.InformerSynced, 0, len(f.informers))
 
 	for _, entry := range f.informers {
-		if entry == nil || entry.Missing {
+		if entry == nil {
+			continue
+		}
+		if entry.Missing {
 			entry.WasNeverStarted = true
 			logger.Warn().
 				Str("name", entry.Name).

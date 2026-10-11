@@ -26,63 +26,52 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// runCreateUpdateChain runs stages 1-6 of the play chain against an
-// already-resolved intent map, printing each stage exactly like
-// "inrun serve play" does. Shared with "inrun webhook play" — same engine,
-// different front door: serve play reads its intent from a file, webhook
-// play builds one from a source payload (push event, slash command, JSON
-// body), then hands off here.
-//
-// source is stamped as the serve-source provenance annotation — "" for
-// serve play (no caller identity beyond the token), or a webhook entry's
-// own Name when called from webhook play, matching what ApplyTargetFields
-// does for a real delivery. op is ServeOpCreate or ServeOpUpdate — webhook
-// play always passes ServeOpCreate, since a delivered push/command has no
-// --operation flag of its own.
-func runCreateUpdateChain(k *catalog.Catalog, raw map[string]interface{}, tokenName, source string, op types.ServeOperation) (*unstructured.Unstructured, *types.CRDEntry, string, error) {
+// planChain runs stages 1-6 of the play chain against an already-resolved
+// intent map, reporting each stage through n: stageNarrator for serve play,
+// quietNarrator for simulate. The steps are the same either way.
+func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string, op types.ServeOperation, n narrator) (*unstructured.Unstructured, *types.CRDEntry, string, error) {
 	target, _ := raw["target"].(string)
 	if strings.TrimSpace(target) == "" {
 		return nil, nil, "", fmt.Errorf(`"target" must be set in the intent`)
 	}
 
 	// Stage 1: Target resolution
-	printStage(1, "Target resolution")
-	resolution := k.LookupByTargetOrAlias(target)
+	n.stage(1, "Target resolution")
+	resolution := c.LookupByTargetOrAlias(target)
 	if resolution == nil {
-		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(k.AvailableTargets(), ", ")))
-		return nil, nil, "", fmt.Errorf("target %q not found", target)
+		err := fmt.Errorf("unknown target %q\n  available: %s", target, strings.Join(c.AvailableTargets(), ", "))
+		n.fail(err.Error())
+		return nil, nil, "", err
 	}
 	crd, alias := resolution.CRD, resolution.Alias
-	printStageOK(fmt.Sprintf("kind=%s  target=%s  alias=%s", cmdutil.Bold(crd.Kind()), cmdutil.Green(crd.ServeTarget()), aliasOrNone(alias)))
+	n.ok(fmt.Sprintf("kind=%s  target=%s  alias=%s", cmdutil.Bold(crd.Kind()), cmdutil.Green(crd.ServeTarget()), aliasOrNone(alias)))
 
 	// Stage 2: Token check
-	printStage(2, "Token check")
-	allowed, denyReason := crd.TokenAllowedFor(alias, tokenName, string(op), "", types.ServeClassResources)
-	if !allowed {
-		msg := denyReason.Message(tokenName, string(op), crd.Kind(), "")
-		printStageError(msg)
-		return nil, nil, "", fmt.Errorf("token %q denied: %s", tokenName, msg)
+	n.stage(2, "Token check")
+	if err := checkToken(c, crd, alias, tokenName, op, ""); err != nil {
+		n.fail(err.Error())
+		return nil, nil, "", err
 	}
-	printStageOK(fmt.Sprintf("token %s can %s on %s", cmdutil.Bold(tokenName), op, cmdutil.Bold(crd.Kind())))
+	n.ok(fmt.Sprintf("token %s can %s on %s", cmdutil.Bold(tokenName), op, cmdutil.Bold(crd.Kind())))
 
 	// Stage 3: CR construction
-	printStage(3, "CR construction")
-	notes := k.Notes
+	n.stage(3, "CR construction")
+	notes := c.Notes
 	obj, err := intent.Build(raw, crd, notes)
 	if err != nil {
-		printStageError(err.Error())
+		n.fail(err.Error())
 		return nil, nil, "", err
 	}
 	if obj.GetName() == "" {
-		msg := "name is required — declare serve.name on the CRD or include \"name\" in the intent"
-		printStageError(msg)
-		return nil, nil, "", fmt.Errorf("%s", msg)
+		err := fmt.Errorf("name is required — declare serve.name on the CRD or include \"name\" in the intent")
+		n.fail(err.Error())
+		return nil, nil, "", err
 	}
-	printStageOK(fmt.Sprintf("name=%s  namespace=%s", cmdutil.Bold(obj.GetName()), cmdutil.Bold(obj.GetNamespace())))
+	n.ok(fmt.Sprintf("name=%s  namespace=%s", cmdutil.Bold(obj.GetName()), cmdutil.Bold(obj.GetNamespace())))
 
-	// Stage 4: Provenance — stamp first, then print the CR so annotations are visible
-	printStage(4, "Provenance annotations")
-	api.InjectProvenanceAnnotations(obj, crd.ServeTarget(), alias, source)
+	// Stage 4: Provenance — stamp first, then report the CR so annotations are visible
+	n.stage(4, "Provenance annotations")
+	api.InjectProvenanceAnnotations(obj, crd.ServeTarget(), alias)
 	api.InjectServeIntentAnnotation(obj, raw)
 	ann := obj.GetAnnotations()
 	keys := make([]string, 0, len(ann))
@@ -93,48 +82,36 @@ func runCreateUpdateChain(k *catalog.Catalog, raw map[string]interface{}, tokenN
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		printStageDetail(fmt.Sprintf("%s: %s", cmdutil.Gray(k), cmdutil.Cyan(ann[k])))
+		n.detail(fmt.Sprintf("%s: %s", cmdutil.Gray(k), cmdutil.Cyan(ann[k])))
 	}
-	printStageOK("provenance stamped — full CR:")
-	printIndentedJSON(obj.Object)
+	n.ok("provenance stamped — full CR:")
+	n.json(obj.Object)
 
 	// Stage 5: Admission validation — same rules the webhook enforces at SSA time.
 	// unique: operator is skipped (no live cluster); external: calls are skipped.
-	printStage(5, "Admission validation")
+	n.stage(5, "Admission validation")
 	{
-		resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(k.Notes).WithRequest(raw)
+		resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithRequest(raw)
 		eval := resolver.TemplateEvaluator()
 		r := gate.EvalAdmissionValidation(obj.Object, crd, resolver, eval)
 		for _, v := range r.Violations {
 			if v.Deny {
-				printStageDetail(fmt.Sprintf("%s %s: %s", cmdutil.Red("deny"), cmdutil.Gray(v.Field), cmdutil.Red(v.Message)))
+				n.detail(fmt.Sprintf("%s %s: %s", cmdutil.Red("deny"), cmdutil.Gray(v.Field), cmdutil.Red(v.Message)))
 			} else {
-				printStageDetail(fmt.Sprintf("%s %s: %s", cmdutil.Yellow("warn"), cmdutil.Gray(v.Field), cmdutil.Yellow(v.Message)))
+				n.detail(fmt.Sprintf("%s %s: %s", cmdutil.Yellow("warn"), cmdutil.Gray(v.Field), cmdutil.Yellow(v.Message)))
 			}
 		}
-		denied := r.Denied()
-		if denied > 0 {
-			denialTxt := "denials"
-			violationTxt := "violations"
-			if denied == 1 {
-				denialTxt = "denial"
-				violationTxt = "violation"
-			}
-
-			printStageError(fmt.Sprintf("%d %s — this CR would be rejected at admission", denied, denialTxt))
-			return nil, nil, "", fmt.Errorf("admission denied: %d rule %s", denied, violationTxt)
+		if denied := r.Denied(); denied > 0 {
+			n.fail(fmt.Sprintf("%d %s — this CR would be rejected at admission", denied, plural(denied, "denial", "denials")))
+			return nil, nil, "", fmt.Errorf("admission denied: %d rule %s", denied, plural(denied, "violation", "violations"))
 		}
-		warned := r.Warned()
-		if warned > 0 {
-			warningTxt := "warnings"
-			if warned == 1 {
-				warningTxt = "warning"
-			}
-			printStageOK(fmt.Sprintf("passed (%d %s)", warned, warningTxt))
-		} else if r.Total > 0 {
-			printStageOK("passed — no violations")
-		} else {
-			printStageOK("no validation rules declared")
+		switch warned := r.Warned(); {
+		case warned > 0:
+			n.ok(fmt.Sprintf("passed (%d %s)", warned, plural(warned, "warning", "warnings")))
+		case r.Total > 0:
+			n.ok("passed — no violations")
+		default:
+			n.ok("no validation rules declared")
 		}
 
 		m := gate.EvalAdmissionMutation(obj.Object, crd, resolver, eval)
@@ -143,26 +120,21 @@ func runCreateUpdateChain(k *catalog.Catalog, raw map[string]interface{}, tokenN
 			if p.Found {
 				fromStr = cmdutil.Gray(p.From)
 			}
-			printStageDetail(fmt.Sprintf("%s %s: %s → %s  %s", cmdutil.Cyan("mut"), cmdutil.Gray(p.Field), fromStr, cmdutil.Cyan(fmt.Sprintf("%v", p.To)), cmdutil.Gray(p.MutType)))
+			n.detail(fmt.Sprintf("%s %s: %s → %s  %s", cmdutil.Cyan("mut"), cmdutil.Gray(p.Field), fromStr, cmdutil.Cyan(fmt.Sprintf("%v", p.To)), cmdutil.Gray(p.MutType)))
 		}
 		if len(m.Previews) > 0 {
-			mutTxt := "mutations"
-			if len(m.Previews) == 1 {
-				mutTxt = "mutation"
-			}
-			printStageOK(fmt.Sprintf("%d %s would be applied by the webhook", len(m.Previews), mutTxt))
+			n.ok(fmt.Sprintf("%d %s would be applied by the webhook", len(m.Previews), plural(len(m.Previews), "mutation", "mutations")))
 		}
 	}
 
 	// Stage 6: Response payload
-	printStage(6, "Response payload")
-	payload := api.EvaluatePayload(obj.Object, crd, alias, notes)
-	if payload == nil {
-		printStageDetail(cmdutil.Gray("no serve.config.response declared — default CR response"))
+	n.stage(6, "Response payload")
+	if payload := api.EvaluatePayload(obj.Object, crd, alias, notes); payload == nil {
+		n.detail(cmdutil.Gray("no serve.config.response declared — default CR response"))
 	} else {
-		printIndentedJSON(payload)
+		n.json(payload)
 	}
-	printStageOK("payload evaluated")
+	n.ok("payload evaluated")
 
 	return obj, crd, alias, nil
 }
@@ -171,7 +143,7 @@ func runCreateUpdateChain(k *catalog.Catalog, raw map[string]interface{}, tokenN
 // simulateConfig is the path to a simulate.yaml; empty means op-print mode with
 // the same catalog play used. Shared by "inrun serve play --simulate" and
 // "inrun webhook play --simulate" via playSimulate below.
-func playRunSimulate(ctx context.Context, catalogFile string, obj *unstructured.Unstructured, simulateConfig string) error {
+func playRunSimulate(ctx context.Context, catalogFile string, obj *unstructured.Unstructured, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
 	b, err := yaml.Marshal(obj.Object)
 	if err != nil {
 		return fmt.Errorf("marshalling CR for simulate: %w", err)
@@ -191,15 +163,17 @@ func playRunSimulate(ctx context.Context, catalogFile string, obj *unstructured.
 	fmt.Println()
 
 	if simulateConfig != "" {
-		return runSimulateWithCR(ctx, simulateConfig, tmp.Name())
+		return runSimulateWithCR(ctx, simulateConfig, tmp.Name(), simOpts)
 	}
-	return testsuite.RunSimulate(ctx, catalogFile, tmp.Name(), testsuite.CliSimulateOptions{MaxCycles: 10, SkipExternal: true})
+	simOpts.MaxCycles = 10
+	simOpts.SkipExternal = true
+	return testsuite.RunSimulate(ctx, catalogFile, tmp.Name(), simOpts)
 }
 
 // runSimulateWithCR runs simulate using the spec file for catalog/cycles/expect
 // but substitutes crFile (the play-built CR) instead of spec.cr.
 // The expect: block is fully evaluated — this is assert mode, not op-print mode.
-func runSimulateWithCR(ctx context.Context, specPath, crFile string) error {
+func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts testsuite.CliSimulateOptions) error {
 	if abs, err := filepath.Abs(specPath); err == nil {
 		specPath = abs
 	}
@@ -225,6 +199,14 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string) error {
 	m := merger.New(catalogPath)
 	if err := m.Merge(); err != nil {
 		return fmt.Errorf("merging Catalog: %w", err)
+	}
+	// --envtest installs the spec's CRDs, else the ones the Catalog points at.
+	var crdPaths []string
+	for _, p := range doc.Spec.AllCRDPaths() {
+		crdPaths = append(crdPaths, cmdutil.JoinPath(specPath, p))
+	}
+	if len(crdPaths) == 0 {
+		crdPaths = testsuite.CatalogCRDPaths(m)
 	}
 	kat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
 	if err != nil {
@@ -252,13 +234,13 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string) error {
 				fmt.Printf("  %s no CR found for %s — skipped\n\n", cmdutil.Dim("note:"), crdEntry.APITypes.Kind)
 				continue
 			}
-			return fmt.Errorf("no CR found for CRD %q (kind: %s)", name, crdEntry.APITypes.Kind)
+			return fmt.Errorf("play: no CR found for CRD %q (kind: %s)", name, crdEntry.APITypes.Kind)
 		}
 		crdOpts := opts
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
 		expect := simulate.ExpectForCRD(doc.Spec.Expect, name)
-		if err := testsuite.SimulateOne(ctx, kat, name, in.CR, cycles, crdOpts, testsuite.CliSimulateOptions{}, nil, expect); err != nil {
+		if err := testsuite.SimulateOne(ctx, kat, name, in.CR, cycles, crdOpts, simOpts, crdPaths, expect); err != nil {
 			failed = append(failed, name)
 		}
 	}
@@ -276,7 +258,7 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 	if err := m.Merge(); err != nil {
 		return "", fmt.Errorf("merging catalog: %w", err)
 	}
-	k, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	c, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
 	if err != nil {
 		return "", fmt.Errorf("building catalog: %w", err)
 	}
@@ -291,9 +273,9 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 		return "", fmt.Errorf(`intent file must declare a "target"`)
 	}
 
-	resolution := k.LookupByTargetOrAlias(target)
+	resolution := c.LookupByTargetOrAlias(target)
 	if resolution == nil {
-		return target, fmt.Errorf("unknown target %q — available: %s", target, strings.Join(k.AvailableTargets(), ", "))
+		return target, fmt.Errorf("unknown target %q — available: %s", target, strings.Join(c.AvailableTargets(), ", "))
 	}
 	crd, alias := resolution.CRD, resolution.Alias
 
@@ -306,12 +288,12 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 		return target, fmt.Errorf("intent file must declare a 'token' — token: <name>")
 	}
 
-	obj, err := intent.Build(raw, crd, k.Notes)
+	obj, err := intent.Build(raw, crd, c.Notes)
 	if err != nil {
 		return target, fmt.Errorf("CR construction: %w", err)
 	}
 
-	resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(k.Notes).WithRequest(raw)
+	resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithRequest(raw)
 	eval := resolver.TemplateEvaluator()
 	r := gate.EvalAdmissionValidation(obj.Object, crd, resolver, eval)
 	denied := r.Denied()
@@ -326,24 +308,24 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 	return target, nil
 }
 
-// webhookSimulate carries the --simulate handoff arguments through
-// "inrun webhook play" to wherever a play chain successfully builds a CR —
-// same handoff "inrun serve play --simulate" does (playRunSimulate), just
-// reached from a different front door, and potentially more than once per
-// run: a GitHub/GitLab push can match several files, each its own build.
-type webhookSimulate struct {
-	ctx         context.Context
-	catalogFile string
-	enabled     bool
-	config      string
-}
+// A Simulate spec with spec.intent builds its CR through this same chain.
+func init() {
+	testsuite.PlayIntent = func(req testsuite.PlayRequest) (*unstructured.Unstructured, error) {
+		raw, err := readIntentFile(req.IntentFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading intent file %q: %w", req.IntentFile, err)
+		}
+		target, _ := raw["target"].(string)
+		printPlayHeaderForSimulate(req.CatalogFile, req.IntentFile, target, req.Token, req.Cycles)
 
-// playSimulate hands obj to inrun simulate when sim.enabled — a no-op
-// otherwise. Called after every successful runCreateUpdateChain in
-// "inrun webhook play".
-func playSimulate(sim webhookSimulate, obj *unstructured.Unstructured) error {
-	if !sim.enabled {
-		return nil
+		var n narrator = quietNarrator{}
+		if req.Verbose {
+			n = stageNarrator{}
+		}
+		obj, _, _, err := planChain(req.Catalog, raw, req.Token, req.Op, n)
+		if err == nil && !req.Verbose {
+			printPlayed(req.IntentFile, obj)
+		}
+		return obj, err
 	}
-	return playRunSimulate(sim.ctx, sim.catalogFile, obj, sim.config)
 }
