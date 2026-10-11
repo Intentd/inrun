@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -77,11 +77,11 @@ spec:
                 name: remote-token
                 namespace: default
                 key: token
-            managedResources:
-              - group: apps
-                plural: deployments
-              - group: ""
-                plural: services
+          managedResources:
+            - group: apps
+              plural: deployments
+            - group: ""
+              plural: services
 `
 
 // TestRun_RemoteReconciler proves a remote reconciler runs in simulation: the
@@ -120,7 +120,7 @@ func TestRun_RemoteReconciler(t *testing.T) {
 	if err := m.Merge(); err != nil {
 		t.Fatalf("merging catalog: %v", err)
 	}
-	kat, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
+	cat, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
 	if err != nil {
 		t.Fatalf("building catalog: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestRun_RemoteReconciler(t *testing.T) {
 		"spec":       map[string]interface{}{"image": "nginx:1.25"},
 	}}
 
-	result, err := Run(context.Background(), kat, "webapp", cr, 2, RunOptions{})
+	result, err := Run(context.Background(), cat, "webapp", cr, 2, RunOptions{})
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}

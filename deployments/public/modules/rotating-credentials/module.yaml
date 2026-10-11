@@ -7,7 +7,7 @@ metadata:
     Auto-generates a username, password, and token on first creation.
     Rotated automatically after rotateAfter. Never drift-corrected —
     credentials stay stable between rotations.
-  author: inrundev
+  author: intentd
   tags:
     - secret
     - credentials

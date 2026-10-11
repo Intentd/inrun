@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/client-go/tools/cache"
 )
 

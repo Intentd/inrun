@@ -5,7 +5,7 @@ package testsuite
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 )
 
 const twoWebsitesOneCert = `

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // catalogWithTranslation builds a minimal Catalog with one serve-enabled CRD
@@ -17,35 +17,35 @@ func catalogWithTranslation(fields map[string]types.ServeFieldConfig) *executor 
 }
 
 func TestValidateServeFieldTranslation_NoFields(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{Enabled: true})
-	if err := k.validateServeFieldTranslation(); err != nil {
+	e := catalogWithServe(&types.ServeConfig{Enabled: true})
+	if err := e.validateServeFieldTranslation(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldTranslation_PlainField_Valid(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"image": {Label: "Image"},
 	})
-	if err := k.validateServeFieldTranslation(); err != nil {
+	if err := e.validateServeFieldTranslation(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldTranslation_Value_Valid(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"timeout": {
 			Path:  "timeoutSeconds",
 			Value: `{{ .value }}`,
 		},
 	})
-	if err := k.validateServeFieldTranslation(); err != nil {
+	if err := e.validateServeFieldTranslation(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldTranslation_Values_Valid(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"image": {
 			Values: map[string]string{
 				"image.registry":   `{{ .value }}`,
@@ -54,22 +54,22 @@ func TestValidateServeFieldTranslation_Values_Valid(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeFieldTranslation(); err != nil {
+	if err := e.validateServeFieldTranslation(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldTranslation_GateOnly_Valid(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"productionApproval": {Label: "Approval ticket"},
 	})
-	if err := k.validateServeFieldTranslation(); err != nil {
+	if err := e.validateServeFieldTranslation(); err != nil {
 		t.Fatalf("gate-only field (no path/value/values) should be valid: %v", err)
 	}
 }
 
 func TestValidateServeFieldTranslation_ValueAndValues_MutuallyExclusive(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"image": {
 			Value: `{{ .value }}`,
 			Values: map[string]string{
@@ -77,7 +77,7 @@ func TestValidateServeFieldTranslation_ValueAndValues_MutuallyExclusive(t *testi
 			},
 		},
 	})
-	err := k.validateServeFieldTranslation()
+	err := e.validateServeFieldTranslation()
 	if err == nil {
 		t.Fatal("expected error: value and values mutually exclusive")
 	}
@@ -87,14 +87,14 @@ func TestValidateServeFieldTranslation_ValueAndValues_MutuallyExclusive(t *testi
 }
 
 func TestValidateServeFieldTranslation_ValuesKeyEmpty(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"image": {
 			Values: map[string]string{
 				"": `{{ .value }}`,
 			},
 		},
 	})
-	err := k.validateServeFieldTranslation()
+	err := e.validateServeFieldTranslation()
 	if err == nil {
 		t.Fatal("expected error: empty values key")
 	}
@@ -104,14 +104,14 @@ func TestValidateServeFieldTranslation_ValuesKeyEmpty(t *testing.T) {
 }
 
 func TestValidateServeFieldTranslation_ValuesExpressionEmpty(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"image": {
 			Values: map[string]string{
 				"image.registry": "",
 			},
 		},
 	})
-	err := k.validateServeFieldTranslation()
+	err := e.validateServeFieldTranslation()
 	if err == nil {
 		t.Fatal("expected error: empty values expression")
 	}
@@ -121,13 +121,13 @@ func TestValidateServeFieldTranslation_ValuesExpressionEmpty(t *testing.T) {
 }
 
 func TestValidateServeFieldTranslation_ValueInvalidTemplate(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"timeout": {
 			Path:  "timeoutSeconds",
 			Value: `{{ .value`, // missing closing }}
 		},
 	})
-	err := k.validateServeFieldTranslation()
+	err := e.validateServeFieldTranslation()
 	if err == nil {
 		t.Fatal("expected error: invalid template in value")
 	}
@@ -137,14 +137,14 @@ func TestValidateServeFieldTranslation_ValueInvalidTemplate(t *testing.T) {
 }
 
 func TestValidateServeFieldTranslation_ValuesInvalidTemplate(t *testing.T) {
-	k := catalogWithTranslation(map[string]types.ServeFieldConfig{
+	e := catalogWithTranslation(map[string]types.ServeFieldConfig{
 		"image": {
 			Values: map[string]string{
 				"image.tag": `{{ .value | `, // malformed pipe
 			},
 		},
 	})
-	err := k.validateServeFieldTranslation()
+	err := e.validateServeFieldTranslation()
 	if err == nil {
 		t.Fatal("expected error: invalid template in values expression")
 	}
@@ -154,7 +154,7 @@ func TestValidateServeFieldTranslation_ValuesInvalidTemplate(t *testing.T) {
 }
 
 func TestValidateServeFieldTranslation_ServeDisabled_Skipped(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: false,
 		Fields: map[string]types.ServeFieldConfig{
 			"image": {
@@ -162,7 +162,7 @@ func TestValidateServeFieldTranslation_ServeDisabled_Skipped(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeFieldTranslation(); err != nil {
+	if err := e.validateServeFieldTranslation(); err != nil {
 		t.Fatalf("disabled serve should be skipped, got: %v", err)
 	}
 }

@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // stopCRDWorkers cancels the CRD context and waits for all workers to drain.
-func (k *DependencyCoordinator) stopCRDWorkers(ctx context.Context, gvk string) {
-	k.mu.RLock()
-	cancel, okCancel := k.cancelFuncs[gvk]
-	wg, okWG := k.wgs[gvk]
-	k.mu.RUnlock()
+func (dc *DependencyCoordinator) stopCRDWorkers(ctx context.Context, gvk string) {
+	dc.mu.RLock()
+	cancel, okCancel := dc.cancelFuncs[gvk]
+	wg, okWG := dc.wgs[gvk]
+	dc.mu.RUnlock()
 
 	// Step 1: signal workers to stop accepting new work
 	if okCancel {
@@ -21,7 +21,7 @@ func (k *DependencyCoordinator) stopCRDWorkers(ctx context.Context, gvk string) 
 
 	// Step 2: shut down the queue — this unblocks any worker blocked on
 	// queue.GetWithContext() waiting for the next item.
-	if wq, ok := k.queueReg.For(gvk); ok {
+	if wq, ok := dc.queueReg.For(gvk); ok {
 		wq.Shutdown(ctx)
 	}
 
@@ -30,7 +30,7 @@ func (k *DependencyCoordinator) stopCRDWorkers(ctx context.Context, gvk string) 
 	}
 
 	// Step 3: reset worker counts after shutdown
-	if health, ok := k.crdHealthMap[gvk]; ok {
+	if health, ok := dc.crdHealthMap[gvk]; ok {
 		health.ResetWorkerCounts()
 		health.MarkWorkersStopped()
 	}
@@ -45,9 +45,9 @@ func (k *DependencyCoordinator) stopCRDWorkers(ctx context.Context, gvk string) 
 	select {
 	case <-done:
 		logger.Info().Str("gvk", gvk).Msg("workers drained cleanly")
-	case <-time.After(k.drainTimeout):
+	case <-time.After(dc.drainTimeout):
 		logger.Warn().Str("gvk", gvk).
-			Dur("timeout", k.drainTimeout).
+			Dur("timeout", dc.drainTimeout).
 			Msg("drain timeout exceeded — workers may still be running. " +
 				"Consider increasing SHUTDOWN_TIMEOUT if reconciles call slow external APIs.")
 	}

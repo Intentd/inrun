@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: filter-probe
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     Living fixture for preReconcile.enqueueGate. Verifies that the enqueue gate

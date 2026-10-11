@@ -4,16 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/intentd/inrun/pkg/utils"
 	"strconv"
-	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/metrics"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -262,8 +262,10 @@ func resolveTypedValue(val interface{}, valueType string, resolver *template.Res
 	}
 }
 
+// setNestedPatch sets value at a dot-notation path (see utils.SplitField) in a
+// merge patch.
 func setNestedPatch(patch map[string]interface{}, path string, value interface{}) {
-	parts := strings.Split(path, ".")
+	parts := utils.SplitField(path)
 	current := patch
 	for i, part := range parts {
 		if i == len(parts)-1 {

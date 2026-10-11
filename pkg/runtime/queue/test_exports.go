@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 )
 
 // Methods implementation of the Workqueue interface

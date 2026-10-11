@@ -3,6 +3,8 @@ package validate
 import (
 	"fmt"
 	"strings"
+
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 // validateCRDEntryMetadata validates the labels: and annotations: blocks
@@ -24,12 +26,17 @@ func (e *executor) validateCRDEntryMetadata() error {
 //  2. Label values must be valid Go templates (they are resolved at reconcile time
 //     against the CR object, so {{ .metadata.name }} etc. are allowed).
 func (e *executor) validateCRDEntryLabels() error {
-	funcMap := buildFuncMapForValidation(e.k.Notes)
-	for crdName, crd := range e.k.Enabled() {
+	funcMap := buildFuncMapForValidation(e.cat.Notes)
+	for crdName, crd := range e.cat.Enabled() {
 		if !crd.HasUserLabels() {
 			continue
 		}
-		for key, value := range crd.Labels {
+
+		lbls := crd.Labels
+		if err := labels.CheckReserved("labels", lbls); err != nil {
+			return err
+		}
+		for key, value := range lbls {
 			if isTemplate(key) {
 				return fmt.Errorf("%s CRD %q: labels: key %q must be a static label key, not a template", failureMark(), crdName, key)
 			}
@@ -57,14 +64,18 @@ func (e *executor) validateCRDEntryLabels() error {
 //  2. Annotation values must be valid Go templates (they are resolved at reconcile time
 //     against the CR object, so {{ .metadata.name }} etc. are allowed).
 func (e *executor) validateCRDEntryAnnotations() error {
-	funcMap := buildFuncMapForValidation(e.k.Notes)
+	funcMap := buildFuncMapForValidation(e.cat.Notes)
 
-	for crdName, crd := range e.k.Enabled() {
+	for crdName, crd := range e.cat.Enabled() {
 		if !crd.HasUserAnnotations() {
 			continue
 		}
 
-		for key, value := range crd.Annotations {
+		ann := crd.Annotations
+		if err := labels.CheckReserved("annotations", ann); err != nil {
+			return err
+		}
+		for key, value := range ann {
 			if isTemplate(key) {
 				return fmt.Errorf("%s CRD %q: annotations: key %q must be a static annotation key, not a template",
 					failureMark(), crdName, key,

@@ -7,7 +7,7 @@ metadata:
     Self-signed TLS certificate generated on first creation, rotated after
     rotateAfter. The Secret contains tls.crt, tls.key, and ca.crt.
     Never drift-corrected — the cert stays stable between rotations.
-  author: inrundev
+  author: intentd
   tags:
     - secret
     - tls

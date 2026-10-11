@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // AutoscaleProfile is a named autoscale behavior preset.

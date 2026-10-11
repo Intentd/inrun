@@ -3,12 +3,12 @@ package post
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ValidationResult is the subset of prepare.ValidationResult that post needs
@@ -38,10 +38,10 @@ type Input struct {
 	// HealthMap carries live CRD health data for resolver enrichment and health
 	// annotation injection. Nil is safe — enrichment is skipped.
 	HealthMap map[string]interface{}
-	// StatusPatch is an optional map of status fields returned by the reconciler
-	// (e.g. RemoteReconciler). Applied after emit.status fields; remote fields win
-	// on conflict. Nil or empty is safe — skipped.
-	StatusPatch map[string]interface{}
+	// Status is the reconciler's Result.Status. Merged after emit.status
+	// fields, so the reconciler's fields win on conflict; one patch is sent.
+	// Nil or empty is safe — skipped.
+	Status map[string]interface{}
 }
 
 // Apply runs the full post-reconcile phase.

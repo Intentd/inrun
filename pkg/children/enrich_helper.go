@@ -1,6 +1,6 @@
 package children
 
-import "github.com/inrundev/inrun/pkg/types"
+import "github.com/intentd/inrun/pkg/types"
 
 // resolveEnrichmentTarget returns the canonical built-in name for a given
 // enrichment identifier (name, plural, shorthand, alias). Returns "" if unknown.

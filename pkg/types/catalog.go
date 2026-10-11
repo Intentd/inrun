@@ -437,19 +437,19 @@ type CatalogFile struct {
 }
 
 // LooksLikeStack reports if this document looks like a Stack
-func (k *CatalogFile) LooksLikeStack() bool {
-	if k == nil {
+func (c *CatalogFile) LooksLikeStack() bool {
+	if c == nil {
 		return false
 	}
-	return k.Imports != nil && (len(k.Imports.Files) > 0 || len(k.Imports.Registry) > 0 || len(k.Imports.Helm) > 0)
+	return c.Imports != nil && (len(c.Imports.Files) > 0 || len(c.Imports.Registry) > 0 || len(c.Imports.Helm) > 0)
 }
 
 // WithImportsOrSpecOverrides reports if this document should be a Stack (has imports or inline CRDs)
-func (k *CatalogFile) WithImportsOrSpecOverrides() bool {
-	if k == nil {
+func (c *CatalogFile) WithImportsOrSpecOverrides() bool {
+	if c == nil {
 		return false
 	}
-	return k.Imports != nil || len(k.Spec.CRDs) > 0
+	return c.Imports != nil || len(c.Spec.CRDs) > 0
 }
 
 // CatalogMeta holds identifying metadata for a Catalog.

@@ -15,36 +15,36 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // expandCatalogImports resolves spec.imports entries on the Catalog.
 // For each import, profiles: and notes: from the expanded Module are merged
 // into the Catalog-wide ProfileRegistry and NoteRegistry respectively.
 // Resources, status, and admission are ignored at this level.
-func (k *Catalog) expandCatalogImports() error {
+func (c *Catalog) expandCatalogImports() error {
 	seen := make(map[string]string) // note name → module label, for conflict detection
-	for i, imp := range k.Spec.Imports {
-		expanded, err := k.loadAndExpandImport(&imp)
+	for i, imp := range c.Spec.Imports {
+		expanded, err := c.loadAndExpandImport(&imp)
 		if err != nil {
 			return fmt.Errorf("spec.imports[%d]: %w", i, err)
 		}
 		label := fmt.Sprintf("spec.imports[%d] module %q", i, expanded.Name)
 		if !expanded.Profiles.Empty() {
-			merged, err := k.Profiles.Merge(expanded.Profiles, label)
+			merged, err := c.Profiles.Merge(expanded.Profiles, label)
 			if err != nil {
 				return fmt.Errorf("spec.imports[%d]: merging profiles from module %q: %w", i, expanded.Name, err)
 			}
-			k.Profiles = merged
+			c.Profiles = merged
 		}
 		if !expanded.Notes.Empty() {
-			merged, err := k.Notes.MergeImport(expanded.Notes, label, seen)
+			merged, err := c.Notes.MergeImport(expanded.Notes, label, seen)
 			if err != nil {
 				return fmt.Errorf("spec.imports[%d]: merging notes from module %q: %w", i, expanded.Name, err)
 			}
-			k.Notes = merged
+			c.Notes = merged
 		}
 	}
 	return nil
@@ -58,18 +58,18 @@ func (k *Catalog) expandCatalogImports() error {
 // not inside operatorBox. This allows modules to contribute to multiple
 // aspects of the CRD (resources, status, admission rules) without being
 // tied to the operatorbox configuration.
-func (k *Catalog) expandModuleImports() error {
-	for name, entry := range k.enabledCRDs {
+func (c *Catalog) expandModuleImports() error {
+	for name, entry := range c.enabledCRDs {
 		if len(entry.EffectiveImports()) == 0 {
 			continue
 		}
 
 		for i, imp := range entry.EffectiveImports() {
-			expanded, err := k.loadAndExpandImport(&imp)
+			expanded, err := c.loadAndExpandImport(&imp)
 			if err != nil {
 				return fmt.Errorf("CRD %q: operatorBox.imports[%d]: %w", name, i, err)
 			}
-			if err := k.mergeExpandedModule(&entry, expanded); err != nil {
+			if err := c.mergeExpandedModule(&entry, expanded); err != nil {
 				return fmt.Errorf("CRD %q: operatorBox.imports[%d]: merging module %q: %w",
 					name, i, imp.Module, err)
 			}
@@ -77,13 +77,13 @@ func (k *Catalog) expandModuleImports() error {
 				warning := fmt.Sprintf("CRD %q: import[%d] module %q: profiles: are ignored at CRD-level imports — use spec.imports to apply profiles Catalog-wide",
 					name, i, expanded.Name)
 				entry.Warnings.AddWarning(warning)
-				k.Warnings.AddWarning(warning)
+				c.Warnings.AddWarning(warning)
 			}
 			if !expanded.Notes.Empty() {
 				warning := fmt.Sprintf("CRD %q: import[%d] module %q: notes: are ignored at CRD-level imports — use spec.imports to apply notes Catalog-wide",
 					name, i, expanded.Name)
 				entry.Warnings.AddWarning(warning)
-				k.Warnings.AddWarning(warning)
+				c.Warnings.AddWarning(warning)
 			}
 		}
 
@@ -91,7 +91,7 @@ func (k *Catalog) expandModuleImports() error {
 		if entry.OperatorBox.Reconcile != nil {
 			entry.OperatorBox.Reconcile.Imports = nil
 		}
-		k.enabledCRDs[name] = entry
+		c.enabledCRDs[name] = entry
 	}
 	return nil
 }
@@ -102,11 +102,11 @@ func (k *Catalog) expandModuleImports() error {
 // Relative file paths (./foo, ../foo, foo.yaml) are resolved against k.catalogDir
 // so the path is stable regardless of which directory inrun simulate / inrun is
 // invoked from. This mirrors how crdFile paths are resolved in crdfile.go.
-func (k *Catalog) loadAndExpandImport(imp *types.ModuleImport) (*module.ExpandedModule, error) {
+func (c *Catalog) loadAndExpandImport(imp *types.ModuleImport) (*module.ExpandedModule, error) {
 	resolved := imp
-	if k.catalogDir != "" && registry.IsFilePath(imp.Module) && !filepath.IsAbs(imp.Module) {
+	if c.catalogDir != "" && registry.IsFilePath(imp.Module) && !filepath.IsAbs(imp.Module) {
 		copy := *imp
-		copy.Module = filepath.Join(k.catalogDir, imp.Module)
+		copy.Module = filepath.Join(c.catalogDir, imp.Module)
 		resolved = &copy
 	}
 	m, err := module.LoadImport(resolved)
@@ -123,7 +123,7 @@ func (k *Catalog) loadAndExpandImport(imp *types.ModuleImport) (*module.Expanded
 // mergeExpandedModule merges the resources, status, and admission rules from an
 // expanded module into the target CRD entry. It respects the existing fields
 // (appending rules, preserving order, and merging condition flags sensibly).
-func (k *Catalog) mergeExpandedModule(entry *types.CRDEntry, expanded *module.ExpandedModule) error {
+func (c *Catalog) mergeExpandedModule(entry *types.CRDEntry, expanded *module.ExpandedModule) error {
 	// resources.onCreate: → CRD onCreate (update=false, preserves once: true guard)
 	if expanded.OnCreate != nil {
 		if entry.OperatorBox.Reconcile == nil {

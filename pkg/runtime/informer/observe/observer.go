@@ -4,11 +4,11 @@ package observe
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/runtime/informer"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Dependencies are the runtime services required by secondary observers.

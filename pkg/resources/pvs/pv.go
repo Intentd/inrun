@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/resources/shared"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/resources/shared"
+	"github.com/intentd/inrun/pkg/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -186,18 +185,7 @@ func buildPV(owner domain.Object, spec ResolvedPVSpec) *corev1.PersistentVolume 
 		}
 	}
 
-	if owner.GetNamespace() == "" {
-		pv.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion:         owner.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-				Kind:               owner.GetObjectKind().GroupVersionKind().Kind,
-				Name:               owner.GetName(),
-				UID:                owner.GetUID(),
-				Controller:         utils.BoolPtr(true),
-				BlockOwnerDeletion: utils.BoolPtr(true),
-			},
-		}
-	}
+	pv.OwnerReferences = shared.ResolveOwnerReferences(owner)
 
 	return pv
 }

@@ -37,21 +37,31 @@ import "context"
 //	        OnDelete:    onDatabaseDelete,
 //	    }
 //	}
+//
+//	func onDatabaseReconcile(ctx context.Context, req domain.Request, db *apiv1.Database) (domain.Result, error) {
+//	    size := req.Args().String("size")
+//	    …
+//	    return domain.Result{Status: map[string]any{"size": size}}, nil
+//	}
+//
+// A hook is a reconciler whose boilerplate is done for it: the same Request in
+// and Result out as any reconciler, plus the typed object, with the Catalog's
+// declarative templates applied alongside (see runHooksFirst).
 type ReconcileHooks[T Object] struct {
 	// OnReconcile is called for every create/update event.
-	// obj is already type-asserted and deep-copied from the informer cache.
-	// Return an error to requeue with backoff.
-	OnReconcile func(ctx context.Context, obj T) error
+	// obj is already type-asserted from the informer cache. req carries the
+	// rendered reconcile.args. The Result is handled like any reconciler's:
+	// status merged over emit.status, resources applied, requeue and cleanup
+	// scheduled. Return an error to retry with backoff.
+	OnReconcile func(ctx context.Context, req Request, obj T) (Result, error)
 
 	// OnDelete is called when the object's DeletionTimestamp is set.
-	// Use this to clean up external resources before the finalizer is removed.
-	// If nil, deletion proceeds with only finalizer removal.
-	OnDelete func(ctx context.Context, obj T) error
-
-	// OnNotFound is called when the object no longer exists in the store.
-	// Use this for cleanup that depends on the key but not the object itself.
-	// If nil, not-found events are a no-op.
-	OnNotFound func(ctx context.Context, key string) error
+	// Use it to clean up external resources before the finalizer is removed.
+	// Return a Result with a requeue to keep the finalizers and be called
+	// again later (e.g. while an external teardown finishes); status,
+	// resources and cleanup are ignored on delete. If nil, deletion proceeds
+	// with only finalizer removal.
+	OnDelete func(ctx context.Context, req Request, obj T) (Result, error)
 }
 
 // AnyReconcileHooks is the type-erased marker interface for ReconcileHooks[T].
@@ -85,9 +95,8 @@ func (r ReconcileHooks[T]) isHooks() {}
 // generic.Reconciler stores this internally; users never construct it directly.
 // Produce it by calling ReconcileHooks[T].BindToObjectHooks().
 type ObjectHooks struct {
-	OnReconcile func(ctx context.Context, obj Object) error
-	OnDelete    func(ctx context.Context, obj Object) error
-	OnNotFound  func(ctx context.Context, key string) error
+	OnReconcile func(ctx context.Context, req Request, obj Object) (Result, error)
+	OnDelete    func(ctx context.Context, req Request, obj Object) (Result, error)
 }
 
 // HookBinder is satisfied by every ReconcileHooks[T] value.
@@ -101,7 +110,6 @@ type HookBinder interface {
 	AnyReconcileHooks
 	// BindToObjectHooks wraps each hook function in a closure that performs
 	// a runtime obj.(T) assertion before delegating to the typed function.
-	// OnNotFound is forwarded unchanged — it receives a string key, not an object.
 	BindToObjectHooks() ObjectHooks
 }
 
@@ -110,17 +118,17 @@ type HookBinder interface {
 // This is safe because the informer guarantees every object in its cache
 // is of the type it was built for.
 func (h ReconcileHooks[T]) BindToObjectHooks() ObjectHooks {
-	oh := ObjectHooks{OnNotFound: h.OnNotFound}
+	var oh ObjectHooks
 	if h.OnReconcile != nil {
 		fn := h.OnReconcile
-		oh.OnReconcile = func(ctx context.Context, obj Object) error {
-			return fn(ctx, obj.(T))
+		oh.OnReconcile = func(ctx context.Context, req Request, obj Object) (Result, error) {
+			return fn(ctx, req, obj.(T))
 		}
 	}
 	if h.OnDelete != nil {
 		fn := h.OnDelete
-		oh.OnDelete = func(ctx context.Context, obj Object) error {
-			return fn(ctx, obj.(T))
+		oh.OnDelete = func(ctx context.Context, req Request, obj Object) (Result, error) {
+			return fn(ctx, req, obj.(T))
 		}
 	}
 	return oh

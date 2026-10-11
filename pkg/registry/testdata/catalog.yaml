@@ -6,7 +6,7 @@ metadata:
   description: Minimal fixture for typed annotations and deprecation detection
 lifecycle:
   deprecation:
-    migratedTo: ghcr.io/inrundev/registry/registry-pack-probe:v0.2.0
+    migratedTo: ghcr.io/intentd/registry/registry-pack-probe:v0.2.0
     message: "Upgrade to v0.2.0"
 
 spec:

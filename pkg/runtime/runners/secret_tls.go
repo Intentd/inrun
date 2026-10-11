@@ -29,12 +29,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/gateway/certmanager"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/resources/shared"
-	"github.com/inrundev/inrun/pkg/secrets"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/gateway/certmanager"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/resources/shared"
+	"github.com/intentd/inrun/pkg/secrets"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

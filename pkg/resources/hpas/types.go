@@ -2,7 +2,7 @@
 package hpas
 
 import (
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ResolvedHPASpec is the fully resolved HorizontalPodAutoscaler specification.

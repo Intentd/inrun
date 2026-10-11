@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -43,12 +43,12 @@ type HealthServer struct {
 
 // NewHealthServer constructs a HealthServer. No I/O is performed.
 // Routes must be registered via Register() before calling Start().
-func NewHealthServer(kfg *config.Config) *HealthServer {
+func NewHealthServer(cfg *config.Config) *HealthServer {
 	hs := &HealthServer{
 		name:     "health server",
-		client:   kfg.Inrun().Name(),
-		httpPort: kfg.Health().Port(),
-		logLevel: kfg.Inrun().LogLevel(),
+		client:   cfg.Inrun().Name(),
+		httpPort: cfg.Health().Port(),
+		logLevel: cfg.Inrun().LogLevel(),
 		mux:      http.NewServeMux(),
 	}
 	hs.ready.Store(false)

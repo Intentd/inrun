@@ -5,16 +5,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/clusterrolebindings"
-	"github.com/inrundev/inrun/pkg/resources/clusterroles"
-	"github.com/inrundev/inrun/pkg/resources/customresources"
-	"github.com/inrundev/inrun/pkg/resources/namespaces"
-	"github.com/inrundev/inrun/pkg/resources/pvs"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/clusterrolebindings"
+	"github.com/intentd/inrun/pkg/resources/clusterroles"
+	"github.com/intentd/inrun/pkg/resources/customresources"
+	"github.com/intentd/inrun/pkg/resources/namespaces"
+	"github.com/intentd/inrun/pkg/resources/pvs"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // DeleteOwnedClusterScopedResources explicitly deletes all cluster-scoped resources declared across

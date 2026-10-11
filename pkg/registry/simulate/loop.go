@@ -3,13 +3,15 @@ package simulate
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/post"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/template"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/template"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 )
@@ -54,7 +56,14 @@ func runLoop(ctx context.Context, r domain.Reconciler, kube loopKube, key string
 			NamespacedName: apitypes.NamespacedName{Namespace: ns, Name: name},
 			Prepared:       prepared,
 		}
-		_, cycleResult.Error = r.Reconcile(ctx, req)
+		req.Prepared.Args = prepare.Args(prepared)
+		res, err := r.Reconcile(ctx, req)
+		// Apply the Result's writes the way the coordinator worker does.
+		if err == nil {
+			prune := prepInput.Entry.CRD.EffectivePrune(intent.Target(prepared.Object.GetAnnotations()))
+			_, err = apply.Result(ctx, kube, prepared.Object, prepInput.Entry.CRD.AllManagedResources(), prune, res)
+		}
+		cycleResult.Error = err
 
 		// Post-reconcile: status patch + emit — mirrors the coordinator worker.
 		// Status patching lives in post.Apply; without this call the CR's status
@@ -65,6 +74,7 @@ func runLoop(ctx context.Context, r domain.Reconciler, kube loopKube, key string
 				CRD:      prepInput.Entry.CRD,
 				Kube:     kube,
 				Recorder: event.Discard(),
+				Status:   res.Status,
 			}, prepared.Object, resolver, box, cycleResult.Error, nil)
 		}
 

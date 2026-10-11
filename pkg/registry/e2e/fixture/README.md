@@ -59,7 +59,7 @@ The `E2EProbe` CRD creates one `Deployment` and one `Service` per CR. Two CRs ar
 
 | CR | Image | Port | Purpose |
 |---|---|---|---|
-| `my-probe-server` | `ghcr.io/inrundev/inrun-dev-server:latest` | 9999 | Port-forward and JSON endpoint assertions (`/health`, `/startup`, `/ready`) |
+| `my-probe-server` | `ghcr.io/intentd/inrun-dev-server:latest` | 9999 | Port-forward and JSON endpoint assertions (`/health`, `/startup`, `/ready`) |
 | `my-probe-exec` | `nginx:alpine` | 80 | Exec assertions — nginx has `sh`, the devserver is distroless |
 
 `status.phase` progresses `Pending` → `Deploying` → `Ready` on each CR independently.

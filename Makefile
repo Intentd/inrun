@@ -7,17 +7,17 @@ OUTPUT_DIR := $(HOME)/.inrun/bin
 BUILD_TAGS ?=
 
 # Version stamping — reads from git; matches what CI/CD injects via ldflags.
-GIT_VERSION := $(shell git describe --tags --always 2>/dev/null || echo "dev")
+GIT_VERSION := $(shell git describe --tags --match 'v*' --always 2>/dev/null || echo "dev")
 GIT_COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 GIT_DATE    := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-INRUN_LDFLAGS := -X github.com/inrundev/inrun/pkg/version.Version=$(GIT_VERSION) \
-               -X github.com/inrundev/inrun/pkg/version.Commit=$(GIT_COMMIT) \
-               -X github.com/inrundev/inrun/pkg/version.Date=$(GIT_DATE)
+INRUN_LDFLAGS := -X github.com/intentd/inrun/pkg/version.Version=$(GIT_VERSION) \
+               -X github.com/intentd/inrun/pkg/version.Commit=$(GIT_COMMIT) \
+               -X github.com/intentd/inrun/pkg/version.Date=$(GIT_DATE)
 
-CONSOLE_LDFLAGS  := -X github.com/inrundev/inrun/console/version.Version=$(GIT_VERSION) \
-               -X github.com/inrundev/inrun/console/version.Commit=$(GIT_COMMIT) \
-               -X github.com/inrundev/inrun/console/version.Date=$(GIT_DATE)
+CONSOLE_LDFLAGS  := -X github.com/intentd/inrun/console/version.Version=$(GIT_VERSION) \
+               -X github.com/intentd/inrun/console/version.Commit=$(GIT_COMMIT) \
+               -X github.com/intentd/inrun/console/version.Date=$(GIT_DATE)
 
 # ── Local build ───────────────────────────────────────────────────────────
 generate-notes:
@@ -87,10 +87,10 @@ ifeq ($(GIT_COMMIT),)
   $(error "Not a Git repository. Set INRUN_IMAGE and INRUN_CONSOLE_IMAGE manually.")
 endif
 
-INRUN_IMAGE ?= ghcr.io/inrundev/inrun:$(GIT_COMMIT)
-INRUN_CONSOLE_IMAGE ?= ghcr.io/inrundev/inrun-console:$(GIT_COMMIT)
-INRUN_GATEWAY_IMAGE ?= ghcr.io/inrundev/inrun-gateway:$(GIT_COMMIT)
-INRUN_DEVSERVER_IMAGE ?= ghcr.io/inrundev/inrun-dev-server:latest
+INRUN_IMAGE ?= ghcr.io/intentd/inrun:$(GIT_COMMIT)
+INRUN_CONSOLE_IMAGE ?= ghcr.io/intentd/inrun-console:$(GIT_COMMIT)
+INRUN_GATEWAY_IMAGE ?= ghcr.io/intentd/inrun-gateway:$(GIT_COMMIT)
+INRUN_DEVSERVER_IMAGE ?= ghcr.io/intentd/inrun-dev-server:latest
 
 # Target architectures
 INRUN_AMD64_TARGET="inrun-amd64"
@@ -319,7 +319,7 @@ test-unit:
 	@echo "Running unit tests..."
 	go test ./pkg/... -v -short -count=1
 
-# Console is a separate Go module (github.com/inrundev/inrun/console) —
+# Console is a separate Go module (github.com/intentd/inrun/console) —
 # its own go.mod, so it needs its own `go test` invocation from its directory.
 test-console:
 	@echo "Running Console unit tests..."

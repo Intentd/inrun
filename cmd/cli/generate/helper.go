@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // splitLocationVersion splits "path" into modulePath and version.

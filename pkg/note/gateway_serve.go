@@ -3,7 +3,7 @@ package note
 import (
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 // serveNotes registers notes that read the gateway serve-provenance annotations
@@ -19,10 +19,8 @@ func serveNotes() template.FuncMap {
 	return template.FuncMap{
 		"getServeTarget": noteGetServeTarget,
 		"getServeAlias":  noteGetServeAlias,
-		"getServeSource": noteGetServeSource,
 		"hasServeTarget": noteHasServeTarget,
 		"hasServeAlias":  noteHasServeAlias,
-		"hasServeSource": noteHasServeSource,
 		"isDirectApply":  noteIsDirectApply,
 	}
 }
@@ -43,15 +41,6 @@ func noteGetServeAlias(obj interface{}) string {
 	return metaAnnotationField(obj, labels.AnnotationServeAlias)
 }
 
-// noteGetServeSource returns the inrun.dev/serve-source annotation.
-// Returns "" for direct Gateway API calls. Set by webhook integrations.
-// Known values: "github", "gitlab", "slack", "pagerduty", "generic".
-//
-//	{{ getServeSource . }}  → "github"
-func noteGetServeSource(obj interface{}) string {
-	return metaAnnotationField(obj, labels.AnnotationServeSource)
-}
-
 // noteHasServeTarget reports whether the serve-target annotation is present and non-empty.
 //
 //	{{ if hasServeTarget . }}managed by gateway{{ end }}
@@ -67,20 +56,13 @@ func noteHasServeAlias(obj interface{}) bool {
 	return metaAnnotationField(obj, labels.AnnotationServeAlias) != ""
 }
 
-// noteHasServeSource reports whether the CR arrived via a webhook source integration.
-//
-//	{{ if hasServeSource . }}triggered by {{ getServeSource . }}{{ end }}
-func noteHasServeSource(obj interface{}) bool {
-	return metaAnnotationField(obj, labels.AnnotationServeSource) != ""
-}
-
 // noteIsDirectApply reports whether the CR was NOT submitted via the Gateway API —
 // i.e. it arrived via kubectl, CI direct apply, or any non-gateway path.
 // Returns true only when none of the three provenance annotations are present.
 //
 //	{{ isDirectApply . }}  → true when serve-target, serve-alias, and serve-source are all absent
 func noteIsDirectApply(obj interface{}) bool {
-	return !noteHasServeTarget(obj) && !noteHasServeAlias(obj) && !noteHasServeSource(obj)
+	return !noteHasServeTarget(obj) && !noteHasServeAlias(obj)
 }
 
 // metaAnnotationField reads a single annotation value from metadata.annotations.

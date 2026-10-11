@@ -17,8 +17,8 @@ import (
 	"syscall"
 	"time"
 
-	v "github.com/inrundev/inrun/console/version"
-	"github.com/inrundev/inrun/console/web"
+	v "github.com/intentd/inrun/console/version"
+	"github.com/intentd/inrun/console/web"
 )
 
 var (
@@ -33,19 +33,20 @@ func printVersion() {
 }
 
 func main() {
-	kfg := web.NewConsoleConfig()
+	cfg := web.NewConsoleConfig()
 
 	// Parse flags
 	var (
-		inrunURLs     = flag.String("u", strings.Join(kfg.URLs, ","), "Comma-separated URLs of Inrun runtime instances")
-		ignoreDefault = flag.Bool("ignore-default", kfg.IgnoreDefault, "Do not add the default localhost:8080 URL; start with no instances")
-		port          = flag.String("p", kfg.Port, "Port to serve the console on")
-		refresh       = flag.Duration("refresh", kfg.RefreshInterval, "Refresh interval for fetching Catalogs")
-		logLevel      = flag.String("log-level", kfg.LogLevel, "Log level (debug, info, warn, error)")
+		inrunURLs     = flag.String("u", strings.Join(cfg.URLs, ","), "Comma-separated URLs of Inrun runtime instances")
+		ignoreDefault = flag.Bool("ignore-default", cfg.IgnoreDefault, "Do not add the default localhost:8080 URL; start with no instances")
+		port          = flag.String("p", cfg.Port, "Port to serve the console on")
+		refresh       = flag.Duration("refresh", cfg.RefreshInterval, "Refresh interval for fetching Catalogs")
+		logLevel      = flag.String("log-level", cfg.LogLevel, "Log level (debug, info, warn, error)")
 		showVersion   = flag.Bool("version", false, "Show version information")
 	)
 
 	flag.Parse()
+	web.SetLogLevel(*logLevel)
 
 	if *showVersion {
 		printVersion()
@@ -67,9 +68,9 @@ func main() {
 		RefreshInterval:      *refresh,
 		LogLevel:             *logLevel,
 		Version:              version,
-		EnableRuntimeManager: kfg.EnableRuntimeManager,
-		NoLogin:              kfg.NoLogin,
-		GatewayToken:         kfg.GatewayToken,
+		EnableRuntimeManager: cfg.EnableRuntimeManager,
+		NoLogin:              cfg.NoLogin,
+		GatewayToken:         cfg.GatewayToken,
 	})
 
 	// Setup routes
@@ -89,13 +90,13 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("🚀 Inrun Console starting on :%s", *port)
-		log.Printf("Watching instances: %v", urls)
-		log.Printf("Refresh interval: %v", *refresh)
-		log.Printf("Console URL: http://localhost:%s/console", *port)
-		log.Printf("Health endpoint: http://localhost:%s/console/health", *port)
-		log.Printf("Ready endpoint: http://localhost:%s/console/ready", *port)
-		log.Printf("Version endpoint: http://localhost:%s/console/version", *port)
+		web.Infof("Inrun Console starting on :%s", *port)
+		web.Infof("Watching instances: %v", urls)
+		web.Infof("Refresh interval: %v", *refresh)
+		web.Infof("Console URL: http://localhost:%s/console", *port)
+		web.Debugf("Health endpoint: http://localhost:%s/console/health", *port)
+		web.Debugf("Ready endpoint: http://localhost:%s/console/ready", *port)
+		web.Debugf("Version endpoint: http://localhost:%s/console/version", *port)
 
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Server error: %v", err)
@@ -103,17 +104,17 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	log.Println("🛑 Shutting down gracefully...")
+	web.Infof("Shutting down gracefully...")
 
 	c.Close()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("⚠️ Shutdown error: %v", err)
+		web.Warnf("Shutdown error: %v", err)
 	}
 
-	log.Println("✅ Console stopped")
+	web.Infof("Console stopped")
 }
 
 // parseAndDedupeURLs parses a comma-separated URL string and removes duplicates

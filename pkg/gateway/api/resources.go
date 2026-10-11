@@ -24,12 +24,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // resourcesHandler returns the http.HandlerFunc for /api/v1/resources/... routes.
@@ -42,11 +42,11 @@ import (
 func resourcesHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 ) http.HandlerFunc {
 	var notes types.NoteRegistry
-	if !kat.Empty() {
-		notes = kat.UserNotes()
+	if !cat.Empty() {
+		notes = cat.UserNotes()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		kind, ns, name, err := parsePath(r.URL.Path)
@@ -60,11 +60,11 @@ func resourcesHandler(
 		// ─── Debug: Log available kinds ──────────────────────────────────────────────
 		logger.FromContext(r.Context()).Debug().
 			Str("kind", kind).
-			Str("availableKinds", strings.Join(kat.ListKinds(), ", ")).
+			Str("availableKinds", strings.Join(cat.ListKinds(), ", ")).
 			Msg("resourcesHandler: lookup")
 
 		// Resolve CRD entry — accept Kubernetes Kind, serve target, or alias.
-		resolution := kat.LookupByKindOrAlias(kind)
+		resolution := cat.LookupByKindOrAlias(kind)
 		if resolution == nil {
 			writeJSONError(w, http.StatusNotFound, "kind not found",
 				fmt.Sprintf("unknown kind %q", kind),

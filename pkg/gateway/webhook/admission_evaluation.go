@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils/common/query"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils/common/query"
 )
 
 // ── Validation evaluation ─────────────────────────────────────────────────────
@@ -34,10 +34,10 @@ func (ws *WebhookServer) evaluateValidationRules(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	kat := ws.catalog
+	cat := ws.catalog
 	var notes types.NoteRegistry
-	if kat != nil {
-		notes = kat.UserNotes()
+	if cat != nil {
+		notes = cat.UserNotes()
 		resolver = resolver.WithUserNotes(notes)
 	}
 	// Inject the raw intent payload as .request so validation rules can gate on
@@ -58,7 +58,7 @@ func (ws *WebhookServer) evaluateValidationRules(
 	// so CRDs with no unique/health/metrics rules pay zero HTTP cost.
 	// Note bodies are scanned so a rule like {{ inBusinessHours }} correctly
 	// triggers a fetch when inBusinessHours references .health.* or .metrics.*.
-	if kat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.HasHealthField(notes) || cfg.HasMetricsField(notes)) {
+	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.HasHealthField(notes) || cfg.HasMetricsField(notes)) {
 		result := ws.catalog.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
@@ -121,10 +121,10 @@ func (ws *WebhookServer) applyMutationRules(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	kat := ws.catalog
+	cat := ws.catalog
 	var notes types.NoteRegistry
-	if kat != nil {
-		notes = kat.UserNotes()
+	if cat != nil {
+		notes = cat.UserNotes()
 		resolver = resolver.WithUserNotes(notes)
 	}
 
@@ -141,8 +141,8 @@ func (ws *WebhookServer) applyMutationRules(
 			logger.FromContext(ctx).Warn().Err(err).Str("kind", kindName).Msg("admission/mutate: external call failed")
 		}
 	}
-	if kat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.HasHealthField(notes) || cfg.HasMetricsField(notes)) {
-		result := kat.LookupByKind(kindName)
+	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.HasHealthField(notes) || cfg.HasMetricsField(notes)) {
+		result := cat.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
 			q := query.NewRuntimeQuery(ctx, ws.runtimeEndpoint(), crdName)

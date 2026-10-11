@@ -3,7 +3,7 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func populateAllServeFieldsFromInclude(entry *types.CRDEntry, catalogDir string) error {

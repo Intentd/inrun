@@ -1,80 +1,5 @@
 package shared
 
-import (
-	"fmt"
-	"strings"
-
-	"k8s.io/apimachinery/pkg/api/validate/content"
-)
-
-// ApplyMetaOverrides merges caller-supplied labels and annotations into an
-// already-built object map. Called by every BuildFromIntent after ToObjectMap
-// so that intent-form resources can carry arbitrary metadata without each
-// builder duplicating the merge logic.
-//
-// Fails fast with a descriptive error if any key is not a valid qualified name
-// or any label value is not a valid Kubernetes label value. Annotation values
-// have no syntax restriction and are not validated.
-func ApplyMetaOverrides(obj map[string]interface{}, labels, annotations map[string]string) error {
-	if len(labels) == 0 && len(annotations) == 0 {
-		return nil
-	}
-	if err := validateLabelMap(labels); err != nil {
-		return err
-	}
-	if err := validateAnnotationKeys(annotations); err != nil {
-		return err
-	}
-
-	meta, _ := obj["metadata"].(map[string]interface{})
-	if meta == nil {
-		meta = make(map[string]interface{})
-		obj["metadata"] = meta
-	}
-	if len(labels) > 0 {
-		existing, _ := meta["labels"].(map[string]interface{})
-		if existing == nil {
-			existing = make(map[string]interface{})
-		}
-		for k, v := range labels {
-			existing[k] = v
-		}
-		meta["labels"] = existing
-	}
-	if len(annotations) > 0 {
-		existing, _ := meta["annotations"].(map[string]interface{})
-		if existing == nil {
-			existing = make(map[string]interface{})
-		}
-		for k, v := range annotations {
-			existing[k] = v
-		}
-		meta["annotations"] = existing
-	}
-	return nil
-}
-
-func validateLabelMap(labels map[string]string) error {
-	for k, v := range labels {
-		if errs := content.IsLabelKey(k); len(errs) > 0 {
-			return fmt.Errorf("invalid label key %q: %s", k, strings.Join(errs, "; "))
-		}
-		if errs := content.IsLabelValue(v); len(errs) > 0 {
-			return fmt.Errorf("invalid label value for key %q: %s", k, strings.Join(errs, "; "))
-		}
-	}
-	return nil
-}
-
-func validateAnnotationKeys(annotations map[string]string) error {
-	for k := range annotations {
-		if errs := content.IsLabelKey(k); len(errs) > 0 {
-			return fmt.Errorf("invalid annotation key %q: %s", k, strings.Join(errs, "; "))
-		}
-	}
-	return nil
-}
-
 // DeploymentIntentFields are the fields accepted in the remote reconciler
 // intent form for a deployment resource.
 type DeploymentIntentFields struct {
@@ -126,6 +51,25 @@ type ServiceAccountIntentFields struct {
 	Name        string            `json:"name"`
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
+}
+
+// NamespaceIntentFields are the fields accepted in the remote reconciler
+// intent form for a namespace resource.
+type NamespaceIntentFields struct {
+	Name        string            `json:"name"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+}
+
+// PDBIntentFields  are the fields accepted in the remote reconciler
+// intent form for a PodDisruptionBudget resource.
+type PDBIntentFields struct {
+	Name           string            `json:"name"`
+	Selector       map[string]string `json:"selector"`
+	MinAvailable   string            `json:"minAvailable"`
+	MaxUnavailable string            `json:"maxUnavailable"`
+	Labels         map[string]string `json:"labels"`
+	Annotations    map[string]string `json:"annotations"`
 }
 
 // CustomResourceIntentFields are the fields accepted in the remote reconciler

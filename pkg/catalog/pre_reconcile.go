@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils/common"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
 )
@@ -23,8 +23,8 @@ var _ domain.Catalog = (*Catalog)(nil)
 //
 // preReconcile.external runs first (shared enrichment), then reconcileGate.external,
 // then conditions are evaluated against the accumulated resolver.
-func (k *Catalog) EvaluatePreReconcile(ctx context.Context, gvk string, obj *unstructured.Unstructured, cs kubernetes.Interface, opts domain.EvaluateOptions) (allowed bool, reason string) {
-	box := k.effectiveBox(obj, gvk)
+func (c *Catalog) EvaluatePreReconcile(ctx context.Context, gvk string, obj *unstructured.Unstructured, cs kubernetes.Interface, opts domain.EvaluateOptions) (allowed bool, reason string) {
+	box := c.effectiveBox(obj, gvk)
 	if box.Empty() {
 		return true, ""
 	}
@@ -34,7 +34,7 @@ func (k *Catalog) EvaluatePreReconcile(ctx context.Context, gvk string, obj *uns
 		return true, ""
 	}
 
-	resolver := k.effectiveResolver(ctx, obj, pr, opts)
+	resolver := c.effectiveResolver(ctx, obj, pr, opts)
 	if resolver.Empty() {
 		return true, ""
 	}
@@ -72,8 +72,8 @@ func (k *Catalog) EvaluatePreReconcile(ctx context.Context, gvk string, obj *uns
 //
 // preReconcile.external runs first (shared enrichment), then enqueueGate.external,
 // then conditions are evaluated against the accumulated resolver.
-func (k *Catalog) EvaluateEnqueueFilter(ctx context.Context, gvk string, obj domain.Object, cs kubernetes.Interface, opts domain.EvaluateOptions) bool {
-	box := k.effectiveBox(obj, gvk)
+func (c *Catalog) EvaluateEnqueueFilter(ctx context.Context, gvk string, obj domain.Object, cs kubernetes.Interface, opts domain.EvaluateOptions) bool {
+	box := c.effectiveBox(obj, gvk)
 	if box.Empty() {
 		return true
 	}
@@ -83,7 +83,7 @@ func (k *Catalog) EvaluateEnqueueFilter(ctx context.Context, gvk string, obj dom
 		return true
 	}
 
-	resolver := k.effectiveResolver(ctx, obj, pr, opts)
+	resolver := c.effectiveResolver(ctx, obj, pr, opts)
 	if resolver.Empty() {
 		return true
 	}
@@ -95,22 +95,22 @@ func (k *Catalog) EvaluateEnqueueFilter(ctx context.Context, gvk string, obj dom
 		}
 	}
 
-	return k.evaluateGate(ctx, gvk, pr.EnqueueGate, resolver, cs, opts.Sentinels)
+	return c.evaluateGate(ctx, gvk, pr.EnqueueGate, resolver, cs, opts.Sentinels)
 }
 
 // EvaluateWatchEnqueueFilter evaluates a watch entry's enqueueGate.
-func (k *Catalog) EvaluateWatchEnqueueFilter(ctx context.Context, primaryGVK, secondaryGVK string, obj domain.Object, cs kubernetes.Interface, opts domain.EvaluateOptions) bool {
-	box := k.effectiveBox(obj, primaryGVK)
+func (c *Catalog) EvaluateWatchEnqueueFilter(ctx context.Context, primaryGVK, secondaryGVK string, obj domain.Object, cs kubernetes.Interface, opts domain.EvaluateOptions) bool {
+	box := c.effectiveBox(obj, primaryGVK)
 	if box == nil {
 		return true
 	}
 
-	resolver := k.effectiveResolver(ctx, obj, nil, opts)
+	resolver := c.effectiveResolver(ctx, obj, nil, opts)
 	if resolver.Empty() {
 		return true
 	}
 
-	entry := k.LookupByGVKString(primaryGVK).Entry()
+	entry := c.LookupByGVKString(primaryGVK).Entry()
 	if entry == nil {
 		return true
 	}
@@ -120,22 +120,22 @@ func (k *Catalog) EvaluateWatchEnqueueFilter(ctx context.Context, primaryGVK, se
 		return true
 	}
 
-	return k.evaluateGate(ctx, secondaryGVK, watchEntry.EnqueueGate, resolver, cs, opts.Sentinels)
+	return c.evaluateGate(ctx, secondaryGVK, watchEntry.EnqueueGate, resolver, cs, opts.Sentinels)
 }
 
 // EvaluateEventEnqueueFilter evaluates an event entry's enqueueGate.
-func (k *Catalog) EvaluateEventEnqueueFilter(ctx context.Context, primaryGVK, eventName string, obj domain.Object, cs kubernetes.Interface, opts domain.EvaluateOptions) bool {
-	box := k.effectiveBox(obj, primaryGVK)
+func (c *Catalog) EvaluateEventEnqueueFilter(ctx context.Context, primaryGVK, eventName string, obj domain.Object, cs kubernetes.Interface, opts domain.EvaluateOptions) bool {
+	box := c.effectiveBox(obj, primaryGVK)
 	if box == nil {
 		return true
 	}
 
-	resolver := k.effectiveResolver(ctx, obj, nil, opts)
+	resolver := c.effectiveResolver(ctx, obj, nil, opts)
 	if resolver.Empty() {
 		return true
 	}
 
-	entry := k.LookupByGVKString(primaryGVK).Entry()
+	entry := c.LookupByGVKString(primaryGVK).Entry()
 	if entry == nil {
 		return true
 	}
@@ -145,7 +145,7 @@ func (k *Catalog) EvaluateEventEnqueueFilter(ctx context.Context, primaryGVK, ev
 		return true
 	}
 
-	return k.evaluateGate(ctx, eventName, eventEntry.EnqueueGate, resolver, cs, opts.Sentinels)
+	return c.evaluateGate(ctx, eventName, eventEntry.EnqueueGate, resolver, cs, opts.Sentinels)
 }
 
 // EvaluateQueueBehaviourConditions completes the queue behaviour evaluation started by the
@@ -154,8 +154,8 @@ func (k *Catalog) EvaluateEventEnqueueFilter(ctx context.Context, primaryGVK, ev
 // Accepts domain.Object so it works for both dynamic and typed CRDs.
 //
 // Here because it influences 'pre-reconcile' decisions.
-func (k *Catalog) EvaluateQueueBehaviourConditions(ctx context.Context, gvk string, obj domain.Object, opts domain.EvaluateOptions) bool {
-	box := k.effectiveBox(obj, gvk)
+func (c *Catalog) EvaluateQueueBehaviourConditions(ctx context.Context, gvk string, obj domain.Object, opts domain.EvaluateOptions) bool {
+	box := c.effectiveBox(obj, gvk)
 	if box.Empty() {
 		return true
 	}
@@ -166,7 +166,7 @@ func (k *Catalog) EvaluateQueueBehaviourConditions(ctx context.Context, gvk stri
 		return true
 	}
 
-	resolver := k.effectiveResolver(ctx, obj, box.PreReconcile, opts)
+	resolver := c.effectiveResolver(ctx, obj, box.PreReconcile, opts)
 	if resolver == nil {
 		return true
 	}
@@ -182,16 +182,16 @@ func (k *Catalog) EvaluateQueueBehaviourConditions(ctx context.Context, gvk stri
 }
 
 // effectiveResolver computes the common resolver used by all evaluators
-func (k *Catalog) effectiveResolver(ctx context.Context, obj domain.Object, pr *types.PreReconcileConfig, opts domain.EvaluateOptions) *template.Resolver {
+func (c *Catalog) effectiveResolver(ctx context.Context, obj domain.Object, pr *types.PreReconcileConfig, opts domain.EvaluateOptions) *template.Resolver {
 	resolver, err := template.NewResolver(ctx, obj)
 	if err != nil {
 		return nil
 	}
-	if !k.Profiles.Empty() {
-		resolver = resolver.WithProfiles(k.UserProfiles())
+	if !c.Profiles.Empty() {
+		resolver = resolver.WithProfiles(c.UserProfiles())
 	}
-	if !k.Notes.Empty() {
-		resolver = resolver.WithUserNotes(k.UserNotes())
+	if !c.Notes.Empty() {
+		resolver = resolver.WithUserNotes(c.UserNotes())
 	}
 	// .request context
 	if req := intent.FromObject(resolver.Data()); req != nil {
@@ -216,11 +216,11 @@ func (k *Catalog) effectiveResolver(ctx context.Context, obj domain.Object, pr *
 }
 
 // effectiveBox computes the common operatorBox used by all evaluators
-func (k *Catalog) effectiveBox(obj domain.Object, gvk string) *types.OperatorBoxConfig {
+func (c *Catalog) effectiveBox(obj domain.Object, gvk string) *types.OperatorBoxConfig {
 	if obj == nil {
 		return nil
 	}
-	entry := k.LookupByGVKString(gvk).Entry()
+	entry := c.LookupByGVKString(gvk).Entry()
 	if entry == nil {
 		return nil
 	}
@@ -243,7 +243,7 @@ func preReconcileGateReason(pr *types.PreReconcileConfig, resolver *template.Res
 // evaluateGate evaluates a gate against the supplied resolver.
 //
 // Gate external runs first, then sentinel shorthand, then conditions.
-func (k *Catalog) evaluateGate(
+func (c *Catalog) evaluateGate(
 	ctx context.Context,
 	gvk string,
 	g *types.GateConditions,
@@ -285,12 +285,12 @@ func (k *Catalog) evaluateGate(
 // event identity rather than being coalesced with other events for the same
 // object. This applies to the entire reconcileGate evaluation, not only
 // sentinel conditions.
-func (k *Catalog) IsEventAware(obj domain.Object, name string) bool {
-	if k == nil {
+func (c *Catalog) IsEventAware(obj domain.Object, name string) bool {
+	if c == nil {
 		return false
 	}
 
-	box := k.effectiveBox(obj, name)
+	box := c.effectiveBox(obj, name)
 	if box == nil {
 		return false
 	}
@@ -314,11 +314,11 @@ func (k *Catalog) IsEventAware(obj domain.Object, name string) bool {
 // from old and new objects. Sentinel declaration is owned by the Catalog;
 // the informer does not maintain a separate sentinel configuration registry.
 // Returns nil when the CRD is unknown or declares no sentinels.
-func (k *Catalog) GetPreReconcileSentinels(obj domain.Object, gvkString string) []string {
-	if k == nil {
+func (c *Catalog) GetPreReconcileSentinels(obj domain.Object, gvkString string) []string {
+	if c == nil {
 		return nil
 	}
-	box := k.effectiveBox(obj, gvkString)
+	box := c.effectiveBox(obj, gvkString)
 	if box == nil {
 		return nil
 	}

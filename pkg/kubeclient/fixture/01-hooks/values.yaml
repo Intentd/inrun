@@ -1,4 +1,4 @@
 runtime:
   image:
-    repository: ghcr.io/inrundev/inrun/pkg/kubeclient/fixture/01-hooks
+    repository: ghcr.io/intentd/inrun/pkg/kubeclient/fixture/01-hooks
     tag: latest

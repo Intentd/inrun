@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	kubeclient "github.com/inrundev/inrun/pkg/kubeclient"
+	kubeclient "github.com/intentd/inrun/pkg/kubeclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"

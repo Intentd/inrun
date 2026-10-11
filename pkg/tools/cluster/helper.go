@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 var (

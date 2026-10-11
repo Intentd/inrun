@@ -11,7 +11,7 @@ runtime:
   imagePullSecrets: []
 
   image:
-    repository: ghcr.io/inrundev/inrun
+    repository: ghcr.io/intentd/inrun
     tag: ""
     pullPolicy: IfNotPresent
 
@@ -145,7 +145,7 @@ gateway:
   imagePullSecrets: []
 
   image:
-    repository: ghcr.io/inrundev/inrun-gateway
+    repository: ghcr.io/intentd/inrun-gateway
     tag: ""
     pullPolicy: IfNotPresent
 
@@ -289,7 +289,7 @@ console:
   imagePullSecrets: []
 
   image:
-    repository: ghcr.io/inrundev/inrun-console
+    repository: ghcr.io/intentd/inrun-console
     tag: ""
     pullPolicy: IfNotPresent
 

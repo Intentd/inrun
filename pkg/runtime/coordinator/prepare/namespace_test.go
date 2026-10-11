@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

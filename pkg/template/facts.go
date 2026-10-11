@@ -3,7 +3,7 @@ package template
 import (
 	"context"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 type inrunContextKey struct{}

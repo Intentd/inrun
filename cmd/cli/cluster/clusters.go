@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/validate"
-	apigateway "github.com/inrundev/inrun/pkg/gateway/api"
-	"github.com/inrundev/inrun/pkg/tools/cluster"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate"
+	apigateway "github.com/intentd/inrun/pkg/gateway/api"
+	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -27,24 +27,24 @@ var clustersCmd = &cobra.Command{
 Shows the name, endpoint, and credential form for each cluster.
 Reads the catalog from the current directory or --file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
-		return runClustersList(k)
+		return runClustersList(cat)
 	},
 }
 
-func runClustersList(k *catalog.Catalog) error {
+func runClustersList(cat *catalog.Catalog) error {
 	fmt.Println()
 
-	if !k.IsGatewayEnabled() {
+	if !cat.IsGatewayEnabled() {
 		fmt.Printf("  %s gateway is not enabled\n", cmdutil.Gray("○"))
 		fmt.Println()
 		return nil
 	}
 
-	clusters := k.GatewayClusters()
+	clusters := cat.GatewayClusters()
 	if len(clusters) == 0 {
 		fmt.Printf("  %s gateway.clusters is empty — no remote clusters registered\n", cmdutil.Gray("○"))
 		fmt.Println()
@@ -82,34 +82,34 @@ With --full, also reports which CRDs route to each cluster.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		full, _ := cmd.Flags().GetBool("full")
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
 
-		return runClustersValidate(k, full)
+		return runClustersValidate(cat, full)
 	},
 }
 
-func runClustersValidate(k *catalog.Catalog, full bool) error {
+func runClustersValidate(cat *catalog.Catalog, full bool) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters validate\n", cmdutil.Bold("⎈"))
 	fmt.Println()
 
-	if !k.IsGatewayEnabled() {
+	if !cat.IsGatewayEnabled() {
 		fmt.Printf("  %s gateway is not enabled — no clusters to validate\n", cmdutil.Gray("○"))
 		fmt.Println()
 		return nil
 	}
 
-	clusters := k.GatewayClusters()
+	clusters := cat.GatewayClusters()
 	if len(clusters) == 0 {
 		fmt.Printf("  %s gateway.clusters is empty — no remote clusters registered\n", cmdutil.Gray("○"))
 		fmt.Println()
 		return nil
 	}
 
-	clusterRefs := buildClusterRefIndex(k)
+	clusterRefs := buildClusterRefIndex(cat)
 
 	fmt.Printf("  gateway.clusters (%d registered)\n", len(clusters))
 	fmt.Println()
@@ -122,7 +122,7 @@ func runClustersValidate(k *catalog.Catalog, full bool) error {
 		}
 	}
 
-	if err := validate.ValidateGatewayClusters(k); err != nil {
+	if err := validate.ValidateGatewayClusters(cat); err != nil {
 		fmt.Printf("  %s %s\n", cmdutil.FailureMark(), cmdutil.Red(err.Error()))
 		allOK = false
 	}
@@ -167,12 +167,12 @@ contexts are reachable before bootstrapping them.`,
 			return runClustersCheck(cmd.Context(), nil, clusters, clusterCtx)
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
 
-		all := k.GatewayClusters()
+		all := cat.GatewayClusters()
 		if len(all) == 0 {
 			fmt.Printf("  %s gateway.clusters is empty — nothing to check\n", cmdutil.Gray("○"))
 			return nil
@@ -193,11 +193,11 @@ contexts are reachable before bootstrapping them.`,
 			clusters = selected
 		}
 
-		return runClustersCheck(cmd.Context(), k, clusters, clusterCtx)
+		return runClustersCheck(cmd.Context(), cat, clusters, clusterCtx)
 	},
 }
 
-func runClustersCheck(ctx context.Context, k *catalog.Catalog, clusters map[string]types.GatewayClusterConfig, clusterCtx string) error {
+func runClustersCheck(ctx context.Context, cat *catalog.Catalog, clusters map[string]types.GatewayClusterConfig, clusterCtx string) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters check\n", cmdutil.Bold("⎈"))
 	fmt.Println()
@@ -207,7 +207,7 @@ func runClustersCheck(ctx context.Context, k *catalog.Catalog, clusters map[stri
 		return fmt.Errorf("%s management cluster: %w", cmdutil.FailureMark(), err)
 	}
 
-	results := apigateway.CheckClusters(ctx, k, clusters, localKube, "default")
+	results := apigateway.CheckClusters(ctx, cat, clusters, localKube, "default")
 
 	anyFailed := false
 	for _, r := range results {
@@ -308,9 +308,9 @@ func credentialSummary(cfg types.GatewayClusterConfig) string {
 	}
 }
 
-func buildClusterRefIndex(k *catalog.Catalog) map[string][]string {
+func buildClusterRefIndex(cat *catalog.Catalog) map[string][]string {
 	idx := map[string][]string{}
-	for crdName, entry := range k.EnabledCRDs() {
+	for crdName, entry := range cat.EnabledCRDs() {
 		if entry.Serve == nil {
 			continue
 		}

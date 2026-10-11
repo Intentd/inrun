@@ -3,8 +3,8 @@ package statefulsets
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/resources/shared"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/resources/shared"
 	corev1 "k8s.io/api/core/v1"
 )
 

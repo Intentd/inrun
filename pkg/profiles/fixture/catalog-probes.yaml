@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: profile-probe-probes
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     ProfileProbe — living integration test for probe timing profiles.

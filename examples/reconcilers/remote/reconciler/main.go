@@ -55,6 +55,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 				Image    string `json:"image"`
 				Replicas int    `json:"replicas"`
 				Port     int    `json:"port"`
+				Expose   *bool  `json:"expose"`
 			} `json:"spec"`
 		} `json:"object"`
 		Args struct {
@@ -99,6 +100,29 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("reconcile  key=%s/%s  image=%s  logLevel=%s  env=%s", ns, name, image, logLevel, environment)
 
+	resources := []any{
+		map[string]any{
+			"type": "deployment",
+			"fields": map[string]any{
+				"name":     name,
+				"image":    image,
+				"replicas": replicas,
+				"port":     port,
+			},
+		},
+	}
+	// Without expose the Service is left out; prune deletes the one applied before.
+	if e := body.Object.Spec.Expose; e == nil || *e {
+		resources = append(resources, map[string]any{
+			"type": "service",
+			"fields": map[string]any{
+				"name":       name + "-svc",
+				"port":       80,
+				"targetPort": port,
+			},
+		})
+	}
+
 	result := map[string]any{
 		"result": "ok",
 		"status": map[string]any{
@@ -106,25 +130,10 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			"endpoint": fmt.Sprintf("%s-svc.%s.svc.cluster.local", name, ns),
 			"replicas": replicas,
 		},
-		"resources": []any{
-			map[string]any{
-				"type": "deployment",
-				"fields": map[string]any{
-					"name":     name,
-					"image":    image,
-					"replicas": replicas,
-					"port":     port,
-				},
-			},
-			map[string]any{
-				"type": "service",
-				"fields": map[string]any{
-					"name":       name + "-svc",
-					"port":       80,
-					"targetPort": port,
-				},
-			},
-		},
+		// Set on the WebApp itself; dropping a key here removes it.
+		"labels":      map[string]any{"environment": environment},
+		"annotations": map[string]any{"webapp.example.com/image": image},
+		"resources":   resources,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

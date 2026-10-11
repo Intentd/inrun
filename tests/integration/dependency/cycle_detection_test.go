@@ -6,55 +6,55 @@ package dependency_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/validate"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestCycleDetection_TwoNodeCycle(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"a": {Name: "a", DependsOn: types.DependsOnMap{"b": {}}},
 		"b": {Name: "b", DependsOn: types.DependsOnMap{"a": {}}},
 	})
-	if err := validate.DetectCycles(k); err == nil {
+	if err := validate.DetectCycles(cat); err == nil {
 		t.Error("expected cycle error for a ↔ b")
 	}
 }
 
 func TestCycleDetection_ThreeNodeCycle(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"a": {Name: "a", DependsOn: types.DependsOnMap{"c": {}}},
 		"b": {Name: "b", DependsOn: types.DependsOnMap{"a": {}}},
 		"c": {Name: "c", DependsOn: types.DependsOnMap{"b": {}}},
 	})
-	if err := validate.DetectCycles(k); err == nil {
+	if err := validate.DetectCycles(cat); err == nil {
 		t.Error("expected cycle error for a → c → b → a")
 	}
 }
 
 func TestCycleDetection_SelfLoop(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"a": {Name: "a", DependsOn: types.DependsOnMap{"a": {}}},
 	})
-	if err := validate.DetectCycles(k); err == nil {
+	if err := validate.DetectCycles(cat); err == nil {
 		t.Error("expected cycle error for self-loop")
 	}
 }
 
 func TestCycleDetection_AcyclicGraph_NoError(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"db":    {Name: "db"},
 		"cache": {Name: "cache"},
 		"app":   {Name: "app", DependsOn: types.DependsOnMap{"db": {}, "cache": {}}},
 	})
-	if err := validate.DetectCycles(k); err != nil {
+	if err := validate.DetectCycles(cat); err != nil {
 		t.Errorf("acyclic graph must not produce cycle error: %v", err)
 	}
 }
 
 func TestCycleDetection_EmptyGraph_NoError(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{})
-	if err := validate.DetectCycles(k); err != nil {
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{})
+	if err := validate.DetectCycles(cat); err != nil {
 		t.Errorf("empty graph must not produce cycle error: %v", err)
 	}
 }

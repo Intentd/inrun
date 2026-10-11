@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
 )
 
 // NewReconcilerFunc is the constructor signature every custom reconciler must match.
@@ -11,5 +11,5 @@ import (
 //
 // The runtime injects the primary CRD's informer and event recorder into kube
 // before calling the constructor — access them via kube.GetInformer() and
-// kube.GetEventRecorder(). Constructor args are available via kube.Args().
+// kube.GetEventRecorder(). Args arrive on each request: req.Args().
 type NewReconcilerFunc func(kube kubeclient.Interface) domain.Reconciler

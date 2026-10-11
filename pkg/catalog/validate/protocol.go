@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validatePortProtocols checks the protocol: field on all resource templates that
@@ -12,7 +12,7 @@ import (
 // Services are validated separately in validateService; this covers workload types.
 // Empty protocol values are skipped — they default to TCP at resolve time.
 func (e *executor) validatePortProtocols() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, e := range crd.CollectPortProtocolEntries() {
 			if types.IsTemplate(e.Protocol) {
 				continue // dynamic value — cannot validate at load time

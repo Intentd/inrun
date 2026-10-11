@@ -3,7 +3,9 @@ package labels_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWithDeletionProtection(t *testing.T) {
@@ -35,5 +37,31 @@ func TestWithDeletionProtectionNilInput(t *testing.T) {
 	got := labels.WithDeletionProtection(nil)
 	if got[labels.DeletionProtectionLabel] != "true" {
 		t.Errorf("expected label on nil input, got %v", got)
+	}
+}
+
+func TestCheckReserved(t *testing.T) {
+	cases := []struct {
+		name string
+		in   map[string]string
+		bad  string
+	}{
+		{name: "none", in: nil},
+		{name: "plain key", in: map[string]string{"tier": "gold"}},
+		{name: "other domain", in: map[string]string{"example.com/owner": "a"}},
+		{name: "lookalike domain", in: map[string]string{"notinrun.dev/x": "a"}},
+		{name: "reserved", in: map[string]string{"inrun.dev/managed": "true"}, bad: "inrun.dev/managed"},
+		{name: "reserved subdomain", in: map[string]string{"cleanup.inrun.dev/x": "1"}, bad: "cleanup.inrun.dev/x"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := labels.CheckReserved("labels", tc.in)
+			if tc.bad == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.bad)
+		})
 	}
 }

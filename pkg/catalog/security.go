@@ -20,7 +20,7 @@ import (
 
 // securityEnvDefaults returns the SecurityConfig from config, or a zero
 // value when config is not wired (e.g. NewEmptyCatalog in tests).
-func (k *Catalog) securityEnvDefaults() interface {
+func (c *Catalog) securityEnvDefaults() interface {
 	RuntimeServiceName() string
 	GatewayServiceName() string
 	DeletionProtectionEnabled() bool
@@ -43,7 +43,7 @@ func (k *Catalog) securityEnvDefaults() interface {
 	CertValidForStr() string
 	CertRotationThresholdStr() string
 } {
-	return &envSecurityReader{k: k}
+	return &envSecurityReader{cat: c}
 }
 
 const (
@@ -53,140 +53,140 @@ const (
 
 // envSecurityReader adapts *config.SecurityConfig through a small interface
 // so that security.go does not import config directly.
-type envSecurityReader struct{ k *Catalog }
+type envSecurityReader struct{ cat *Catalog }
 
 func (r *envSecurityReader) RuntimeServiceName() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return inrunRun
 	}
-	return r.k.config.Security().ServiceName.Runtime
+	return r.cat.config.Security().ServiceName.Runtime
 }
 
 func (r *envSecurityReader) GatewayServiceName() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return inrunGate
 	}
-	return r.k.config.Security().ServiceName.Gateway
+	return r.cat.config.Security().ServiceName.Gateway
 }
 
 func (r *envSecurityReader) DeletionProtectionEnabled() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().DeletionProtection.Enabled
+	return r.cat.config.Security().DeletionProtection.Enabled
 }
 func (r *envSecurityReader) DeletionProtectionSvcName() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return inrunGate
 	}
-	return r.k.config.Security().DeletionProtection.ServiceName
+	return r.cat.config.Security().DeletionProtection.ServiceName
 }
 func (r *envSecurityReader) DeletionProtectionPolicy() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return "Fail"
 	}
-	return r.k.config.Security().DeletionProtection.FailurePolicy
+	return r.cat.config.Security().DeletionProtection.FailurePolicy
 }
 func (r *envSecurityReader) AdmissionEnabled() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().Webhooks.Admission.Enabled
+	return r.cat.config.Security().Webhooks.Admission.Enabled
 }
 func (r *envSecurityReader) ConversionEnabled() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().Conversion.Enabled
+	return r.cat.config.Security().Conversion.Enabled
 }
 func (r *envSecurityReader) WebhooksSvcName() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return inrunGate
 	}
-	return r.k.config.Security().Webhooks.ServiceName
+	return r.cat.config.Security().Webhooks.ServiceName
 }
 func (r *envSecurityReader) WebhooksPolicy() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return "Ignore"
 	}
-	return r.k.config.Security().Webhooks.FailurePolicy
+	return r.cat.config.Security().Webhooks.FailurePolicy
 }
 
 func (r *envSecurityReader) WebhookCleanup() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().Webhooks.CleanupOnShutdown
+	return r.cat.config.Security().Webhooks.CleanupOnShutdown
 }
 func (r *envSecurityReader) DeletionProtectionCleanup() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().DeletionProtection.CleanupOnShutdown
+	return r.cat.config.Security().DeletionProtection.CleanupOnShutdown
 }
 func (r *envSecurityReader) NamespaceProtectionCleanup() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().NamespaceProtection.CleanupOnShutdown
+	return r.cat.config.Security().NamespaceProtection.CleanupOnShutdown
 }
 
 func (r *envSecurityReader) ConversionWindowVal() int {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return 100
 	}
-	return r.k.config.Security().Conversion.ConversionWindow
+	return r.cat.config.Security().Conversion.ConversionWindow
 }
 func (r *envSecurityReader) HousekeeperEnabled() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().Webhooks.Housekeeper.Enabled
+	return r.cat.config.Security().Webhooks.Housekeeper.Enabled
 }
 func (r *envSecurityReader) HousekeeperSyncInterval() time.Duration {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return 30 * time.Second
 	}
-	return r.k.config.Security().Webhooks.Housekeeper.SyncInterval
+	return r.cat.config.Security().Webhooks.Housekeeper.SyncInterval
 }
 func (r *envSecurityReader) NamespaceProtectionEnabled() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return false
 	}
-	return r.k.config.Security().NamespaceProtection.Enabled
+	return r.cat.config.Security().NamespaceProtection.Enabled
 }
 func (r *envSecurityReader) NamespaceProtectionPolicy() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return "Fail"
 	}
-	return r.k.config.Security().NamespaceProtection.FailurePolicy
+	return r.cat.config.Security().NamespaceProtection.FailurePolicy
 }
 func (r *envSecurityReader) NamespaceProtectionSvcName() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return inrunGate
 	}
-	return r.k.config.Security().NamespaceProtection.ServiceName
+	return r.cat.config.Security().NamespaceProtection.ServiceName
 }
 
 func (r *envSecurityReader) CertAutoRotate() bool {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return true
 	}
-	return r.k.config.Security().CertManager.AutoRotate
+	return r.cat.config.Security().CertManager.AutoRotate
 }
 
 func (r *envSecurityReader) CertRotationThresholdStr() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return "30d"
 	}
-	return r.k.config.Security().CertManager.RotationThreshold
+	return r.cat.config.Security().CertManager.RotationThreshold
 }
 
 func (r *envSecurityReader) CertValidForStr() string {
-	if r.k.config == nil {
+	if r.cat.config == nil {
 		return "1y"
 	}
-	return r.k.config.Security().CertManager.ValidFor
+	return r.cat.config.Security().CertManager.ValidFor
 }
 
 //
@@ -199,52 +199,52 @@ func (r *envSecurityReader) CertValidForStr() string {
 //
 //	YAML security.deletionProtection block present → use YAML value (default-on when block declared)
 //	YAML block absent                              → fall back to ENABLE_DELETION_PROTECTION env
-func (k *Catalog) IsDeletionProtectionEnabled() bool {
-	if k.Security.DeletionProtection != nil {
+func (c *Catalog) IsDeletionProtectionEnabled() bool {
+	if c.Security.DeletionProtection != nil {
 		// YAML declared the block — apply its enabled semantics.
-		return k.Security.IsDeletionProtectionEnabled()
+		return c.Security.IsDeletionProtectionEnabled()
 	}
-	return k.securityEnvDefaults().DeletionProtectionEnabled()
+	return c.securityEnvDefaults().DeletionProtectionEnabled()
 }
 
 // DeletionProtectionServiceName returns the effective service name for deletion protection.
 // YAML value takes precedence over ENV.
-func (k *Catalog) DeletionProtectionServiceName() string {
-	env := k.securityEnvDefaults()
-	return k.Security.DeletionProtectionServiceName(env.DeletionProtectionSvcName())
+func (c *Catalog) DeletionProtectionServiceName() string {
+	env := c.securityEnvDefaults()
+	return c.Security.DeletionProtectionServiceName(env.DeletionProtectionSvcName())
 }
 
 // Runtime Service Name returns the effective service name for inrun runtime.
 // YAML value takes precedence over ENV.
-func (k *Catalog) RuntimeServiceName() string {
-	env := k.securityEnvDefaults()
-	return k.Security.RuntimeServiceName(env.RuntimeServiceName())
+func (c *Catalog) RuntimeServiceName() string {
+	env := c.securityEnvDefaults()
+	return c.Security.RuntimeServiceName(env.RuntimeServiceName())
 }
 
 // Gateway Service Name returns the effective service name for inrun gateway.
 // YAML value takes precedence over ENV.
-func (k *Catalog) GatewayServiceName() string {
-	env := k.securityEnvDefaults()
-	return k.Security.GatewayServiceName(env.GatewayServiceName())
+func (c *Catalog) GatewayServiceName() string {
+	env := c.securityEnvDefaults()
+	return c.Security.GatewayServiceName(env.GatewayServiceName())
 }
 
 // DeletionProtectionFailurePolicy returns the effective failure policy string.
 // YAML value takes precedence over ENV.
-func (k *Catalog) DeletionProtectionFailurePolicy() string {
-	if k.Security.DeletionProtection != nil && k.Security.DeletionProtection.FailurePolicy != "" {
-		return k.Security.DeletionProtection.FailurePolicy
+func (c *Catalog) DeletionProtectionFailurePolicy() string {
+	if c.Security.DeletionProtection != nil && c.Security.DeletionProtection.FailurePolicy != "" {
+		return c.Security.DeletionProtection.FailurePolicy
 	}
-	return k.securityEnvDefaults().DeletionProtectionPolicy()
+	return c.securityEnvDefaults().DeletionProtectionPolicy()
 }
 
 // IsStrictModeEnabled reports whether strict mode is active for deletion protection.
 // Strict mode treats removal of the deletion-protection label as a deletion attempt.
 // Only valid when deletion protection is also enabled.
-func (k *Catalog) IsStrictModeEnabled() bool {
-	if k.Security.DeletionProtection == nil {
+func (c *Catalog) IsStrictModeEnabled() bool {
+	if c.Security.DeletionProtection == nil {
 		return false
 	}
-	return k.Security.DeletionProtection.StrictMode
+	return c.Security.DeletionProtection.StrictMode
 }
 
 // ── Namespace protection ───────────────────────────────────────────────────────
@@ -255,28 +255,28 @@ func (k *Catalog) IsStrictModeEnabled() bool {
 //
 //	YAML security.namespaceProtection block present → use YAML value (default-on when block declared)
 //	YAML block absent                               → fall back to ENABLE_NAMESPACE_PROTECTION env
-func (k *Catalog) IsNamespaceProtectionEnabled() bool {
-	if k.Security.NamespaceProtection != nil {
+func (c *Catalog) IsNamespaceProtectionEnabled() bool {
+	if c.Security.NamespaceProtection != nil {
 		// YAML declared the block — apply its enabled semantics.
-		return k.Security.IsNamespaceProtectionEnabled()
+		return c.Security.IsNamespaceProtectionEnabled()
 	}
-	return k.securityEnvDefaults().NamespaceProtectionEnabled()
+	return c.securityEnvDefaults().NamespaceProtectionEnabled()
 }
 
 // NamespaceProtectionServiceName returns the effective service name for namespace protection.
 // YAML value takes precedence over ENV.
-func (k *Catalog) NamespaceProtectionServiceName() string {
-	env := k.securityEnvDefaults()
-	return k.Security.NamespaceProtectionServiceName(env.NamespaceProtectionSvcName())
+func (c *Catalog) NamespaceProtectionServiceName() string {
+	env := c.securityEnvDefaults()
+	return c.Security.NamespaceProtectionServiceName(env.NamespaceProtectionSvcName())
 }
 
 // NamespaceProtectionFailurePolicy returns the effective failure policy string.
 // YAML value takes precedence over ENV.
-func (k *Catalog) NamespaceProtectionFailurePolicy() string {
-	if k.Security.NamespaceProtection != nil && k.Security.NamespaceProtection.FailurePolicy != "" {
-		return k.Security.NamespaceProtection.FailurePolicy
+func (c *Catalog) NamespaceProtectionFailurePolicy() string {
+	if c.Security.NamespaceProtection != nil && c.Security.NamespaceProtection.FailurePolicy != "" {
+		return c.Security.NamespaceProtection.FailurePolicy
 	}
-	return k.securityEnvDefaults().NamespaceProtectionPolicy()
+	return c.securityEnvDefaults().NamespaceProtectionPolicy()
 }
 
 // NamespaceProtectionCleanupOnShutdown reports whether Deletion Protection should be deleted on shutdown.
@@ -285,11 +285,11 @@ func (k *Catalog) NamespaceProtectionFailurePolicy() string {
 //
 //	YAML security.namespaceProtection.cleanupOnShutdown present → use YAML value
 //	YAML block absent                                      → fall back to NAMESPACE_PROTECTION_CLEANUP_ON_SHUTDOWN env
-func (k *Catalog) NamespaceProtectionCleanupOnShutdown() bool {
-	if k.Security.NamespaceProtection != nil {
-		return k.Security.NamespaceProtection.CleanupOnShutdown
+func (c *Catalog) NamespaceProtectionCleanupOnShutdown() bool {
+	if c.Security.NamespaceProtection != nil {
+		return c.Security.NamespaceProtection.CleanupOnShutdown
 	}
-	return k.securityEnvDefaults().NamespaceProtectionCleanup()
+	return c.securityEnvDefaults().NamespaceProtectionCleanup()
 }
 
 // ── Admission webhooks ────────────────────────────────────────────────────────
@@ -300,11 +300,11 @@ func (k *Catalog) NamespaceProtectionCleanupOnShutdown() bool {
 //
 //	YAML security.webhooks.admission block present → use YAML value
 //	YAML block absent                              → fall back to ENABLE_ADMISSION_WEBHOOK env
-func (k *Catalog) IsAdmissionEnabled() bool {
-	if k.Security.Webhooks != nil && k.Security.Webhooks.Admission != nil {
-		return k.Security.IsAdmissionEnabled()
+func (c *Catalog) IsAdmissionEnabled() bool {
+	if c.Security.Webhooks != nil && c.Security.Webhooks.Admission != nil {
+		return c.Security.IsAdmissionEnabled()
 	}
-	return k.securityEnvDefaults().AdmissionEnabled()
+	return c.securityEnvDefaults().AdmissionEnabled()
 }
 
 // ── Conversion webhook ────────────────────────────────────────────────────────
@@ -315,25 +315,25 @@ func (k *Catalog) IsAdmissionEnabled() bool {
 //
 //	YAML security.conversion block present → use YAML value
 //	YAML block absent                      → fall back to ENABLE_CONVERSION env
-func (k *Catalog) IsConversionEnabled() bool {
-	if k.Security.Conversion != nil {
-		return k.Security.IsConversionEnabled()
+func (c *Catalog) IsConversionEnabled() bool {
+	if c.Security.Conversion != nil {
+		return c.Security.IsConversionEnabled()
 	}
-	return k.securityEnvDefaults().ConversionEnabled()
+	return c.securityEnvDefaults().ConversionEnabled()
 }
 
 // WebhooksServiceName returns the effective service name for admission/conversion webhooks.
 // YAML value takes precedence over ENV.
-func (k *Catalog) WebhooksServiceName() string {
-	env := k.securityEnvDefaults()
-	return k.Security.WebhooksServiceName(env.WebhooksSvcName())
+func (c *Catalog) WebhooksServiceName() string {
+	env := c.securityEnvDefaults()
+	return c.Security.WebhooksServiceName(env.WebhooksSvcName())
 }
 
 // WebhooksFailurePolicy returns the effective failure policy for admission webhooks.
 // YAML value takes precedence over ENV.
-func (k *Catalog) WebhooksFailurePolicy() string {
-	env := k.securityEnvDefaults()
-	return k.Security.WebhooksFailurePolicy(env.WebhooksPolicy())
+func (c *Catalog) WebhooksFailurePolicy() string {
+	env := c.securityEnvDefaults()
+	return c.Security.WebhooksFailurePolicy(env.WebhooksPolicy())
 }
 
 // DeletionProtectionCleanupOnShutdown reports whether Deletion Protection should be deleted on shutdown.
@@ -342,11 +342,11 @@ func (k *Catalog) WebhooksFailurePolicy() string {
 //
 //	YAML security.deletionProtection.cleanupOnShutdown present → use YAML value
 //	YAML block absent                                      → fall back to DELETION_PROTECTION_CLEANUP_ON_SHUTDOWN env
-func (k *Catalog) DeletionProtectionCleanupOnShutdown() bool {
-	if k.Security.DeletionProtection != nil {
-		return k.Security.DeletionProtection.CleanupOnShutdown
+func (c *Catalog) DeletionProtectionCleanupOnShutdown() bool {
+	if c.Security.DeletionProtection != nil {
+		return c.Security.DeletionProtection.CleanupOnShutdown
 	}
-	return k.securityEnvDefaults().DeletionProtectionCleanup()
+	return c.securityEnvDefaults().DeletionProtectionCleanup()
 }
 
 // WebhookCleanupOnShutdown reports whether admission webhooks should be deleted on shutdown.
@@ -355,11 +355,11 @@ func (k *Catalog) DeletionProtectionCleanupOnShutdown() bool {
 //
 //	YAML security.webhooks.cleanupOnShutdown present → use YAML value
 //	YAML block absent                                → fall back to WEBHOOK_CLEANUP_ON_SHUTDOWN env
-func (k *Catalog) WebhookCleanupOnShutdown() bool {
-	if k.Security.Webhooks != nil {
-		return k.Security.Webhooks.CleanupOnShutdown
+func (c *Catalog) WebhookCleanupOnShutdown() bool {
+	if c.Security.Webhooks != nil {
+		return c.Security.Webhooks.CleanupOnShutdown
 	}
-	return k.securityEnvDefaults().WebhookCleanup()
+	return c.securityEnvDefaults().WebhookCleanup()
 }
 
 // ── Conversion stats window ───────────────────────────────────────────────────
@@ -370,11 +370,11 @@ func (k *Catalog) WebhookCleanupOnShutdown() bool {
 //
 //	YAML security.conversion.conversionWindow > 0 → use YAML value
 //	YAML absent or zero                           → fall back to CONVERSION_WINDOW env
-func (k *Catalog) ConversionWindow() int {
-	if k.Security.Conversion != nil && k.Security.Conversion.ConversionWindow > 0 {
-		return k.Security.Conversion.ConversionWindow
+func (c *Catalog) ConversionWindow() int {
+	if c.Security.Conversion != nil && c.Security.Conversion.ConversionWindow > 0 {
+		return c.Security.Conversion.ConversionWindow
 	}
-	return k.securityEnvDefaults().ConversionWindowVal()
+	return c.securityEnvDefaults().ConversionWindowVal()
 }
 
 // ── Gateway config ────────────────────────────────────────────────────────────
@@ -386,28 +386,28 @@ func (k *Catalog) ConversionWindow() int {
 // undercounts as the block grows new standalone-meaningful sections (e.g.
 // api: with no enabled: or endpoint: set, as in a CI-only Gateway API
 // client setup).
-func (k *Catalog) IsGatewayEnabled() bool {
-	if k == nil {
+func (c *Catalog) IsGatewayEnabled() bool {
+	if c == nil {
 		return false
 	}
-	return k.Gateway != nil
+	return c.Gateway != nil
 }
 
 // IsGatewayAPIEnabled reports whether the Gateway Gateway API flag is set.
-func (k *Catalog) IsGatewayAPIEnabled() bool {
-	if k == nil {
+func (c *Catalog) IsGatewayAPIEnabled() bool {
+	if c == nil {
 		return false
 	}
-	return k.Gateway != nil && k.Gateway.API != nil && k.Gateway.API.Enabled
+	return c.Gateway != nil && c.Gateway.API != nil && c.Gateway.API.Enabled
 }
 
 // HasGatewayAPISecretRefs reports whether any Gateway API token entry uses secretRef.
 // Used by GenerateGatewayRBACRules to add secrets get/create permissions.
-func (k *Catalog) HasGatewayAPISecretRefs() bool {
-	if !k.IsGatewayAPIEnabled() {
+func (c *Catalog) HasGatewayAPISecretRefs() bool {
+	if !c.IsGatewayAPIEnabled() {
 		return false
 	}
-	for _, t := range k.Gateway.API.Auth.Tokens {
+	for _, t := range c.Gateway.API.Auth.Tokens {
 		if t.SecretRef != nil {
 			return true
 		}
@@ -418,14 +418,14 @@ func (k *Catalog) HasGatewayAPISecretRefs() bool {
 // HasServeEnabled reports whether the Gateway API is enabled and at least one CRD
 // has serve.enabled: true. This is the activation gate — callers should use this,
 // not IsGatewayAPIEnabled, to decide whether to register serve routes or RBAC.
-func (k *Catalog) HasServeEnabled() bool {
-	if k == nil {
+func (c *Catalog) HasServeEnabled() bool {
+	if c == nil {
 		return false
 	}
-	if !k.IsGatewayAPIEnabled() {
+	if !c.IsGatewayAPIEnabled() {
 		return false
 	}
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.ServeEnabled() {
 			return true
 		}
@@ -439,8 +439,8 @@ func (k *Catalog) HasServeEnabled() bool {
 // When true:
 //   - gatewayEndpoint validation is skipped
 //   - spec: may be empty (no CRDs required)
-func (k *Catalog) IsStandaloneGateway() bool {
-	return k.Gateway != nil && k.Gateway.Standalone
+func (c *Catalog) IsStandaloneGateway() bool {
+	return c.Gateway != nil && c.Gateway.Standalone
 }
 
 // GatewayEndpoint returns the effective gateway endpoint URL.
@@ -449,12 +449,12 @@ func (k *Catalog) IsStandaloneGateway() bool {
 //
 //	YAML gateway.endpoint non-empty          → use gateway block value
 //	If not set          	                 → fall back to INRUN_GATEWAY_ENDPOINT env
-func (k *Catalog) GatewayEndpoint() string {
-	if k.Gateway != nil && k.Gateway.Endpoint != "" {
-		return k.Gateway.Endpoint
+func (c *Catalog) GatewayEndpoint() string {
+	if c.Gateway != nil && c.Gateway.Endpoint != "" {
+		return c.Gateway.Endpoint
 	}
-	if k.config != nil {
-		return k.config.GatewayEndpoint()
+	if c.config != nil {
+		return c.config.GatewayEndpoint()
 	}
 	return ""
 }
@@ -466,12 +466,12 @@ func (k *Catalog) GatewayEndpoint() string {
 //	metadata.clusterName non-empty → use Catalog value
 //	CLUSTER_NAME env var set       → use config value
 //	Neither set                    → inrun-runtime
-func (k *Catalog) ClusterName() string {
-	if k.metadata.ClusterName != "" {
-		return k.metadata.ClusterName
+func (c *Catalog) ClusterName() string {
+	if c.metadata.ClusterName != "" {
+		return c.metadata.ClusterName
 	}
-	if k.config != nil {
-		return k.config.Cluster().Name()
+	if c.config != nil {
+		return c.config.Cluster().Name()
 	}
 	return inrunRun
 }
@@ -486,8 +486,8 @@ func (k *Catalog) ClusterName() string {
 //   - Notifications — unless standalone: true is declared (or implied by local dev)
 //
 // Used by Validate to fail fast when gatewayEndpoint is not set.
-func (k *Catalog) NeedsGateway() bool {
-	return k.NeedsCertificates()
+func (c *Catalog) NeedsGateway() bool {
+	return c.NeedsCertificates()
 }
 
 // ── Certificates ──────────────────────────────────────────────────────────────
@@ -497,21 +497,21 @@ func (k *Catalog) NeedsGateway() bool {
 // Certificates are required when deletion protection, admission webhooks,
 // or conversion webhooks are enabled with valid usecases
 // configured in at least 1 CRD— all three use the same TLS cert.
-func (k *Catalog) NeedsCertificates() bool {
-	return k.IsDeletionProtectionEnabled() ||
-		k.IsNamespaceProtectionEnabled() ||
-		k.HasValidationOrMutationRules() || // Valid admission rule
-		k.HasConversionPaths()
+func (c *Catalog) NeedsCertificates() bool {
+	return c.IsDeletionProtectionEnabled() ||
+		c.IsNamespaceProtectionEnabled() ||
+		c.HasValidationOrMutationRules() || // Valid admission rule
+		c.HasConversionPaths()
 }
 
 // IsHousekeeperEnabled reports whether the webhook housekeeper is enabled.
-func (k *Catalog) IsHousekeeperEnabled() bool {
-	return k.securityEnvDefaults().HousekeeperEnabled()
+func (c *Catalog) IsHousekeeperEnabled() bool {
+	return c.securityEnvDefaults().HousekeeperEnabled()
 }
 
 // HousekeeperSyncInterval returns the housekeeper sync interval.
-func (k *Catalog) HousekeeperSyncInterval() time.Duration {
-	return k.securityEnvDefaults().HousekeeperSyncInterval()
+func (c *Catalog) HousekeeperSyncInterval() time.Duration {
+	return c.securityEnvDefaults().HousekeeperSyncInterval()
 }
 
 // ── Certificate manager ───────────────────────────────────────────────────────
@@ -522,11 +522,11 @@ func (k *Catalog) HousekeeperSyncInterval() time.Duration {
 //
 //	YAML security.certManager.autoRotate declared → use YAML value
 //	YAML absent                                   → fall back to TLS_AUTO_ROTATE env (default: true)
-func (k *Catalog) CertAutoRotate() bool {
-	if k.Security.CertManager != nil {
-		return k.Security.IsCertAutoRotateEnabled()
+func (c *Catalog) CertAutoRotate() bool {
+	if c.Security.CertManager != nil {
+		return c.Security.IsCertAutoRotateEnabled()
 	}
-	return k.securityEnvDefaults().CertAutoRotate()
+	return c.securityEnvDefaults().CertAutoRotate()
 }
 
 // CertRotationThreshold returns the pre-rotation window as a parsed duration.
@@ -536,8 +536,8 @@ func (k *Catalog) CertAutoRotate() bool {
 //
 //	YAML security.certManager.rotationThreshold non-empty → use YAML value
 //	YAML absent or empty                                  → fall back to TLS_ROTATION_THRESHOLD env (default: "30d")
-func (k *Catalog) CertRotationThreshold() time.Duration {
-	raw := k.Security.CertRotationThresholdVal(k.securityEnvDefaults().CertRotationThresholdStr())
+func (c *Catalog) CertRotationThreshold() time.Duration {
+	raw := c.Security.CertRotationThresholdVal(c.securityEnvDefaults().CertRotationThresholdStr())
 	if d, err := parseTimeDuration(raw); err == nil {
 		return d
 	}
@@ -551,8 +551,8 @@ func (k *Catalog) CertRotationThreshold() time.Duration {
 //
 //	YAML security.certManager.rotateAfter non-empty → use YAML value
 //	YAML absent or empty                                  → fall back to TLS_ROTATE_AFTER env (default: "1y")
-func (k *Catalog) CertValidFor() time.Duration {
-	raw := k.Security.ValidForVal(k.securityEnvDefaults().CertValidForStr())
+func (c *Catalog) CertValidFor() time.Duration {
+	raw := c.Security.ValidForVal(c.securityEnvDefaults().CertValidForStr())
 	if d, err := parseTimeDuration(raw); err == nil {
 		return d
 	}
@@ -561,21 +561,21 @@ func (k *Catalog) CertValidFor() time.Duration {
 
 // CertValidForStr returns the raw validity string for use in CertificateSpec.ValidFor.
 // Falls back to "1y" when not configured.
-func (k *Catalog) CertValidForStr() string {
-	return k.Security.ValidForVal(k.securityEnvDefaults().CertValidForStr())
+func (c *Catalog) CertValidForStr() string {
+	return c.Security.ValidForVal(c.securityEnvDefaults().CertValidForStr())
 }
 
 // GatewayTokenNames returns the names of all tokens declared in
 // gateway.api.auth.tokens. Returns nil when the gateway is not enabled.
-func (k *Catalog) GatewayTokenNames() []string {
-	if !k.IsGatewayEnabled() {
+func (c *Catalog) GatewayTokenNames() []string {
+	if !c.IsGatewayEnabled() {
 		return nil
 	}
-	if !k.Gateway.HasAPI() || k.Gateway.API.Auth.Empty() {
+	if !c.Gateway.HasAPI() || c.Gateway.API.Auth.Empty() {
 		return nil
 	}
-	names := make([]string, 0, len(k.Gateway.API.Auth.Tokens))
-	for _, t := range k.Gateway.API.Auth.Tokens {
+	names := make([]string, 0, len(c.Gateway.API.Auth.Tokens))
+	for _, t := range c.Gateway.API.Auth.Tokens {
 		names = append(names, t.Name)
 	}
 	return names

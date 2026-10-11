@@ -5,8 +5,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/inrundev/inrun/pkg/profiles"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // BuildProbe constructs a Kubernetes Probe from a ProbeConfig.

@@ -26,6 +26,9 @@ spec:
                 port:
                   type: integer
                   default: 80
+                expose:
+                  type: boolean
+                  default: true
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true

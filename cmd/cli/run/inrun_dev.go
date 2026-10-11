@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/run/companions"
 
-	"github.com/inrundev/inrun/cmd/internal"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/tools/devserver"
+	"github.com/intentd/inrun/cmd/internal"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/tools/devserver"
 	"github.com/spf13/cobra"
 )
 
@@ -75,8 +77,11 @@ func runDev(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Run the runtime
-	internal.RunRuntime(cmdutil.Kfg, m, cmdutil.Ctx)
+	// Run the runtime. Once its Catalog is built, start the console, and the
+	// gateway when the Catalog serves.
+	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx, func(cat *catalog.Catalog) {
+		companions.Start(cmdutil.Ctx, cmdutil.Cfg, paths, cat)
+	})
 	return nil
 }
 

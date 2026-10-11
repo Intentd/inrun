@@ -15,8 +15,8 @@ import (
 //   - state "warning" (deprecated, before EOL): blocks startup
 //   - state "eol" (past end-of-life date):      blocks startup
 //   - state "none": no-op
-func (k *Catalog) CheckDeprecationPolicy() error {
-	d := k.Deprecation()
+func (c *Catalog) CheckDeprecationPolicy() error {
+	d := c.Deprecation()
 	if d == nil {
 		return nil
 	}

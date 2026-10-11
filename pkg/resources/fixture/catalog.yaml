@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: resource-probe
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     ResourceProbe — living integration fixture for all pkg/resources/* packages.
@@ -19,39 +19,39 @@ spec:
         plural: resourceprobes
         object: ResourceProbe
         objectList: ResourceProbeList
-        location: github.com/inrundev/inrun-resource-probe/api/v1alpha1
+        location: github.com/intentd/inrun-resource-probe/api/v1alpha1
         alias: rpv1alpha1
       operatorBox:
         reconcile:
           default: true
+          managedResources:
+            - kind: Namespace
+            - kind: ConfigMap
+            - kind: Secret
+            - kind: ServiceAccount
+            - kind: ClusterRole
+            - kind: ClusterRoleBinding
+            - kind: Role
+            - kind: RoleBinding
+            - kind: NetworkPolicy
+            - kind: ResourceQuota
+            - kind: LimitRange
+            - kind: Deployment
+            - kind: StatefulSet
+            - kind: ReplicaSet
+            - kind: Pod
+            - kind: Job
+            - kind: CronJob
+            - kind: Service
+            - kind: Ingress
+            - kind: HorizontalPodAutoscaler
+            - kind: PodDisruptionBudget
+            - kind: PersistentVolume
+            - kind: PersistentVolumeClaim
           hooks:
-            location: github.com/inrundev/inrun-resource-probe/hooks
+            location: github.com/intentd/inrun-resource-probe/hooks
             function: ResourceProbeHooks
             alias: rphooks
-            managedResources:
-              - kind: Namespace
-              - kind: ConfigMap
-              - kind: Secret
-              - kind: ServiceAccount
-              - kind: ClusterRole
-              - kind: ClusterRoleBinding
-              - kind: Role
-              - kind: RoleBinding
-              - kind: NetworkPolicy
-              - kind: ResourceQuota
-              - kind: LimitRange
-              - kind: Deployment
-              - kind: StatefulSet
-              - kind: ReplicaSet
-              - kind: Pod
-              - kind: Job
-              - kind: CronJob
-              - kind: Service
-              - kind: Ingress
-              - kind: HorizontalPodAutoscaler
-              - kind: PodDisruptionBudget
-              - kind: PersistentVolume
-              - kind: PersistentVolumeClaim
           workers: 3
           resync: 30s
         emit:

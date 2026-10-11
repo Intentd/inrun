@@ -2,10 +2,10 @@
 package observe
 
 import (
-	"strings"
+	"github.com/intentd/inrun/pkg/utils"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
@@ -104,13 +104,7 @@ func (o *Observer) resolveWatchKeys(opts watchOptions, obj interface{}) []string
 }
 
 func splitWatchField(field string) []string {
-	field = strings.TrimPrefix(field, ".")
-
-	if field == "" {
-		return nil
-	}
-
-	return strings.Split(field, ".")
+	return utils.SplitField(field)
 }
 
 // resolveGVR resolves a ManagedResource into a concrete GroupVersionResource

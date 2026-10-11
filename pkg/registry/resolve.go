@@ -7,7 +7,7 @@
 //
 //  1. Full OCI reference (starts with "oci://") — used as-is
 //  2. INRUN_REGISTRY env var + "/name:version"
-//  3. Default: ghcr.io/inrundev/registry/patterns/catalogs/name:version
+//  3. Default: ghcr.io/intentd/registry/patterns/catalogs/name:version
 //
 // The "oci://" prefix is stripped before passing to ORAS — it is a user-facing
 // convention to signal "this is an OCI reference", not part of the actual URL.
@@ -29,7 +29,7 @@ type Ref struct {
 	// Registry is the hostname (e.g. "ghcr.io").
 	Registry string
 	// Repository is the full repository path without the registry
-	// (e.g. "inrundev/inrun-registry/postgres").
+	// (e.g. "intentd/inrun-registry/postgres").
 	Repository string
 	// Tag is the version tag (e.g. "v14").
 	Tag string
@@ -39,7 +39,7 @@ type Ref struct {
 
 // Resolve converts a user-supplied reference to a fully qualified OCI Ref.
 //
-//	"postgres:v14"                                           → ghcr.io/inrundev/registry/patterns/catalogs/postgres:v14
+//	"postgres:v14"                                           → ghcr.io/intentd/registry/patterns/catalogs/postgres:v14
 //	"oci://ghcr.io/myorg/patterns/catalogs/redis:v7"        → ghcr.io/myorg/patterns/catalogs/redis:v7
 //	"myorg/redis:v7" (with INRUN_REGISTRY set)           → resolved against env
 func Resolve(input string) (*Ref, error) {
@@ -162,7 +162,7 @@ func (r *Ref) IsCached() bool {
 // present — whichever file is found first counts as a complete pull.
 //
 // ociURL must be the bare host+path without the oci:// prefix or tag,
-// e.g. "ghcr.io/inrundev/registry/patterns/modules/postgres".
+// e.g. "ghcr.io/intentd/registry/patterns/modules/postgres".
 // Returns ("", false) when not cached or on any error.
 func CachedDir(ociURL, version string) (string, bool) {
 	// Parse into registry + repository components.

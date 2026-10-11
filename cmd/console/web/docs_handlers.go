@@ -1,12 +1,11 @@
 package web
 
 import (
-	"log"
 	"net/http"
 	"sort"
 	"strings"
 
-	ccversion "github.com/inrundev/inrun/console/version"
+	ccversion "github.com/intentd/inrun/console/version"
 )
 
 // ChildResourceEntry describes one Kubernetes resource kind managed by the operator.
@@ -68,12 +67,12 @@ func (c *Console) handleDocsLanding(w http.ResponseWriter, r *http.Request) {
 		if inst.Catalog == nil {
 			continue
 		}
-		kat := inst.Catalog
+		cat := inst.Catalog
 		var crdEntries []DocsCRDEntry
-		for _, c := range kat.CRDs {
+		for _, c := range cat.CRDs {
 			crdEntries = append(crdEntries, DocsCRDEntry{
 				Name:        c.Name,
-				CatalogName: kat.Name,
+				CatalogName: cat.Name,
 				State:       c.State,
 			})
 		}
@@ -81,10 +80,10 @@ func (c *Console) handleDocsLanding(w http.ResponseWriter, r *http.Request) {
 			return crdEntries[i].Name < crdEntries[j].Name
 		})
 		entries = append(entries, DocsCatalogEntry{
-			Name:        kat.Name,
-			Description: kat.Description,
-			Version:     kat.Version,
-			Author:      kat.Author,
+			Name:        cat.Name,
+			Description: cat.Description,
+			Version:     cat.Version,
+			Author:      cat.Author,
 			CRDs:        crdEntries,
 		})
 	}
@@ -113,7 +112,7 @@ func (c *Console) handleCRDDocs(w http.ResponseWriter, r *http.Request, catalogN
 
 	crd, err := inst.Client.FetchCRDDetail(crdName, endpointInfoFor(inst.Catalog, crdName), summaryFor(inst.Catalog, crdName))
 	if err != nil {
-		log.Printf("WARN: docs fetch CRD %s: %v", crdName, err)
+		Warnf("docs fetch CRD %s: %v", crdName, err)
 		crd = &CRDDetail{
 			Name:        crdName,
 			State:       "offline",

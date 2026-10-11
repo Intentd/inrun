@@ -84,12 +84,37 @@ func SplitSemicolonSeparated(s string) []string {
 	return SplitBySeparator(s, ";")
 }
 
-// SplitField converts a dot-separated field path to a slice of path segments.
-// Accepts both "spec.owner" and ".spec.owner" — the leading dot is stripped.
+// SplitField splits a dot-notation field path into keys. A leading dot is
+// ignored, and `\.` is a literal dot inside a key:
+//
+//	metadata.labels.app\.kubernetes\.io/name → [metadata labels app.kubernetes.io/name]
 func SplitField(field string) []string {
 	field = strings.TrimPrefix(field, ".")
 	if field == "" {
 		return nil
 	}
-	return strings.Split(field, ".")
+	if !strings.Contains(field, `\.`) {
+		return strings.Split(field, ".")
+	}
+	var parts []string
+	var key strings.Builder
+	for i := 0; i < len(field); i++ {
+		switch {
+		case field[i] == '\\' && i+1 < len(field) && field[i+1] == '.':
+			key.WriteByte('.')
+			i++
+		case field[i] == '.':
+			parts = append(parts, key.String())
+			key.Reset()
+		default:
+			key.WriteByte(field[i])
+		}
+	}
+	return append(parts, key.String())
+}
+
+// EscapePathKey escapes the dots in one key, so SplitField keeps it whole:
+// "app.kubernetes.io/name" → `app\.kubernetes\.io/name`.
+func EscapePathKey(key string) string {
+	return strings.ReplaceAll(key, ".", `\.`)
 }

@@ -14,14 +14,14 @@ import "strings"
 //
 // Plain string — URL is the entire entry, OCI scheme detected from prefix:
 //
-//   - oci://ghcr.io/inrundev/registry/postgres@v14
+//   - oci://ghcr.io/intentd/registry/postgres@v14
 //   - https://github.com/myorg/registry@main
 //
 // Struct with url field — same URL forms, required when auth or other fields are set:
 //
-//   - url: oci://ghcr.io/inrundev/registry/postgres@v14
+//   - url: oci://ghcr.io/intentd/registry/postgres@v14
 //
-//   - url: ghcr.io/inrundev/registry/postgres@v14
+//   - url: ghcr.io/intentd/registry/postgres@v14
 //     oci: true                                              # equivalent to oci:// prefix
 //
 // Git form:
@@ -48,10 +48,10 @@ type RegistrySource struct {
 	// URL — the registry URL.
 	//
 	// Git:  https://github.com/myorg/inrun-registry
-	// OCI:  ghcr.io/inrundev/registry/postgres
+	// OCI:  ghcr.io/intentd/registry/postgres
 	//
 	// Shorthand — embed version with @:
-	//   ghcr.io/inrundev/registry/postgres@v14
+	//   ghcr.io/intentd/registry/postgres@v14
 	//   https://github.com/myorg/registry@main
 	//
 	// When @ is present, Version field is ignored.

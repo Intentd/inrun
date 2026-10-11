@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 )
 
 func TestCRDActivation_InitialState_NotHealthy(t *testing.T) {

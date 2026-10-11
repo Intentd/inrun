@@ -3,29 +3,24 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ---------------------------------------------------------------------------------
-// Add reconcilers
-func (k *Catalog) AddReconcilers() error {
-	for name, crd := range k.enabledCRDs {
+// Add consstructors
+func (c *Catalog) AddConstructors() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.IsDynamic() {
 			if crd.DefaultReconcile() {
-				// Wire per-target entries that opt out of the default reconciler
-				// (reconciler.default: false). These use the same ReconcilerRegistry
-				// keyed by the CRD's GVK, but are stored on the target's OperatorBox.
-				if err := wirePerTargetConstructors(name, &crd); err != nil {
-					return err
-				}
-				k.enabledCRDs[name] = crd
+				// Per-target constructors (reconcile.default: false on a target)
+				// are wired by AddTargetConstructors from TargetReconcilerRegistry.
 				continue
 			}
 
 			// Remote reconciler: no compiled constructor — dispatched by coordinator at runtime.
 			if crd.WithRemoteDecl() {
-				k.enabledCRDs[name] = crd
+				c.enabledCRDs[name] = crd
 				continue
 			}
 
@@ -44,15 +39,15 @@ func (k *Catalog) AddReconcilers() error {
 			crd.Box().Reconcile.Constructor = constructorFn
 		}
 
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
 
 // ---------------------------------------------------------------------------------
 // Add hooks
-func (k *Catalog) AddHooks() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddHooks() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.DefaultReconcile() {
 			continue
 		}
@@ -65,7 +60,7 @@ func (k *Catalog) AddHooks() error {
 		}
 
 		if !crd.HasServeTargetEntries() {
-			k.enabledCRDs[name] = crd
+			c.enabledCRDs[name] = crd
 			continue
 		}
 
@@ -99,19 +94,19 @@ func (k *Catalog) AddHooks() error {
 			}
 		}
 
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
 
 // ---------------------------------------------------------------------------------
-// addTargetHooks wires per-target hook factories from TargetHookRegistry onto
+// AddTargetHooks wires per-target hook factories from TargetHookRegistry onto
 // CRDEntry.TargetHookFactories. Only targets that declare a distinct hook binary
 // (different location from the CRD-level hooks) need an entry here — targets that
 // share the CRD-level binary and only override args are handled at reconcile time
 // by mergeReconcilerConfig inside EffectiveOperatorBox.
-func (k *Catalog) AddTargetHooks() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddTargetHooks() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.HasServeTargetEntries() {
 			continue
 		}
@@ -149,46 +144,15 @@ func (k *Catalog) AddTargetHooks() error {
 			}
 			crd.TargetHookFactories[targetName] = fn
 		}
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
 
-// ---------------------------------------------------------------------------------
-// wirePerTargetConstructors wires constructors for per-target entries that have
-// reconciler.default: false set on their own OperatorBox. These targets share the
-// CRD-level GVK and look up their constructor in ReconcilerRegistry, storing it
-// directly on targetCfg.Box().Constructor.
-func wirePerTargetConstructors(crdName string, crd *types.CRDEntry) error {
-	if !crd.HasServeTargetEntries() {
-		return nil
-	}
-	for targetName, targetCfg := range crd.Serve.Target.Entries {
-		if targetCfg.OperatorBox == nil || targetCfg.Box().Reconcile == nil {
-			continue
-		}
-		rec := targetCfg.Box().Reconcile
-		if rec.Default == nil || *rec.Default || rec.ConstructorDecl == nil {
-			continue
-		}
-		fn, ok := types.ReconcilerRegistry[crd.GroupVersionKind]
-		if !ok {
-			return fmt.Errorf(
-				"CRD %q target %q: reconciler.default: false declared but "+
-					"no ReconcilerRegistry entry for this GVK — re-run inrun generate registry",
-				crdName, targetName,
-			)
-		}
-		targetCfg.Box().Reconcile.Constructor = fn
-		crd.Serve.Target.Entries[targetName] = targetCfg
-	}
-	return nil
-}
-
-// addTargetConstructors wires per-target constructor factories from
+// AddTargetConstructors wires per-target constructor factories from
 // TargetReconcilerRegistry onto CRDEntry.TargetReconcilerFactories.
-func (k *Catalog) AddTargetConstructors() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddTargetConstructors() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.HasServeTargetEntries() {
 			continue
 		}
@@ -222,7 +186,7 @@ func (k *Catalog) AddTargetConstructors() error {
 			}
 			crd.TargetReconcilerFactories[targetName] = fn
 		}
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }

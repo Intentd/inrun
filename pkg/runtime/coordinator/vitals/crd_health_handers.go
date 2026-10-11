@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/version"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -64,14 +65,14 @@ type CRDHealthResponse struct {
 // ─────────────────────────────────────────────────────────────────────────────
 func BuildCRDHealthHandler(
 	crd types.CRDEntry,
-	kfg *config.Config,
+	cfg *config.Config,
 	inf cache.SharedIndexInformer,
 	h *CRDHealth,
 	o *RuntimeHealth,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state, status := h.StateAndStatus()
-		v := resolveCRDDisplayValues(crd, kfg, inf)
+		v := resolveCRDDisplayValues(crd, cfg, inf)
 
 		response := CRDHealthResponse{
 			Name:                     crd.Name,
@@ -202,16 +203,14 @@ type ConstructorInfo struct {
 // ─────────────────────────────────────────────────────────────────────────────
 func BuildCRDInfoHandler(
 	crd types.CRDEntry,
-	kfg *config.Config,
+	rbac []rbacv1.PolicyRule,
+	cfg *config.Config,
 	inf cache.SharedIndexInformer,
 	h *CRDHealth,
 	o *RuntimeHealth,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		v := resolveCRDDisplayValues(crd, kfg, inf)
-
-		// Generate RBAC info for this CRD
-		rbacInfo := generateRBACInfo(crd, v)
+		v := resolveCRDDisplayValues(crd, cfg, inf)
 
 		// Always expose live metrics so any CRD can be observed via cross.*.metrics.*
 		// by a sibling in a different binary — the observed CRD does not need to
@@ -286,7 +285,7 @@ func BuildCRDInfoHandler(
 			Started:           h.Started(),
 			Pending:           h.Pending(),
 			ErrorRate:         h.ErrorRatePercent(),
-			RBAC:              rbacInfo,
+			RBAC:              toRBACInfo(rbac),
 			AutoscalerEnabled: crd.AutoscaleEnabled(),
 			AutoscalerWorkers: wi,
 			Metrics:           autoMetrics,
@@ -418,8 +417,8 @@ type StatusCounts struct {
 // This is the top‑level endpoint for dashboards and operator UIs.
 // ─────────────────────────────────────────────────────────────────────────────
 func BuildCatalogHandler(
-	kat *catalog.Catalog,
-	kfg *config.Config,
+	cat *catalog.Catalog,
+	cfg *config.Config,
 	reg contract.RuntimeResourceCatalog,
 	healthMap map[string]*CRDHealth,
 	o *RuntimeHealth,
@@ -428,9 +427,9 @@ func BuildCatalogHandler(
 		crds := make([]CRDSummaryResponse, 0)
 		statusCounts := StatusCounts{}
 		namespaces := make(map[string]CatalogNamespaceSummary)
-		deletionProtectedCRDs := kat.DeletionProtectedCRDNames()
+		deletionProtectedCRDs := cat.DeletionProtectedCRDNames()
 
-		for _, crd := range kat.Enabled() {
+		for _, crd := range cat.Enabled() {
 			gvk := crd.GVKString()
 			h := healthMap[gvk]
 
@@ -440,7 +439,7 @@ func BuildCatalogHandler(
 				inf = entry.Informer
 			}
 
-			v := resolveCRDDisplayValues(crd, kfg, inf)
+			v := resolveCRDDisplayValues(crd, cfg, inf)
 
 			isStarted := h.Started()
 			isPending := h.Pending()
@@ -489,7 +488,7 @@ func BuildCatalogHandler(
 				QueueDepth:               h.QueueDepth(gvk),
 				MaxDepth:                 v.maxDepth,
 				MaxDepthSource:           v.maxDepthSource,
-				RBACCount:                generateRBACInfo(crd, v).TotalRules,
+				RBACCount:                toRBACInfo(cat.RBACRulesForCRD(crd)).TotalRules,
 				ResourceCount:            v.resourceCount,
 				DeletionProtection:       isCRDProtected(deletionProtectedCRDs, crd.APITypes.Plural, crd.APITypes.Group),
 				OperatorBox: OperatorBoxSummary{
@@ -567,14 +566,14 @@ func BuildCatalogHandler(
 		}
 
 		deletionProtection := false
-		if kat.IsDeletionProtectionEnabled() && kat.DeletionProtectionGVRs() != nil {
+		if cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionGVRs() != nil {
 			deletionProtection = true
 		}
 
 		utils.WriteJSON(w, status, CatalogResponse{
 			CRDs:               crds,
-			Total:              len(kat.All()),
-			TotalEnabled:       len(kat.Enabled()),
+			Total:              len(cat.All()),
+			TotalEnabled:       len(cat.Enabled()),
 			InrunReady:         o.IsInrunReady(),
 			IsLeader:           o.IsLeader(),
 			DeletionProtection: deletionProtection,
@@ -582,15 +581,15 @@ func BuildCatalogHandler(
 			Status:             status,
 			DegradedReason:     degradedReason,
 			StatusCounts:       statusCounts,
-			Name:               kat.Meta().Name,
-			Version:            kat.Meta().Version,
-			Author:             kat.Meta().Author,
-			License:            kat.Meta().License,
-			Description:        kat.Meta().Description,
+			Name:               cat.Meta().Name,
+			Version:            cat.Meta().Version,
+			Author:             cat.Meta().Author,
+			License:            cat.Meta().License,
+			Description:        cat.Meta().Description,
 			RuntimeVersion:     version.Short(),
-			ClusterName:        kat.ClusterName(),
+			ClusterName:        cat.ClusterName(),
 			Namespaces:         namespaces,
-			GatewayEndpoint:    kat.GatewayEndpoint(),
+			GatewayEndpoint:    cat.GatewayEndpoint(),
 		})
 	}
 }
@@ -819,7 +818,7 @@ type crdDisplayValues struct {
 
 func resolveCRDDisplayValues(
 	crd types.CRDEntry,
-	kfg *config.Config,
+	cfg *config.Config,
 	inf cache.SharedIndexInformer,
 ) crdDisplayValues {
 	box := crd.OperatorBox
@@ -831,7 +830,7 @@ func resolveCRDDisplayValues(
 	}
 	maxDepthSource := "configured"
 	if maxDepth == 0 {
-		maxDepth = kfg.Catalog().DefaultQueueDepth()
+		maxDepth = cfg.Catalog().DefaultQueueDepth()
 		maxDepthSource = "default"
 	}
 
@@ -844,7 +843,7 @@ func resolveCRDDisplayValues(
 	resyncSource := "configured"
 	if resyncDuration.Duration == 0 {
 		resyncSource = "default"
-		resync = kfg.Catalog().DefaultResync().String()
+		resync = cfg.Catalog().DefaultResync().String()
 	}
 
 	// Workers
@@ -854,7 +853,7 @@ func resolveCRDDisplayValues(
 	}
 	workersSource := "configured"
 	if workers == 0 {
-		workers = kfg.Catalog().DefaultWorkers()
+		workers = cfg.Catalog().DefaultWorkers()
 		workersSource = "default"
 	}
 

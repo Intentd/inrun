@@ -84,3 +84,17 @@ func updateOptions(opts ...sigs.UpdateOption) metav1.UpdateOptions {
 	}
 	return *o.AsUpdateOptions()
 }
+
+// unservableField returns the first field selector requirement the API server
+// cannot filter on, if any: anything but metadata.name and metadata.namespace.
+func unservableField(lo *sigs.ListOptions) (string, bool) {
+	if lo.FieldSelector == nil || lo.FieldSelector.Empty() {
+		return "", false
+	}
+	for _, req := range lo.FieldSelector.Requirements() {
+		if req.Field != "metadata.name" && req.Field != "metadata.namespace" {
+			return req.Field, true
+		}
+	}
+	return "", false
+}

@@ -3,7 +3,7 @@ package shared
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ExpandEnvFrom converts an EnvFrom declaration into Kubernetes container

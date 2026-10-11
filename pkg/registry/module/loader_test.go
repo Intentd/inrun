@@ -3,8 +3,8 @@ package module_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestLoad_ValidFile(t *testing.T) {

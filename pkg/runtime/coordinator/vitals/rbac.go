@@ -1,4 +1,3 @@
-// pkg/runtime/coordinator/vitals/crd_rbac_health.go
 package vitals
 
 import (
@@ -6,7 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 type RBACInfo struct {
@@ -23,152 +23,39 @@ type RBACRule struct {
 	Description string `json:"description,omitempty"`
 }
 
-func generateRBACInfo(crd types.CRDEntry, v crdDisplayValues) RBACInfo {
-	rules := []RBACRule{}
-
-	// 1. CRD itself
-	if !crd.IsBuiltInType() {
+// toRBACInfo turns the rules the Catalog generates for one CRD
+// (catalog.RBACRulesForCRD) into the console's view of them. The rules are
+// not derived here, so the console shows what validate --full and the bundle do.
+func toRBACInfo(policy []rbacv1.PolicyRule) RBACInfo {
+	rules := make([]RBACRule, 0, len(policy))
+	for _, p := range policy {
 		rules = append(rules, RBACRule{
-			APIGroups:   []string{crd.APITypes.Group},
-			Resources:   []string{crd.APITypes.Plural},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: fmt.Sprintf("Manage %s custom resources", crd.Name),
-		})
-
-		// 2. Status subresource if needed
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{crd.APITypes.Group},
-			Resources:   []string{crd.APITypes.Plural + "/status"},
-			Verbs:       []string{"get", "update", "patch"},
-			Description: fmt.Sprintf("Update status of %s resources", crd.Name),
+			APIGroups:   p.APIGroups,
+			Resources:   p.Resources,
+			Verbs:       p.Verbs,
+			Description: describeRule(p),
 		})
 	}
-	box := crd.OperatorBox
-
-	// 3. Resources from declarative templates
-	if box.EffectiveOnCreate() != nil {
-		resourceRules := extractResourceRules(box.EffectiveOnCreate())
-		rules = append(rules, resourceRules...)
-	}
-
-	// 4. Resources from onReconcile
-	if box.EffectiveOnReconcile() != nil {
-		resourceRules := extractResourceRules(box.EffectiveOnReconcile())
-		rules = append(rules, resourceRules...)
-	}
-
-	// 5. Resources from onDelete
-	if box.EffectiveOnDelete() != nil {
-		resourceRules := extractResourceRules(box.EffectiveOnDelete())
-		rules = append(rules, resourceRules...)
-	}
-
-	// 6. Deduplicate rules
 	rules = deduplicateRules(rules)
-
-	summary := generateSummary(rules)
-
 	return RBACInfo{
 		Rules:      rules,
-		Summary:    summary,
+		Summary:    generateSummary(rules),
 		TotalRules: len(rules),
 	}
 }
 
-func extractResourceRules(t *types.HookTemplates) []RBACRule {
-	rules := []RBACRule{}
-
-	// Deployment
-	if len(t.Deployments) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{"apps"},
-			Resources:   []string{"deployments"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage Deployments (create, update, delete)",
-		})
+// describeRule names what a rule allows: manage, read, or update status.
+func describeRule(p rbacv1.PolicyRule) string {
+	what := strings.Join(p.Resources, ", ")
+	for _, r := range p.Resources {
+		if strings.HasSuffix(r, "/status") {
+			return "Update status of " + strings.TrimSuffix(r, "/status")
+		}
 	}
-
-	// Service
-	if len(t.Services) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{""},
-			Resources:   []string{"services"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage Services (create, update, delete)",
-		})
+	if catalog.Writes(p) {
+		return "Manage " + what
 	}
-
-	// ConfigMap
-	if len(t.ConfigMaps) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{""},
-			Resources:   []string{"configmaps"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage ConfigMaps",
-		})
-	}
-
-	// Secret
-	if len(t.Secrets) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{""},
-			Resources:   []string{"secrets"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage Secrets (sensitive data)",
-		})
-	}
-
-	// Job
-	if len(t.Jobs) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{"batch"},
-			Resources:   []string{"jobs"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage Jobs (batch processing)",
-		})
-	}
-
-	// CronJob
-	if len(t.CronJobs) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{"batch"},
-			Resources:   []string{"cronjobs"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage CronJobs (scheduled tasks)",
-		})
-	}
-
-	// ServiceAccount
-	if len(t.ServiceAccounts) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{""},
-			Resources:   []string{"serviceaccounts"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage ServiceAccounts (identity)",
-		})
-	}
-
-	// Ingress
-	if len(t.Ingresses) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{"networking.k8s.io"},
-			Resources:   []string{"ingresses"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage Ingresses (HTTP routing)",
-		})
-	}
-
-	// PersistentVolumeClaim
-	if len(t.PersistentVolumeClaims) > 0 {
-		rules = append(rules, RBACRule{
-			APIGroups:   []string{""},
-			Resources:   []string{"persistentvolumeclaims"},
-			Verbs:       []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			Description: "Manage PersistentVolumeClaims (storage)",
-		})
-	}
-
-	return rules
+	return "Read " + what
 }
 
 func generateSummary(rules []RBACRule) string {

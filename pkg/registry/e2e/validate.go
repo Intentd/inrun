@@ -5,9 +5,26 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"gopkg.in/yaml.v3"
 )
+
+// IsE2EDoc returns true when the file's kind is "E2E".
+func IsE2EDoc(path string) bool {
+	data, err := utils.ReadLocal(path)
+	if err != nil {
+		return false
+	}
+	var head struct {
+		Kind string `yaml:"kind"`
+	}
+	if err := yaml.Unmarshal(data, &head); err != nil {
+		return false
+	}
+	return head.Kind == config.E2EKind()
+}
 
 // ValidateImports checks that every file listed in imports exists and declares
 // kind: E2E. baseDir is the directory that relative paths are resolved against.

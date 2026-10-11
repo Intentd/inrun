@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/cluster"
 )
 
 const (
-	devServerImage     = "ghcr.io/inrundev/inrun-dev-server:latest"
+	devServerImage     = "ghcr.io/intentd/inrun-dev-server:latest"
 	devServerName      = "inrun-dev-server"
 	devServerNamespace = "inrun-system"
 	// DevServerAddr is the in-cluster DNS address CR specs should use.
@@ -37,7 +37,9 @@ spec:
     spec:
       containers:
         - name: dev-server
-          image: ghcr.io/inrundev/inrun-dev-server:latest
+          image: ghcr.io/intentd/inrun-dev-server:latest
+          # Use a locally loaded image when there is one.
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9999
           readinessProbe:

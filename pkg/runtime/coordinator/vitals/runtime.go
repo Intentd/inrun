@@ -8,7 +8,7 @@ import (
 type RuntimeHealth struct {
 	name       string
 	inrunReady atomic.Bool
-	katReady   atomic.Bool
+	catReady   atomic.Bool
 	allOnline  atomic.Bool // For this catalog
 	isLeader   atomic.Bool // true only on the pod that won the leader election
 	mu         sync.RWMutex
@@ -43,7 +43,7 @@ func (h *RuntimeHealth) IsInrunReady() bool {
 
 // SetCatalogReady marks a catalog as ready
 func (h *RuntimeHealth) SetCatalogReady() {
-	h.katReady.Store(true)
+	h.catReady.Store(true)
 }
 
 func (h *RuntimeHealth) SetRuntimeReady(ready bool) {
@@ -64,10 +64,10 @@ func (h *RuntimeHealth) SetReconciling(isLeader bool) {
 
 // SetCatalogDegraded marks a catalog as degraded
 func (h *RuntimeHealth) SetCatalogDegraded() {
-	h.katReady.Store(false)
+	h.catReady.Store(false)
 }
 
 // IsCatalogReady is used to track ready state of a catalog
 func (h *RuntimeHealth) IsCatalogReady() bool {
-	return h.katReady.Load()
+	return h.catReady.Load()
 }

@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  actions: write      # cleanup-caches deletes this repo's caches
 
 jobs:
   prepare:
@@ -70,7 +71,7 @@ jobs:
     secrets: inherit
     with:
       image_tag: ${{ needs.prepare.outputs.image_tag }}
-      tap_repository: inrundev/homebrew-tap
+      tap_repository: intentd/homebrew-tap
 
   summary:
     name: Release Summary

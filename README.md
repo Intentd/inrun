@@ -2,6 +2,14 @@
   <img src="./docs/assets/inrun-wordmark.svg" alt="Inrun" height="64" />
 
   <p><strong>Run intents on Kubernetes.</strong></p>
+
+  <p>
+    <a href="https://github.com/intentd/inrun/releases"><img src="https://img.shields.io/github/v/release/intentd/inrun" alt="Release" /></a>
+    <a href="https://artifacthub.io/packages/search?repo=inrun"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/inrun" alt="Artifact Hub" /></a>
+    <img src="https://img.shields.io/badge/Go-1.26+-00ADD8.svg" alt="Go" />
+    <img src="https://img.shields.io/badge/Kubernetes-1.28+-326CE5.svg" alt="Kubernetes" />
+    <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
+  </p>
 </div>
 
 A caller sends an **intent**: a small JSON payload in their own words, with no

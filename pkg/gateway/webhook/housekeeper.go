@@ -54,10 +54,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
-	"github.com/inrundev/inrun/pkg/gateway/certmanager"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/gateway/certmanager"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/metrics"
 )
 
 const (
@@ -81,13 +81,13 @@ func (ws *WebhookServer) housekeeper(ctx context.Context) error {
 		return nil
 	}
 
-	kat := ws.catalog
-	hasAdmission := kat.HasValidationRules() || kat.HasMutationRules()
-	hasDeletionProtection := kat.IsDeletionProtectionEnabled() && kat.DeletionProtectionGVRs() != nil
-	hasNamespaceProtection := kat.IsNamespaceProtectionEnabled() && len(kat.NamespaceProtectionGVRs()) > 0
-	hasStrictMode := kat.IsStrictModeEnabled()
+	cat := ws.catalog
+	hasAdmission := cat.HasValidationRules() || cat.HasMutationRules()
+	hasDeletionProtection := cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionGVRs() != nil
+	hasNamespaceProtection := cat.IsNamespaceProtectionEnabled() && len(cat.NamespaceProtectionGVRs()) > 0
+	hasStrictMode := cat.IsStrictModeEnabled()
 	hasConversion := ws.convEnabled
-	hasServe := kat.HasServeEnabled()
+	hasServe := cat.HasServeEnabled()
 
 	if !hasAdmission && !hasDeletionProtection && !hasNamespaceProtection && !hasStrictMode && !hasConversion && !hasServe {
 		logger.Debug().Msg("housekeeper disabled: no admission, protection, conversion, or serve declared")
@@ -107,11 +107,11 @@ func (ws *WebhookServer) housekeeper(ctx context.Context) error {
 	// Validation, deletion‑protection, namespace‑protection, and strict‑mode all use
 	// ValidatingWebhookConfiguration, so they share the same watcher.
 	// Mutation rules use a separate MutatingWebhookConfiguration watcher.
-	if kat.HasValidationRules() || hasDeletionProtection || hasNamespaceProtection || hasStrictMode {
+	if cat.HasValidationRules() || hasDeletionProtection || hasNamespaceProtection || hasStrictMode {
 		go ws.watchValidatingWebhooks(ctx, trigger)
 	}
 
-	if kat.HasMutationRules() {
+	if cat.HasMutationRules() {
 		go ws.watchMutatingWebhooks(ctx, trigger)
 	}
 
@@ -123,7 +123,7 @@ func (ws *WebhookServer) housekeeper(ctx context.Context) error {
 	}
 
 	go func() {
-		safetyTicker := time.NewTicker(kat.HousekeeperSyncInterval())
+		safetyTicker := time.NewTicker(cat.HousekeeperSyncInterval())
 		defer safetyTicker.Stop()
 
 		// Reconcile immediately on startup — don't wait for the first tick or event.
@@ -451,14 +451,14 @@ func (ws *WebhookServer) drainWatchEvents(ctx context.Context, w watch.Interface
 }
 
 func (ws *WebhookServer) reconcileAdmissionWebhooks() {
-	kat := ws.catalog
+	cat := ws.catalog
 
 	if !ws.webhooksEnabled || ws.admissionRegistry == nil {
 		cleanupOpts := WebhookCleanupOptions{}
-		if kat.HasMutationRules() {
+		if cat.HasMutationRules() {
 			cleanupOpts.mutating = true
 		}
-		if kat.HasValidationRules() {
+		if cat.HasValidationRules() {
 			cleanupOpts.validating = true
 		}
 		if (cleanupOpts.mutating || cleanupOpts.validating) && ws.kubeClient != nil {
@@ -480,7 +480,7 @@ func (ws *WebhookServer) reconcileAdmissionWebhooks() {
 		return
 	}
 
-	if !kat.HasValidationRules() && !kat.HasMutationRules() {
+	if !cat.HasValidationRules() && !cat.HasMutationRules() {
 		return
 	}
 
@@ -496,10 +496,10 @@ func (ws *WebhookServer) reconcileAdmissionWebhooks() {
 			if ws.webhookStats != nil {
 				ws.webhookStats.RecordFailure()
 			}
-			if kat.HasValidationRules() {
+			if cat.HasValidationRules() {
 				metrics.RecordWebhookReconciliationFailure(validation)
 			}
-			if kat.HasMutationRules() {
+			if cat.HasMutationRules() {
 				metrics.RecordWebhookReconciliationFailure(mutation)
 			}
 		}
@@ -507,9 +507,9 @@ func (ws *WebhookServer) reconcileAdmissionWebhooks() {
 }
 
 func (ws *WebhookServer) reconcileDeletionProtectionWebhook() {
-	kat := ws.catalog
+	cat := ws.catalog
 
-	enabled := kat.IsDeletionProtectionEnabled() && kat.DeletionProtectionGVRs() != nil
+	enabled := cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionGVRs() != nil
 	if !enabled {
 		if ws.kubeClient != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), lowTimeout)
@@ -529,7 +529,7 @@ func (ws *WebhookServer) reconcileDeletionProtectionWebhook() {
 		return
 	}
 
-	dpGVRs := kat.DeletionProtectionGVRs()
+	dpGVRs := cat.DeletionProtectionGVRs()
 	if len(dpGVRs) == 0 {
 		return
 	}
@@ -557,9 +557,9 @@ func (ws *WebhookServer) reconcileDeletionProtectionWebhook() {
 }
 
 func (ws *WebhookServer) reconcileNamespaceProtectionWebhook() {
-	kat := ws.catalog
+	cat := ws.catalog
 
-	enabled := kat.IsNamespaceProtectionEnabled() && len(kat.NamespaceProtectionGVRs()) > 0
+	enabled := cat.IsNamespaceProtectionEnabled() && len(cat.NamespaceProtectionGVRs()) > 0
 	if !enabled {
 		if ws.kubeClient != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), lowTimeout)
@@ -579,7 +579,7 @@ func (ws *WebhookServer) reconcileNamespaceProtectionWebhook() {
 		return
 	}
 
-	npGVRs := kat.NamespaceProtectionGVRs()
+	npGVRs := cat.NamespaceProtectionGVRs()
 	if len(npGVRs) == 0 {
 		return
 	}
@@ -597,8 +597,8 @@ func (ws *WebhookServer) reconcileNamespaceProtectionWebhook() {
 	ctx, cancel := context.WithTimeout(context.Background(), highTimeout)
 	defer cancel()
 
-	svcName := kat.NamespaceProtectionServiceName()
-	failurePolicy := kat.NamespaceProtectionFailurePolicy()
+	svcName := cat.NamespaceProtectionServiceName()
+	failurePolicy := cat.NamespaceProtectionFailurePolicy()
 	if err := registerNamespaceProtectionWebhook(ctx, ws.kubeClient, npGVRs, caBundle, ws.hookReg, svcName, failurePolicy); err != nil {
 		logger.Error().Err(err).Msgf("%s: namespace protection registration failed", housekeeper)
 		if ws.webhookStats != nil {
@@ -617,8 +617,8 @@ func (ws *WebhookServer) reconcileTokenSecrets() {
 	if ws.kubeClient == nil || ws.catalog == nil || ws.config == nil {
 		return
 	}
-	kat := ws.catalog
-	if !kat.HasGatewayAPISecretRefs() {
+	cat := ws.catalog
+	if !cat.HasGatewayAPISecretRefs() {
 		return
 	}
 
@@ -628,7 +628,7 @@ func (ws *WebhookServer) reconcileTokenSecrets() {
 	defer cancel()
 
 	anyMissing := false
-	for _, t := range kat.Gateway.API.Auth.Tokens {
+	for _, t := range cat.Gateway.API.Auth.Tokens {
 		if t.SecretRef == nil {
 			continue
 		}
@@ -667,9 +667,9 @@ func (ws *WebhookServer) reconcileTokenSecrets() {
 }
 
 func (ws *WebhookServer) reconcileStrictModeWebhook() {
-	kat := ws.catalog
+	cat := ws.catalog
 
-	if !kat.IsStrictModeEnabled() {
+	if !cat.IsStrictModeEnabled() {
 		if ws.kubeClient != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), lowTimeout)
 			defer cancel()

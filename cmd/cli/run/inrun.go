@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/cmd/internal"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/intentd/inrun/cmd/internal"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ func runRuntime(cmd *cobra.Command, args []string) error {
 		Int("enabled", m.EnabledCount()).
 		Msg("catalogs merged")
 
-	internal.RunRuntime(cmdutil.Kfg, m, cmdutil.Ctx)
+	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx)
 	return nil
 }
 

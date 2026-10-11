@@ -4,7 +4,7 @@ package types
 import (
 	"sort"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -276,8 +276,10 @@ func (c *CRDEntry) EffectiveOperatorBox(target string) *OperatorBoxConfig {
 
 // mergeReconcileConfig merges a per-target reconcile block on top of the CRD-level one.
 // Workers, resync, queue, and profile are always inherited from the CRD-level.
-// Hook identity fields (location, function, alias, resources) come from CRD-level when
-// the target omits them. Args are merged key-by-key with target winning.
+// Hook identity fields (location, function, alias) come from CRD-level when the
+// target omits them. A target's onCreate, onReconcile and onDelete replace the
+// CRD-level phase they name. Args are merged key-by-key with target winning; the
+// target's managedResources and prune replace the CRD-level ones when set.
 func mergeReconcileConfig(base, target *ReconcileConfig) *ReconcileConfig {
 	if target == nil {
 		return base
@@ -302,22 +304,38 @@ func mergeReconcileConfig(base, target *ReconcileConfig) *ReconcileConfig {
 			if target.Hooks.Alias != "" {
 				h.Alias = target.Hooks.Alias
 			}
-			if len(target.Hooks.ManagedResources) > 0 {
-				h.ManagedResources = target.Hooks.ManagedResources
-			}
-			// Args: merge key-by-key; target overrides CRD-level per key.
-			if len(target.Hooks.Args) > 0 {
-				args := make(map[string]interface{}, len(h.Args)+len(target.Hooks.Args))
-				for k, v := range h.Args {
-					args[k] = v
-				}
-				for k, v := range target.Hooks.Args {
-					args[k] = v
-				}
-				h.Args = args
-			}
 			merged.Hooks = &h
 		}
+	}
+	// Declarative templates: a target's own phase replaces the CRD-level one.
+	if target.OnCreate != nil {
+		merged.OnCreate = target.OnCreate
+	}
+	if target.OnReconcile != nil {
+		merged.OnReconcile = target.OnReconcile
+	}
+	if target.OnDelete != nil {
+		merged.OnDelete = target.OnDelete
+	}
+	if len(target.ManagedResources) > 0 {
+		merged.ManagedResources = target.ManagedResources
+	}
+	if len(target.External) > 0 {
+		merged.External = target.External
+	}
+	if target.Prune != nil {
+		merged.Prune = target.Prune
+	}
+	// Args: merge key-by-key; target overrides CRD-level per key.
+	if len(target.Args) > 0 {
+		args := make(map[string]interface{}, len(merged.Args)+len(target.Args))
+		for k, v := range merged.Args {
+			args[k] = v
+		}
+		for k, v := range target.Args {
+			args[k] = v
+		}
+		merged.Args = args
 	}
 	return &merged
 }

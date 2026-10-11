@@ -12,12 +12,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gomodules.xyz/jsonpatch/v2"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/metrics"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -228,7 +229,7 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	patch, err := buildJSONPatch(changes)
+	patch, err := buildJSONPatch(original, mutated)
 	if err != nil {
 		logger.Error().Err(err).
 			Str("kind", crdName).
@@ -293,22 +294,21 @@ func deepCopyMap(src map[string]interface{}) map[string]interface{} {
 	return dst
 }
 
-// JSONPatchOp is one operation in a JSON Patch document (RFC 6902).
-type JSONPatchOp struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
-}
-
-func buildJSONPatch(changes []fieldChange) ([]byte, error) {
-	ops := make([]JSONPatchOp, 0, len(changes))
-	for _, change := range changes {
-		ptr := "/" + strings.ReplaceAll(change.Field, ".", "/")
-		op := "replace"
-		if change.OldValue == "" {
-			op = "add"
-		}
-		ops = append(ops, JSONPatchOp{Op: op, Path: ptr, Value: change.TypedValue})
+// buildJSONPatch returns the JSON Patch (RFC 6902) that turns original into
+// mutated. Diffing the two escapes keys such as example.com/owner and adds
+// missing parents such as metadata.labels.
+func buildJSONPatch(original, mutated map[string]interface{}) ([]byte, error) {
+	from, err := json.Marshal(original)
+	if err != nil {
+		return nil, err
+	}
+	to, err := json.Marshal(mutated)
+	if err != nil {
+		return nil, err
+	}
+	ops, err := jsonpatch.CreatePatch(from, to)
+	if err != nil {
+		return nil, err
 	}
 	return json.Marshal(ops)
 }

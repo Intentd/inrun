@@ -9,12 +9,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/remote"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // remoteNote tells the user the run depends on their reconciler process.
@@ -28,7 +28,7 @@ func newRemoteReconciler(crd *types.CRDEntry, kube kubeclient.Interface, ownName
 		crd.GVK(),
 		kube,
 		event.Discard(),
-		crd.RemoteManagedResources(),
+		crd.ManagedResources(),
 		ownNamespace,
 	)
 }

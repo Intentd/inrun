@@ -3,7 +3,7 @@ package kubeclient
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,14 +30,6 @@ type Interface interface {
 	RESTMapper() meta.RESTMapper
 	RestConfig() *rest.Config
 	Scheme() *runtime.Scheme
-
-	// Args returns the args declared under hooks.args or constructor.args in catalog.yaml.
-	// Returns an empty Args map when no args were declared.
-	Args() Args
-
-	// WithArgs returns a copy of this Interface with the given args attached.
-	// Used by the runtime to inject per-CRD args before calling a hook or constructor.
-	WithArgs(args Args) Interface
 
 	// WithInformer returns a copy of this Interface with the primary CRD informer
 	// attached. Called by the runtime before invoking a constructor function.
@@ -70,13 +62,6 @@ type Interface interface {
 	// GetEventRecorder returns the event recorder for this CRD.
 	// Available inside constructor functions — nil if called outside that context.
 	GetEventRecorder() EventRecorder
-
-	// ScopedFor evaluates any template expressions in the rawArgs using eval and
-	// returns a copy of this Interface with the resolved args attached.
-	// Called by generic.Reconciler after building the resolver so hook authors see
-	// fully-evaluated args without any extra wiring. Constructor authors call it
-	// themselves using their own resolver.
-	ScopedFor(eval func(string) (string, bool)) Interface
 
 	// CRUD
 	// List(ctx context.Context, obj domain.ObjectList, opts ...metav1.ListOptions) error

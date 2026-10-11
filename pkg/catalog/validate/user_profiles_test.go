@@ -3,9 +3,9 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ func catalogWithProfiles(reg types.ProfileRegistry) *executor {
 }
 
 func catalogWithProfilesAndNP(reg types.ProfileRegistry, crdName string, nps ...types.NetworkPolicyTemplateSource) *executor {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		crdName: {
 			OperatorBox: &types.OperatorBoxConfig{
 				Reconcile: &types.ReconcileConfig{
@@ -28,12 +28,12 @@ func catalogWithProfilesAndNP(reg types.ProfileRegistry, crdName string, nps ...
 			},
 		},
 	})
-	k.Profiles = reg
-	return newExec(k)
+	cat.Profiles = reg
+	return newExec(cat)
 }
 
 func catalogWithProfilesAndRQ(reg types.ProfileRegistry, crdName string, rqs ...types.ResourceQuotaTemplateSource) *executor {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		crdName: {
 			OperatorBox: &types.OperatorBoxConfig{
 				Reconcile: &types.ReconcileConfig{
@@ -44,115 +44,115 @@ func catalogWithProfilesAndRQ(reg types.ProfileRegistry, crdName string, rqs ...
 			},
 		},
 	})
-	k.Profiles = reg
-	return newExec(k)
+	cat.Profiles = reg
+	return newExec(cat)
 }
 
 // ── validateUserProfiles ──────────────────────────────────────────────────────
 
 func TestValidateUserProfiles_Empty(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{})
-	assert.NoError(t, k.validateUserProfiles())
+	e := catalogWithProfiles(types.ProfileRegistry{})
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_ValidNetworkPolicy(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		NetworkPolicies: []types.NetworkPolicyProfileDef{
 			{Name: "allow-monitoring", PolicyTypes: []string{"Ingress"}},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_ValidResourceQuota(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		ResourceQuotas: []types.ResourceQuotaProfileDef{
 			{Name: "team-medium", Hard: map[string]string{"pods": "30", "cpu": "6"}},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_ValidHPA(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		HPA: []types.HPAProfileDef{
 			{Name: "aggressive-scale", MinReplicas: "2", MaxReplicas: "20"},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_ValidPDB(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		PDB: []types.PDBProfileDef{
 			{Name: "strict", MinAvailable: "2"},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_ValidRollingUpdate(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		RollingUpdate: []types.RollingUpdateProfileDef{
 			{Name: "canary", MaxSurge: "1", MaxUnavailable: "0"},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_TemplateExpressionInHard(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		ResourceQuotas: []types.ResourceQuotaProfileDef{
 			{Name: "dynamic", Hard: map[string]string{"pods": "{{ .spec.maxPods }}"}},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 func TestValidateUserProfiles_DuplicateNetworkPolicyName(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		NetworkPolicies: []types.NetworkPolicyProfileDef{
 			{Name: "allow-monitoring"},
 			{Name: "allow-monitoring"},
 		},
 	})
-	err := k.validateUserProfiles()
+	err := e.validateUserProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate profile name")
 	assert.Contains(t, err.Error(), "allow-monitoring")
 }
 
 func TestValidateUserProfiles_DuplicateResourceQuotaName(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		ResourceQuotas: []types.ResourceQuotaProfileDef{
 			{Name: "team-medium", Hard: map[string]string{"pods": "10"}},
 			{Name: "team-medium", Hard: map[string]string{"pods": "20"}},
 		},
 	})
-	err := k.validateUserProfiles()
+	err := e.validateUserProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate profile name")
 }
 
 func TestValidateUserProfiles_MissingName(t *testing.T) {
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		PDB: []types.PDBProfileDef{
 			{MinAvailable: "1"},
 		},
 	})
-	err := k.validateUserProfiles()
+	err := e.validateUserProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "missing a name")
 }
 
 func TestValidateUserProfiles_ShadowingBuiltinIsAllowed(t *testing.T) {
 	// Shadowing a built-in produces a warning but is not an error.
-	k := catalogWithProfiles(types.ProfileRegistry{
+	e := catalogWithProfiles(types.ProfileRegistry{
 		NetworkPolicies: []types.NetworkPolicyProfileDef{
 			{Name: "deny-all", PolicyTypes: []string{"Ingress", "Egress"}},
 		},
 	})
-	assert.NoError(t, k.validateUserProfiles())
+	assert.NoError(t, e.validateUserProfiles())
 }
 
 // ── user profile used in networkPolicy reference ──────────────────────────────
@@ -163,20 +163,20 @@ func TestValidateNetworkPolicyProfiles_UserDefinedProfileAccepted(t *testing.T) 
 			{Name: "allow-monitoring", PolicyTypes: []string{"Ingress"}},
 		},
 	}
-	k := catalogWithProfilesAndNP(reg, "app", types.NetworkPolicyTemplateSource{
+	e := catalogWithProfilesAndNP(reg, "app", types.NetworkPolicyTemplateSource{
 		Name:    "np",
 		Profile: "allow-monitoring",
 	})
-	require.NoError(t, k.validateUserProfiles())
-	assert.NoError(t, k.validateNetworkPolicyProfiles())
+	require.NoError(t, e.validateUserProfiles())
+	assert.NoError(t, e.validateNetworkPolicyProfiles())
 }
 
 func TestValidateNetworkPolicyProfiles_UnknownProfileStillRejected(t *testing.T) {
-	k := catalogWithProfilesAndNP(types.ProfileRegistry{}, "app", types.NetworkPolicyTemplateSource{
+	e := catalogWithProfilesAndNP(types.ProfileRegistry{}, "app", types.NetworkPolicyTemplateSource{
 		Name:    "np",
 		Profile: "custom-unknown",
 	})
-	assert.Error(t, k.validateNetworkPolicyProfiles())
+	assert.Error(t, e.validateNetworkPolicyProfiles())
 }
 
 func TestValidateNetworkPolicyProfiles_UserProfileShadowsBuiltin(t *testing.T) {
@@ -185,12 +185,12 @@ func TestValidateNetworkPolicyProfiles_UserProfileShadowsBuiltin(t *testing.T) {
 			{Name: "deny-all", PolicyTypes: []string{"Ingress"}},
 		},
 	}
-	k := catalogWithProfilesAndNP(reg, "app", types.NetworkPolicyTemplateSource{
+	e := catalogWithProfilesAndNP(reg, "app", types.NetworkPolicyTemplateSource{
 		Name:    "np",
 		Profile: "deny-all",
 	})
-	require.NoError(t, k.validateUserProfiles())
-	assert.NoError(t, k.validateNetworkPolicyProfiles())
+	require.NoError(t, e.validateUserProfiles())
+	assert.NoError(t, e.validateNetworkPolicyProfiles())
 }
 
 // ── user profile used in resourceQuota reference ──────────────────────────────
@@ -201,18 +201,18 @@ func TestValidateResourceQuotaProfiles_UserDefinedProfileAccepted(t *testing.T) 
 			{Name: "team-medium", Hard: map[string]string{"pods": "30"}},
 		},
 	}
-	k := catalogWithProfilesAndRQ(reg, "app", types.ResourceQuotaTemplateSource{
+	e := catalogWithProfilesAndRQ(reg, "app", types.ResourceQuotaTemplateSource{
 		Name:    "rq",
 		Profile: "team-medium",
 	})
-	require.NoError(t, k.validateUserProfiles())
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	require.NoError(t, e.validateUserProfiles())
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_UnknownProfileStillRejected(t *testing.T) {
-	k := catalogWithProfilesAndRQ(types.ProfileRegistry{}, "app", types.ResourceQuotaTemplateSource{
+	e := catalogWithProfilesAndRQ(types.ProfileRegistry{}, "app", types.ResourceQuotaTemplateSource{
 		Name:    "rq",
 		Profile: "custom-unknown",
 	})
-	assert.Error(t, k.validateResourceQuotaProfiles())
+	assert.Error(t, e.validateResourceQuotaProfiles())
 }

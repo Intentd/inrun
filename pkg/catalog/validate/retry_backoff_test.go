@@ -5,7 +5,7 @@ import (
 
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,20 +34,20 @@ func dur(d time.Duration) types.Duration { return types.Duration{Duration: d} }
 // ── queue.retryBackoff ────────────────────────────────────────────────────────
 
 func TestValidateRetryBackoff_NoConfig(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", nil, &types.OperatorBoxConfig{})
-	assert.NoError(t, k.validateRetryBackoff())
+	e := catalogWithRetryBackoff("myapp", nil, &types.OperatorBoxConfig{})
+	assert.NoError(t, e.validateRetryBackoff())
 }
 
 func TestValidateRetryBackoff_ValidShorthand(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Resync: dur(10 * time.Minute),
 		Queue:  types.Queue{RetryBackoff: &types.RetryBackoffConfig{Initial: dur(5 * time.Second)}},
 	}, &types.OperatorBoxConfig{})
-	assert.NoError(t, k.validateRetryBackoff())
+	assert.NoError(t, e.validateRetryBackoff())
 }
 
 func TestValidateRetryBackoff_ValidFullForm(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Resync: dur(10 * time.Minute),
 		Queue: types.Queue{RetryBackoff: &types.RetryBackoffConfig{
 			Initial:     dur(500 * time.Millisecond),
@@ -56,29 +56,29 @@ func TestValidateRetryBackoff_ValidFullForm(t *testing.T) {
 			MaxAttempts: 3,
 		}},
 	}, &types.OperatorBoxConfig{})
-	assert.NoError(t, k.validateRetryBackoff())
+	assert.NoError(t, e.validateRetryBackoff())
 }
 
 func TestValidateRetryBackoff_NegativeMultiplierErrors(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Queue: types.Queue{RetryBackoff: &types.RetryBackoffConfig{
 			Initial:    dur(500 * time.Millisecond),
 			Multiplier: -1.0,
 		}},
 	}, &types.OperatorBoxConfig{})
-	err := k.validateRetryBackoff()
+	err := e.validateRetryBackoff()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiplier must be >= 0")
 }
 
 func TestValidateRetryBackoff_MaxLessThanInitialErrors(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Queue: types.Queue{RetryBackoff: &types.RetryBackoffConfig{
 			Initial: dur(30 * time.Second),
 			Max:     dur(1 * time.Second),
 		}},
 	}, &types.OperatorBoxConfig{})
-	err := k.validateRetryBackoff()
+	err := e.validateRetryBackoff()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "max")
 	assert.Contains(t, err.Error(), "must be >= initial")
@@ -86,7 +86,7 @@ func TestValidateRetryBackoff_MaxLessThanInitialErrors(t *testing.T) {
 
 func TestValidateRetryBackoff_WorstCaseExceedsResyncWarns(t *testing.T) {
 	// maxAttempts=5, initial=10s, multiplier=2 → delays: 10s+20s+40s+80s = 150s > 30s resync
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Resync: dur(30 * time.Second),
 		Queue: types.Queue{RetryBackoff: &types.RetryBackoffConfig{
 			Initial:     dur(10 * time.Second),
@@ -95,14 +95,14 @@ func TestValidateRetryBackoff_WorstCaseExceedsResyncWarns(t *testing.T) {
 			MaxAttempts: 5,
 		}},
 	}, &types.OperatorBoxConfig{})
-	assert.NoError(t, k.validateRetryBackoff())
-	crd := k.k.EnabledCRDs()["myapp"]
+	assert.NoError(t, e.validateRetryBackoff())
+	crd := e.cat.EnabledCRDs()["myapp"]
 	assert.True(t, crd.Warnings.Contains("worst-case delay"))
 }
 
 func TestValidateRetryBackoff_WorstCaseWithinResyncNoWarning(t *testing.T) {
 	// maxAttempts=3, initial=500ms, multiplier=2 → delays: 500ms+1s = 1.5s < 10m resync
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Resync: dur(10 * time.Minute),
 		Queue: types.Queue{RetryBackoff: &types.RetryBackoffConfig{
 			Initial:     dur(500 * time.Millisecond),
@@ -111,15 +111,15 @@ func TestValidateRetryBackoff_WorstCaseWithinResyncNoWarning(t *testing.T) {
 			MaxAttempts: 3,
 		}},
 	}, &types.OperatorBoxConfig{})
-	assert.NoError(t, k.validateRetryBackoff())
-	crd := k.k.EnabledCRDs()["myapp"]
+	assert.NoError(t, e.validateRetryBackoff())
+	crd := e.cat.EnabledCRDs()["myapp"]
 	assert.False(t, crd.Warnings.Contains("worst-case delay"))
 }
 
 // ── external[].retryBackoff ───────────────────────────────────────────────────
 
 func TestValidateRetryBackoff_ExternalValidShorthand(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Resync: dur(10 * time.Minute),
 	}, &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{
@@ -132,11 +132,11 @@ func TestValidateRetryBackoff_ExternalValidShorthand(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateRetryBackoff())
+	assert.NoError(t, e.validateRetryBackoff())
 }
 
 func TestValidateRetryBackoff_ExternalNegativeMultiplierErrors(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", nil, &types.OperatorBoxConfig{
+	e := catalogWithRetryBackoff("myapp", nil, &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{
 			OnReconcile: &types.HookTemplates{
 				External: []types.ExternalCallSpec{
@@ -147,13 +147,13 @@ func TestValidateRetryBackoff_ExternalNegativeMultiplierErrors(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateRetryBackoff()
+	err := e.validateRetryBackoff()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiplier must be >= 0")
 }
 
 func TestValidateRetryBackoff_ExternalWorstCaseExceedsResyncWarns(t *testing.T) {
-	k := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
+	e := catalogWithRetryBackoff("myapp", &types.ReconcileConfig{
 		Resync: dur(5 * time.Second),
 	}, &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{
@@ -169,7 +169,7 @@ func TestValidateRetryBackoff_ExternalWorstCaseExceedsResyncWarns(t *testing.T) 
 			},
 		},
 	})
-	assert.NoError(t, k.validateRetryBackoff())
-	crd := k.k.EnabledCRDs()["myapp"]
+	assert.NoError(t, e.validateRetryBackoff())
+	crd := e.cat.EnabledCRDs()["myapp"]
 	assert.True(t, crd.Warnings.Contains("worst-case delay"))
 }

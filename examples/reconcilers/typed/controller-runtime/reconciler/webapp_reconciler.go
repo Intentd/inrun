@@ -15,10 +15,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	demov1alpha1 "github.com/inrundev/from-controller-runtime-demo/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/kubeclient/adapter"
+	demov1alpha1 "github.com/intentd/from-controller-runtime-demo/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient/adapter"
 )
 
 // WebAppReconciler is a controller-runtime reconciler, unchanged apart from

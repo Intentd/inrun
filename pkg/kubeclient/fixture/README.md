@@ -8,7 +8,7 @@ constructors — run Go code but were isolated from that context.
 the full per-CR context before the hook or constructor runs:
 
 ```yaml
-hooks:
+reconcile:
   external:
     - name: flags
       url: "{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled"
@@ -16,7 +16,7 @@ hooks:
     featureEnabled: '{{ .external.flags.body }}'
 ```
 
-The hook reads `kube.Args().String("featureEnabled")` — no HTTP client,
+The hook reads `req.Args.String("featureEnabled")` — no HTTP client,
 no flag service SDK, no environment wiring. The Catalog handles the IO.
 
 This fixture composes two self-contained examples showing the same access
@@ -28,7 +28,7 @@ story with the two typed operator patterns:
 | [`02-constructor/`](02-constructor/README.md) | `BlockchainNode` | constructor | constructor checks clock using window from args | constructor calls flag service when in business hours |
 | [`03-hooks-targets/`](03-hooks-targets/README.md) | `BlockchainAppWithTargets` | hooks + per-target operatorBox | same hook binary; `featureEnabled` and gate vary by target surface | no HTTP call — flag value resolved from target args |
 
-**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/inrundev/inrun#getting-started)
+**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/intentd/inrun#getting-started)
 
 ---
 

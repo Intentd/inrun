@@ -190,3 +190,47 @@ spec:
 		t.Errorf("expected error to mention spec.imports, got: %v", err)
 	}
 }
+
+// TestStack_SharedNotesInclude_Reused verifies that two imported Catalogs
+// including the same notes file contribute one function, not a conflict, and
+// that an imported Catalog's notes.include is expanded against its own directory.
+func TestStack_SharedNotesInclude_Reused(t *testing.T) {
+	dir := t.TempDir()
+	writeTempCatalog(t, dir, "functions.yaml", `functions:
+  - name: inBusinessHours
+    expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+`)
+	catalog := func(name, kind string) string {
+		return `apiVersion: inrun.dev/v1
+kind: Catalog
+metadata:
+  name: ` + name + `
+notes:
+  include: functions.yaml
+spec:
+  crds:
+    ` + name + `:
+      apiTypes:
+        kind: ` + kind + `
+        group: example.io
+`
+	}
+	src1 := writeTempCatalog(t, dir, "src1.yaml", catalog("alpha", "Alpha"))
+	src2 := writeTempCatalog(t, dir, "src2.yaml", catalog("beta", "Beta"))
+	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nimports:\n  files:\n    - url: " + src1 + "\n    - url: " + src2 + "\n"
+	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+
+	m := New(stackPath)
+	if err := m.Merge(); err != nil {
+		t.Fatalf("Merge() error: %v", err)
+	}
+	count := 0
+	for _, n := range m.ToNotes().Functions {
+		if n.Name == "inBusinessHours" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("inBusinessHours appears %d times, want exactly 1", count)
+	}
+}

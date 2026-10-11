@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 
-	apiv1 "github.com/inrundev/inrun-hooks-demo/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/cronjobs"
-	"github.com/inrundev/inrun/pkg/resources/services"
-	"github.com/inrundev/inrun/pkg/resources/statefulsets"
-	"github.com/inrundev/inrun/pkg/types"
+	apiv1 "github.com/intentd/inrun-hooks-demo/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/cronjobs"
+	"github.com/intentd/inrun/pkg/resources/services"
+	"github.com/intentd/inrun/pkg/resources/statefulsets"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 const (
@@ -36,10 +36,10 @@ func DatabaseHooks() domain.AnyReconcileHooks {
 
 // onDatabaseReconcile runs on every reconcile cycle for a Database CR.
 // It creates the StatefulSet, Service, and optionally a backup CronJob.
-func onDatabaseReconcile(ctx context.Context, obj *apiv1.Database) error {
+func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Database) (domain.Result, error) {
 	kube, ok := kubeclient.FromContext(ctx)
 	if !ok {
-		return fmt.Errorf("kubeclient not in context")
+		return domain.Result{}, fmt.Errorf("kubeclient not in context")
 	}
 
 	// ── Type-safe access to spec fields ───────────────────────────────────
@@ -75,7 +75,7 @@ func onDatabaseReconcile(ctx context.Context, obj *apiv1.Database) error {
 		nil,
 	)
 	if err := statefulsets.Update(ctx, kube, obj, spec); err != nil {
-		return fmt.Errorf("database statefulSet: %w", err)
+		return domain.Result{}, fmt.Errorf("database statefulSet: %w", err)
 	}
 
 	// ── Create the Service ─────────────────────────────────────────────────
@@ -90,7 +90,7 @@ func onDatabaseReconcile(ctx context.Context, obj *apiv1.Database) error {
 		obj.Name,
 	)
 	if err := services.Update(ctx, kube, obj, svcSpec); err != nil {
-		return fmt.Errorf("database service: %w", err)
+		return domain.Result{}, fmt.Errorf("database service: %w", err)
 	}
 
 	// ── Conditional: backup CronJob ────────────────────────────────────────
@@ -108,22 +108,22 @@ func onDatabaseReconcile(ctx context.Context, obj *apiv1.Database) error {
 			nil,
 		)
 		if err := cronjobs.Update(ctx, kube, obj, cronSpec); err != nil {
-			return fmt.Errorf("database backup cronjob: %w", err)
+			return domain.Result{}, fmt.Errorf("database backup cronjob: %w", err)
 		}
 	}
 
-	return nil
+	return domain.Result{}, nil
 }
 
 // onDatabaseDelete runs when a Database CR is being deleted.
 // Owner references handle StatefulSet, Service, and CronJob cleanup automatically.
 // This hook handles external cleanup — nothing in this example, but the
 // pattern is here for operators that create external resources.
-func onDatabaseDelete(ctx context.Context, obj *apiv1.Database) error {
+func onDatabaseDelete(ctx context.Context, req domain.Request, obj *apiv1.Database) (domain.Result, error) {
 	// For this example the database is purely in-cluster.
 	// In a real external provisioner, you would:
 	//   return externalDB.Delete(ctx, obj.Spec.InstanceID)
-	return nil
+	return domain.Result{}, nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────

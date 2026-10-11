@@ -23,10 +23,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	oidcpkg "github.com/inrundev/inrun/pkg/gateway/oidc"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/catalog"
+	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // Registrar is the subset of health.HealthServer used here.
@@ -42,19 +42,19 @@ type APIServer struct {
 	oidcCache *oidcpkg.Cache
 	kube      kubeclient.Interface
 	clusters  *ClusterRegistry
-	kat       *catalog.Catalog
+	cat       *catalog.Catalog
 	ownNS     string
 }
 
 // NewAPIServer resolves all tokens (bootstrapping/rotating Secrets as
 // needed) and returns a ready-to-register server.
-func NewAPIServer(ctx context.Context, kat *catalog.Catalog, kube kubeclient.Interface, clusters *ClusterRegistry, ownNS string) (*APIServer, error) {
-	if !kat.HasServeEnabled() {
+func NewAPIServer(ctx context.Context, cat *catalog.Catalog, kube kubeclient.Interface, clusters *ClusterRegistry, ownNS string) (*APIServer, error) {
+	if !cat.HasServeEnabled() {
 		return nil, nil // not enabled — caller skips registration
 	}
 
 	cache := oidcpkg.NewCache(oidcpkg.DefaultTTL)
-	tokens, err := LoadTokens(ctx, kat.Gateway.API.Auth.Tokens, kube, ownNS, cache)
+	tokens, err := LoadTokens(ctx, cat.Gateway.API.Auth.Tokens, kube, ownNS, cache)
 	if err != nil {
 		return nil, fmt.Errorf("loading Gateway API tokens: %w", err)
 	}
@@ -64,7 +64,7 @@ func NewAPIServer(ctx context.Context, kat *catalog.Catalog, kube kubeclient.Int
 		oidcCache: cache,
 		kube:      kube,
 		clusters:  clusters,
-		kat:       kat,
+		cat:       cat,
 		ownNS:     ownNS,
 	}, nil
 }
@@ -76,22 +76,11 @@ func (s *APIServer) matches(value string) string {
 	return s.tokens.Matches(value)
 }
 
-// matchesOIDC verifies a JWT bearer against OIDC token entries.
-// Snapshots the token pointer under RLock, then verifies outside the lock
-// so JWKS network calls never block token reloads.
-// Returns the token name and the verified sub claim.
-func (s *APIServer) matchesOIDC(ctx context.Context, bearer string) (name, sub string) {
-	s.mu.RLock()
-	ts := s.tokens
-	s.mu.RUnlock()
-	return ts.MatchesOIDC(ctx, bearer)
-}
-
 // ReloadTokens re-resolves all secretRef tokens (recreating any missing secrets)
 // and atomically replaces the in-memory TokenSet. The OIDC cache is reused —
 // cached JWKS keys persist across reloads.
 func (s *APIServer) ReloadTokens(ctx context.Context) error {
-	ts, err := LoadTokens(ctx, s.kat.Gateway.API.Auth.Tokens, s.kube, s.ownNS, s.oidcCache)
+	ts, err := LoadTokens(ctx, s.cat.Gateway.API.Auth.Tokens, s.kube, s.ownNS, s.oidcCache)
 	if err != nil {
 		return fmt.Errorf("reload Gateway API tokens: %w", err)
 	}
@@ -103,7 +92,7 @@ func (s *APIServer) ReloadTokens(ctx context.Context) error {
 
 // Register wires all Gateway API routes onto the given Registrar.
 func (s *APIServer) Register(reg Registrar) {
-	if !s.kat.HasServeEnabled() {
+	if !s.cat.HasServeEnabled() {
 		return
 	}
 
@@ -115,33 +104,26 @@ func (s *APIServer) Register(reg Registrar) {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			bearer := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 			name := s.matches(bearer)
-			var sub string
-			if name == "" {
-				name, sub = s.matchesOIDC(r.Context(), bearer)
-			}
 			if name == "" {
 				writeJSONError(w, http.StatusUnauthorized, "Unauthorized", "invalid token")
 				return
 			}
 			ctx := contextWithTokenName(r.Context(), name)
-			if sub != "" {
-				ctx = contextWithOIDCSub(ctx, sub)
-			}
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 
 	// POST /api/v1/apply
-	reg.Register("/api/v1/apply", auth(applyHandler(s.kube, s.clusters, s.kat)))
+	reg.Register("/api/v1/apply", auth(applyHandler(s.kube, s.clusters, s.cat)))
 
 	// GET/DELETE /api/v1/resources/...
-	reg.Register("/api/v1/resources/", auth(resourcesHandler(s.kube, s.clusters, s.kat)))
+	reg.Register("/api/v1/resources/", auth(resourcesHandler(s.kube, s.clusters, s.cat)))
 
 	// GET /api/v1/schema/...
-	reg.Register("/api/v1/schema", auth(schemaHandler(s.kat)))
+	reg.Register("/api/v1/schema", auth(schemaHandler(s.cat)))
 
 	// GET /api/v1/raw-schema
-	reg.Register("/api/v1/raw-schema", auth(rawSchemaHandler(s.kube, s.clusters, s.kat)))
+	reg.Register("/api/v1/raw-schema", auth(rawSchemaHandler(s.kube, s.clusters, s.cat)))
 
 	logger.Info().Msg("Gateway API routes registered: /api/v1/apply, /api/v1/resources/, /api/v1/schema, /api/v1/raw-schema")
 }

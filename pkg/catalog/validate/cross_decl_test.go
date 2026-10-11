@@ -3,7 +3,7 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,29 +46,29 @@ func crossBox(decls ...types.CrossCRDDeclaration) *types.OperatorBoxConfig {
 }
 
 func TestValidateCrossDecl_Nil(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(),
 		},
 	})
-	err := k.validateCrossDecl()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_ValidWithCRDOnly(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1"}),
 		},
 		"app1": {},
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_ValidMultipleWithCRDOnly(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": crdForTest(&crdInfo{name: "app", box: crossBox(
 			types.CrossCRDDeclaration{CRD: "app1"},
 			types.CrossCRDDeclaration{CRD: "app2"},
@@ -79,14 +79,14 @@ func TestValidateCrossDecl_ValidMultipleWithCRDOnly(t *testing.T) {
 		)}),
 		"app2": crdForTest(&crdInfo{name: "app2"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_ValidLabelsOnly(t *testing.T) {
 	sel := map[string]string{"test": "hello"}
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{
 				LabelSelector: sel,
@@ -96,14 +96,14 @@ func TestValidateCrossDecl_ValidLabelsOnly(t *testing.T) {
 		"app1": crdForTest(&crdInfo{label: sel}),
 	})
 
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_InvalidLabelsAndCRD(t *testing.T) {
 	sel := map[string]string{"test": "hello"}
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{
 				LabelSelector: sel,
@@ -114,8 +114,8 @@ func TestValidateCrossDecl_InvalidLabelsAndCRD(t *testing.T) {
 		"app1": crdForTest(&crdInfo{label: sel}),
 	})
 
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "only one of 'crd:' or 'labels:' is required.")
 }
@@ -123,7 +123,7 @@ func TestValidateCrossDecl_InvalidLabelsAndCRD(t *testing.T) {
 func TestValidateCrossDecl_InvalidLabelsOnly(t *testing.T) {
 	sel := map[string]string{"test": "hello"}
 	sel2 := map[string]string{"test": "hello2"}
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": crdForTest(&crdInfo{name: "app", box: crossBox(types.CrossCRDDeclaration{
 			LabelSelector: sel,
 			As:            "ap",
@@ -131,61 +131,61 @@ func TestValidateCrossDecl_InvalidLabelsOnly(t *testing.T) {
 		"app2": crdForTest(&crdInfo{label: sel2}),
 	})
 
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "not found in any CRD in the catalog")
 }
 
 func TestValidateCrossDecl_InvalidNoCRDAndLabels(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{As: "no-crd-or-label"}),
 		},
 	})
-	err := k.validateCrossDecl()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "crd or labels required")
 }
 
 func TestValidateCrossDecl_InvalidLabelsNoAs(t *testing.T) {
 	sel := map[string]string{"test": "hello"}
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{LabelSelector: sel}),
 		},
 		"app1": crdForTest(&crdInfo{label: sel}),
 	})
 
-	err := k.validateCrossDecl()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "'as' is required for cross referencing")
 }
 
 func TestValidateCrossDecl_InvalidSelfReferencing(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app"}),
 		},
 	})
-	err := k.validateCrossDecl()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "cross: a CRD cannot reference itself")
 }
 
 func TestValidateCrossDecl_WithInvalidCRDNoSource(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app-unknown"}),
 		},
 	})
-	err := k.validateCrossDecl()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "\"app-unknown\" not found")
 }
 
 func TestValidateCrossDecl_WithValidSource(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{
 				CRD: "app-unknown",
@@ -196,12 +196,12 @@ func TestValidateCrossDecl_WithValidSource(t *testing.T) {
 			}),
 		},
 	})
-	err := k.validateCrossDecl()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_MultipleWithInvalidCRD(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(
 				types.CrossCRDDeclaration{CRD: "app-unknown"},
@@ -211,26 +211,26 @@ func TestValidateCrossDecl_MultipleWithInvalidCRD(t *testing.T) {
 		},
 		"app2": crdForTest(&crdInfo{name: "app2"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "\"app-unknown\" not found")
 }
 
 func TestValidateCrossDecl_ValidWithAs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", As: "ap"}),
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_InvalidAs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(
 				types.CrossCRDDeclaration{CRD: "app1", As: "ap/"},
@@ -240,14 +240,14 @@ func TestValidateCrossDecl_InvalidAs(t *testing.T) {
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 		"app2": crdForTest(&crdInfo{name: "app2"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "invalid 'as' name")
 }
 
 func TestValidateCrossDecl_InvalidDuplicateAs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(
 				types.CrossCRDDeclaration{CRD: "app1", As: "ap"},
@@ -263,13 +263,13 @@ func TestValidateCrossDecl_InvalidDuplicateAs(t *testing.T) {
 			),
 		},
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 }
 
 func TestValidateCrossDecl_ValidProtocols(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app4", Source: &types.CrossSource{
 				Protocol: "info",
@@ -286,13 +286,13 @@ func TestValidateCrossDecl_ValidProtocols(t *testing.T) {
 		},
 		"app4": {},
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_InvalidProtocols(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app4", Source: &types.CrossSource{
 				Protocol: "info",
@@ -305,14 +305,14 @@ func TestValidateCrossDecl_InvalidProtocols(t *testing.T) {
 		"app4": {},
 	})
 
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "invalid ONCOP protocol")
 }
 
 func TestValidateCrossDecl_ValidTokenAuth(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", Source: &types.CrossSource{
 				Auth: &types.Auth{
@@ -322,13 +322,13 @@ func TestValidateCrossDecl_ValidTokenAuth(t *testing.T) {
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_ValidSecretRefAuth(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", Source: &types.CrossSource{
 				Auth: &types.Auth{
@@ -342,13 +342,13 @@ func TestValidateCrossDecl_ValidSecretRefAuth(t *testing.T) {
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 }
 
 func TestValidateCrossDecl_InvalidAuthWithTokenAndSecretRef(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", Source: &types.CrossSource{
 				Auth: &types.Auth{
@@ -363,14 +363,14 @@ func TestValidateCrossDecl_InvalidAuthWithTokenAndSecretRef(t *testing.T) {
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "declared both token and secretRef. Only one is allowed")
 }
 
 func TestValidateCrossDecl_InvalidSecretRefAuthNoName(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", Source: &types.CrossSource{
 				Auth: &types.Auth{
@@ -383,14 +383,14 @@ func TestValidateCrossDecl_InvalidSecretRefAuthNoName(t *testing.T) {
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "name is required for secretRef")
 }
 
 func TestValidateCrossDecl_InvalidSecretRefAuthNoKey(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", Source: &types.CrossSource{
 				Auth: &types.Auth{
@@ -403,14 +403,14 @@ func TestValidateCrossDecl_InvalidSecretRefAuthNoKey(t *testing.T) {
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "key is required for secretRef")
 }
 
 func TestValidateCrossDecl_WarnAuthWithSecretRefNoNamespace(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: crossBox(types.CrossCRDDeclaration{CRD: "app1", Source: &types.CrossSource{
 				Auth: &types.Auth{
@@ -423,11 +423,11 @@ func TestValidateCrossDecl_WarnAuthWithSecretRefNoNamespace(t *testing.T) {
 		},
 		"app1": crdForTest(&crdInfo{name: "app1"}),
 	})
-	k.k.BuildLookupIndexes()
-	err := k.validateCrossDecl()
+	e.cat.BuildLookupIndexes()
+	err := e.validateCrossDecl()
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	if !entry.Warnings.HasWarnings() {
 		t.Fatalf("expected crd to have warning")
 	}

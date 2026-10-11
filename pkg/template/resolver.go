@@ -8,9 +8,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/note"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Resolver evaluates Go text/template expressions against a live CR object.

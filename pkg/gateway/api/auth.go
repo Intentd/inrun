@@ -27,12 +27,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	oidcpkg "github.com/inrundev/inrun/pkg/gateway/oidc"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/secrets"
-	"github.com/inrundev/inrun/pkg/types"
+	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/secrets"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // TokenSet holds resolved static bearer tokens and OIDC token configurations.
@@ -238,29 +238,15 @@ func AuthMiddleware(ts *TokenSet, next http.Handler) http.Handler {
 
 type contextKey string
 
-const (
-	tokenNameKey contextKey = "api-token-name"
-	oidcSubKey   contextKey = "api-oidc-sub"
-)
+const tokenNameKey contextKey = "api-token-name"
 
 func contextWithTokenName(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, tokenNameKey, name)
-}
-
-func contextWithOIDCSub(ctx context.Context, sub string) context.Context {
-	return context.WithValue(ctx, oidcSubKey, sub)
 }
 
 // TokenNameFromContext returns the authenticated token name from the context.
 // Empty string when the request was not authenticated (should not happen past middleware).
 func TokenNameFromContext(ctx context.Context) string {
 	v, _ := ctx.Value(tokenNameKey).(string)
-	return v
-}
-
-// OIDCSubFromContext returns the verified OIDC sub claim from the context.
-// Empty string when authentication was via a static token (no OIDC sub available).
-func OIDCSubFromContext(ctx context.Context) string {
-	v, _ := ctx.Value(oidcSubKey).(string)
 	return v
 }

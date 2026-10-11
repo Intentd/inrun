@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/tools/generate"
+	"github.com/intentd/inrun/pkg/tools/generate"
 )
 
 // scaffold is a test helper that calls CatalogScaffold with OutputFile set to

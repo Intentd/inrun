@@ -9,10 +9,10 @@ package informer
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
-	"github.com/inrundev/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/runtime/sentinel"
 )
 
 // ComputeSentinelsOptions provides sentinel declarations for event evaluation.
@@ -150,6 +150,12 @@ func (f *Factory) allowEnqueue(
 	}
 
 	if f.catalog == nil {
+		return true
+	}
+
+	// A CR being deleted always gets through: its finalizing reconcile is what
+	// releases Inrun's finalizer, so no condition may hold it back.
+	if domObj.GetDeletionTimestamp() != nil {
 		return true
 	}
 

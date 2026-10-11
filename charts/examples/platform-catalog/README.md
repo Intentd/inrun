@@ -16,7 +16,7 @@ operator. A Stack pulls it in through `sources.helm`.
 ```yaml
 sources:
   helm:
-    - repo: https://github.com/inrundev/inrun.git
+    - repo: https://github.com/intentd/inrun.git
       path: charts/examples/platform-catalog
       chart: platform-catalog
       version: main

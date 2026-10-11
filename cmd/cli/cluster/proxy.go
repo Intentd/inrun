@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/tools/proxy"
+	"github.com/intentd/inrun/pkg/tools/proxy"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -172,11 +172,11 @@ func proxyComponentsFromFor(cmd *cobra.Command) (proxyIncludes, error) {
 }
 
 // buildProxyClient constructs a REST config and typed clientset from the active
-// kubeconfig. Respects the --kubeconfig flag (via kfg) and an explicit context override.
+// kubeconfig. Respects the --kubeconfig flag (via cfg) and an explicit context override.
 func buildProxyClient(kubeContext string) (*rest.Config, kubernetes.Interface, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	if cmdutil.Kfg != nil && cmdutil.Kfg.Cluster().KubeconfigPath() != "" {
-		loadingRules.ExplicitPath = cmdutil.Kfg.Cluster().KubeconfigPath()
+	if cmdutil.Cfg != nil && cmdutil.Cfg.Cluster().KubeconfigPath() != "" {
+		loadingRules.ExplicitPath = cmdutil.Cfg.Cluster().KubeconfigPath()
 	}
 	overrides := &clientcmd.ConfigOverrides{}
 	if kubeContext != "" {

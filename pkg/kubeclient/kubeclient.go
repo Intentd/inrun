@@ -7,10 +7,10 @@ import (
 	"sync/atomic"
 
 	"errors"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/utils"
 	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,13 +40,6 @@ type Kubeclient struct {
 	// Starter config
 	config *config.Config
 	scheme *runtime.Scheme
-
-	// rawArgs holds the template declarations from hooks.args or constructor.args.
-	// String values may contain {{ }} expressions resolved per-CR by ScopedFor.
-	rawArgs map[string]interface{}
-	// args holds the fully-evaluated args for the current reconcile scope.
-	// Set by ScopedFor; nil means fall back to rawArgs as-is.
-	args Args
 
 	// informer is the primary CRD's SharedIndexInformer, injected by the runtime
 	// before the constructor is called. Accessible via GetInformer().
@@ -90,7 +83,7 @@ var _ domain.Component = (*Kubeclient)(nil)
 // Entry point
 // -----------------------------------------------------------------------------
 // NewKubeclient returns a new Kubeclient with the correct scheme
-func NewKubeclient(kfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
+func NewKubeclient(cfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 	if scheme == nil {
 		utils.Exit(errors.New("scheme cannot be nil"))
 	}
@@ -98,7 +91,7 @@ func NewKubeclient(kfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 	return &Kubeclient{
 		name:    "kubeclient",
 		scheme:  scheme,
-		config:  kfg,
+		config:  cfg,
 		started: new(atomic.Bool),
 	}
 }
@@ -222,41 +215,6 @@ func (k *Kubeclient) ApiextensionsClient() apiextclientset.Interface { return k.
 // New fake client
 func NewFakeClientset() kubernetes.Interface {
 	return fake.NewClientset()
-}
-
-// Args returns the resolved args for the current reconcile scope.
-// If ScopedFor has been called, returns the per-CR evaluated args.
-// Otherwise returns the raw (unevaluated) args from the Catalog declaration.
-func (k *Kubeclient) Args() Args {
-	if k.args != nil {
-		return k.args
-	}
-	if k.rawArgs != nil {
-		return Args(k.rawArgs)
-	}
-	return Args{}
-}
-
-// WithArgs returns a shallow copy of the Kubeclient with the given args stored
-// as rawArgs. Used by the runtime to attach catalog-declared args before a hook
-// or constructor is called; ScopedFor then evaluates templates at reconcile time.
-func (k *Kubeclient) WithArgs(args Args) Interface {
-	cp := *k
-	cp.rawArgs = map[string]interface{}(args)
-	cp.args = nil
-	return &cp
-}
-
-// ScopedFor evaluates template expressions in rawArgs using eval and returns a
-// copy with the resolved args attached. Called by generic.Reconciler after building
-// the per-CR resolver so hook authors see evaluated args automatically.
-func (k *Kubeclient) ScopedFor(eval func(string) (string, bool)) Interface {
-	cp := *k
-	if len(k.rawArgs) == 0 {
-		return &cp
-	}
-	cp.args = Args(utils.ResolveArgsMap(k.rawArgs, eval))
-	return &cp
 }
 
 // WithInformer returns a copy of this Interface with the primary CRD informer

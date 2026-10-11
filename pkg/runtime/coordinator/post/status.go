@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -79,9 +79,9 @@ func applyStatus(
 		}
 	}
 
-	// Layer 3: reconciler-provided status patch (e.g. from RemoteReconciler).
-	// Applied after emit.status so remote fields win on key conflict.
-	for k, v := range in.StatusPatch {
+	// Layer 3: the reconciler's Result.Status.
+	// Applied after emit.status so the reconciler's fields win on key conflict.
+	for k, v := range in.Status {
 		patch[k] = v
 	}
 

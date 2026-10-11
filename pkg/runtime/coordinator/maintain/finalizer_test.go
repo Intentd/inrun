@@ -1,10 +1,19 @@
-package maintain_test
+package maintain
 
 import (
+	"context"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func makeObj(finalizers ...string) *unstructured.Unstructured {
@@ -125,4 +134,65 @@ func TestRemoveFinalizer_OnlyTargetRemoved(t *testing.T) {
 			t.Error("b must be removed")
 		}
 	}
+}
+
+// ── Finalize and ensureFinalizers ─────────────────────────────────────────────
+
+// patchRecorder records PatchFinalizers calls; nothing else is used.
+type patchRecorder struct {
+	kubeclient.Interface
+	calls int
+	got   []string
+	err   error
+}
+
+func (p *patchRecorder) PatchFinalizers(_ context.Context, _ runtime.Object, f []string, _ metav1.PatchOptions) error {
+	p.calls++
+	p.got = f
+	return p.err
+}
+
+func cleanupBox() types.OperatorBoxConfig {
+	return types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{Finalizers: &types.FinalizerConfig{
+		Names: []string{labels.CleanupFinalizer},
+	}}}
+}
+
+func TestFinalize_RemovesOnlyInrunsFinalizers(t *testing.T) {
+	obj := &unstructured.Unstructured{}
+	obj.SetFinalizers([]string{labels.CleanupFinalizer, "other.io/finalizer"})
+	kube := &patchRecorder{}
+
+	require.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
+	assert.Equal(t, 1, kube.calls)
+	assert.Equal(t, []string{"other.io/finalizer"}, kube.got)
+}
+
+func TestFinalize_NoPatchWithoutInrunsFinalizer(t *testing.T) {
+	obj := &unstructured.Unstructured{}
+	obj.SetFinalizers([]string{"other.io/finalizer"})
+	kube := &patchRecorder{}
+
+	require.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
+	assert.Zero(t, kube.calls)
+}
+
+func TestEnsureFinalizers_SkipsObjectBeingDeleted(t *testing.T) {
+	obj := &unstructured.Unstructured{}
+	now := metav1.Now()
+	obj.SetDeletionTimestamp(&now)
+	obj.SetFinalizers([]string{"other.io/finalizer"})
+	kube := &patchRecorder{}
+
+	require.NoError(t, ensureFinalizers(context.Background(), Input{Kube: kube}, obj, cleanupBox()))
+	assert.Zero(t, kube.calls, "the API server refuses new finalizers on a deleting object")
+}
+
+func TestFinalize_AlreadyGoneIsDone(t *testing.T) {
+	obj := &unstructured.Unstructured{}
+	obj.SetName("gone")
+	obj.SetFinalizers([]string{labels.CleanupFinalizer})
+	kube := &patchRecorder{err: apierrors.NewNotFound(schema.GroupResource{Resource: "webapps"}, "gone")}
+
+	assert.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
 }

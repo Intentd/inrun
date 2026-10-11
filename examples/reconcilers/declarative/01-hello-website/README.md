@@ -15,7 +15,14 @@ inrun validate
 inrun
 ```
 
-### 3. Check the status
+### 3. Open the console
+
+`inrun` started it next to the runtime. Open
+[localhost:8081](http://localhost:8081) and log in with `inrun` / `inrun` to
+see the live operator: CRD health, worker state, reconcile metrics, and the
+`hello-website` CR with its Deployment and Service.
+
+### 4. Check the status
 
 In a second terminal.
 
@@ -23,27 +30,27 @@ In a second terminal.
 kubectl get website hello-website -o jsonpath='{.status}'; echo
 ```
 
-### 4. Delete the Deployment
+### 5. Delete the Deployment
 
-It comes back on the next reconcile.
+It comes back on the next reconcile; the console shows the reconcile.
 
 ```bash
 kubectl delete deployment hello-website
 ```
 
-### 5. Scale through the CR
+### 6. Scale through the CR
 
 ```bash
 kubectl patch website hello-website --type=merge -p '{"spec":{"replicas":2}}'
 ```
 
-### 6. Clean up
+### 7. Clean up
 
 ```bash
 chmod +x cleanup.sh && ./cleanup.sh
 ```
 
-### 7. E2E
+### 8. E2E
 
 Runs the same checks in a kind cluster.
 

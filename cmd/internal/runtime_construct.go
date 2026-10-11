@@ -12,37 +12,37 @@ import (
 	"context"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/health"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/process"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/runtime/informer"
-	"github.com/inrundev/inrun/pkg/runtime/informer/observe"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/generic"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/mux"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/remote"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/health"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/process"
+	"github.com/intentd/inrun/pkg/runtime/coordinator"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/inrun/pkg/runtime/informer/observe"
+	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/mux"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/client-go/tools/cache"
 )
 
-// runtimeKfg is the assembled runtime — returned to runtime.go so it can call
+// runtimeConfig is the assembled runtime — returned to runtime.go so it can call
 // inrun.Start(ctx) and block until shutdown.
-type runtimeKfg struct {
+type runtimeConfig struct {
 	config  *config.Config
 	catalog *catalog.Catalog
 	komp    *[]domain.Component
 	event   *event.Event
 	kube    *kubeclient.Kubeclient
-	kord    *coordinator.DependencyCoordinator
+	cord    *coordinator.DependencyCoordinator
 	inrun   *process.Manager
 }
 
@@ -55,20 +55,20 @@ type runtimeKfg struct {
 // The method is intentionally long — this is the one place where all wiring
 // is visible. Splitting it would scatter the dependency graph across files
 // and make it harder to reason about startup order.
-func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context) *runtimeKfg {
+func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context) *runtimeConfig {
 
-	inrunNamespace := kfg.Cluster().Namespace()
+	inrunNamespace := cfg.Cluster().Namespace()
 
 	// ── 1a. Instance ────────────────────────────────────────────────────────────
-	kfg.SetInstance(config.Runtime())
+	cfg.SetInstance(config.Runtime())
 
 	// ── 1b. Catalog ────────────────────────────────────────────────────────────
-	// Loads and validates the YAML Catalog. After this point, kat.Enabled()
+	// Loads and validates the YAML Catalog. After this point, cat.Enabled()
 	// returns only CRDs that passed schema validation and are not disabled.
 	// Invalid CRDs are logged and excluded — they do not block the operator.
-	kat := pipeline.NewCatalog(kfg, m)
+	cat := pipeline.NewCatalog(cfg, m)
 
-	if registryURL := kfg.RegistryConfig().RegistryURL; registryURL != "" {
+	if registryURL := cfg.RegistryConfig().RegistryURL; registryURL != "" {
 		m.SetRegistryURL(registryURL)
 		logger.Info().Str("registry", registryURL).Msg("registry URL configured from INRUN_REGISTRY")
 	}
@@ -77,7 +77,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 	// Each CRD type (e.g. *PipelineList) must be registered with the scheme so
 	// the REST client knows how to decode API server responses. For dynamic CRDs
 	// (unstructured mode), this is a no-op — they use the dynamic client.
-	scheme, err := catalog.NewSchemeRegistry(kat)
+	scheme, err := catalog.NewSchemeRegistry(cat)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to build scheme registry")
 	}
@@ -85,7 +85,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 	// ── 3. Core components ────────────────────────────────────────────────────
 	// Created here, started later by inrun in registration order.
 
-	kube := kubeclient.NewKubeclient(kfg, scheme)
+	kube := kubeclient.NewKubeclient(cfg, scheme)
 
 	// kubeclient is started immediately — the informer factory's missing-CRD
 	// check needs the REST config during construction, before inrun.Start().
@@ -98,7 +98,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 
 	// HealthServer — HTTP-only (health, readiness, metrics, Catalog API routes).
 	// Routes registered below before Start() binds the port.
-	hs := health.NewHealthServer(kfg)
+	hs := health.NewHealthServer(cfg)
 
 	// Event recorder — surfaces notable state changes to the Kubernetes event stream
 	// (visible via kubectl describe). Shared by all controllers that emit events.
@@ -118,7 +118,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 	// Dynamic CRDs skip this — they use the dynamic client directly.
 	provider := kube.NewClientProvider()
 
-	for _, crd := range kat.Enabled() {
+	for _, crd := range cat.Enabled() {
 		crd := crd
 		if crd.IsDynamic() {
 			continue
@@ -149,32 +149,31 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 		Provider:      provider,
 		Scheme:        scheme,
 		DefaultWq:     defaultWq,
-		Config:        kfg,
-		Catalog:       kat,
+		Config:        cfg,
+		Catalog:       cat,
 		ClientSet:     cs,
 		QueueRegistry: queueRegistry,
 	})
 
 	// ── 4d. Coordinator registry + per-CRD wiring ──────────────────────────────
-	// ktrlRegistry maps GVK → (CRDEntry, SharedIndexInformer, ReconcilerFactory).
+	// controllerRegistry maps GVK → (CRDEntry, SharedIndexInformer, ReconcilerFactory).
 	// It also implements reconciler.CatalogRegistry via GetInformerByName,
 	// enabling cross-CRD observation with zero API server calls.
-	ktrlRegistry := coordinator.NewCoordinatorRegistry()
+	controllerRegistry := coordinator.NewCoordinatorRegistry()
 
 	// ── 4e. CRD health map ────────────────────────────────────────────────────
 	// One CRDHealth per CRD — shared between the DependencyCoordinator
 	// (which updates it on each reconcile) and the HTTP health routes
 	// (which read it on each request). All three reference the same pointers.
 	crdHealthMap := make(map[string]*vitals.CRDHealth)
-	for _, crd := range kat.Enabled() {
+	for _, crd := range cat.Enabled() {
 		gvk := crd.GVKString()
 		crdHealthMap[gvk] = vitals.NewCRDHealth(crd.Name)
 	}
 
 	logger.Debug().Msg("wiring CRDs into coordinator registry...")
 
-	finalizers := kfg.Finalizers()
-	for _, crd := range kat.Enabled() {
+	for _, crd := range cat.Enabled() {
 		crd := crd
 		gvk := crd.GVKString()
 		object, _ := crd.GetRuntimeObjects()
@@ -255,8 +254,6 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 			inf = infFactory.For(object, ctx, opts)
 		}
 
-		finalizers = append(finalizers, crd.Box().EffectiveFinalizers()...)
-
 		infCopy := inf
 
 		// Build the reconciler factory.
@@ -278,31 +275,27 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 
 			logger.Debug().Str("gvk", gvk).Msg("wiring generic.Reconciler factory")
 
-			// Attach hooks.args to a copy of the kube client; hooks read them via kube.Args().
+			// Hooks read reconcile.args with req.Args(), like every reconciler.
 			var hookKube kubeclient.Interface = kube.
 				WithForceConflict(crd.ResolveForceConflict())
-			if args := crd.HooksArgs(); len(args) > 0 {
-				hookKube = kube.WithArgs(kubeclient.Args(args))
-			}
 
 			factory = func() domain.Reconciler {
 				return generic.New(
 					crd,
 					infCopy,
-					ev,
 					hookKube,
 					anyHooks,
 					func() domain.Object {
 						return objCopy.DeepCopyObject().(domain.Object)
 					},
-					kat,
+					cat,
 				)
 			}
 		} else if crd.WithRemoteDecl() {
 			logger.Debug().Str("gvk", gvk).Msg("wiring RemoteReconciler factory")
 
 			remoteDecl := crd.Box().Reconcile.Remote
-			crdManagedResources := crd.RemoteManagedResources()
+			crdManagedResources := crd.ManagedResources()
 			remoteKube := kube.WithStoreFor(infFactory.StoreFor)
 			factory = func() domain.Reconciler {
 				r, err := remote.New(remoteDecl, crd.GVK(), remoteKube, ev, crdManagedResources, inrunNamespace)
@@ -320,17 +313,15 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 
 			logger.Debug().Str("gvk", gvk).Msg("wiring custom reconciler factory")
 
-			// Attach constructor.args, informer, and event recorder to a copy of the
-			// kube client. Constructor authors access them via kube.GetInformer() etc.
+			// Attach the informer and event recorder to a copy of the kube client.
+			// Constructor authors access them via kube.GetInformer() etc.; args
+			// arrive on each request: req.Args().
 			var ctorKube kubeclient.Interface = kube.
 				WithInformer(infCopy).
 				WithEventRecorder(ev).
 				WithStoreFor(infFactory.StoreFor).
 				WithIndexerFor(infFactory.IndexerFor).
 				WithForceConflict(crd.ResolveForceConflict())
-			if args := crd.ConstructorArgs(); len(args) > 0 {
-				ctorKube = ctorKube.WithArgs(kubeclient.Args(args))
-			}
 
 			factory = func() domain.Reconciler {
 				return crd.Box().Reconcile.Constructor(ctorKube)
@@ -355,13 +346,10 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 						WithStoreFor(infFactory.StoreFor).
 						WithIndexerFor(infFactory.IndexerFor).
 						WithForceConflict(crdCopy.ResolveForceConflict())
-					if args := crdCopy.TargetConstructorArgs(targetName); len(args) > 0 {
-						targetKube = targetKube.WithArgs(kubeclient.Args(args))
-					}
 					targets[targetName] = ctor(targetKube)
 				}
 				for targetName, remoteDecl := range remoteDecls {
-					r, err := remote.New(remoteDecl, crdCopy.GVK(), kube.WithStoreFor(infFactory.StoreFor), ev, crdCopy.RemoteManagedResources(), inrunNamespace)
+					r, err := remote.New(remoteDecl, crdCopy.GVK(), kube.WithStoreFor(infFactory.StoreFor), ev, crdCopy.ManagedResources(), inrunNamespace)
 					if err != nil {
 						logger.Fatal().Err(err).Str("gvk", gvk).Str("target", targetName).Msg("failed to build remote reconciler")
 					}
@@ -378,7 +366,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 
 		// Register informs the DependencyCoordinator which informer and factory
 		// belong to this CRD. Workers are not started yet — that happens in Start().
-		ktrlRegistry.Register(gvk, crd, inf, factory)
+		controllerRegistry.Register(gvk, crd, inf, factory)
 		logger.Debug().Str("gvk", gvk).Msg("CRD registered")
 	}
 
@@ -386,26 +374,26 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 	// All routes registered before hs.Start() — the mux is shared.
 	//
 	// Per-CRD routes:
-	//   /catalog/{crd}/health       		→ 200 healthy, 503 degraded
-	//   /catalog/{crd}              		→ CRD config + live reconcile stats
-	//	 /catalog/{crd}/raw			 		→ the user's config
-	//   /catalog/{crd}/enriched	 		→ the runtime config
-	//   /catalog/{crd}/cr           		→ all CR instances (informer cache, <1ms)
-	//   /catalog/{crd}/cr/{ns}/{n}  		→ CR detail + children (watch cache, <50ms)
-	//   /catalog/{crd}/cr/{...}/events 	→ recent events (watch cache, <50ms)
+	//   /catalog/{crd}/health                 200 healthy, 503 degraded
+	//   /catalog/{crd}                        CRD config and live reconcile stats
+	//   /catalog/{crd}/raw                    the user's config
+	//   /catalog/{crd}/enriched               the runtime config
+	//   /catalog/{crd}/cr                     all CR instances (informer cache)
+	//   /catalog/{crd}/cr/{ns}/{name}         CR detail and children
+	//   /catalog/{crd}/cr/{ns}/{name}/events  recent events
 	//
 	// Aggregate:
-	//	 /catalog/raw				 		→ the user's catalog config
-	//	 /catalog/enriched				 	→ the runtime catalog config
-	//   /catalog                    		→ all CRDs, dependency graph, health summary
+	//   /catalog/raw                          the user's Catalog
+	//   /catalog/enriched                     the runtime Catalog
+	//   /catalog                              all CRDs, dependency graph, health summary
 	inrunHealth := vitals.NewRuntimeHealth()
 
-	for _, crd := range kat.Enabled() {
+	for _, crd := range cat.Enabled() {
 		gvk := crd.GVKString()
 		crdHealth := crdHealthMap[gvk]
 		crdName := strings.ToLower(crd.Name)
 
-		entry, _ := ktrlRegistry.Get(gvk)
+		entry, _ := controllerRegistry.Get(gvk)
 		inf := entry.Informer
 
 		if !crd.IsEnabledAllEndpoints() {
@@ -415,7 +403,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 		if crd.IsHealthEnabled() {
 			hs.Register(
 				"/catalog/"+crdName+"/health",
-				vitals.BuildCRDHealthHandler(crd, kfg, inf, crdHealth, inrunHealth),
+				vitals.BuildCRDHealthHandler(crd, cfg, inf, crdHealth, inrunHealth),
 			)
 		}
 
@@ -423,7 +411,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 			hs.Register(
 				"/catalog/"+crdName,
 				vitals.BuildCRDInfoHandler(
-					crd, kfg, inf, crdHealth,
+					crd, cat.RBACRulesForCRD(crd), cfg, inf, crdHealth,
 					inrunHealth,
 				),
 			)
@@ -444,7 +432,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 		)
 		hs.Register(
 			"/catalog/"+crdName+"/enriched",
-			vitals.BuildCRDEnrichedHandler(kat, crd.Name),
+			vitals.BuildCRDEnrichedHandler(cat, crd.Name),
 		)
 
 		logger.Debug().
@@ -456,8 +444,8 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 	}
 
 	hs.Register("/catalog/raw", vitals.BuildRawCatalogHandler(m))
-	hs.Register("/catalog/enriched", vitals.BuildEnrichedCatalogHandler(kat))
-	hs.Register("/catalog", vitals.BuildCatalogHandler(kat, kfg, ktrlRegistry, crdHealthMap, inrunHealth))
+	hs.Register("/catalog/enriched", vitals.BuildEnrichedCatalogHandler(cat))
+	hs.Register("/catalog", vitals.BuildCatalogHandler(cat, cfg, controllerRegistry, crdHealthMap, inrunHealth))
 
 	// ── 6a. Secondary resource observers ────────────────────────────
 	// Observe secondary resources declared in operatorBox.observe.watch/events.
@@ -465,7 +453,7 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 		Kube:          kube,
 		Informer:      infFactory,
 		QueueRegistry: queueRegistry,
-		Catalog:       kat,
+		Catalog:       cat,
 	})
 
 	// ── 6b. Dependency coordinator ──────────────────────────────────────────────
@@ -476,21 +464,21 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 	// Worker lifecycle:
 	//   Start()  → wait for informer sync → call factory() per worker → run loop
 	//   Shutdown → drain queue → stop workers → remove from active set
-	kord := coordinator.NewDependencyCoordinator(
+	coord := coordinator.NewDependencyCoordinator(
 		kube,
 		infFactory,
 		obs,
-		ktrlRegistry,
-		kat,
+		controllerRegistry,
+		cat,
 		ev,
 		hs,
 		queueRegistry,
 		defaultWq,
 		crdHealthMap,
 		inrunHealth,
-		kfg.Catalog().DefaultWorkers(),
-		catalog.NewDependencyGraph(kat),
-		kfg.Catalog().ShutdownTimeout(),
+		cfg.Catalog().DefaultWorkers(),
+		catalog.NewDependencyGraph(cat),
+		cfg.Catalog().ShutdownTimeout(),
 	)
 
 	// ── 7. Component list ─────────────────────────────────────────────────────
@@ -507,31 +495,27 @@ func constructRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context)
 		queueRegistry, // 4. per-CRD bounded queues
 		defaultWq,     // 5. default unbounded queue
 		infFactory,    // 6. informer factory — starts watchers, closes ready channel
-		kord,          // 7. dependency coordinator — starts workers in topo order
+		coord,         // 7. dependency coordinator — starts workers in topo order
 	}
-
-	// suppress unused variable warning — finalizers is populated but only
-	// referenced by the reconciler closures captured above.
-	_ = finalizers
 
 	// ── 8. Inrun ───────────────────────────────────────────────────────────
 	// The supervisor. Calls Start() on each component in order.
 	// On OS signal (SIGTERM/SIGINT) or fatal error, calls Stop() in reverse.
 	// Graceful shutdown: drains queues before stopping workers.
 	o := process.New(
-		kfg.RunningInstance(),
-		kfg.Catalog().ShutdownGracePeriod(),
-		kfg.Inrun().LogLevel(),
+		cfg.RunningInstance(),
+		cfg.Catalog().ShutdownGracePeriod(),
+		cfg.Inrun().LogLevel(),
 	)
 	o.Register(components)
 
-	return &runtimeKfg{
-		config:  kfg,
-		catalog: kat,
+	return &runtimeConfig{
+		config:  cfg,
+		catalog: cat,
 		komp:    &components,
 		event:   ev,
 		kube:    kube,
-		kord:    kord,
+		cord:    coord,
 		inrun:   o,
 	}
 }

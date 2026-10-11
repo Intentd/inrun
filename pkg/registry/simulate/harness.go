@@ -8,15 +8,16 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/generic"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/runtime/coordinator"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -78,11 +79,11 @@ type RunOptions struct {
 
 // Run simulates the operator against an in-memory cluster.
 //
-// kat is the parsed Catalog.
+// cat is the parsed Catalog.
 // crdName is the CRD entry to simulate.
 // cr is the CR to reconcile.
 // maxCycles is the maximum number of reconcile cycles.
-func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstructured.Unstructured, maxCycles int, opts RunOptions) (*Result, error) {
+func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstructured.Unstructured, maxCycles int, opts RunOptions) (*Result, error) {
 	// Silence the reconciler's JSON logs — simulation output is structured by the caller.
 	prev := log.Logger
 	log.Logger = log.Output(io.Discard)
@@ -97,9 +98,14 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 		defer func() { external.HTTPTransport = prevTransport }()
 	}
 
-	crdEntry, ok := kat.CRDEntry(crdName)
+	crdEntry, ok := cat.CRDEntry(crdName)
 	if !ok {
 		return nil, fmt.Errorf("CRD %q not found in Catalog", crdName)
+	}
+	if opts.Target != "" {
+		// As if created through that target, so the reconcile resolves it.
+		cr = cr.DeepCopy()
+		intent.SetTarget(cr, opts.Target)
 	}
 	// Strip cross-namespace copy resources (fromNamespace / toNamespaces) from
 	// all hook phases before the fake reconciler runs. These require a live API
@@ -132,7 +138,7 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 	effectiveCRDEntry := crdEntry
 	effectiveCRDEntry.OperatorBox = &boxCopy
 
-	scheme, err := kat.Scheme()
+	scheme, err := cat.Scheme()
 	if err != nil {
 		return nil, fmt.Errorf("building scheme: %w", err)
 	}
@@ -166,7 +172,7 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 
 	// Pre-seed managed labels/annotations so the reconciler's idempotency
 	// guards skip those patches on every cycle.
-	seedManagedMeta(cr, kat.Metadata().Name)
+	seedManagedMeta(cr, cat.Metadata().Name)
 
 	// For typed CRDs, the indexer must hold the concrete Go type — not
 	// *unstructured.Unstructured — so that constructor type-assertions
@@ -211,11 +217,11 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 	// Each peer CR is seeded into its own static indexer and wrapped in a
 	// fakeInformer; the registry maps CRD name → informer for readCross().
 	peerRegistry := coordinator.NewCoordinatorRegistry()
-	for _, peerName := range kat.CRDNames() {
+	for _, peerName := range cat.CRDNames() {
 		if peerName == crdEntry.Name {
 			continue
 		}
-		peerEntry, ok := kat.CRDEntry(peerName)
+		peerEntry, ok := cat.CRDEntry(peerName)
 		if !ok {
 			continue
 		}
@@ -251,11 +257,10 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 		r = generic.New(
 			effectiveCRDEntry,
 			informer,
-			nil,
 			fakeKube,
 			hookBinder,
 			newObjFn,
-			kat,
+			cat,
 		)
 	}
 
@@ -264,7 +269,7 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 		return nil, err
 	}
 
-	r = wrapWithGate(r, boxCopy.PreReconcile, kat.Notes, getFromIndexerOrFallback(indexer, key, cr))
+	r = wrapWithGate(r, boxCopy.PreReconcile, cat.Notes, getFromIndexerOrFallback(indexer, key, cr))
 
 	prepInput := prepare.Input{
 		Entry: contract.RegistryEntry{
@@ -272,7 +277,7 @@ func Run(ctx context.Context, kat *catalog.Catalog, crdName string, cr *unstruct
 			Informer: informer,
 		},
 		Key:      key,
-		Kat:      kat,
+		Cat:      cat,
 		Kube:     fakeKube,
 		Registry: peerRegistry,
 	}

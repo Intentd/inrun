@@ -25,6 +25,9 @@ const (
 	// label can be removed even if strictMode is enabled.
 	StrictModeExemptKey   = "inrun.dev/strict-mode-exempt"
 	StrictModeExemptValue = "true"
+
+	// ReservedDomain is the label and annotation domain kept for the runtime.
+	ReservedDomain = "inrun.dev"
 )
 
 // WithDeletionProtection returns a copy of m with the deletion‑protection label
@@ -111,6 +114,11 @@ const (
 	// reconcile loops to determine whether a resource should be updated or deleted.
 	InrunOwner = "inrun-owner"
 
+	// OwnerUID holds the UID of the CR a reconciler's Result applied a child
+	// for. Unlike InrunOwner it is unique across kinds and namespaces, so
+	// pruning can tell this CR's children from another's with the same name.
+	OwnerUID = "inrun.dev/owner-uid"
+
 	// InrunServeTarget records the effective serve surface (alias → target)
 	// that was active when a child resource was created. Used to detect orphaned
 	// resources after a surface switch and clean them up on the next reconcile.
@@ -133,10 +141,9 @@ const (
 	// ────────────────────────────────────────────────────────────────────────────────
 	//
 
-	// FinalizerInrun ensures cleanup runs before a CR is removed.
-	FinalizerInrun = "inrun.dev/finalizer"
-
-	// CleanupFinalizer ensures cluster-scoped GC runs before a CR is removed.
+	// CleanupFinalizer is on every CR Inrun manages. It holds a deleted CR
+	// until a finalizing reconcile returns without a requeue, so reconcilers
+	// can clean up first (including cluster-scoped children).
 	CleanupFinalizer = "inrun.dev/cleanup"
 
 	//
@@ -157,7 +164,7 @@ const (
 	//
 	// Written by the gateway on every CR it produces. Callers never set these —
 	// the gateway owns them. All three are read by the provenance notes
-	// (getServeTarget, getServeAlias, getServeSource) exposed via the FuncMap.
+	// (getServeTarget, getServeAlias) exposed via the FuncMap.
 
 	// AnnotationServeTarget records the serve target used by the caller.
 	// Example: "smartapp"
@@ -168,11 +175,6 @@ const (
 	// Empty when the primary target was used directly.
 	// Example: "public", "internal", "v2"
 	AnnotationServeAlias = "inrun.dev/serve-alias"
-
-	// AnnotationServeSource identifies the delivery mechanism.
-	// Empty for direct Gateway API calls. Set by webhook handlers.
-	// Values: "github", "gitlab", "slack", "pagerduty", "generic"
-	AnnotationServeSource = "inrun.dev/serve-source"
 
 	// AnnotationServeIntent stores the raw intent payload submitted by the caller
 	// as a JSON-encoded string. Injected by the Gateway API in target mode so the

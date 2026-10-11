@@ -19,11 +19,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	pkgregistry "github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	pkgregistry "github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"

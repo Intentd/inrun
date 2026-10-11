@@ -9,7 +9,7 @@ metadata:
     or Prometheus ServiceMonitor (monitoring) based on spec.workloadType.
     The preview alias creates a lightweight ephemeral Application variant
     instead of the full production one.
-  author: inrundev
+  author: intentd
   tags:
     - argocd
     - cert-manager

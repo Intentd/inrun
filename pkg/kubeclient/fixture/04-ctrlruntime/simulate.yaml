@@ -21,6 +21,10 @@ spec:
     noErrors: true
     ops:
       - cycle: 1
-        verb: apply
+        verb: create
         resource: deployments
         name: 04-ctrlruntime-demo
+      - cycle: 1
+        verb: create
+        resource: configmaps
+        name: 04-ctrlruntime-demo-config

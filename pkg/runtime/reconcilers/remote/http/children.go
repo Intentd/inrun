@@ -3,24 +3,21 @@ package http
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 )
 
-// childrenMap is the children payload injected into prepared: type → name → raw object.
-type childrenMap map[string]map[string]map[string]interface{}
+// childObjects are the children of one type, keyed by name.
+type childObjects map[string]map[string]interface{}
 
-// outboundPrepared wraps PreparedRequest with children injected at reconcile time.
-// Serialised as the "prepared" field in the outbound request body.
-type outboundPrepared struct {
-	*domain.PreparedRequest
-	Children childrenMap `json:"children,omitempty"`
-}
+// childrenMap is the request's children, keyed by type ("deployment",
+// "service"), then by name.
+type childrenMap map[string]childObjects
 
 // kindToTypeName converts a Kubernetes Kind to the lowercase intent-form type name.
 // For custom types — the kind is used as-is without a registry check.
@@ -87,7 +84,7 @@ func (r *Reconciler) listChildren(owner domain.Object) childrenMap {
 				continue
 			}
 			if cm[typeName] == nil {
-				cm[typeName] = map[string]map[string]interface{}{}
+				cm[typeName] = childObjects{}
 			}
 			cm[typeName][name] = obj.Object
 		}
@@ -138,7 +135,7 @@ func (r *Reconciler) applyChildrenConfig(cm childrenMap) childrenMap {
 		if len(paths) == 0 {
 			continue
 		}
-		stripped := make(map[string]map[string]interface{}, len(objs))
+		stripped := make(childObjects, len(objs))
 		for name, obj := range objs {
 			cp := make(map[string]interface{}, len(obj))
 			for k, v := range obj {
@@ -160,11 +157,11 @@ func (r *Reconciler) applyChildrenConfig(cm childrenMap) childrenMap {
 
 // childrenEnabled reports whether children injection is active for this reconciler.
 func (r *Reconciler) childrenEnabled() bool {
-	return r.decl.Payload.EffectiveChildren() != nil
+	return r.decl.Request.ChildrenEnabled()
 }
 
-// childrenConfig returns the effective children config.
-// Always call childrenEnabled() first — this panics if injection is disabled.
-func (r *Reconciler) childrenConfig() *types.RemotePayloadChildrenConfig {
-	return r.decl.Payload.EffectiveChildren()
+// childrenConfig returns the effective children config; nil when children are
+// disabled, so check childrenEnabled first.
+func (r *Reconciler) childrenConfig() *types.RemoteRequestChildrenConfig {
+	return r.decl.Request.EffectiveChildren()
 }

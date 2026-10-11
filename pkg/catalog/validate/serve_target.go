@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateServeTarget is called from the main Validate() chain after the
@@ -26,7 +26,7 @@ func (e *executor) validateServeTarget() error {
 	// Track seen targets → CRD name for duplicate detection.
 	seen := make(map[string]string)
 
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasServeTarget() {
 			continue
 		}

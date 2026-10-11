@@ -3,7 +3,7 @@ package children
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -68,19 +68,13 @@ func ResolveGVR(mr domain.ManagedResource) (schema.GroupVersionResource, bool) {
 	}
 
 	// 5. Built-in by kind.
-	if gvr, ok := GVRForBuiltIn(mr.Kind); ok {
+	if gvr, ok := GVRForBuiltInByKind(mr.Kind); ok {
 		return gvr, true
 	}
 
 	// 6. Built-in by plural resource name (e.g. {group: apps, plural: deployments}).
-	if mr.Plural != "" {
-		if b, ok := LookupBuiltInByResource(mr.Plural); ok {
-			return schema.GroupVersionResource{
-				Group:    b.Group,
-				Version:  b.Version,
-				Resource: mr.Plural,
-			}, true
-		}
+	if gvr, ok := GVRForBuiltInByResource(mr.Plural); ok {
+		return gvr, true
 	}
 
 	// 7. Custom resource: require kind + group; default version to "v1".

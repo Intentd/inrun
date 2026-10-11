@@ -6,8 +6,8 @@
 // reference forms are supported:
 //
 //	module: postgres                                            # bare name → default module registry (OCI)
-//	module: oci://ghcr.io/inrundev/registry/modules/postgres:v0.1.0   # oci:// prefix → OCI
-//	module: ghcr.io/inrundev/registry/modules/postgres@v0.1.0          # full OCI ref with oci: true
+//	module: oci://ghcr.io/intentd/registry/modules/postgres:v0.1.0   # oci:// prefix → OCI
+//	module: ghcr.io/intentd/registry/modules/postgres@v0.1.0          # full OCI ref with oci: true
 //	module: https://github.com/myorg/postgres-module@main              # git URL
 //	module: ./modules/postgres/module.yaml                              # file path
 //
@@ -21,11 +21,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 var (
@@ -56,7 +56,7 @@ func Load(path string) (*types.Module, error) {
 //  1. File path (starts with ./, ../, /, or ends with .yaml/.yml)
 //  2. oci:// prefix → OCI pull (auto-detected, oci: field not required)
 //  3. Bare name (no scheme, no dots in registry host) → resolved against the
-//     default module registry (INRUN_MODULES_REGISTRY or ghcr.io/inrundev/registry/modules)
+//     default module registry (INRUN_MODULES_REGISTRY or ghcr.io/intentd/registry/modules)
 //  4. Full OCI ref + oci: true → OCI pull (stack-compatible form)
 //  5. Git URL (https://, http://, git@) → git pull
 func LoadImport(imp *types.ModuleImport) (*types.Module, error) {
@@ -83,7 +83,7 @@ func LoadImport(imp *types.ModuleImport) (*types.Module, error) {
 		if err != nil {
 			return nil, fmt.Errorf("module %q: resolving reference: %w", imp.Module, err)
 		}
-		ref = resolved.Full // e.g. "ghcr.io/inrundev/registry/modules/postgres:v0.1.0"
+		ref = resolved.Full // e.g. "ghcr.io/intentd/registry/modules/postgres:v0.1.0"
 		oci = true
 	}
 
@@ -132,7 +132,7 @@ func resolveModuleRef(ref, version string, oci bool) (cleanURL, resolvedVersion 
 	}
 
 	// For OCI refs, a colon after the last slash is the image tag.
-	// e.g. "ghcr.io/inrundev/registry/modules/postgres:v0.1.0"
+	// e.g. "ghcr.io/intentd/registry/modules/postgres:v0.1.0"
 	if oci {
 		if colonIdx := strings.LastIndex(ref, ":"); colonIdx > strings.LastIndex(ref, "/") {
 			return ref[:colonIdx], ref[colonIdx+1:]

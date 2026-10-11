@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/rs/zerolog/log"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,6 +51,13 @@ func (a *ctrlClientAdapter) List(ctx context.Context, list sigs.ObjectList, opts
 		lo.Raw == nil {
 		if items, ok, _ := a.listFromStore(gvk, lo); ok {
 			return a.assembleStoreList(list, items)
+		}
+		// The API server only filters on a few built-in fields; a selector on
+		// an index name (MatchingFields{"app": …}) is answered by the informer
+		// index or not at all.
+		if field, ok := unservableField(lo); ok {
+			return fmt.Errorf("ctrlclient List: no informer index for field %q on %s — declare it under observe.watch index",
+				field, strings.TrimSuffix(gvk.Kind, "List"))
 		}
 
 		log.Debug().
@@ -213,7 +220,10 @@ func (a *ctrlClientAdapter) listFromStore(listGVK schema.GroupVersionKind, lo *s
 // This is intentionally the only List path that reaches the dynamic client.
 // CRUD operations remain behind kubeclient.Interface.
 func (a *ctrlClientAdapter) listFromAPI(ctx context.Context, list sigs.ObjectList, gvk schema.GroupVersionKind, lo *sigs.ListOptions) error {
-	mapping, err := a.k.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	// Map the item kind: REST mappings know ConfigMap, not ConfigMapList.
+	item := gvk.GroupKind()
+	item.Kind = strings.TrimSuffix(item.Kind, "List")
+	mapping, err := a.k.RESTMapper().RESTMapping(item, gvk.Version)
 	if err != nil {
 		return fmt.Errorf("ctrlclient List: no REST mapping for %s: %w", gvk, err)
 	}

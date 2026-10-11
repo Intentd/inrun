@@ -4,10 +4,12 @@ metadata:
   name: website-intent-sim
   description: >
     Reconcile the CR the gateway builds from intent.json. There is no cr.yaml:
-    run inrun serve play -i intent.json --token dev --simulate=simulate.yaml.
+    the CR is built from the intent, sent with the dev token.
 
 spec:
   catalog: ../catalog.yaml
+  intent: ../intent.yaml
+  token: dev
   cycles: 5
 
   expect:

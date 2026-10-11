@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // dependencyHealthChecker runs continuously during the lifetime of the controller.
@@ -18,7 +18,7 @@ import (
 //
 // This checker is the *runtime* half of the dependency system.
 // The *startup* half is handled inside Coordinate() using startedCh and healthyCh.
-func (k *DependencyCoordinator) dependencyHealthChecker(ctx context.Context) {
+func (dc *DependencyCoordinator) dependencyHealthChecker(ctx context.Context) {
 	ticker := time.NewTicker(RuntimeHealthCheckInterval) // periodic runtime health evaluation
 	defer ticker.Stop()
 
@@ -27,7 +27,7 @@ func (k *DependencyCoordinator) dependencyHealthChecker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			k.checkAllDependencyHealth()
+			dc.checkAllDependencyHealth()
 		}
 	}
 }
@@ -36,16 +36,16 @@ func (k *DependencyCoordinator) dependencyHealthChecker(ctx context.Context) {
 // and updates their dependency health state.
 //
 // This is purely runtime observability. It does not block startup ordering.
-func (k *DependencyCoordinator) checkAllDependencyHealth() {
-	k.mu.RLock()
-	activeCRDs := make([]string, 0, len(k.crdHealthMap))
-	for gvk := range k.crdHealthMap {
+func (dc *DependencyCoordinator) checkAllDependencyHealth() {
+	dc.mu.RLock()
+	activeCRDs := make([]string, 0, len(dc.crdHealthMap))
+	for gvk := range dc.crdHealthMap {
 		activeCRDs = append(activeCRDs, gvk)
 	}
-	k.mu.RUnlock()
+	dc.mu.RUnlock()
 
 	for _, gvk := range activeCRDs {
-		k.checkDependencyHealthForGVK(gvk)
+		dc.checkDependencyHealthForGVK(gvk)
 	}
 }
 
@@ -65,13 +65,13 @@ func (k *DependencyCoordinator) checkAllDependencyHealth() {
 //	for closing healthyCh[depGVK], which unblocks dependents that require "healthy".
 //
 // This is the integration point between runtime health and startup gating.
-func (k *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
-	entry, ok := k.catalog.Get(gvk)
+func (dc *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
+	entry, ok := dc.catalog.Get(gvk)
 	if !ok {
 		return
 	}
 
-	health := k.crdHealthMap[gvk]
+	health := dc.crdHealthMap[gvk]
 	if health == nil {
 		return
 	}
@@ -82,7 +82,7 @@ func (k *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
 	}
 
 	for depName, depCond := range crd.DependsOn {
-		depGVK, exists := k.NameToGVKMap()[depName]
+		depGVK, exists := dc.NameToGVKMap()[depName]
 		if !exists {
 			// Dependency declared but not present in graph
 			health.SetDependencyHealth(depName, vitals.DependencyStatus{
@@ -95,7 +95,7 @@ func (k *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
 		}
 
 		// Dependency present in graph - health lookup with gvk
-		depHealth := k.crdHealthMap[depGVK]
+		depHealth := dc.crdHealthMap[depGVK]
 		if depHealth == nil {
 			health.SetDependencyHealth(depName, vitals.DependencyStatus{
 				Name:      depName,
@@ -116,7 +116,7 @@ func (k *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
 
 			// Signal healthyCh exactly once when dependency becomes healthy
 			if !depHealth.SignaledHealthy() {
-				close(k.healthyCh[depGVK])
+				close(dc.healthyCh[depGVK])
 				depHealth.MarkHealthySignaled()
 				depHealth.SetStarted()
 			}

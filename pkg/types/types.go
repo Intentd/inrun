@@ -3,8 +3,8 @@ package types
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -16,7 +16,7 @@ import (
 // Keyed by schema.GroupVersionKind. Set during Catalog validation.
 //
 // User code never reads or writes these directly. Inrun reads them during
-// Catalog validation via addRuntimeObjects(), addHooks(), and addReconcilers().
+// Catalog validation via addRuntimeObjects(), addHooks(), and AddConstructors().
 
 var ObjectRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
 var ListRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
@@ -29,7 +29,7 @@ var ReconcilerRegistry = map[schema.GroupVersionKind]NewReconcilerFunc{}
 // Populated by the generator alongside HookRegistry / ReconcilerRegistry and
 // consumed by addTargetHooks() / addTargetConstructors() during Catalog validation.
 //
-// Targets that share the CRD-level binary (only overriding hooks.args) do NOT
+// Targets that share the CRD-level binary (only overriding reconcile.args) do NOT
 // appear here — mergeReconcilerConfig in EffectiveOperatorBox handles them at
 // reconcile time without any separate registration.
 var TargetHookRegistry = map[schema.GroupVersionKind]map[string]func() domain.AnyReconcileHooks{}
@@ -149,7 +149,7 @@ type APITypes struct {
 	// Required for typed mode. Used by inrun generate for import statements
 	// and scheme registration in RegisterScheme().
 	// Not needed for dynamic mode — omit entirely.
-	// e.g. "github.com/inrundev/inrun/api/types/project/v1alpha1"
+	// e.g. "github.com/intentd/inrun/api/types/project/v1alpha1"
 	Location string `yaml:"location,omitempty" json:"location,omitempty" validate:"omitempty"`
 }
 

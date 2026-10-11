@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Merger loads one or more Catalog files, resolves their imports
@@ -248,11 +248,13 @@ func mergeCRDEntry(base, override types.CRDEntry) types.CRDEntry {
 		for _, f := range result.Box().EffectiveFinalizers() {
 			seen[f] = struct{}{}
 		}
+		names := result.Box().EffectiveFinalizers()
 		for _, f := range overrideFinals {
 			if _, ok := seen[f]; !ok {
-				result.Box().Runtime.Finalizers = append(result.Box().Runtime.Finalizers, f)
+				names = append(names, f)
 			}
 		}
+		result.Box().Runtime.SetFinalizerNames(names)
 	}
 
 	// ── Reconcile config — override only declared blocks ──────────────────

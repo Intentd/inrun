@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // exitErrorWithCode runs a trivial shell command that exits with code, and

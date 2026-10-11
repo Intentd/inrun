@@ -3,7 +3,6 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -138,8 +137,6 @@ func (c *Client) FetchCRDDetail(name string, endpoints EndpointInfo, summary *CR
 			HasNamespaceRules: false,
 		}
 	}
-
-	log.Println("Namespaced: ", info.Namespaced)
 
 	detail := &CRDDetail{
 		Name:                     info.Name,

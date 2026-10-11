@@ -6,10 +6,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
 )
 
 // applyLabels applies the three system label invariants plus any user-defined
@@ -26,21 +26,21 @@ import (
 // exempt label is cleaned up without webhook interference.
 func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *template.Resolver) error {
 	mgr := labels.NewManager(labels.Config{
-		Standalone:                in.Kat.IsStandaloneGateway(),
-		DeletionProtectionEnabled: in.Kat.IsDeletionProtectionEnabled(),
+		Standalone:                in.Cat.IsStandaloneGateway(),
+		DeletionProtectionEnabled: in.Cat.IsDeletionProtectionEnabled(),
 	})
 
 	serverLabels := copyStringMap(obj.GetLabels()) // snapshot before mutation
 
 	mgr.EnsureManagedLabel(obj)
 
-	if in.Kat.IsDeletionProtectionEnabled() {
+	if in.Cat.IsDeletionProtectionEnabled() {
 		// ForCleanup overrides protection so the two-phase label removal runs
 		// before the coordinator issues the Delete call on this same cycle.
-		shouldHaveProtection := !in.ForCleanup && in.Kat.IsDeletionProtectionEnabled() && in.CRD.ShouldProtectCRs()
+		shouldHaveProtection := !in.ForCleanup && in.Cat.IsDeletionProtectionEnabled() && in.CRD.ShouldProtectCRs()
 		mgr.EnsureDeletionProtectionLabel(obj, shouldHaveProtection)
 
-		effectiveStrict := in.CRD.IsStrictDeletionProtection(in.Kat.IsStrictModeEnabled())
+		effectiveStrict := in.CRD.IsStrictDeletionProtection(in.Cat.IsStrictModeEnabled())
 		currentlyProtected := serverLabels[labels.DeletionProtectionLabel] == labels.DeletionProtectionValue
 		if !shouldHaveProtection && currentlyProtected {
 			effectiveStrict = false
@@ -64,6 +64,10 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 			}
 			resolved[k] = val
 		}
+		// Check for reserved domains
+		if err := labels.CheckReserved("labels", resolved); err != nil {
+			return err
+		}
 		mgr.EnsureUserLabels(obj, resolved)
 	}
 
@@ -79,6 +83,10 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 				return fmt.Errorf("annotations: CRD %q: key %q: %w", in.CRD.Name, k, err)
 			}
 			resolved[k] = val
+		}
+		// Check for reserved domains
+		if err := labels.CheckReserved("annotations", resolved); err != nil {
+			return err
 		}
 		mgr.EnsureUserAnnotations(obj, resolved)
 	}

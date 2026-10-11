@@ -8,7 +8,7 @@ import "fmt"
 // keys list (which expands into individual env entries instead of a native
 // envFrom source).
 func (e *executor) validateEnvFromRefs() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, e := range crd.CollectEnvFromEntries() {
 			if e.Ref.Suffix != "" && len(e.Ref.Keys) == 0 {
 				return errSuffixRequiresKeys(crdName, e.ResourceName, e.Phase, e.RefKind, e.Ref.Name)

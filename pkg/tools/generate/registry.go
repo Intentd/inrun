@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // TypeRegistry generates zz_generated_typeregistry.go from the merged Catalog.
@@ -125,7 +125,7 @@ func TypeRegistry(crds map[string]types.CRDEntry, dryRun bool) (bool, error) {
 		// ── Custom constructors ───────────────────────────────────────────────
 		// reconciler.default: false means the user owns the entire reconcile loop.
 		// We need to import their constructor and register it in ReconcilerRegistry
-		// so addReconcilers() can wire it at startup.
+		// so AddConstructors() can wire it at startup.
 		if !crd.DefaultReconcile() {
 			if crd.Box().Reconcile == nil || crd.Box().Reconcile.ConstructorDecl == nil {
 				return false, fmt.Errorf(

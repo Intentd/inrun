@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/inrundev/inrun/console/auth"
-	"github.com/inrundev/inrun/console/web"
+	"github.com/intentd/inrun/console/auth"
+	"github.com/intentd/inrun/console/web"
 )
 
 // setupRoutes configures all HTTP routes for the Inrun Console.

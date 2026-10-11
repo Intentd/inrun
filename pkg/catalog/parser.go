@@ -4,9 +4,9 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -62,41 +62,41 @@ import (
 //
 // Example:
 //
-//	runtimeCRDs, err := catalog.BuildRuntimeCatalog(kfg, merger, "path/to/catalog")
-func (k *Catalog) BuildRuntimeCatalog(
-	kfg *config.Config,
+//	runtimeCRDs, err := catalog.BuildRuntimeCatalog(cfg, merger, "path/to/catalog")
+func (c *Catalog) BuildRuntimeCatalog(
+	cfg *config.Config,
 	m *merger.Merger,
 	paths ...string,
 ) (map[string]types.CRDEntry, error) {
 
-	k.Spec = m.ToSpec()
-	k.Spec.Imports = m.ToSpecImports()
-	k.Security = m.ToSecurity()
-	k.Gateway = m.ToGateway()
-	k.Publish = m.ToPublish()
-	k.Profiles = m.ToProfiles()
-	k.Notes = m.ToNotes()
-	k.enabledCRDs = m.Enabled()           // Enabled CRDs for all operations
-	k.metadata = m.APIMetadata().Metadata // Metadata for CLI and health endpoints
-	k.lifecycle = m.ToLifecycle()
-	k.policy = m.ToPolicy()
-	k.APIVersion = m.APIMetadata().APIVersion
-	k.Kind = m.APIMetadata().Kind
-	k.config = kfg
-	k.catalogDir = m.FirstEntryDir()
+	c.Spec = m.ToSpec()
+	c.Spec.Imports = m.ToSpecImports()
+	c.Security = m.ToSecurity()
+	c.Gateway = m.ToGateway()
+	c.Publish = m.ToPublish()
+	c.Profiles = m.ToProfiles()
+	c.Notes = m.ToNotes()
+	c.enabledCRDs = m.Enabled()           // Enabled CRDs for all operations
+	c.metadata = m.APIMetadata().Metadata // Metadata for CLI and health endpoints
+	c.lifecycle = m.ToLifecycle()
+	c.policy = m.ToPolicy()
+	c.APIVersion = m.APIMetadata().APIVersion
+	c.Kind = m.APIMetadata().Kind
+	c.config = cfg
+	c.catalogDir = m.FirstEntryDir()
 
 	// Expand all includes
-	if err := k.expandIncludes(); err != nil {
+	if err := c.expandIncludes(); err != nil {
 		return nil, err
 	}
 
-	for name, entry := range k.enabledCRDs {
+	for name, entry := range c.enabledCRDs {
 		// Populate APITypes from crdFile before enrichment so isFullySpecified sees
 		// the correct values. crdFile is the source of truth — overwrites any apiTypes.
 		// Clear CRDFile afterwards: the runtime (and any serialized bundle) must not
 		// reference local filesystem paths that don't exist inside a container.
 		if entry.CRDFile != "" {
-			if err := PopulateAPITypesFromCRDFile(&entry, k.catalogDir); err != nil {
+			if err := PopulateAPITypesFromCRDFile(&entry, c.catalogDir); err != nil {
 				return nil, fmt.Errorf("CRD %q: %w", name, err)
 			}
 			entry.CRDFile = ""
@@ -108,44 +108,44 @@ func (k *Catalog) BuildRuntimeCatalog(
 			return nil, err
 		}
 		entry.EnrichmentOutcome = outcome
-		k.enabledCRDs[name] = entry
+		c.enabledCRDs[name] = entry
 	}
 
 	// Expand spec.imports — merge profiles into the Catalog-wide ProfileRegistry
-	if err := k.expandCatalogImports(); err != nil {
+	if err := c.expandCatalogImports(); err != nil {
 		return nil, err
 	}
 
 	// Expand Module imports declared in each operatorBox (resources, status, admission only)
-	if err := k.expandModuleImports(); err != nil {
+	if err := c.expandModuleImports(); err != nil {
 		return nil, err
 	}
 
 	// Apply any sythesized admission rules for:
 	// required: true, default and override
-	k.applyServeAdmissionSynthesis()
+	c.applyServeAdmissionSynthesis()
 
 	// initialize conversion registry and admission registry
-	k.conversionRegistry = NewInMemoryConversionRegistry()
-	k.admissionRegistry = NewInMemoryAdmissionRegistry()
+	c.conversionRegistry = NewInMemoryConversionRegistry()
+	c.admissionRegistry = NewInMemoryAdmissionRegistry()
 
 	// now safe to register rules
-	for _, entry := range k.enabledCRDs {
-		k.admissionRegistry.registerAdmissionRulesFromEntry(entry)
-		k.conversionRegistry.registerConversionRulesFromSpec(entry)
+	for _, entry := range c.enabledCRDs {
+		c.admissionRegistry.registerAdmissionRulesFromEntry(entry)
+		c.conversionRegistry.registerConversionRulesFromSpec(entry)
 	}
 
 	// Apply defaults/GVK so CLI tools (simulate, validate, plan) get the same
 	// field values as the runtime without needing to call Validate.
-	if err := k.SetDefaults(kfg); err != nil {
+	if err := c.SetDefaults(cfg); err != nil {
 		return nil, err
 	}
-	if err := k.SetGroupVersionKind(); err != nil {
+	if err := c.SetGroupVersionKind(); err != nil {
 		return nil, err
 	}
 
 	// Build all serve enabled CRDs
-	k.serveEnabledCRDs = k.BuildServeEnabledCRDs()
+	c.serveEnabledCRDs = c.BuildServeEnabledCRDs()
 
-	return k.enabledCRDs, nil
+	return c.enabledCRDs, nil
 }

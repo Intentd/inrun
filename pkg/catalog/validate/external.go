@@ -1,11 +1,11 @@
 package validate
 
 import (
-	"github.com/inrundev/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/external"
 )
 
 func (e *executor) validateExternalCalls() error {
-	for crdName, entry := range e.k.EnabledCRDs() {
+	for crdName, entry := range e.cat.EnabledCRDs() {
 		if ht := entry.OperatorBox.EffectiveOnReconcile(); ht != nil {
 			if err := external.ValidateCalls(crdName, "onReconcile.external", ht.External); err != nil {
 				return err
@@ -16,8 +16,8 @@ func (e *executor) validateExternalCalls() error {
 				return err
 			}
 		}
-		if r := entry.OperatorBox.Reconcile; r != nil && r.Hooks != nil {
-			if err := external.ValidateCalls(crdName, "hooks.external", r.Hooks.External); err != nil {
+		if r := entry.OperatorBox.Reconcile; r != nil {
+			if err := external.ValidateCalls(crdName, "reconcile.external", r.External); err != nil {
 				return err
 			}
 		}

@@ -25,7 +25,7 @@ Full contribution guides live in [`docs/contributing/`](docs/contributing/):
 
 ```bash
 # Clone
-git clone https://github.com/inrundev/inrun.git
+git clone https://github.com/intentd/inrun.git
 cd inrun
 
 # Build (runs codegen + gofmt + go build)
@@ -75,4 +75,4 @@ This project follows the [Inrun Code of Conduct](CODE_OF_CONDUCT.md). Report una
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/inrundev/inrun/discussions).
+Open a [GitHub Discussion](https://github.com/intentd/inrun/discussions).

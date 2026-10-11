@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateEventEntries validates operatorBox.observe.events across all enabled CRDs.
@@ -19,7 +19,7 @@ import (
 //  3. keyFrom follows the same validation rules as watch entries.
 //  4. on: values are valid observe event types.
 func (e *executor) validateEventEntries() error {
-	for crdName, crd := range e.k.Enabled() {
+	for crdName, crd := range e.cat.Enabled() {
 		if err := validateCRDEventEntries(crdName, crd); err != nil {
 			return err
 		}

@@ -8,9 +8,9 @@
 CHART     := ../../charts/inrun
 REPO_ROOT := ../..
 KIND_CLUSTER      := inrun-playground
-INRUN_BASE_IMAGE    := ghcr.io/inrundev/inrun
-INRUN_CONSOLE_BASE_IMAGE := ghcr.io/inrundev/inrun-console
-INRUN_GW_BASE_IMAGE := ghcr.io/inrundev/inrun-gateway
+INRUN_BASE_IMAGE    := ghcr.io/intentd/inrun
+INRUN_CONSOLE_BASE_IMAGE := ghcr.io/intentd/inrun-console
+INRUN_GW_BASE_IMAGE := ghcr.io/intentd/inrun-gateway
 NS_01 := inrun-system-01
 NS_02 := inrun-system-02
 NS_03 := inrun-system-03

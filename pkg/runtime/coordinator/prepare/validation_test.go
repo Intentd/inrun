@@ -3,7 +3,7 @@ package prepare
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func validationObj(spec map[string]interface{}) map[string]interface{} {

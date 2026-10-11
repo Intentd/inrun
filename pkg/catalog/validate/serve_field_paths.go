@@ -12,7 +12,7 @@ import (
 //   - Path must be a valid dot-notation path (no empty segments, no leading/trailing dots)
 //   - Warn if path is nested (contains a dot) — schema existence validation is not yet implemented
 func (e *executor) validateServeFieldPaths() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.ServeEnabled() {
 			continue
 		}

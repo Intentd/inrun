@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // parseCatalogDoc parses a single YAML document and returns a CatalogFile

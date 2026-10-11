@@ -4,7 +4,7 @@ package queue
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"github.com/stretchr/testify/assert"
 )
 

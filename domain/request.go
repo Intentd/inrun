@@ -24,3 +24,18 @@ func (r Request) Namespace() string { return r.NamespacedName.Namespace }
 
 // Name returns the name component of the key.
 func (r Request) Name() string { return r.NamespacedName.Name }
+
+// Args returns the prepared args already resolved before reconcile is called
+func (r Request) Args() Args {
+	if r.Prepared == nil {
+		return Args{}
+	}
+	return r.Prepared.Args
+}
+
+// Finalizing reports whether the CR is being deleted. A reconciler returns
+// without a requeue once its cleanup is done; Inrun then removes its finalizer.
+// Resources, labels and annotations returned while finalizing are ignored.
+func (r Request) Finalizing() bool {
+	return r.Prepared != nil && r.Prepared.Finalizing
+}

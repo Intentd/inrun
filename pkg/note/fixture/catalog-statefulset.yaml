@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: statefulset-probe
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     StatefulSetProbe — living integration test for StatefulSet pod notes.

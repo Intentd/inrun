@@ -10,3 +10,4 @@ imports:
   - 02-constructor/simulate.yaml
   - 03-hooks-targets/simulate-v2-enabled.yaml
   - 03-hooks-targets/simulate-v2-disabled.yaml
+  - 04-ctrlruntime/simulate.yaml

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func catalogWithServe(serve *types.ServeConfig) *executor {
@@ -14,15 +14,15 @@ func catalogWithServe(serve *types.ServeConfig) *executor {
 }
 
 func TestValidateServeLabelAndAnnotationFields_NilServe(t *testing.T) {
-	k := catalogWithServe(nil)
-	if err := k.validateServeLabelAndAnnotationFields(); err != nil {
+	e := catalogWithServe(nil)
+	if err := e.validateServeLabelAndAnnotationFields(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeLabelAndAnnotationFields_NoLabelsAndAnnotations(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{Enabled: true})
-	if err := k.validateServeLabelAndAnnotationFields(); err != nil {
+	e := catalogWithServe(&types.ServeConfig{Enabled: true})
+	if err := e.validateServeLabelAndAnnotationFields(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -33,25 +33,25 @@ func TestValidateServeLabelAndAnnotationFields_NoLabelsAndAnnotations(t *testing
 // Deliberately uses a single field with no collision and no key-syntax issue
 // so nothing else can make this pass for the wrong reason.
 func TestValidateServeLabelAndAnnotationFields_TypeOmittedDefaultsToValid(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Labels: map[string]types.ServeFieldConfig{
 			"tier": {Label: "Tier"}, // Type intentionally omitted
 		},
 	})
-	if err := k.validateServeLabelAndAnnotationFields(); err != nil {
+	if err := e.validateServeLabelAndAnnotationFields(); err != nil {
 		t.Fatalf("omitted Type should default to valid (string), got error: %v", err)
 	}
 }
 
 func TestValidateServeLabelAndAnnotationFields_InvalidType(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Labels: map[string]types.ServeFieldConfig{
 			"tier": {Label: "Tier", Type: "sting"}, // typo
 		},
 	})
-	err := k.validateServeLabelAndAnnotationFields()
+	err := e.validateServeLabelAndAnnotationFields()
 	if err == nil {
 		t.Fatal("expected error for invalid type")
 	}
@@ -61,7 +61,7 @@ func TestValidateServeLabelAndAnnotationFields_InvalidType(t *testing.T) {
 }
 
 func TestValidateServeLabelAndAnnotationFields_Valid(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Fields: map[string]types.ServeFieldConfig{
 			"image": {Label: "Image"},
@@ -73,19 +73,19 @@ func TestValidateServeLabelAndAnnotationFields_Valid(t *testing.T) {
 			"platform.example.io/monitoring": {Label: "Monitoring", Type: "boolean"},
 		},
 	})
-	if err := k.validateServeLabelAndAnnotationFields(); err != nil {
+	if err := e.validateServeLabelAndAnnotationFields(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeLabelAndAnnotationFields_InvalidLabelKey(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Labels: map[string]types.ServeFieldConfig{
 			"Not Valid Key!": {Label: "Bad"},
 		},
 	})
-	err := k.validateServeLabelAndAnnotationFields()
+	err := e.validateServeLabelAndAnnotationFields()
 	if err == nil {
 		t.Fatal("expected error for invalid label key")
 	}
@@ -95,25 +95,25 @@ func TestValidateServeLabelAndAnnotationFields_InvalidLabelKey(t *testing.T) {
 }
 
 func TestValidateServeLabelAndAnnotationFields_InvalidAnnotationKey(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Annotations: map[string]types.ServeFieldConfig{
 			"has spaces": {Label: "Bad"},
 		},
 	})
-	if err := k.validateServeLabelAndAnnotationFields(); err == nil {
+	if err := e.validateServeLabelAndAnnotationFields(); err == nil {
 		t.Fatal("expected error for invalid annotation key")
 	}
 }
 
 func TestValidateServeLabelAndAnnotationFields_EnumEmpty(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Labels: map[string]types.ServeFieldConfig{
 			"tier": {Label: "Tier", Type: "enum"},
 		},
 	})
-	err := k.validateServeLabelAndAnnotationFields()
+	err := e.validateServeLabelAndAnnotationFields()
 	if err == nil {
 		t.Fatal("expected error for empty enum")
 	}
@@ -123,7 +123,7 @@ func TestValidateServeLabelAndAnnotationFields_EnumEmpty(t *testing.T) {
 }
 
 func TestValidateServeLabelAndAnnotationFields_CollisionWithFields(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Fields: map[string]types.ServeFieldConfig{
 			"image": {Label: "Image"},
@@ -132,7 +132,7 @@ func TestValidateServeLabelAndAnnotationFields_CollisionWithFields(t *testing.T)
 			"image": {Label: "Image dup"},
 		},
 	})
-	err := k.validateServeLabelAndAnnotationFields()
+	err := e.validateServeLabelAndAnnotationFields()
 	if err == nil {
 		t.Fatal("expected collision error")
 	}
@@ -142,7 +142,7 @@ func TestValidateServeLabelAndAnnotationFields_CollisionWithFields(t *testing.T)
 }
 
 func TestValidateServeLabelAndAnnotationFields_CollisionBetweenLabelsAndAnnotations(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Labels: map[string]types.ServeFieldConfig{
 			"tier": {Label: "Tier (label)"},
@@ -151,13 +151,13 @@ func TestValidateServeLabelAndAnnotationFields_CollisionBetweenLabelsAndAnnotati
 			"tier": {Label: "Tier (annotation)"},
 		},
 	})
-	if err := k.validateServeLabelAndAnnotationFields(); err == nil {
+	if err := e.validateServeLabelAndAnnotationFields(); err == nil {
 		t.Fatal("expected collision error between labels and annotations")
 	}
 }
 
 func TestValidateServeLabelAndAnnotationFields_MultipleCRDs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"good": {Serve: &types.ServeConfig{
 			Enabled: true,
 			Labels:  map[string]types.ServeFieldConfig{"tier": {}},
@@ -167,37 +167,37 @@ func TestValidateServeLabelAndAnnotationFields_MultipleCRDs(t *testing.T) {
 			Labels:  map[string]types.ServeFieldConfig{"Not Valid!": {}},
 		}},
 	})
-	if err := k.validateServeLabelAndAnnotationFields(); err == nil {
+	if err := e.validateServeLabelAndAnnotationFields(); err == nil {
 		t.Fatal("expected error from the bad CRD entry")
 	}
 }
 
 func TestValidateServeFieldOrder_NoCollision(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Fields: map[string]types.ServeFieldConfig{
 			"image":    {Order: 1},
 			"replicas": {Order: 2},
 		},
 	})
-	if err := k.validateServeFieldOrder(); err != nil {
+	if err := e.validateServeFieldOrder(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldOrder_UnsetNeverCollides(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Fields: map[string]types.ServeFieldConfig{
 			"image":    {},
 			"replicas": {},
 		},
 	})
-	if err := k.validateServeFieldOrder(); err != nil {
+	if err := e.validateServeFieldOrder(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldOrder_Collision(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Fields: map[string]types.ServeFieldConfig{
 			"image": {Order: 3},
 		},
@@ -205,7 +205,7 @@ func TestValidateServeFieldOrder_Collision(t *testing.T) {
 			"team": {Order: 3},
 		},
 	})
-	err := k.validateServeFieldOrder()
+	err := e.validateServeFieldOrder()
 	if err == nil {
 		t.Fatal("expected a collision error")
 	}

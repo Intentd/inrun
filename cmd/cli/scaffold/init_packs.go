@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/inrundev/inrun/examples"
+	"github.com/intentd/inrun/examples"
 )
 
 // Pack is an example directory that `inrun init --pack` extracts.

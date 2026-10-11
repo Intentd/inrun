@@ -5,20 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strings"
 )
 
 // summaryFor returns the CRDSummary for a named CRD from a cached CatalogResponse.
 // Returns nil when the catalog is nil or the CRD is not found.
-func summaryFor(kat *CatalogResponse, crdName string) *CRDSummary {
-	if kat == nil {
+func summaryFor(cat *CatalogResponse, crdName string) *CRDSummary {
+	if cat == nil {
 		return nil
 	}
-	for i := range kat.CRDs {
-		if strings.EqualFold(kat.CRDs[i].Name, crdName) {
-			return &kat.CRDs[i]
+	for i := range cat.CRDs {
+		if strings.EqualFold(cat.CRDs[i].Name, crdName) {
+			return &cat.CRDs[i]
 		}
 	}
 	return nil
@@ -71,11 +70,11 @@ func synthInfoFromSummary(name string, s *CRDSummary) *CRDInfo {
 // endpointInfoFor returns the EndpointInfo for a named CRD from a cached
 // CatalogResponse. When the catalog is nil or the CRD is not found it returns
 // a fully-enabled default so the caller retains normal fetch behaviour.
-func endpointInfoFor(kat *CatalogResponse, crdName string) EndpointInfo {
-	if kat == nil {
+func endpointInfoFor(cat *CatalogResponse, crdName string) EndpointInfo {
+	if cat == nil {
 		return EndpointInfo{HealthEnabled: true, InfoEnabled: true}
 	}
-	for _, c := range kat.CRDs {
+	for _, c := range cat.CRDs {
 		if strings.EqualFold(c.Name, crdName) {
 			return c.Endpoints
 		}
@@ -92,14 +91,14 @@ func endpointInfoFor(kat *CatalogResponse, crdName string) EndpointInfo {
 func (c *Console) renderTemplate(w http.ResponseWriter, name string, data interface{}) {
 	tmpl, err := template.New(name).Funcs(templateFuncs).ParseFS(Assets, TemplateDir+"/"+name)
 	if err != nil {
-		log.Printf("ERROR: parse %s: %v", name, err)
+		Errorf("parse %s: %v", name, err)
 		c.renderError(w, nil, fmt.Sprintf("Template error: %v", err))
 		return
 	}
 
 	buf := new(bytes.Buffer)
 	if err := tmpl.Execute(buf, data); err != nil {
-		log.Printf("ERROR: execute %s: %v", name, err)
+		Errorf("execute %s: %v", name, err)
 		c.renderError(w, nil, fmt.Sprintf("Render error: %v", err))
 		return
 	}

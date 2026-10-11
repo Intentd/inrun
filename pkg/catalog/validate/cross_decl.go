@@ -21,7 +21,7 @@ func (e *executor) validateCrossDecl() error {
 	// is a catalog-wide constraint, not per-CRD.
 	seen := make(map[string]bool)
 
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasCrossDecl() {
 			continue
 		}
@@ -51,7 +51,7 @@ func (e *executor) validateCrossDecl() error {
 
 			// crd not found in catalog
 			if cross.IsCRDBased() && !cross.HasSource() {
-				if result := e.k.LookupByName(crsCRD); result.Entry() == nil {
+				if result := e.cat.LookupByName(crsCRD); result.Entry() == nil {
 					return fmt.Errorf("%s CRD %q: cross[%d].crd: %q not found", failureMark(), name, i, crsCRD)
 				}
 			}
@@ -61,7 +61,7 @@ func (e *executor) validateCrossDecl() error {
 				if alias == "" {
 					return fmt.Errorf("%s CRD %q: cross[%d].labels: 'as' is required for cross referencing", failureMark(), name, i)
 				}
-				if result := e.k.LookupByLabel(sel); result.Entry() == nil {
+				if result := e.cat.LookupByLabel(sel); result.Entry() == nil {
 					return fmt.Errorf("%s CRD %q: cross[%d].labels: %s not found in any CRD in the catalog", failureMark(), name, i, sel.String())
 				}
 			}
@@ -115,7 +115,7 @@ func (e *executor) validateCrossDecl() error {
 				}
 			}
 		}
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 	return nil
 }

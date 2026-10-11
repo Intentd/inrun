@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	apiv1 "github.com/inrundev/inrun-args-hooks/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/deployments"
+	apiv1 "github.com/intentd/inrun-args-hooks/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/deployments"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,10 +16,10 @@ func BlockchainAppHooks() domain.AnyReconcileHooks {
 	return domain.ReconcileHooks[*apiv1.BlockchainApp]{OnReconcile: onBlockchainAppReconcile}
 }
 
-func onBlockchainAppReconcile(ctx context.Context, obj *apiv1.BlockchainApp) error {
+func onBlockchainAppReconcile(ctx context.Context, req domain.Request, obj *apiv1.BlockchainApp) (domain.Result, error) {
 	kube, ok := kubeclient.FromContext(ctx)
 	if !ok {
-		return fmt.Errorf("kubeclient not in context")
+		return domain.Result{}, fmt.Errorf("kubeclient not in context")
 	}
 
 	// Both values come from the Catalog — not from the CR spec.
@@ -27,8 +27,8 @@ func onBlockchainAppReconcile(ctx context.Context, obj *apiv1.BlockchainApp) err
 	// featureEnabled:  result of an external HTTP call the runtime made,
 	//                  but only when inBusinessHours was true (see catalog.yaml when:).
 	// The hook binary never changes when the schedule or flag endpoint changes.
-	inBusinessHours := kube.Args().String("inBusinessHours") == "true"
-	featureEnabled := kube.Args().String("featureEnabled") == "true"
+	inBusinessHours := req.Args().String("inBusinessHours") == "true"
+	featureEnabled := req.Args().String("featureEnabled") == "true"
 
 	annotation := "false"
 	if inBusinessHours && featureEnabled {
@@ -50,10 +50,10 @@ func onBlockchainAppReconcile(ctx context.Context, obj *apiv1.BlockchainApp) err
 		},
 	}
 	if err := deployments.Apply(ctx, kube, obj, spec); err != nil {
-		return fmt.Errorf("blockchainapp deployment: %w", err)
+		return domain.Result{}, fmt.Errorf("blockchainapp deployment: %w", err)
 	}
 
-	return kube.PatchStatus(ctx, obj, map[string]any{
+	return domain.Result{}, kube.PatchStatus(ctx, obj, map[string]any{
 		"featureEnabled":  annotation,
 		"inBusinessHours": inBusinessHours,
 	}, metav1.PatchOptions{})

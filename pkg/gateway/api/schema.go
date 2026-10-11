@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // SchemaResponse is returned by GET /api/v1/schema?target=<t>.
@@ -41,7 +41,7 @@ type ServiceEntry struct {
 // The service-list endpoint supports pagination via limit= and offset= query params.
 // The per-target endpoint returns the complete field map — there is no
 // pagination for fields since the field count is always small.
-func schemaHandler(kat *catalog.Catalog) http.HandlerFunc {
+func schemaHandler(cat *catalog.Catalog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed", "only GET requests are supported")
@@ -55,16 +55,16 @@ func schemaHandler(kat *catalog.Catalog) http.HandlerFunc {
 			// Check list permission on a representative CRD (or skip if none)
 			// For the service list, we check permission on the first available CRD,
 			// or allow if the user has any schema access.
-			if !hasAnySchemaPermission(r, kat.ServeEnabledCRDs) {
+			if !hasAnySchemaPermission(r, cat.ServeEnabledCRDs) {
 				writeJSONError(w, http.StatusForbidden, "permission denied", "token lacks required permission")
 				return
 			}
-			handleSchemaList(w, r, kat.ServeEnabledCRDs)
+			handleSchemaList(w, r, cat.ServeEnabledCRDs)
 			return
 		}
 
 		// ─── Per-target mode ──────────────────────────────────────────────────
-		resolution := kat.LookupByTargetOrAlias(target)
+		resolution := cat.LookupByTargetOrAlias(target)
 		if resolution == nil || !resolution.CRD.ServeEnabled() {
 			writeJSONError(w, http.StatusNotFound, "target not found",
 				fmt.Sprintf("target %q not found", target),

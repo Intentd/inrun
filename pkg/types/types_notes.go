@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/pkg/runtime/sentinel"
 )
 
 // UserDefinedNote is a named template expression declared in a Catalog or Module.
@@ -56,9 +56,14 @@ func (nr NoteRegistry) MergeImport(src NoteRegistry, srcLabel string, seen map[s
 	result := NoteRegistry{Functions: make([]UserDefinedNote, len(nr.Functions))}
 	copy(result.Functions, nr.Functions)
 	for _, n := range src.Functions {
-		if prev, conflict := seen[n.Name]; conflict {
+		if prev, seenBefore := seen[n.Name]; seenBefore {
+			// The same definition arriving twice (e.g. one notes.include shared by
+			// two imported Catalogs) is reuse, not a conflict: keep one copy.
+			if existing, ok := result.find(n.Name); ok && existing.Expression == n.Expression && existing.Shadow == n.Shadow {
+				continue
+			}
 			return NoteRegistry{}, fmt.Errorf(
-				"note conflict: %q declared in both %s and %s — rename one or declare a local override in the Catalog's notes: block",
+				"note conflict: %q is declared differently in %s and %s — rename one or declare a local override in the Catalog's notes: block",
 				n.Name, prev, srcLabel,
 			)
 		}
@@ -159,4 +164,14 @@ func isIdentByte(b byte) bool {
 // Empty reports whether the registry contains no notes.
 func (nr NoteRegistry) Empty() bool {
 	return len(nr.Functions) == 0
+}
+
+// find returns the function named name, if present.
+func (nr NoteRegistry) find(name string) (UserDefinedNote, bool) {
+	for _, n := range nr.Functions {
+		if n.Name == name {
+			return n, true
+		}
+	}
+	return UserDefinedNote{}, false
 }

@@ -26,33 +26,33 @@ func (i Instance) String() string {
 // ── Inrun Config ─────────────────────────────────────────────────────────
 
 // SetName sets the configured name for this Inrun instance.
-func (k *inrunConfig) SetName(v string) {
-	k.name = v
+func (c *inrunConfig) SetName(v string) {
+	c.name = v
 }
 
 // Name returns the configured name for this Inrun instance.
-func (k *inrunConfig) Name() string {
-	return k.name
+func (c *inrunConfig) Name() string {
+	return c.name
 }
 
 // Instance returns the configured Instance (runtime or gateway) for this config.
-func (k *inrunConfig) Instance() Instance {
-	return k.instance
+func (c *inrunConfig) Instance() Instance {
+	return c.instance
 }
 
 // ShortName returns the short name used for display or compact identifiers.
-func (k *inrunConfig) ShortName() string {
-	return k.shortName
+func (c *inrunConfig) ShortName() string {
+	return c.shortName
 }
 
 // Environment returns the environment label (dev, staging, production, etc.).
-func (k *inrunConfig) Environment() string {
-	return k.environment
+func (c *inrunConfig) Environment() string {
+	return c.environment
 }
 
 // LogLevel returns the configured logging level for the process.
-func (k *inrunConfig) LogLevel() string {
-	return k.logLevel
+func (c *inrunConfig) LogLevel() string {
+	return c.logLevel
 }
 
 // ── Leader Election ───────────────────────────────────────────────────────────

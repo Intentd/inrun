@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: website-with-serviceaccount
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     Adds a ServiceAccount to the website operator.

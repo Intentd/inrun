@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/tools/generate"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/tools/generate"
 	"github.com/spf13/cobra"
 )
 
@@ -221,23 +221,23 @@ package main
 import (
     "context"
 
-    "github.com/inrundev/inrun/cmd/cli"
-    "github.com/inrundev/inrun/pkg/config"
-    "github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/utils"
+    "github.com/intentd/inrun/cmd/cli"
+    "github.com/intentd/inrun/pkg/config"
+    "github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/utils"
 
     %s
 )
 
 func main() {
-    kfg, err := config.Init()
+    cfg, err := config.Init()
     if err != nil {
         logger.Fatal().AnErr("failed to load configurations", err)
         utils.Exit(err)
     }
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
-    cli.Execute(kfg, ctx)
+    cli.Execute(cfg, ctx)
 }`, timestamp, importLine)
 
 	if dryRun {

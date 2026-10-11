@@ -37,8 +37,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils/common"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/client-go/kubernetes"
 )
 

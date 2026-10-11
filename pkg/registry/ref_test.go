@@ -11,14 +11,14 @@ func TestExtractTagVersion(t *testing.T) {
 		{"postgres:v14", "v14"},
 		{"redis:7.0.1", "7.0.1"},
 		// registry host + path
-		{"ghcr.io/inrundev/postgres:v0.1.0", "v0.1.0"},
-		{"oci://ghcr.io/inrundev/postgres:v0.1.0", "v0.1.0"},
+		{"ghcr.io/intentd/postgres:v0.1.0", "v0.1.0"},
+		{"oci://ghcr.io/intentd/postgres:v0.1.0", "v0.1.0"},
 		// no tag
 		{"postgres", ""},
-		{"ghcr.io/inrundev/postgres", ""},
+		{"ghcr.io/intentd/postgres", ""},
 		// digest refs (should ignore digest)
-		{"ghcr.io/inrundev/postgres@sha256:abcdef", ""},
-		{"ghcr.io/inrundev/postgres:v0.1.0@sha256:abcdef", "v0.1.0"},
+		{"ghcr.io/intentd/postgres@sha256:abcdef", ""},
+		{"ghcr.io/intentd/postgres:v0.1.0@sha256:abcdef", "v0.1.0"},
 		// edge cases with multiple colons (ports in host)
 		{"localhost:5000/postgres:v2", "v2"},
 		{"localhost:5000/postgres", ""},

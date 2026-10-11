@@ -1,24 +1,31 @@
-package kubeclient
+package domain
 
 import (
 	"testing"
 )
 
 func TestArgs_String(t *testing.T) {
-	a := Args{"key": "hello", "other": 42}
+	a := Args{"key": "hello", "other": 42, "flag": true, "sub": map[string]interface{}{"x": 1}}
 	if got := a.String("key"); got != "hello" {
 		t.Errorf("String(key) = %q, want %q", got, "hello")
 	}
 	if got := a.String("missing"); got != "" {
 		t.Errorf("String(missing) = %q, want empty", got)
 	}
-	if got := a.String("other"); got != "" {
-		t.Errorf("String(other) = %q, want empty (wrong type)", got)
+	// Template args are coerced ("true" → bool), so scalars read back as text.
+	if got := a.String("other"); got != "42" {
+		t.Errorf("String(other) = %q, want %q", got, "42")
+	}
+	if got := a.String("flag"); got != "true" {
+		t.Errorf("String(flag) = %q, want %q", got, "true")
+	}
+	if got := a.String("sub"); got != "" {
+		t.Errorf("String(sub) = %q, want empty (map)", got)
 	}
 }
 
 func TestArgs_Bool(t *testing.T) {
-	a := Args{"enabled": true, "disabled": false, "str": "true"}
+	a := Args{"enabled": true, "disabled": false, "str": "true", "junk": "yes"}
 	if !a.Bool("enabled") {
 		t.Error("Bool(enabled) = false, want true")
 	}
@@ -28,9 +35,11 @@ func TestArgs_Bool(t *testing.T) {
 	if a.Bool("missing") {
 		t.Error("Bool(missing) = true, want false")
 	}
-	// string "true" is not a bool — returns zero value
-	if a.Bool("str") {
-		t.Error("Bool(str) = true, want false (wrong type)")
+	if !a.Bool("str") {
+		t.Error(`Bool(str) = false, want true (parsed from "true")`)
+	}
+	if a.Bool("junk") {
+		t.Error("Bool(junk) = true, want false (not a boolean)")
 	}
 }
 
@@ -81,14 +90,14 @@ func TestArgs_Slice(t *testing.T) {
 	}
 }
 
-func TestArgs_BindArgs(t *testing.T) {
+func TestArgs_Bind(t *testing.T) {
 	type cfg struct {
 		Region  string `json:"region"`
 		Timeout int    `json:"timeout"`
 	}
 	a := Args{"region": "us-east-1", "timeout": float64(30)}
 	var out cfg
-	if err := a.BindArgs(&out); err != nil {
+	if err := a.Bind(&out); err != nil {
 		t.Fatalf("BindArgs: %v", err)
 	}
 	if out.Region != "us-east-1" {
@@ -96,33 +105,5 @@ func TestArgs_BindArgs(t *testing.T) {
 	}
 	if out.Timeout != 30 {
 		t.Errorf("Timeout = %d, want 30", out.Timeout)
-	}
-}
-
-func TestKubeclient_Args_Empty(t *testing.T) {
-	k := &Kubeclient{}
-	a := k.Args()
-	if a == nil {
-		t.Error("Args() should never return nil")
-	}
-	if len(a) != 0 {
-		t.Errorf("Args() = %v, want empty", a)
-	}
-}
-
-func TestKubeclient_WithArgs(t *testing.T) {
-	k := &Kubeclient{name: "test"}
-	args := Args{"region": "eu-west-1"}
-	kWithArgs := k.WithArgs(args)
-
-	// new instance has the args
-	got := kWithArgs.Args()
-	if got.String("region") != "eu-west-1" {
-		t.Errorf("WithArgs: region = %q, want eu-west-1", got.String("region"))
-	}
-
-	// original is unchanged
-	if len(k.Args()) != 0 {
-		t.Error("WithArgs must not mutate the original Kubeclient")
 	}
 }

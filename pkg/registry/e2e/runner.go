@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/tools/cluster"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/types"
 	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -42,8 +42,10 @@ type Runner struct {
 
 	// Inrun installation options
 	inrunVersion string
-	valueFiles   []string
-	helmArgs     []string
+	// inrunChart is a local chart directory to install instead of the published chart.
+	inrunChart string
+	valueFiles []string
+	helmArgs   []string
 
 	// devServer deploys the mock dev server into the cluster as part of setup.
 	devServer bool
@@ -85,6 +87,7 @@ type Options struct {
 	KindVersion   string   // kind binary version to download ("" = DefaultKindVersion)
 	DevServer     bool     // deploy the mock dev server into the cluster
 	InrunVersion  string   // Inrun helm chart version to install
+	InrunChart    string   // local chart directory to install instead of the published chart
 	ValueFiles    []string // additional Helm values files
 	HelmArgs      []string // additional helm --set arguments
 	ReportFile    string   // write results as markdown to this path (in addition to stdout)
@@ -130,6 +133,7 @@ func New(e2eFile string, opts Options) (*Runner, error) {
 		devServer:        opts.DevServer,
 		reportFile:       opts.ReportFile,
 		inrunVersion:     opts.InrunVersion,
+		inrunChart:       opts.InrunChart,
 		valueFiles:       allValueFiles,
 		helmArgs:         opts.HelmArgs,
 		kubernetesTarget: e2e.Spec.Custom != nil && e2e.Spec.Custom.Target == types.CustomTargetKubernetes,
@@ -346,7 +350,7 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 
 			if !cluster.RuntimeInstalled() {
 				sp := startSpinner("Installing Inrun" + text)
-				if err := cluster.InstallOrUpgradeInrun(r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
+				if err := cluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
 					sp.Failure()
 					return nil, fmt.Errorf("helm install: %w", err)
 				}
@@ -360,7 +364,7 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 				// 2. SyncRuntime — restarts the pod so it loads the new bundle ConfigMap.
 				//    Without this, a values-identical upgrade leaves the old bundle in memory.
 				sp := startSpinner("Upgrading Inrun" + text)
-				if err := cluster.InstallOrUpgradeInrun(r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
+				if err := cluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
 					sp.Failure()
 					return nil, fmt.Errorf("helm upgrade: %w", err)
 				}
@@ -377,7 +381,7 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 						}
 					} else {
 						sp := startSpinner("Upgrading Inrun to enable gateway...")
-						if err := cluster.InstallOrUpgradeInrun(r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
+						if err := cluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
 							sp.Failure()
 							return nil, fmt.Errorf("helm upgrade (gateway): %w", err)
 						}
@@ -1037,9 +1041,9 @@ func (r *Runner) runImports(ctx context.Context) []ImportResult {
 		var sub *Runner
 		var err error
 		if imp.FreshCluster {
-			sub, err = New(absPath, Options{KeepCluster: r.keepCluster, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, ValueFiles: r.valueFiles})
+			sub, err = New(absPath, Options{KeepCluster: r.keepCluster, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, InrunChart: r.inrunChart, ValueFiles: r.valueFiles})
 		} else {
-			sub, err = New(absPath, Options{UseCurrentCtx: true, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, ValueFiles: r.valueFiles})
+			sub, err = New(absPath, Options{UseCurrentCtx: true, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, InrunChart: r.inrunChart, ValueFiles: r.valueFiles})
 			if err == nil {
 				sub.sharedInrun = true
 			}

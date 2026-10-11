@@ -5,10 +5,10 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/inrundev/inrun/pkg/note"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/validate/content"
 )
 
@@ -59,7 +59,7 @@ func validateSecretRef(ref *types.APISecretRef, path string) error {
 }
 
 // validateSecretRefWithCatalogWarning validates ref (name+key) and adds a catalog-level
-// warning when namespace is empty. Pass &e.k.Warnings for gateway-level callers.
+// warning when namespace is empty. Pass &e.cat.Warnings for gateway-level callers.
 func validateSecretRefWithCatalogWarning(ref *types.APISecretRef, path string, warnings *types.Warnings) error {
 	return secretRefNamespaceWarning(ref, path, warnings)
 }

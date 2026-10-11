@@ -3,7 +3,7 @@ package profiles_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/profiles"
 )
 
 func TestPDBProfiles(t *testing.T) {

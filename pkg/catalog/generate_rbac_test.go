@@ -3,9 +3,9 @@ package catalog_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
@@ -20,30 +20,30 @@ func contains(slice []string, s string) bool {
 
 func mustParseTestdata(t *testing.T, name string) *catalog.Catalog {
 	t.Helper()
-	k, err := catalog.ParseFile("testdata/" + name)
+	cat, err := catalog.ParseFile("testdata/" + name)
 	if err != nil {
 		t.Fatalf("ParseFile testdata/%s: %v", name, err)
 	}
-	return k
+	return cat
 }
 
 func TestWebhookResources_NoRules(t *testing.T) {
-	k := mustParseTestdata(t, "webhooks/webhooks-no-rules.yaml")
-	if got := k.WebhookResources(); len(got) != 0 {
+	cat := mustParseTestdata(t, "webhooks/webhooks-no-rules.yaml")
+	if got := cat.WebhookResources(); len(got) != 0 {
 		t.Fatalf("expected no webhook resources, got %v", got)
 	}
 }
 
 func TestWebhookResources_EnabledNoRules(t *testing.T) {
-	k := mustParseTestdata(t, "webhooks/webhooks-no-rules.yaml")
-	if got := k.WebhookResources(); len(got) != 0 {
+	cat := mustParseTestdata(t, "webhooks/webhooks-no-rules.yaml")
+	if got := cat.WebhookResources(); len(got) != 0 {
 		t.Fatalf("expected no webhook resources with admission enabled but no rules, got %v", got)
 	}
 }
 
 func TestWebhookResources_ValidationOnly(t *testing.T) {
-	k := mustParseTestdata(t, "webhooks/webhooks-validation.yaml")
-	got := k.WebhookResources()
+	cat := mustParseTestdata(t, "webhooks/webhooks-validation.yaml")
+	got := cat.WebhookResources()
 	if !contains(got, "validatingwebhookconfigurations") {
 		t.Fatalf("expected validatingwebhookconfigurations, got %v", got)
 	}
@@ -53,8 +53,8 @@ func TestWebhookResources_ValidationOnly(t *testing.T) {
 }
 
 func TestWebhookResources_MutationOnly(t *testing.T) {
-	k := mustParseTestdata(t, "webhooks/webhooks-mutation.yaml")
-	got := k.WebhookResources()
+	cat := mustParseTestdata(t, "webhooks/webhooks-mutation.yaml")
+	got := cat.WebhookResources()
 	if !contains(got, "mutatingwebhookconfigurations") {
 		t.Fatalf("expected mutatingwebhookconfigurations, got %v", got)
 	}
@@ -64,16 +64,16 @@ func TestWebhookResources_MutationOnly(t *testing.T) {
 }
 
 func TestWebhookResources_BothValidationAndMutation(t *testing.T) {
-	k := mustParseTestdata(t, "webhooks/webhooks-both.yaml")
-	got := k.WebhookResources()
+	cat := mustParseTestdata(t, "webhooks/webhooks-both.yaml")
+	got := cat.WebhookResources()
 	if !contains(got, "validatingwebhookconfigurations") || !contains(got, "mutatingwebhookconfigurations") {
 		t.Fatalf("expected both webhook resources, got %v", got)
 	}
 }
 
 func TestGenerateRBACRules_CustomResources(t *testing.T) {
-	k := mustParseTestdata(t, "rbac/custom-rbac.yaml")
-	rules := k.GenerateRBACRules()
+	cat := mustParseTestdata(t, "rbac/custom-rbac.yaml")
+	rules := cat.GenerateRBACRules()
 
 	want := map[string]string{
 		"issuers":      "cert-manager.io",
@@ -94,8 +94,8 @@ func TestGenerateRBACRules_CustomResources(t *testing.T) {
 }
 
 func TestGenerateRBACRules_CustomResources_Dedup(t *testing.T) {
-	k := mustParseTestdata(t, "rbac/custom-rbac-dedup.yaml")
-	rules := k.GenerateRBACRules()
+	cat := mustParseTestdata(t, "rbac/custom-rbac-dedup.yaml")
+	rules := cat.GenerateRBACRules()
 
 	count := 0
 	for _, r := range rules {
@@ -157,12 +157,12 @@ func hasRuleForGroup(rules []rbacv1.PolicyRule, group string) bool {
 // ── GenerateGatewayRBACRules — cluster routing filter ────────────────────────
 
 func TestGenerateGatewayRBACRules_LocalCRDIncluded(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"widget": newWidgetCRD(""), // no cluster = local
 	})
-	k.Gateway = gatewayWithClusters("prod")
+	cat.Gateway = gatewayWithClusters("prod")
 
-	rules := k.GenerateGatewayRBACRules()
+	rules := cat.GenerateGatewayRBACRules()
 	found := false
 	for _, r := range rules {
 		if contains(r.APIGroups, "example.io") && contains(r.Resources, "widgets") {
@@ -176,12 +176,12 @@ func TestGenerateGatewayRBACRules_LocalCRDIncluded(t *testing.T) {
 }
 
 func TestGenerateGatewayRBACRules_RemoteCRDExcluded(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"widget": newWidgetCRD("prod"), // static remote cluster
 	})
-	k.Gateway = gatewayWithClusters("prod")
+	cat.Gateway = gatewayWithClusters("prod")
 
-	rules := k.GenerateGatewayRBACRules()
+	rules := cat.GenerateGatewayRBACRules()
 	for _, r := range rules {
 		if contains(r.APIGroups, "example.io") && contains(r.Resources, "widgets") {
 			t.Error("remote-routed CRD should NOT appear in GenerateGatewayRBACRules, but it did")
@@ -192,23 +192,23 @@ func TestGenerateGatewayRBACRules_RemoteCRDExcluded(t *testing.T) {
 // ── GenerateGatewayClusterRBACRules ──────────────────────────────────────────
 
 func TestGenerateGatewayClusterRBACRules_NoClusters(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"widget": newWidgetCRD("prod"),
 	})
 	// No Gateway configured.
-	rules, warns := k.GenerateGatewayClusterRBACRules()
+	rules, warns := cat.GenerateGatewayClusterRBACRules()
 	if rules != nil || warns != nil {
 		t.Errorf("expected nil, nil when no clusters registered; got rules=%v warns=%v", rules, warns)
 	}
 }
 
 func TestGenerateGatewayClusterRBACRules_StaticCluster(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"widget": newWidgetCRD("prod"),
 	})
-	k.Gateway = gatewayWithClusters("prod", "staging")
+	cat.Gateway = gatewayWithClusters("prod", "staging")
 
-	clusterRules, warns := k.GenerateGatewayClusterRBACRules()
+	clusterRules, warns := cat.GenerateGatewayClusterRBACRules()
 
 	if len(warns) != 0 {
 		t.Errorf("expected no template warnings, got %v", warns)
@@ -237,12 +237,12 @@ func TestGenerateGatewayClusterRBACRules_StaticCluster(t *testing.T) {
 }
 
 func TestGenerateGatewayClusterRBACRules_LocalCRDNotInClusterMap(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"widget": newWidgetCRD(""), // local
 	})
-	k.Gateway = gatewayWithClusters("prod")
+	cat.Gateway = gatewayWithClusters("prod")
 
-	clusterRules, _ := k.GenerateGatewayClusterRBACRules()
+	clusterRules, _ := cat.GenerateGatewayClusterRBACRules()
 	if len(clusterRules) != 0 {
 		t.Errorf("local-routed CRD should produce no cluster RBAC entries, got %v", clusterRules)
 	}
@@ -262,10 +262,10 @@ func TestGenerateGatewayClusterRBACRules_TargetOverride(t *testing.T) {
 			},
 		},
 	}
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": widget})
-	k.Gateway = gatewayWithClusters("prod", "staging")
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": widget})
+	cat.Gateway = gatewayWithClusters("prod", "staging")
 
-	clusterRules, warns := k.GenerateGatewayClusterRBACRules()
+	clusterRules, warns := cat.GenerateGatewayClusterRBACRules()
 
 	if len(warns) != 0 {
 		t.Errorf("expected no template warnings, got %v", warns)
@@ -297,10 +297,10 @@ func TestGenerateGatewayClusterRBACRules_TemplateCluster(t *testing.T) {
 			Clusters: []string{`{{ if eq .request.env "prod" }}prod{{ else }}staging{{ end }}`},
 		},
 	}
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": widget})
-	k.Gateway = gatewayWithClusters("prod", "staging")
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": widget})
+	cat.Gateway = gatewayWithClusters("prod", "staging")
 
-	clusterRules, warns := k.GenerateGatewayClusterRBACRules()
+	clusterRules, warns := cat.GenerateGatewayClusterRBACRules()
 
 	if len(warns) == 0 {
 		t.Error("expected a template warning for Widget, got none")
@@ -362,10 +362,10 @@ func remoteCRD(endpoint, secretName string, resources []domain.ManagedResource) 
 		APITypes: types.APITypes{Group: "example.io", Version: "v1alpha1", Kind: "Widget", Plural: "widgets"},
 		OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
+				ManagedResources: resources,
 				Remote: &types.RemoteReconcilerDeclaration{
-					Endpoint:         endpoint,
-					ManagedResources: resources,
-					Auth:             auth,
+					Endpoint: endpoint,
+					Auth:     auth,
 				},
 			},
 		},
@@ -377,14 +377,14 @@ func TestGenerateRBACRules_RemoteManagedResources(t *testing.T) {
 	crd := remoteCRD("https://svc/reconcile", "", []domain.ManagedResource{
 		{Group: "apps", Version: "v1", Plural: "deployments"},
 	})
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": crd})
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": crd})
 
 	for _, tc := range []struct {
 		name  string
 		rules []rbacv1.PolicyRule
 	}{
-		{"GenerateRBACRules", k.GenerateRBACRules()},
-		{"GenerateRuntimeRBACRules", k.GenerateRuntimeRBACRules()},
+		{"GenerateRBACRules", cat.GenerateRBACRules()},
+		{"GenerateRuntimeRBACRules", cat.GenerateRuntimeRBACRules()},
 	} {
 		found := false
 		for _, r := range tc.rules {
@@ -402,8 +402,8 @@ func TestGenerateRBACRules_RemoteManagedResources(t *testing.T) {
 // Static remote auth.secretRef → scoped rule.
 func TestGenerateRuntimeRBACRules_RemoteSecretRef_Static(t *testing.T) {
 	crd := remoteCRD("https://svc/reconcile", "my-token", nil)
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": crd})
-	rules := k.GenerateRuntimeRBACRules()
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": crd})
+	rules := cat.GenerateRuntimeRBACRules()
 
 	if !hasSecretRuleScoped(rules, "my-token") {
 		t.Error("expected scoped secrets rule for 'my-token'")
@@ -416,8 +416,8 @@ func TestGenerateRuntimeRBACRules_RemoteSecretRef_Static(t *testing.T) {
 // Template remote auth.secretRef → unscoped rule only.
 func TestGenerateRuntimeRBACRules_RemoteSecretRef_Template(t *testing.T) {
 	crd := remoteCRD("https://svc/reconcile", `{{ .request.token }}`, nil)
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": crd})
-	rules := k.GenerateRuntimeRBACRules()
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"widget": crd})
+	rules := cat.GenerateRuntimeRBACRules()
 
 	if !hasSecretRuleUnscoped(rules) {
 		t.Error("expected unscoped secrets rule for template ref")
@@ -426,11 +426,11 @@ func TestGenerateRuntimeRBACRules_RemoteSecretRef_Template(t *testing.T) {
 
 // Mixed: one static CRD + one template CRD → both a scoped rule and an unscoped rule.
 func TestGenerateRuntimeRBACRules_RemoteSecretRef_Mixed(t *testing.T) {
-	k := catalog.NewCatalogForTest(map[string]types.CRDEntry{
+	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{
 		"static-crd":   remoteCRD("https://svc/reconcile", "static-token", nil),
 		"template-crd": remoteCRD("https://svc2/reconcile", `{{ .request.token }}`, nil),
 	})
-	rules := k.GenerateRuntimeRBACRules()
+	rules := cat.GenerateRuntimeRBACRules()
 
 	if !hasSecretRuleScoped(rules, "static-token") {
 		t.Error("expected scoped secrets rule for 'static-token' even when template ref exists")
@@ -442,8 +442,8 @@ func TestGenerateRuntimeRBACRules_RemoteSecretRef_Mixed(t *testing.T) {
 
 // Gateway API token with static secretRef → scoped get/create rule.
 func TestGenerateGatewayRBACRules_GatewaySecretRef_Static(t *testing.T) {
-	k := catalog.NewCatalogForTest(nil)
-	k.Gateway = &types.GatewayConfig{
+	cat := catalog.NewCatalogForTest(nil)
+	cat.Gateway = &types.GatewayConfig{
 		Enabled: true,
 		API: &types.GatewayAPIConfig{
 			Enabled: true,
@@ -455,24 +455,37 @@ func TestGenerateGatewayRBACRules_GatewaySecretRef_Static(t *testing.T) {
 		},
 	}
 
-	rules := k.GenerateGatewayRBACRules()
+	rules := cat.GenerateGatewayRBACRules()
 
-	hasScoped := false
+	// get is scoped to the name; create cannot be (Kubernetes never
+	// authorizes create by resource name), so it is a rule of its own.
+	hasScopedGet, hasCreate := false, false
 	for _, r := range rules {
-		if contains(r.Resources, "secrets") && contains(r.Verbs, "create") && contains(r.ResourceNames, "gw-token") {
-			hasScoped = true
-			break
+		if !contains(r.Resources, "secrets") {
+			continue
+		}
+		if contains(r.Verbs, "get") && contains(r.ResourceNames, "gw-token") {
+			hasScopedGet = true
+		}
+		if contains(r.Verbs, "create") {
+			if len(r.ResourceNames) > 0 {
+				t.Errorf("create must not be scoped by resourceNames: %v", r.ResourceNames)
+			}
+			hasCreate = true
 		}
 	}
-	if !hasScoped {
-		t.Error("expected scoped secrets get/create rule for gateway static secretRef")
+	if !hasScopedGet {
+		t.Error("expected secrets get scoped to gw-token")
+	}
+	if !hasCreate {
+		t.Error("expected secrets create for token bootstrap")
 	}
 }
 
 // Gateway API token with template secretRef → unscoped get/create rule.
 func TestGenerateGatewayRBACRules_GatewaySecretRef_Template(t *testing.T) {
-	k := catalog.NewCatalogForTest(nil)
-	k.Gateway = &types.GatewayConfig{
+	cat := catalog.NewCatalogForTest(nil)
+	cat.Gateway = &types.GatewayConfig{
 		Enabled: true,
 		API: &types.GatewayAPIConfig{
 			Enabled: true,
@@ -484,7 +497,7 @@ func TestGenerateGatewayRBACRules_GatewaySecretRef_Template(t *testing.T) {
 		},
 	}
 
-	rules := k.GenerateGatewayRBACRules()
+	rules := cat.GenerateGatewayRBACRules()
 
 	hasUnscoped := false
 	for _, r := range rules {
@@ -500,8 +513,8 @@ func TestGenerateGatewayRBACRules_GatewaySecretRef_Template(t *testing.T) {
 
 // Gateway API: one static + one template → both rules emitted.
 func TestGenerateGatewayRBACRules_GatewaySecretRef_Mixed(t *testing.T) {
-	k := catalog.NewCatalogForTest(nil)
-	k.Gateway = &types.GatewayConfig{
+	cat := catalog.NewCatalogForTest(nil)
+	cat.Gateway = &types.GatewayConfig{
 		Enabled: true,
 		API: &types.GatewayAPIConfig{
 			Enabled: true,
@@ -514,17 +527,17 @@ func TestGenerateGatewayRBACRules_GatewaySecretRef_Mixed(t *testing.T) {
 		},
 	}
 
-	rules := k.GenerateGatewayRBACRules()
+	rules := cat.GenerateGatewayRBACRules()
 
 	hasScoped, hasUnscoped := false, false
 	for _, r := range rules {
-		if !contains(r.Resources, "secrets") || !contains(r.Verbs, "create") {
+		if !contains(r.Resources, "secrets") {
 			continue
 		}
-		if contains(r.ResourceNames, "static-gw") {
+		if contains(r.Verbs, "get") && contains(r.ResourceNames, "static-gw") {
 			hasScoped = true
 		}
-		if len(r.ResourceNames) == 0 {
+		if contains(r.Verbs, "create") && len(r.ResourceNames) == 0 {
 			hasUnscoped = true
 		}
 	}
@@ -548,10 +561,10 @@ func TestGenerateGatewayClusterRBACRules_MultiCRD(t *testing.T) {
 			Serve:    &types.ServeConfig{Enabled: true}, // local
 		},
 	}
-	k := catalog.NewCatalogForTest(crds)
-	k.Gateway = gatewayWithClusters("prod", "staging")
+	cat := catalog.NewCatalogForTest(crds)
+	cat.Gateway = gatewayWithClusters("prod", "staging")
 
-	clusterRules, warns := k.GenerateGatewayClusterRBACRules()
+	clusterRules, warns := cat.GenerateGatewayClusterRBACRules()
 
 	if len(warns) != 0 {
 		t.Errorf("expected no template warnings, got %v", warns)

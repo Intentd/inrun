@@ -44,6 +44,19 @@ kubectl get deployment my-webapp
 kubectl get service my-webapp-svc
 ```
 
+### 4a. Prune
+
+The Catalog sets `prune.enabled`, so a child the reconciler stops returning is
+deleted. Turn off `expose` and the reconcilers leave the Service out:
+
+```bash
+kubectl patch webapp my-webapp --type merge -p '{"spec":{"expose":false}}'
+```
+
+```bash
+kubectl get service my-webapp-svc   # NotFound after the next reconcile
+```
+
 ### 4b. Another language
 
 Stop the bash reconciler and start one of these instead. The Catalog does not
@@ -59,20 +72,27 @@ RECONCILER_TOKEN=inrun-demo-token go run reconciler/main.go
 
 ## The contract
 
-Inrun POSTs the CR (with `managedFields` stripped) and the evaluated `args`:
+Inrun POSTs the CR's identity, the CR itself (with `managedFields` stripped) and the evaluated `args`:
 
 ```json
-{ "key": "default/my-webapp", "gvk": {...}, "object": {...},
+{ "key": "default/my-webapp",
+  "apiVersion": "migration.demo.inrun.dev/v1alpha1", "kind": "WebApp",
+  "object": {...},
   "args": { "logLevel": "info", "environment": "development", "appName": "my-webapp" } }
 ```
 
-The reconciler returns status and resources in intent form: a built-in `type`
-and flat `fields`. Inrun builds the objects, sets owner references and
-applies them.
+`target` is added when the CR came through a serve target, and `children` when `request.children` is set. `finalizing: true` is added while the CR is being deleted: Inrun's finalizer holds it until the reconciler replies without a requeue, and resources, labels and annotations in that reply are ignored. A reconciler with nothing to clean up outside the cluster just replies `ok`. `request.object.exclude` removes paths from `object`; nothing else in the body carries the CR.
+
+The reconciler returns status, labels and annotations for the WebApp, and
+resources in intent form: a built-in `type` and flat `fields`. Inrun builds the
+objects, sets owner references and applies them. With `reconcile.prune.enabled`,
+a child it applied before and no longer finds in `resources` is deleted.
 
 ```json
 { "result": "ok",
   "status": { "phase": "Running" },
+  "labels": { "environment": "development" },
+  "annotations": { "webapp.example.com/image": "nginx:latest" },
   "resources": [
     { "type": "deployment", "fields": { "name": "my-webapp", "image": "nginx:latest", "replicas": 1, "port": 80 } },
     { "type": "service",    "fields": { "name": "my-webapp-svc", "port": 80, "targetPort": 80 } } ] }

@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: webapp-ctrlruntime
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     WebApp operator — reconciler written in controller-runtime style.
@@ -22,17 +22,20 @@ spec:
         plural: webapps
         object: WebApp
         objectList: WebAppList
-        location: github.com/inrundev/inrun-ctrlruntime-constructor/api/v1alpha1
+        location: github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1
         alias: webappv1
       operatorBox:
         reconcile:
           default: false
+          # The reconciler creates both through the controller-runtime client;
+          # Inrun generates RBAC for exactly these kinds.
+          managedResources:
+            - kind: Deployment
+            - kind: ConfigMap
           constructor:
-            location: github.com/inrundev/inrun-ctrlruntime-constructor/constructor
+            location: github.com/intentd/inrun-ctrlruntime-constructor/constructor
             function: NewWebAppReconciler
             alias: webappconstructor
-            managedResources:
-              - kind: Deployment
           workers: 2
           resync: 30s
         observe:
@@ -40,8 +43,8 @@ spec:
             - apiVersion: v1
               kind: ConfigMap
               index:
-                - name: metadata.labels.app
-                  field: "metadata.labels.app"
+                - name: app
+                  field: "metadata.name"
         preReconcile:
           reconcileGate:
             eventAware: true

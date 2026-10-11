@@ -23,7 +23,7 @@ The `Reconcile` method is completely untouched. No signature change, no return
 type change, no call-site rewrites. Bring an existing controller-runtime
 reconciler, write two lines in a constructor, and it runs in Inrun.
 
-**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/inrundev/inrun#getting-started)
+**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/intentd/inrun#getting-started)
 
 ---
 

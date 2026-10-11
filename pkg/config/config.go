@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -14,7 +14,7 @@ func Init(filenames ...string) (*Config, error) {
 	_ = godotenv.Load(filenames...)
 	ns := resolveNamespace()
 
-	kfg := &Config{
+	cfg := &Config{
 		inrun: inrunConfig{
 			name:        Name,
 			shortName:   CLI,
@@ -101,14 +101,14 @@ func Init(filenames ...string) (*Config, error) {
 	}
 
 	// normalize environment
-	kfg.normalizeEnvironment()
+	cfg.normalizeEnvironment()
 
 	// validate struct
-	if err := Validate().Struct(kfg); err != nil {
+	if err := Validate().Struct(cfg); err != nil {
 		return nil, err
 	}
 
-	return kfg, nil
+	return cfg, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -116,20 +116,20 @@ func Init(filenames ...string) (*Config, error) {
 // SetInstance sets the active Inrun instance name (runtime or gateway)
 // on the Config. This controls which service name is used when resolving
 // endpoints and wiring.
-func (k *Config) SetInstance(instance Instance) {
-	k.inrun.instance = instance
+func (c *Config) SetInstance(instance Instance) {
+	c.inrun.instance = instance
 }
 
 // IsRuntimeInstance reports whether the active instance is the internal
 // Inrun runtime service.
-func (k *Config) IsRuntimeInstance() bool {
-	return k.inrun.instance == InstanceRuntime
+func (c *Config) IsRuntimeInstance() bool {
+	return c.inrun.instance == InstanceRuntime
 }
 
 // IsGatewayInstance reports whether the active instance is the external
 // Inrun gateway service.
-func (k *Config) IsGatewayInstance() bool {
-	return k.inrun.instance == InstanceGateway
+func (c *Config) IsGatewayInstance() bool {
+	return c.inrun.instance == InstanceGateway
 }
 
 // GetStrEnv returns the string value of an env

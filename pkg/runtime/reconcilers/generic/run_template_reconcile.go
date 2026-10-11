@@ -15,13 +15,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/runtime/runners"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/runtime/runners"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // runTemplateReconcile interprets the Catalog's onCreate and onReconcile blocks.
@@ -86,8 +86,8 @@ func (r *Reconciler[PTR]) runResourceGroup(
 	guard := r.namespaceGuardFunc()
 
 	labelMgr := labels.NewManager(labels.Config{
-		Standalone:                r.kat.IsStandaloneGateway(),
-		DeletionProtectionEnabled: r.kat.IsDeletionProtectionEnabled(),
+		Standalone:                r.cat.IsStandaloneGateway(),
+		DeletionProtectionEnabled: r.cat.IsDeletionProtectionEnabled(),
 	})
 
 	// Create namespaces first
@@ -138,7 +138,7 @@ func (r *Reconciler[PTR]) runResourceGroup(
 	}
 	if err := runCustomResources(ctx, kube, resolver, obj,
 		children.ExpandForEachCustomResources(resolver, t.CustomResource), update, guard, labelMgr,
-		r.kat.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
+		r.cat.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
 		return err
 	}
 	if err := runners.RunReplicaSets(ctx, kube, resolver, obj,
@@ -219,12 +219,6 @@ func (r *Reconciler[PTR]) runTemplateOnDelete(ctx context.Context, resolver *tem
 				}
 			}
 		}
-	}
-
-	// Cluster-scoped resources cannot have namespace-scoped owners, so GC never cleans them up.
-	// Always run explicit cleanup regardless of ordered/unordered path.
-	if err := runners.DeleteOwnedClusterScopedResources(ctx, kube, resolver, obj, box); err != nil {
-		return fmt.Errorf("cluster-scoped resource cleanup: %w", err)
 	}
 
 	return nil

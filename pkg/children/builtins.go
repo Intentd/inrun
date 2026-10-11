@@ -19,7 +19,7 @@
 package children
 
 import (
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -491,7 +491,7 @@ var builtInRegistry = map[string]BuiltInKind{
 }
 
 func (b BuiltInKind) APIVersion() schema.GroupVersion {
-	gvk, _ := GVKForBuiltIn(b.Kind)
+	gvk, _ := GVKForBuiltInByKind(b.Kind)
 	return gvk.GroupVersion()
 }
 

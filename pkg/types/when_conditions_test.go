@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func buildData(spec map[string]interface{}) map[string]interface{} {

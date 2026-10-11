@@ -38,6 +38,17 @@ spec:
           name: my-webapp
           namespace: default
 
+    - name: Inrun's finalizer on the CR
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.finalizers[0]
+            equals: inrun.dev/cleanup
+
     - name: Status written by reconciler
       after: cr-applied
       timeout: 60s
@@ -53,6 +64,22 @@ spec:
             namespace: default
             field: .status.endpoint
             equals: my-webapp-svc.default.svc.cluster.local
+
+    - name: Labels and annotations set on the CR
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.labels.environment
+            equals: development
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.annotations.webapp\.example\.com/image
+            equals: nginx:1.25
 
     - name: Deployment created and ready
       after: cr-applied
@@ -114,6 +141,24 @@ spec:
           - labelSelector: app=webapp-reconciler
             namespace: default
             outputContains: key=default/my-webapp
+
+    - name: Prune — Service deleted when the reconciler stops returning it
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        patch:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            patch: '{"spec":{"expose":false}}'
+      resources:
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+          count: 0
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
 
     - name: Garbage collection on CR delete
       after: cr-deleted

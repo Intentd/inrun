@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/tools/generate"
+	"github.com/intentd/inrun/pkg/tools/generate"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 

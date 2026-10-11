@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // crd builds a map entry for use in test Catalog construction.
@@ -34,8 +34,8 @@ func dep(name string, deps ...string) types.CRDEntry {
 // ── No dependencies ───────────────────────────────────────────────────────────
 
 func TestDependencyGraph_StartupOrder_NoDeps_SingleCRD(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(dep("website"))}
-	order := NewDependencyGraph(k).StartupOrder()
+	cat := &Catalog{enabledCRDs: crdMap(dep("website"))}
+	order := NewDependencyGraph(cat).StartupOrder()
 
 	if len(order) != 1 || order[0] != "website" {
 		t.Errorf("expected [website], got %v", order)
@@ -44,8 +44,8 @@ func TestDependencyGraph_StartupOrder_NoDeps_SingleCRD(t *testing.T) {
 
 func TestDependencyGraph_StartupOrder_NoDeps_MultiCRD_IsSorted(t *testing.T) {
 	// No dependencies → alphabetical order (deterministic).
-	k := &Catalog{enabledCRDs: crdMap(dep("zebra"), dep("apple"), dep("mango"))}
-	order := NewDependencyGraph(k).StartupOrder()
+	cat := &Catalog{enabledCRDs: crdMap(dep("zebra"), dep("apple"), dep("mango"))}
+	order := NewDependencyGraph(cat).StartupOrder()
 
 	expected := []string{"apple", "mango", "zebra"}
 	if !reflect.DeepEqual(order, expected) {
@@ -57,12 +57,12 @@ func TestDependencyGraph_StartupOrder_NoDeps_MultiCRD_IsSorted(t *testing.T) {
 
 func TestDependencyGraph_StartupOrder_LinearChain(t *testing.T) {
 	// database → cache → application (database starts first)
-	k := &Catalog{enabledCRDs: crdMap(
+	cat := &Catalog{enabledCRDs: crdMap(
 		dep("application", "cache"),
 		dep("cache", "database"),
 		dep("database"),
 	)}
-	order := NewDependencyGraph(k).StartupOrder()
+	order := NewDependencyGraph(cat).StartupOrder()
 
 	assertBefore(t, order, "database", "cache")
 	assertBefore(t, order, "cache", "application")
@@ -71,12 +71,12 @@ func TestDependencyGraph_StartupOrder_LinearChain(t *testing.T) {
 // ── Fan-out ───────────────────────────────────────────────────────────────────
 
 func TestDependencyGraph_StartupOrder_FanOut(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(
+	cat := &Catalog{enabledCRDs: crdMap(
 		dep("consumer-a", "provider"),
 		dep("consumer-b", "provider"),
 		dep("provider"),
 	)}
-	order := NewDependencyGraph(k).StartupOrder()
+	order := NewDependencyGraph(cat).StartupOrder()
 
 	assertBefore(t, order, "provider", "consumer-a")
 	assertBefore(t, order, "provider", "consumer-b")
@@ -85,12 +85,12 @@ func TestDependencyGraph_StartupOrder_FanOut(t *testing.T) {
 // ── Fan-in ────────────────────────────────────────────────────────────────────
 
 func TestDependencyGraph_StartupOrder_FanIn(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(
+	cat := &Catalog{enabledCRDs: crdMap(
 		dep("app", "db", "cache"),
 		dep("db"),
 		dep("cache"),
 	)}
-	order := NewDependencyGraph(k).StartupOrder()
+	order := NewDependencyGraph(cat).StartupOrder()
 
 	assertBefore(t, order, "db", "app")
 	assertBefore(t, order, "cache", "app")
@@ -99,8 +99,8 @@ func TestDependencyGraph_StartupOrder_FanIn(t *testing.T) {
 // ── ShutdownOrder is reverse of StartupOrder ──────────────────────────────────
 
 func TestDependencyGraph_ShutdownOrder_IsReversedStartup(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(dep("app", "db"), dep("db"))}
-	g := NewDependencyGraph(k)
+	cat := &Catalog{enabledCRDs: crdMap(dep("app", "db"), dep("db"))}
+	g := NewDependencyGraph(cat)
 
 	startup := g.StartupOrder()
 	shutdown := g.ShutdownOrder()
@@ -119,8 +119,8 @@ func TestDependencyGraph_ShutdownOrder_IsReversedStartup(t *testing.T) {
 // ── Accessors ─────────────────────────────────────────────────────────────────
 
 func TestDependencyGraph_GetNode(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(dep("website"))}
-	g := NewDependencyGraph(k)
+	cat := &Catalog{enabledCRDs: crdMap(dep("website"))}
+	g := NewDependencyGraph(cat)
 
 	n := g.GetNode("website")
 	if n == nil {
@@ -132,8 +132,8 @@ func TestDependencyGraph_GetNode(t *testing.T) {
 }
 
 func TestDependencyGraph_InDegree_OutDegree(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(dep("app", "db"), dep("db"))}
-	g := NewDependencyGraph(k)
+	cat := &Catalog{enabledCRDs: crdMap(dep("app", "db"), dep("db"))}
+	g := NewDependencyGraph(cat)
 
 	if g.GetInDegree("db") != 0 {
 		t.Errorf("db inDegree: expected 0, got %d", g.GetInDegree("db"))
@@ -150,20 +150,20 @@ func TestDependencyGraph_InDegree_OutDegree(t *testing.T) {
 }
 
 func TestDependencyGraph_GetDependents(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(
+	cat := &Catalog{enabledCRDs: crdMap(
 		dep("app-a", "db"),
 		dep("app-b", "db"),
 		dep("db"),
 	)}
-	g := NewDependencyGraph(k)
+	g := NewDependencyGraph(cat)
 
 	dependents := g.GetDependents("app-a")
 	_ = dependents // just verify no panic
 }
 
 func TestDependencyGraph_Validate_NoError(t *testing.T) {
-	k := &Catalog{enabledCRDs: crdMap(dep("app", "db"), dep("db"))}
-	g := NewDependencyGraph(k)
+	cat := &Catalog{enabledCRDs: crdMap(dep("app", "db"), dep("db"))}
+	g := NewDependencyGraph(cat)
 	if err := g.Validate(); err != nil {
 		t.Errorf("expected no validation error, got %v", err)
 	}

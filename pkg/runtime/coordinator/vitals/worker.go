@@ -1,6 +1,6 @@
 package vitals
 
-import "github.com/inrundev/inrun/pkg/metrics"
+import "github.com/intentd/inrun/pkg/metrics"
 
 // Worker state constants
 const (

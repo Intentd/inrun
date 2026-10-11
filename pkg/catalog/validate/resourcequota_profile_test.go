@@ -3,7 +3,7 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,50 +23,50 @@ func catalogWithResourceQuota(crdName string, rqs ...types.ResourceQuotaTemplate
 }
 
 func TestValidateResourceQuotaProfiles_NoCRDs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	e := newCatalogExec(map[string]types.CRDEntry{})
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_NoProfile(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{Name: "quota"})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{Name: "quota"})
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_ValidProfile_Small(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Name:    "quota",
 		Profile: "small",
 	})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_ValidProfile_Medium(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Profile: "medium",
 	})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_ValidProfile_Large(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Profile: "large",
 	})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_ValidProfile_XLarge(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Profile: "xlarge",
 	})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_UnknownProfile(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Name:    "quota",
 		Profile: "massive",
 	})
-	err := k.validateResourceQuotaProfiles()
+	err := e.validateResourceQuotaProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown profile")
 	assert.Contains(t, err.Error(), "massive")
@@ -74,29 +74,29 @@ func TestValidateResourceQuotaProfiles_UnknownProfile(t *testing.T) {
 }
 
 func TestValidateResourceQuotaProfiles_MixedWithHard(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Name:    "quota",
 		Profile: "small",
 		Hard:    map[string]string{"pods": "5"},
 	})
-	err := k.validateResourceQuotaProfiles()
+	err := e.validateResourceQuotaProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "explicit hard limits")
 }
 
 func TestValidateResourceQuotaProfiles_TemplateExprSkipped(t *testing.T) {
-	k := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
+	e := catalogWithResourceQuota("app", types.ResourceQuotaTemplateSource{
 		Profile: "{{ .Spec.QuotaProfile }}",
 	})
-	assert.NoError(t, k.validateResourceQuotaProfiles())
+	assert.NoError(t, e.validateResourceQuotaProfiles())
 }
 
 func TestValidateResourceQuotaProfiles_MultipleEntries_OneInvalid(t *testing.T) {
-	k := catalogWithResourceQuota("app",
+	e := catalogWithResourceQuota("app",
 		types.ResourceQuotaTemplateSource{Name: "q1", Profile: "small"},
 		types.ResourceQuotaTemplateSource{Name: "q2", Profile: "unknown-tier"},
 	)
-	err := k.validateResourceQuotaProfiles()
+	err := e.validateResourceQuotaProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown-tier")
 }

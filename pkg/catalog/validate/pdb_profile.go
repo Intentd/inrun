@@ -18,13 +18,13 @@ package validate
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 
-	"github.com/inrundev/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/profiles"
 )
 
 func (e *executor) validatePDBBehaviorProfiles() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectPDBProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue

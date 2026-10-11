@@ -282,9 +282,9 @@ type ServeFieldConfig struct {
 	// Use for maintenance windows or temporarily locked fields.
 	Disabled string `yaml:"disabled,omitempty" json:"disabled,omitempty"`
 
-	// Type is required for labels/annotations entries which have
-	// no CRD schema to infer type from. Ignored for Fields entries, which
-	// always infer type from the CRD's OpenAPI schema.
+	// Type is the value's type: the console renders the matching input and
+	// sends a value of that type. Declare it for any non-string field, spec
+	// fields included; the API server rejects a "2" for an integer spec field.
 	// Supported: string (default), integer, number, boolean, enum.
 	Type string `yaml:"type,omitempty" json:"type,omitempty"`
 

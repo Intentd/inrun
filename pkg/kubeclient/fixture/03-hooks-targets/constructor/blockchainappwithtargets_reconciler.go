@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	apiv1 "github.com/inrundev/inrun-args-hooks-targets/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/deployments"
-	"github.com/inrundev/inrun/pkg/template"
+	apiv1 "github.com/intentd/inrun-args-hooks-targets/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/deployments"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // BlockchainAppWithTargetsReconciler is the per-target constructor reconciler
-// for the BlockchainAppWithTargets CRD. It reads featureEnabled from args
-// (declared in catalog serve.target.<name>.operatorBox.reconciler.constructor.args)
+// for the BlockchainAppWithTargets CRD. It reads featureEnabled from req.Args
+// (declared in catalog serve.target.<name>.operatorBox.reconcile.args)
 // rather than calling a live feature-flag endpoint.
 type BlockchainAppWithTargetsReconciler struct {
 	kube kubeclient.Interface
@@ -40,13 +39,7 @@ func (r *BlockchainAppWithTargetsReconciler) Reconcile(ctx context.Context, req 
 		return domain.Result{}, nil
 	}
 
-	resolver, err := template.NewResolver(ctx, app)
-	if err != nil {
-		return domain.Result{}, fmt.Errorf("building resolver: %w", err)
-	}
-	kube := r.kube.ScopedFor(resolver.TemplateEvaluator())
-
-	featureEnabled := kube.Args().String("featureEnabled")
+	featureEnabled := req.Args().String("featureEnabled")
 
 	annotation := "false"
 	if featureEnabled == "true" {
@@ -68,11 +61,11 @@ func (r *BlockchainAppWithTargetsReconciler) Reconcile(ctx context.Context, req 
 			"inrun.dev/target":        "v2-ctor",
 		},
 	}
-	if err := deployments.Apply(ctx, kube, app, spec); err != nil {
+	if err := deployments.Apply(ctx, r.kube, app, spec); err != nil {
 		return domain.Result{}, fmt.Errorf("blockchainappwithtargets deployment: %w", err)
 	}
 
-	return domain.Result{}, kube.PatchStatus(ctx, app, map[string]any{
+	return domain.Result{}, r.kube.PatchStatus(ctx, app, map[string]any{
 		"phase":          "Running",
 		"network":        app.Spec.Network,
 		"featureEnabled": annotation,

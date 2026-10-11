@@ -5,14 +5,17 @@ package serve
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 var (
@@ -22,23 +25,55 @@ var (
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// readIntentFile reads an intent file, JSON or YAML (see intent.Decode).
+func readIntentFile(path string) (map[string]interface{}, error) {
+	data, err := cmdutil.ReadLocal(path)
+	if err != nil {
+		return nil, err
+	}
+	return intent.Decode(data)
+}
+
+func resolveDefaultIntentFile() string {
+	for _, name := range []string{"intent.yaml", "intent.json"} {
+		if _, err := os.Stat(name); err == nil {
+			return name
+		}
+	}
+	return ""
+}
+
+func namespaceOrAny(ns string) string {
+	if ns == "" {
+		return "(all namespaces)"
+	}
+	return ns
+}
+
+func aliasOrNone(alias string) string {
+	if alias == "" {
+		return cmdutil.Gray("(none)")
+	}
+	return cmdutil.Cyan(alias)
+}
+
 // resolveCRD resolves a CRD by target, kind, or name.
-func resolveCRD(kat *catalog.Catalog, target, kind, name string) (*types.CRDEntry, error) {
+func resolveCRD(cat *catalog.Catalog, target, kind, name string) (*types.CRDEntry, error) {
 	var crd *types.CRDEntry
 
 	switch {
 	case target != "":
-		crd = kat.LookupByTarget(target).Entry()
+		crd = cat.LookupByTarget(target).Entry()
 		if crd == nil {
 			return nil, fmt.Errorf("%s target %q not found", cmdutil.FailureMark(), target)
 		}
 	case kind != "":
-		crd = kat.LookupByKind(kind).Entry()
+		crd = cat.LookupByKind(kind).Entry()
 		if crd == nil {
 			return nil, fmt.Errorf("%s kind %q not found", cmdutil.FailureMark(), kind)
 		}
 	case name != "":
-		crd = kat.LookupByName(name).Entry()
+		crd = cat.LookupByName(name).Entry()
 		if crd == nil {
 			return nil, fmt.Errorf("%s CRD %q not found", cmdutil.FailureMark(), name)
 		}
@@ -52,12 +87,26 @@ func resolveCRD(kat *catalog.Catalog, target, kind, name string) (*types.CRDEntr
 // resolveCRDByAnyTarget resolves a CRD by primary target or alias using
 // LookupByTargetOrAlias. Returns the CRD and the alias name (empty when the
 // primary target matched). Used by can-i so --target accepts alias names too.
-func resolveCRDByAnyTarget(kat *catalog.Catalog, target string) (*types.CRDEntry, string, error) {
-	resolution := kat.LookupByTargetOrAlias(target)
+func resolveCRDByAnyTarget(cat *catalog.Catalog, target string) (*types.CRDEntry, string, error) {
+	resolution := cat.LookupByTargetOrAlias(target)
 	if resolution == nil {
 		return nil, "", fmt.Errorf("%s target or alias %q not found", cmdutil.FailureMark(), target)
 	}
 	return resolution.CRD, resolution.Alias, nil
+}
+
+// checkToken applies the gateway's token check to a named token: it must be
+// declared in gateway.api.auth.tokens (the gateway authenticates nothing
+// else), and the target's serve.tokens, when set, must allow op.
+// returns error when token is not declared or denied
+func checkToken(c *catalog.Catalog, crd *types.CRDEntry, alias, tokenName string, op types.ServeOperation, ns string) error {
+	if declared := c.GatewayTokenNames(); !slices.Contains(declared, tokenName) {
+		return fmt.Errorf("unknown token %q\n  declared in gateway.api.auth.tokens: %s", tokenName, strings.Join(declared, ", "))
+	}
+	if allowed, reason := crd.TokenAllowedFor(alias, tokenName, string(op), ns, types.ServeClassResources); !allowed {
+		return fmt.Errorf("token %q denied: %s", tokenName, reason.Message(tokenName, string(op), crd.Kind(), ns))
+	}
+	return nil
 }
 
 // printCanIResult prints the permission check result.
@@ -193,8 +242,8 @@ func printAliasesForCRD(crd *types.CRDEntry) {
 // ── printServeValidationSummary ──────────────────────────────────────────────
 
 // printServeValidationSummary prints a detailed breakdown of the Serve configuration.
-func printServeValidationSummary(kat *catalog.Catalog) {
-	enabledCRDs := kat.ServeEnabledCRDs()
+func printServeValidationSummary(cat *catalog.Catalog) {
+	enabledCRDs := cat.ServeEnabledCRDs()
 
 	if len(enabledCRDs) == 0 {
 		fmt.Println("\nNo Serve-enabled CRDs found.")
@@ -343,4 +392,25 @@ func printServeValidationSummary(kat *catalog.Catalog) {
 	fmt.Printf("%s Serve configuration is valid\n", cmdutil.SuccessMark())
 	fmt.Printf("  %d Serve-enabled CRD(s)\n", len(enabledCRDs))
 	fmt.Println()
+}
+
+// plural returns one when n is 1, else many.
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
+}
+
+// relPath returns path relative to the working directory when it lies under
+// it, else path unchanged.
+func relPath(path string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return path
+	}
+	if rel, err := filepath.Rel(wd, path); err == nil && !strings.HasPrefix(rel, "..") {
+		return rel
+	}
+	return path
 }

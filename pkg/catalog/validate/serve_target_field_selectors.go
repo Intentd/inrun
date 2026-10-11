@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -18,7 +18,7 @@ import (
 //     — otherwise the target is unreachable via full CR mode.
 //  5. Field selectors must be valid dot-notation paths (e.g., "spec.mealPlan").
 func (e *executor) validateServeFieldSelector() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.ServeEnabled() {
 			continue
 		}
@@ -115,7 +115,7 @@ func (e *executor) validateServeFieldSelector() error {
 		}
 
 		// Store the modified CRD back in the map
-		e.k.EnabledCRDs()[crdName] = crd
+		e.cat.EnabledCRDs()[crdName] = crd
 	}
 	return nil
 }

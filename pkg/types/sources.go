@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // FileSource represents one file source entry.

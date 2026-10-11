@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Helper to create a Catalog with gateway tokens
@@ -70,26 +70,26 @@ func permsWithNamespaces(ops []string, namespaces ...string) types.ServeTokenPer
 }
 
 func TestValidateServeTokenRestrictions_NilServe(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"myresource": {Serve: nil},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_NoTokenRestrictions(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"myresource": {Serve: &types.ServeConfig{Enabled: true}},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_TokenExists_Global(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline", "console")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline", "console")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -98,14 +98,14 @@ func TestValidateServeTokenRestrictions_TokenExists_Global(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_TokenExists_Scoped(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline", "console")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline", "console")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -117,14 +117,14 @@ func TestValidateServeTokenRestrictions_TokenExists_Scoped(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_TokenExists_GlobalWithScopes(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline", "console")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline", "console")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -137,14 +137,14 @@ func TestValidateServeTokenRestrictions_TokenExists_GlobalWithScopes(t *testing.
 			},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_TokenNotFound(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -153,7 +153,7 @@ func TestValidateServeTokenRestrictions_TokenNotFound(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for unknown token")
 	}
@@ -166,8 +166,8 @@ func TestValidateServeTokenRestrictions_TokenNotFound(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_InvalidOperation_Global(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -176,7 +176,7 @@ func TestValidateServeTokenRestrictions_InvalidOperation_Global(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for invalid operation")
 	}
@@ -186,8 +186,8 @@ func TestValidateServeTokenRestrictions_InvalidOperation_Global(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_InvalidOperation_Schema(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -199,7 +199,7 @@ func TestValidateServeTokenRestrictions_InvalidOperation_Schema(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for invalid schema operation")
 	}
@@ -209,8 +209,8 @@ func TestValidateServeTokenRestrictions_InvalidOperation_Schema(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_InvalidOperation_Resources(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -222,7 +222,7 @@ func TestValidateServeTokenRestrictions_InvalidOperation_Resources(t *testing.T)
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for invalid resources operation")
 	}
@@ -232,8 +232,8 @@ func TestValidateServeTokenRestrictions_InvalidOperation_Resources(t *testing.T)
 }
 
 func TestValidateServeTokenRestrictions_DuplicateOperations(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -242,7 +242,7 @@ func TestValidateServeTokenRestrictions_DuplicateOperations(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for duplicate operations")
 	}
@@ -252,8 +252,8 @@ func TestValidateServeTokenRestrictions_DuplicateOperations(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_SchemaNotSubsetOfGlobal(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -266,7 +266,7 @@ func TestValidateServeTokenRestrictions_SchemaNotSubsetOfGlobal(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error when schema is not subset of global")
 	}
@@ -276,8 +276,8 @@ func TestValidateServeTokenRestrictions_SchemaNotSubsetOfGlobal(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_ResourcesNotSubsetOfGlobal(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -290,7 +290,7 @@ func TestValidateServeTokenRestrictions_ResourcesNotSubsetOfGlobal(t *testing.T)
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error when resources is not subset of global")
 	}
@@ -300,8 +300,8 @@ func TestValidateServeTokenRestrictions_ResourcesNotSubsetOfGlobal(t *testing.T)
 }
 
 func TestValidateServeTokenRestrictions_ClassWildcardWithoutGlobalWildcard(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -314,7 +314,7 @@ func TestValidateServeTokenRestrictions_ClassWildcardWithoutGlobalWildcard(t *te
 			},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error when class wildcard exceeds global")
 	}
@@ -324,8 +324,8 @@ func TestValidateServeTokenRestrictions_ClassWildcardWithoutGlobalWildcard(t *te
 }
 
 func TestValidateServeTokenRestrictions_GlobalWildcard(t *testing.T) {
-	k := catalogWithGatewayTokens("admin")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("admin")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -334,7 +334,7 @@ func TestValidateServeTokenRestrictions_GlobalWildcard(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -342,8 +342,8 @@ func TestValidateServeTokenRestrictions_GlobalWildcard(t *testing.T) {
 func TestValidateServeTokenRestrictions_GlobalWildcardWithScopes(t *testing.T) {
 	// When global has "*", class-specific scopes should be ignored.
 	// The validation should not error because global overrides everything.
-	k := catalogWithGatewayTokens("admin")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("admin")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -356,14 +356,14 @@ func TestValidateServeTokenRestrictions_GlobalWildcardWithScopes(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_NamespaceAllowed(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -376,14 +376,14 @@ func TestValidateServeTokenRestrictions_NamespaceAllowed(t *testing.T) {
 			OperatorBox: &types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{AllowedNamespaces: []string{"staging", "production"}}},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_NamespaceNotAllowed(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -396,7 +396,7 @@ func TestValidateServeTokenRestrictions_NamespaceNotAllowed(t *testing.T) {
 			OperatorBox: &types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{AllowedNamespaces: []string{"staging", "production"}}},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for unauthorized namespace")
 	}
@@ -409,8 +409,8 @@ func TestValidateServeTokenRestrictions_NamespaceNotAllowed(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_RestrictedNamespace(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -423,7 +423,7 @@ func TestValidateServeTokenRestrictions_RestrictedNamespace(t *testing.T) {
 			OperatorBox: &types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{RestrictedNamespaces: []string{"restricted-ns", "blocked"}}},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error for restricted namespace")
 	}
@@ -433,8 +433,8 @@ func TestValidateServeTokenRestrictions_RestrictedNamespace(t *testing.T) {
 }
 
 func TestValidateServeTokenRestrictions_MultipleTokens(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline", "console")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline", "console")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -445,14 +445,14 @@ func TestValidateServeTokenRestrictions_MultipleTokens(t *testing.T) {
 			OperatorBox: &types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{AllowedNamespaces: []string{"staging", "production"}}},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_WildcardOperation(t *testing.T) {
-	k := catalogWithGatewayTokens("admin")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("admin")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -461,13 +461,13 @@ func TestValidateServeTokenRestrictions_WildcardOperation(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTokenRestrictions_GatewayNotConfigured(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -477,14 +477,14 @@ func TestValidateServeTokenRestrictions_GatewayNotConfigured(t *testing.T) {
 			Warnings: types.Warnings{},
 		},
 	})
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error when gateway is not configured but serve tokens are defined")
 	}
 }
 
 func TestValidateServeTokenRestrictions_GatewayAuthEmpty(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -494,22 +494,22 @@ func TestValidateServeTokenRestrictions_GatewayAuthEmpty(t *testing.T) {
 			Warnings: types.Warnings{},
 		},
 	})
-	k.k.Gateway = &types.GatewayConfig{
+	e.cat.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{
 			Auth: types.APIAuth{
 				Tokens: []types.APIToken{},
 			},
 		},
 	}
-	err := k.validateServeTokenRestrictions()
+	err := e.validateServeTokenRestrictions()
 	if err == nil {
 		t.Fatal("expected error when gateway auth tokens are empty but serve tokens are defined")
 	}
 }
 
 func TestGatewayTokenNames(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline", "console")
-	names := k.k.GatewayTokenNames()
+	e := catalogWithGatewayTokens("ci-pipeline", "console")
+	names := e.cat.GatewayTokenNames()
 	if len(names) != 2 {
 		t.Fatalf("expected 2 tokens, got %d: %v", len(names), names)
 	}
@@ -519,8 +519,8 @@ func TestGatewayTokenNames(t *testing.T) {
 }
 
 func TestGatewayTokenNames_WithTokens(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline", "console")
-	names := k.k.GatewayTokenNames()
+	e := catalogWithGatewayTokens("ci-pipeline", "console")
+	names := e.cat.GatewayTokenNames()
 
 	if len(names) != 2 {
 		t.Fatalf("expected 2 tokens, got %d: %v", len(names), names)
@@ -534,8 +534,8 @@ func TestGatewayTokenNames_WithTokens(t *testing.T) {
 }
 
 func TestGatewayTokenNames_NoTokens(t *testing.T) {
-	k := catalogWithGatewayTokens() // no tokens
-	names := k.k.GatewayTokenNames()
+	e := catalogWithGatewayTokens() // no tokens
+	names := e.cat.GatewayTokenNames()
 	if names != nil {
 		t.Errorf("expected nil, got %v", names)
 	}
@@ -543,7 +543,7 @@ func TestGatewayTokenNames_NoTokens(t *testing.T) {
 
 func TestGatewayTokenNames_GatewayDisabled(t *testing.T) {
 	// Gateway exists but API is disabled
-	k := newExec(&catalog.Catalog{
+	e := newExec(&catalog.Catalog{
 		Gateway: &types.GatewayConfig{
 			API: &types.GatewayAPIConfig{
 				Enabled: false,
@@ -555,15 +555,15 @@ func TestGatewayTokenNames_GatewayDisabled(t *testing.T) {
 			},
 		},
 	})
-	names := k.k.GatewayTokenNames()
+	names := e.cat.GatewayTokenNames()
 	if names != nil {
 		t.Errorf("expected nil when API disabled, got %v", names)
 	}
 }
 
 func TestValidateServeTokenRestrictions_EmptyPermissionsWarning(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -575,19 +575,19 @@ func TestValidateServeTokenRestrictions_EmptyPermissionsWarning(t *testing.T) {
 			Warnings: types.Warnings{},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	crd := k.k.EnabledCRDs()["myresource"]
+	crd := e.cat.EnabledCRDs()["myresource"]
 	if !crd.Warnings.HasWarnings() {
 		t.Fatal("expected warning for empty permissions")
 	}
 }
 
 func TestValidateServeTokenRestrictions_ClusterScopedCRDWithNamespaces(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
+	e := catalogWithGatewayTokens("ci-pipeline")
 	falsePtr := false
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"clusterresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -601,18 +601,18 @@ func TestValidateServeTokenRestrictions_ClusterScopedCRDWithNamespaces(t *testin
 			Warnings:   types.Warnings{},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	crd := k.k.EnabledCRDs()["clusterresource"]
+	crd := e.cat.EnabledCRDs()["clusterresource"]
 	if !crd.Warnings.HasWarnings() {
 		t.Fatal("expected warning for namespace restrictions on cluster-scoped CRD")
 	}
 }
 
 func TestValidateServeTokenRestrictions_SchemaInheritsInvalidGlobalOpWarning(t *testing.T) {
-	k := catalogWithGatewayTokens("ci-pipeline")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci-pipeline")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Tokens: map[string]types.ServeTokenPermissions{
@@ -624,10 +624,10 @@ func TestValidateServeTokenRestrictions_SchemaInheritsInvalidGlobalOpWarning(t *
 			Warnings: types.Warnings{},
 		},
 	})
-	if err := k.validateServeTokenRestrictions(); err != nil {
+	if err := e.validateServeTokenRestrictions(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	crd := k.k.EnabledCRDs()["myresource"]
+	crd := e.cat.EnabledCRDs()["myresource"]
 	if !crd.Warnings.HasWarnings() {
 		t.Fatal("expected warning for global op not valid on schema endpoints")
 	}

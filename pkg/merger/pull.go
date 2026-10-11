@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // noop cleanup used when serving from cache — nothing to remove.

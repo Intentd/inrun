@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // validateLifecycle checks the lifecycle: block when present.
@@ -21,7 +21,7 @@ import (
 //  6. lifecycle.accept is only valid on a Stack — error on a Catalog.
 //  7. lifecycle.accept.patterns[].version must be a valid semver range when set.
 func (e *executor) validateLifecycle() error {
-	lc := e.k.Lifecycle()
+	lc := e.cat.Lifecycle()
 	if lc == nil {
 		return nil
 	}
@@ -55,15 +55,15 @@ func (e *executor) validateLifecycleMaturity(lc *types.CatalogLifecycle) error {
 	}
 	switch lc.Maturity {
 	case types.MaturityAlpha:
-		e.k.Warnings.AddWarning("lifecycle.maturity is alpha — this pattern is experimental and not recommended for production")
+		e.cat.Warnings.AddWarning("lifecycle.maturity is alpha — this pattern is experimental and not recommended for production")
 	case types.MaturityBeta:
-		e.k.Warnings.AddWarning("lifecycle.maturity is beta — this pattern is stabilising; API may still change")
+		e.cat.Warnings.AddWarning("lifecycle.maturity is beta — this pattern is stabilising; API may still change")
 	case types.MaturityStable:
 		// no warning
 	case types.MaturityDeprecated:
 		if lc.Deprecation == nil {
 			// advisory — the deprecation block is the source of truth
-			e.k.Warnings.AddWarning("lifecycle.maturity is deprecated but lifecycle.deprecation is not set — add the deprecation block or remove the maturity")
+			e.cat.Warnings.AddWarning("lifecycle.maturity is deprecated but lifecycle.deprecation is not set — add the deprecation block or remove the maturity")
 		}
 	default:
 		return fmt.Errorf(
@@ -104,7 +104,7 @@ func validateLifecycleCompatibility(lc *types.CatalogLifecycle) error {
 //  2. timeline.from and timeline.to must parse as YYYY-MM-DD when set.
 //  3. timeline.from must be before timeline.to when both are set.
 func (e *executor) validateLifecycleDeprecation() error {
-	d := e.k.Deprecation()
+	d := e.cat.Deprecation()
 	if d == nil {
 		return nil
 	}
@@ -158,7 +158,7 @@ func (e *executor) validateLifecycleDeprecation() error {
 // validateLifecycleAcceptBoundary checks the lifecycle.accept block when present.
 func (e *executor) validateLifecycleAcceptBoundary(lc *types.CatalogLifecycle) error {
 	// lifecycle.accept is Stack-only
-	if lc.Accept != nil && !config.IsStackKind(e.k.Kind) {
+	if lc.Accept != nil && !config.IsStackKind(e.cat.Kind) {
 		return fmt.Errorf(
 			"%s lifecycle.accept is only valid in a Stack — move pattern acknowledgements to a stack.yaml",
 			failureMark(),
@@ -194,7 +194,7 @@ func validateLifecycleAcceptPatterns(lc *types.CatalogLifecycle) error {
 //  1. policy.lifecycle.minMaturity must be one of: alpha, beta, stable.
 //     (deprecated is not a valid floor — deprecated imports require explicit accept regardless.)
 func (e *executor) validatePolicy() error {
-	p := e.k.Policy()
+	p := e.cat.Policy()
 	if p == nil || p.Lifecycle == nil {
 		return nil
 	}

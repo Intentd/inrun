@@ -1,8 +1,8 @@
 package prepare
 
 import (
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

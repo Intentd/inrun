@@ -3,16 +3,12 @@ package generic
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -66,20 +62,6 @@ func (r *Reconciler[PTR]) hooksFor(target string) domain.ObjectHooks {
 	return r.hooks
 }
 
-// withTargetArgs returns a context whose kube client carries the per-target
-// merged hooks.args for this reconcile cycle. When the effective box has no
-// args override, the context is returned unchanged.
-func (r *Reconciler[PTR]) withTargetArgs(ctx context.Context, box types.OperatorBoxConfig) context.Context {
-	var args map[string]interface{}
-	if box.Reconcile != nil {
-		args = box.Reconcile.HooksArgs()
-	}
-	if len(args) == 0 {
-		return ctx
-	}
-	return kubeclient.WithKubeclient(ctx, r.kube.WithArgs(kubeclient.Args(args)))
-}
-
 // namespaceGuardFunc returns a guard closure pre-bound to this CRD's
 // namespace restrictions, or nil when no restrictions are configured.
 func (r *Reconciler[PTR]) namespaceGuardFunc() func(ctx context.Context, obj domain.Object, ns string) bool {
@@ -92,18 +74,4 @@ func (r *Reconciler[PTR]) namespaceGuardFunc() func(ctx context.Context, obj dom
 	return func(ctx context.Context, obj domain.Object, ns string) bool {
 		return prepare.CheckNamespace(ctx, obj, ns, restricted, allowed, kind).Allowed
 	}
-}
-
-// patchStripFinalizers removes all box-declared finalizers from obj and patches the API server.
-func (r *Reconciler[PTR]) patchStripFinalizers(ctx context.Context, obj PTR, box types.OperatorBoxConfig) error {
-	if len(obj.GetFinalizers()) == 0 {
-		return nil
-	}
-	if !labels.StripFinalizers(obj, box.EffectiveFinalizers()) {
-		return nil
-	}
-	logger.Debug().
-		Str("name", obj.GetName()).
-		Msgf("removing finalizers → %v", obj.GetFinalizers())
-	return r.kube.PatchFinalizers(ctx, obj, obj.GetFinalizers(), metav1.PatchOptions{})
 }

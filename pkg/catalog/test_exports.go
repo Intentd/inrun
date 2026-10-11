@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // NewCatalogWithLifecycleForTest builds a minimal Catalog with the lifecycle
@@ -33,17 +33,17 @@ func NewCatalogWithMetadataForTest(m types.CatalogMeta, crds map[string]types.CR
 // because GroupVersionKind/GroupVersionResource were never computed).
 // Panics on error — these are hand-authored test fixtures, not untrusted
 // input, so a malformed one should fail loudly and immediately.
-func (k *Catalog) wireForTest() *Catalog {
+func (c *Catalog) wireForTest() *Catalog {
 	// setGroupVersionKind is best-effort: graph-only fixtures (e.g. cycle
 	// detection tests) legitimately omit apiTypes, so we skip rather than panic.
-	_ = k.SetGroupVersionKind()
-	if err := k.SetDefaults(config.NewDefaultConfig()); err != nil {
+	_ = c.SetGroupVersionKind()
+	if err := c.SetDefaults(config.NewDefaultConfig()); err != nil {
 		panic("catalog test fixture: " + err.Error())
 	}
 	// Pre-build the serve-enabled cache so ServeEnabledCRDs() returns the
 	// correct slice without requiring a full BuildExpanded/ParseFile call.
-	k.serveEnabledCRDs = k.BuildServeEnabledCRDs()
-	return k
+	c.serveEnabledCRDs = c.BuildServeEnabledCRDs()
+	return c
 }
 
 // NewCatalogForTest creates a Catalog with pre-set enabledCRDs for testing.
@@ -82,15 +82,15 @@ func NewCatalogForTestWithSpec(crds map[string]types.CRDEntry, spec types.Catalo
 
 // SetCatalogDirForTest sets the catalogDir field on a Catalog for use in tests
 // that exercise publish-path validation which reads files relative to that directory.
-func (k *Catalog) SetCatalogDirForTest(dir string) { k.catalogDir = dir }
+func (c *Catalog) SetCatalogDirForTest(dir string) { c.catalogDir = dir }
 
 // SetEnabledCRDsForTest replaces the enabledCRDs map on an existing Catalog.
 // Allows tests that build up a Catalog in stages to set CRDs after construction.
-func (k *Catalog) SetEnabledCRDsForTest(crds map[string]types.CRDEntry) {
+func (c *Catalog) SetEnabledCRDsForTest(crds map[string]types.CRDEntry) {
 	if crds == nil {
 		crds = map[string]types.CRDEntry{}
 	}
-	k.enabledCRDs = crds
+	c.enabledCRDs = crds
 }
 
 // NewFromEntryPointers creates a Catalog from a map of CRD entry pointers.
@@ -100,7 +100,7 @@ func NewFromEntryPointers(entries map[string]*types.CRDEntry) *Catalog {
 	if entries == nil {
 		entries = map[string]*types.CRDEntry{}
 	}
-	kat := &Catalog{
+	cat := &Catalog{
 		enabledCRDs: make(map[string]types.CRDEntry, len(entries)),
 	}
 	for k, v := range entries {
@@ -109,8 +109,8 @@ func NewFromEntryPointers(entries map[string]*types.CRDEntry) *Catalog {
 			if entry.Name == "" {
 				entry.Name = k
 			}
-			kat.enabledCRDs[k] = entry
+			cat.enabledCRDs[k] = entry
 		}
 	}
-	return kat.wireForTest()
+	return cat.wireForTest()
 }

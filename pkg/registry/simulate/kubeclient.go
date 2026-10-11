@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +38,7 @@ type Op struct {
 }
 
 // fakeShared holds the mutable, mutex-guarded state shared across all
-// WithArgs/ScopedFor copies of a FakeKubeclient.
+// copies of a FakeKubeclient.
 type fakeShared struct {
 	mu           sync.Mutex
 	ops          []Op
@@ -55,8 +54,6 @@ type FakeKubeclient struct {
 	scheme    *runtime.Scheme
 	shared    *fakeShared
 
-	rawArgs       map[string]interface{}
-	args          kubeclient.Args
 	informer      cache.SharedIndexInformer
 	eventRecorder kubeclient.EventRecorder
 	storeFor      func(schema.GroupVersionKind) cache.Store
@@ -98,7 +95,16 @@ func NewFakeKubeclient(scheme *runtime.Scheme, dynamicObjects ...runtime.Object)
 	f.clientset = cs
 	f.scheme = scheme
 
-	dyn := fakedynamic.NewSimpleDynamicClient(scheme, dynamicObjects...) // For custom + seeded pre-existing instances
+	listKinds := listKindsForSeeds(scheme, dynamicObjects) // Used to make available built resources
+
+	dyn := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(scheme, listKinds, dynamicObjects...)
+
+	if _, ok := listKinds[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}]; !ok {
+		panic("listKinds missing configmaps — check children.ListKindsForFakeDynamic()")
+	}
+
+	// dyn := fakedynamic.NewSimpleDynamicClient(scheme, dynamicObjects...) // For custom + seeded pre-existing instances
+
 	// PrependReactor intercepts every operation and records it before the
 	// default object-tracker reactor handles it. AddReactor appends to the
 	// chain AFTER the tracker, so it is never reached — PrependReactor is
@@ -171,32 +177,6 @@ func (f *FakeKubeclient) DynamicClient() dynamic.Interface { return f.dynamic }
 func (f *FakeKubeclient) RESTMapper() meta.RESTMapper      { return f.mapper }
 func (f *FakeKubeclient) RestConfig() *rest.Config         { return nil }
 func (f *FakeKubeclient) Scheme() *runtime.Scheme          { return f.scheme }
-
-func (f *FakeKubeclient) Args() kubeclient.Args {
-	if f.args != nil {
-		return f.args
-	}
-	if f.rawArgs != nil {
-		return kubeclient.Args(f.rawArgs)
-	}
-	return kubeclient.Args{}
-}
-
-func (f *FakeKubeclient) WithArgs(args kubeclient.Args) kubeclient.Interface {
-	cp := *f
-	cp.rawArgs = map[string]interface{}(args)
-	cp.args = nil
-	return &cp
-}
-
-func (f *FakeKubeclient) ScopedFor(eval func(string) (string, bool)) kubeclient.Interface {
-	cp := *f
-	if len(f.rawArgs) == 0 {
-		return &cp
-	}
-	cp.args = kubeclient.Args(utils.ResolveArgsMap(f.rawArgs, eval))
-	return &cp
-}
 
 func (f *FakeKubeclient) WithInformer(inf cache.SharedIndexInformer) kubeclient.Interface {
 	cp := *f
@@ -328,15 +308,21 @@ func (m *fakeMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta
 	if len(versions) > 0 && versions[0] != "" {
 		version = versions[0]
 	}
+
+	// A List GVK (e.g. ConfigMapList) maps to the base resource (configmaps).
+	// RESTMapper resolves the resource type, not the list variant; the list
+	// kind is a client-side concept.
+	baseKind := strings.TrimSuffix(gk.Kind, "List")
+
 	scope := meta.RESTScopeNameNamespace
-	if gk.Kind == "Namespace" || gk.Kind == "ClusterRole" || gk.Kind == "ClusterRoleBinding" {
+	if baseKind == "Namespace" || baseKind == "ClusterRole" || baseKind == "ClusterRoleBinding" {
 		scope = meta.RESTScopeNameRoot
 	}
 	return &meta.RESTMapping{
 		Resource: schema.GroupVersionResource{
 			Group:    gk.Group,
 			Version:  version,
-			Resource: strings.ToLower(gk.Kind) + "s",
+			Resource: strings.ToLower(baseKind) + "s",
 		},
 		GroupVersionKind: gk.WithVersion(version),
 		Scope:            fakescope(scope),

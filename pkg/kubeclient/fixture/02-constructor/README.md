@@ -13,9 +13,9 @@ constructor:
 ```
 
 ```go
-flagUrl := kube.Args().String("flagUrl")
-start   := kube.Args().String("businessHoursStart")
-end     := kube.Args().String("businessHoursEnd")
+flagUrl := req.Args.String("flagUrl")
+start   := req.Args.String("businessHoursStart")
+end     := req.Args.String("businessHoursEnd")
 
 featureEnabled := r.inBusinessHours(start, end) && r.checkFlag(ctx, flagUrl)
 ```
@@ -28,7 +28,7 @@ This is the difference from hooks: the runtime evaluates the note and makes the
 external call for hooks. The constructor owns those steps — the Catalog hands it
 the configuration to make its own decisions.
 
-**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/inrundev/inrun#getting-started)
+**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/intentd/inrun#getting-started)
 
 ---
 

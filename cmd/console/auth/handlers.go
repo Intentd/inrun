@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/inrundev/inrun/console/web"
+	"github.com/intentd/inrun/console/web"
 )
 
 var (

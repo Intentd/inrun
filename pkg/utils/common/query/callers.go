@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 )
 
 // IsUnique lists every existing instance of the CRD via the runtime's cache

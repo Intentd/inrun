@@ -1,6 +1,6 @@
 // Package main is the standalone entry point for the Inrun dev server.
 // It starts the mock HTTP server on the configured port and blocks until the
-// process is killed. Runs as ghcr.io/inrundev/inrun-dev-server:latest.
+// process is killed. Runs as ghcr.io/intentd/inrun-dev-server:latest.
 package main
 
 import (
@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/inrundev/inrun/pkg/tools/devserver"
+	"github.com/intentd/inrun/pkg/tools/devserver"
 )
 
 func main() {

@@ -1,10 +1,13 @@
 package labels
 
 import (
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // Manager handles label and annotation mutations on domain objects.
@@ -260,6 +263,25 @@ func (m *Manager) EnsureUserAnnotations(obj domain.Object, extra map[string]stri
 		obj.SetAnnotations(ann)
 	}
 	return changed
+}
+
+// CheckReserved rejects keys in the runtime's domain (inrun.dev/… and <sub>.inrun.dev/…).
+func CheckReserved(field string, m map[string]string) error {
+	var bad []string
+	for k := range m {
+		prefix, _, ok := strings.Cut(k, "/")
+		if !ok {
+			continue
+		}
+		if prefix == ReservedDomain || strings.HasSuffix(prefix, "."+ReservedDomain) {
+			bad = append(bad, k)
+		}
+	}
+	if len(bad) == 0 {
+		return nil
+	}
+	sort.Strings(bad)
+	return fmt.Errorf("%s %s: the %s domain is reserved for the runtime", field, strings.Join(bad, ", "), ReservedDomain)
 }
 
 // ── Getters ───────────────────────────────────────────────────────────────────

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/metrics"
 )
 
 // --- Kubernetes ConversionReview types ---

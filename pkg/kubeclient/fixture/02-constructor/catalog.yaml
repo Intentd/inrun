@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: blockchainnode-constructor
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     BlockchainNode operator — constructor makes the feature-flag HTTP call itself,
@@ -24,21 +24,21 @@ spec:
         plural: blockchainnodes
         object: BlockchainNode
         objectList: BlockchainNodeList
-        location: github.com/inrundev/inrun-args-constructor/api/v1alpha1
+        location: github.com/intentd/inrun-args-constructor/api/v1alpha1
         alias: bcnodev1
 
       operatorBox:
         reconcile:
           default: false
+          managedResources:
+            - kind: Deployment
+          args:
+            flagUrl: '{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled'
+            businessHoursStart: "09:00"
+            businessHoursEnd: "18:00"
           constructor:
-            location: github.com/inrundev/inrun-args-constructor/constructor
+            location: github.com/intentd/inrun-args-constructor/constructor
             function: NewBlockchainNodeReconciler
             alias: bnconstructor
-            managedResources:
-              - kind: Deployment
-            args:
-              flagUrl: '{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled'
-              businessHoursStart: "09:00"
-              businessHoursEnd: "18:00"
           workers: 2
           resync: 30s

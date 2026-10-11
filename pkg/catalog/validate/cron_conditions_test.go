@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func catalogWithCronCondition(cron string, duration types.Duration) *executor {
@@ -29,8 +29,8 @@ func catalogWithCronCondition(cron string, duration types.Duration) *executor {
 }
 
 func TestCronConditionWarnings_NoDuration(t *testing.T) {
-	k := catalogWithCronCondition("0 9 * * 1", types.Duration{})
-	warnings := k.k.CronConditionWarnings()
+	e := catalogWithCronCondition("0 9 * * 1", types.Duration{})
+	warnings := e.cat.CronConditionWarnings()
 	if len(warnings) == 0 {
 		t.Fatal("expected warning for cron without duration")
 	}
@@ -40,16 +40,16 @@ func TestCronConditionWarnings_NoDuration(t *testing.T) {
 }
 
 func TestCronConditionWarnings_WithDuration(t *testing.T) {
-	k := catalogWithCronCondition("0 9 * * 1", types.Duration{Duration: 4 * 3600 * 1000000000}) // 4h
-	warnings := k.k.CronConditionWarnings()
+	e := catalogWithCronCondition("0 9 * * 1", types.Duration{Duration: 4 * 3600 * 1000000000}) // 4h
+	warnings := e.cat.CronConditionWarnings()
 	if len(warnings) != 0 {
 		t.Fatalf("expected no warnings when duration is set, got: %v", warnings)
 	}
 }
 
 func TestCronConditionWarnings_NoCronCondition(t *testing.T) {
-	k := catalogWithCronCondition("", types.Duration{})
-	warnings := k.k.CronConditionWarnings()
+	e := catalogWithCronCondition("", types.Duration{})
+	warnings := e.cat.CronConditionWarnings()
 	if len(warnings) != 0 {
 		t.Fatalf("expected no warnings when no cron condition, got: %v", warnings)
 	}

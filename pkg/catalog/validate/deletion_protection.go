@@ -15,7 +15,7 @@ package validate
 // These warnings are non‑fatal – the Catalog remains valid, but the runtime behaviour
 // will ignore protectCRs in such cases (effectively treating it as false).
 func (e *executor) validateDeletionProtection() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasDeletionProtectionOverride() {
 			continue
 		}
@@ -33,7 +33,7 @@ func (e *executor) validateDeletionProtection() error {
 				"Consider setting protectCRD=true if you intend to protect instances permanently."
 
 			crd.Warnings.AddWarning(warning)
-			e.k.EnabledCRDs()[name] = crd
+			e.cat.EnabledCRDs()[name] = crd
 
 		}
 	}

@@ -14,7 +14,7 @@ const (
 	InrunNamespace = "inrun-system"
 
 	// InrunChartRepo is the Helm repository URL for the Inrun chart.
-	InrunChartRepo = "https://inrundev.github.io/inrun"
+	InrunChartRepo = "https://intentd.github.io/inrun"
 
 	// InrunChartName is the chart name within the repository.
 	InrunChartName = "inrun"

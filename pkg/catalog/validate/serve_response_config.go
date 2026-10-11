@@ -5,14 +5,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateServeResponseConfig checks the serve response configuration for:
 //   - Path conflicts between payload and exclude (exclude wins, surfaced as warning)
 //   - Payload template compilation errors (error)
 func (e *executor) validateServeResponseConfig() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasServeResponseConfig() {
 			continue
 		}
@@ -65,7 +65,7 @@ func (e *executor) validateServeResponseConfig() error {
 				crd.Warnings.AddWarning(warning)
 			}
 		}
-		e.k.EnabledCRDs()[crdName] = crd
+		e.cat.EnabledCRDs()[crdName] = crd
 	}
 	return nil
 }

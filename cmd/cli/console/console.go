@@ -14,9 +14,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -78,13 +78,13 @@ var controlVersionCmd = &cobra.Command{
 }
 
 func startConsole() error {
-	consolePath, err := findConsoleBinary()
+	consolePath, err := FindBinary()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "[inrun] inrun-console not found, attempting installation...")
 		if err := installConsoleBinary(); err != nil {
 			return fmt.Errorf("failed to install inrun-console: %w", err)
 		}
-		consolePath, err = findConsoleBinary()
+		consolePath, err = FindBinary()
 		if err != nil {
 			return fmt.Errorf("inrun-console still not found after installation")
 		}
@@ -129,7 +129,7 @@ func startConsole() error {
 }
 
 func showConsoleVersion() error {
-	consolePath, err := findConsoleBinary()
+	consolePath, err := FindBinary()
 	if err != nil {
 		return fmt.Errorf("inrun-console not found: %w", err)
 	}
@@ -141,7 +141,9 @@ func showConsoleVersion() error {
 	return cmd.Run()
 }
 
-func findConsoleBinary() (string, error) {
+// FindBinary locates the inrun-console binary: PATH, next to inrun, then
+// ~/.inrun/bin.
+func FindBinary() (string, error) {
 	// Look in PATH first
 	if path, err := exec.LookPath("inrun-console"); err == nil {
 		return path, nil
@@ -187,7 +189,7 @@ func installConsoleBinary() error {
 	goos := runtime.GOOS
 	platform := goos + "_" + runtime.GOARCH
 	archive := fmt.Sprintf("inrun-console_%s.tar.gz", platform)
-	url := fmt.Sprintf("https://github.com/inrundev/inrun/releases/download/%s/%s", ver, archive)
+	url := fmt.Sprintf("https://github.com/intentd/inrun/releases/download/%s/%s", ver, archive)
 	dest := binDir + "/inrun-console"
 	if goos == "windows" {
 		dest += ".exe"

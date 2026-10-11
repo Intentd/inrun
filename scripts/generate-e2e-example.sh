@@ -26,7 +26,7 @@ One file that exercises every `expect:` subcommand — `resources`, `commands`,
 and every `kubectl:` subcommand. Use it as the canonical reference for what a
 fully-featured E2E looks like.
 
-Source: [`pkg/registry/e2e/fixture/e2e.yaml`](https://github.com/inrundev/inrun/blob/main/pkg/registry/e2e/fixture/e2e.yaml)
+Source: [`pkg/registry/e2e/fixture/e2e.yaml`](https://github.com/intentd/inrun/blob/main/pkg/registry/e2e/fixture/e2e.yaml)
 
 ---
 
@@ -61,10 +61,10 @@ Two CRs run in parallel from `cr.yaml` (multi-document):
 
 | CR | Image | Port | Purpose |
 |---|---|---|---|
-| `my-probe-server` | `ghcr.io/inrundev/inrun-dev-server:latest` | 9999 | Port-forward and JSON endpoint assertions |
+| `my-probe-server` | `ghcr.io/intentd/inrun-dev-server:latest` | 9999 | Port-forward and JSON endpoint assertions |
 | `my-probe-exec` | `nginx:alpine` | 80 | Exec assertions — nginx has `sh`, the devserver is distroless |
 
-See [`pkg/registry/e2e/fixture/README.md`](https://github.com/inrundev/inrun/blob/main/pkg/registry/e2e/fixture/README.md) for
+See [`pkg/registry/e2e/fixture/README.md`](https://github.com/intentd/inrun/blob/main/pkg/registry/e2e/fixture/README.md) for
 instructions on running this fixture and the rule for adding new subcommands.
 
 ---

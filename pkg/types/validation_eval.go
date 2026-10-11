@@ -12,11 +12,12 @@ package types
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/pkg/utils"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // TemplateResolver resolves a Go-template expression string against CR data
@@ -89,12 +90,11 @@ type RuleViolation struct {
 	Action  ValidationAction
 }
 
-// ResolveScalarField resolves a dot-notation field path against a CR data
-// map and returns its scalar string form, and whether it was found. Shared
-// by validation-rule and mutation-rule evaluation, at both reconcile time
-// and admission time.
+// ResolveScalarField returns the value at a dot-notation path (see
+// utils.SplitField) as a string, and whether it exists. Validation and
+// mutation rules use it at reconcile and admission time.
 func ResolveScalarField(data map[string]interface{}, path string) (string, bool) {
-	parts := strings.Split(path, ".")
+	parts := utils.SplitField(path)
 	current := data
 
 	for i, part := range parts {

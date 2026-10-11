@@ -18,13 +18,13 @@ package validate
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 
-	"github.com/inrundev/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/profiles"
 )
 
 func (e *executor) validateRollingUpdateProfiles() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectRollingUpdateProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue

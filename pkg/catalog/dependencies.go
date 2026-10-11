@@ -6,8 +6,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // DependencyGraph represents the CRD dependency DAG for a Catalog.

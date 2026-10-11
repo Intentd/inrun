@@ -7,7 +7,7 @@ metadata:
 
     The dev server returns "true" for all flag requests, so featureEnabled="true"
     and the Deployment is created at spec.replicas (5).
-    The hook reads kube.Args().String("featureEnabled") — no HTTP client in hook code.
+    The hook reads req.Args.String("featureEnabled") — no HTTP client in hook code.
 
 spec:
   catalog: ./catalog.yaml

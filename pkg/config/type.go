@@ -2,8 +2,6 @@ package config
 
 import (
 	"time"
-
-	"github.com/inrundev/inrun/pkg/labels"
 )
 
 type Config struct {
@@ -183,13 +181,13 @@ func NewDefaultConfig() *Config {
 }
 
 // IsDev returns true for development environment
-func (k *Config) IsDev() bool {
-	return k.Inrun().environment == "devlopment"
+func (c *Config) IsDev() bool {
+	return c.Inrun().environment == "devlopment"
 }
 
 // IsDev returns true for staging environment
-func (k *Config) IsStaging() bool {
-	return k.Inrun().environment == "staging"
+func (c *Config) IsStaging() bool {
+	return c.Inrun().environment == "staging"
 }
 
 // IsDev returns true for production environment
@@ -198,33 +196,33 @@ func (c *Config) IsProduction() bool {
 }
 
 // Health returns health configurations
-func (k *Config) Health() *healthServer {
-	return &k.healthServer
+func (c *Config) Health() *healthServer {
+	return &c.healthServer
 }
 
 // Inrun returns Inrun Configurations
-func (k *Config) Inrun() *inrunConfig {
-	return &k.inrun
+func (c *Config) Inrun() *inrunConfig {
+	return &c.inrun
 }
 
 // Runtime service name
-func (k *Config) RuntimeServiceName() string {
-	return k.security.ServiceName.Runtime
+func (c *Config) RuntimeServiceName() string {
+	return c.security.ServiceName.Runtime
 }
 
 // Gateway service name
-func (k *Config) GatewayServiceName() string {
-	return k.security.ServiceName.Gateway
+func (c *Config) GatewayServiceName() string {
+	return c.security.ServiceName.Gateway
 }
 
 // Running instance returns the current running inrun instance
-func (k *Config) RunningInstance() string {
-	return k.inrun.instance.String()
+func (c *Config) RunningInstance() string {
+	return c.inrun.instance.String()
 }
 
 // Cluster returns cluster Configurations
-func (k *Config) Cluster() *clusterConfig {
-	return &k.cluster
+func (c *Config) Cluster() *clusterConfig {
+	return &c.cluster
 }
 
 // Leader returns leader Configurations
@@ -233,51 +231,55 @@ func (c *Config) Leader() *leaderElection {
 }
 
 // Catalog returns catalog Configurations
-func (k *Config) Catalog() *catalogConfig {
-	return &k.catalog
-}
-
-// Finalizers return a list of default finalizers
-func (k *Config) Finalizers() []string {
-	return []string{labels.FinalizerInrun}
+func (c *Config) Catalog() *catalogConfig {
+	return &c.catalog
 }
 
 // Security returns the unified security configuration.
 // This is the primary accessor for all security-related settings.
-func (k *Config) Security() *SecurityConfig {
-	return &k.security
+func (c *Config) Security() *SecurityConfig {
+	return &c.security
 }
 
 // RegistryConfig returns registry configuration.
-func (k *Config) RegistryConfig() *registryConfig {
-	return &k.registry
+func (c *Config) RegistryConfig() *registryConfig {
+	return &c.registry
 }
 
 // ConversionEnabled reports whether the conversion webhook is enabled.
 // Reads from SecurityConfig (populated from ENV at Init).
-func (k *Config) ConversionEnabled() bool {
-	return k.security.Conversion.Enabled
+func (c *Config) ConversionEnabled() bool {
+	return c.security.Conversion.Enabled
 }
 
 // AdmissionEnabled reports whether admission webhooks are enabled.
 // Reads from SecurityConfig (populated from ENV at Init).
-func (k *Config) AdmissionEnabled() bool {
-	return k.security.Webhooks.Admission.Enabled
+func (c *Config) AdmissionEnabled() bool {
+	return c.security.Webhooks.Admission.Enabled
 }
 
 // GatewayEndpoint returns the companion gateway URL advertised to the console.
 // Empty string when no gateway is configured (e.g. runtime-only deployment).
-func (k *Config) GatewayEndpoint() string {
-	return k.catalog.gatewayEndpoint
+func (c *Config) GatewayEndpoint() string {
+	return c.catalog.gatewayEndpoint
+}
+
+// SetGatewayEndpoint advertises url as the companion gateway unless
+// INRUN_GATEWAY_ENDPOINT already set one. The CLI calls it when it starts a
+// local gateway next to the runtime.
+func (c *Config) SetGatewayEndpoint(url string) {
+	if c.catalog.gatewayEndpoint == "" {
+		c.catalog.gatewayEndpoint = url
+	}
 }
 
 // HTTPSPort returns the HTTPS port string (e.g. ":8443") used by the webhook server.
-func (k *Config) HTTPSPort() string {
+func (c *Config) HTTPSPort() string {
 	return httpsPort
 }
 
 // HTTPSPortInt32 returns the HTTPS port as int32 (8443) used in webhook client configs.
-func (k *Config) HTTPSPortInt32() int32 {
+func (c *Config) HTTPSPortInt32() int32 {
 	return httpsPortInt32
 }
 

@@ -10,7 +10,7 @@ package merger
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // loadRegistrySource is unavailable in this build — Registry Catalog

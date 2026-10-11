@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/inrundev/inrun/tests/integration/testenv"
+	"github.com/intentd/inrun/tests/integration/testenv"
 	"k8s.io/client-go/rest"
 )
 

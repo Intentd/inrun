@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateEmit checks operatorBox.emit.events across all enabled CRDs.
@@ -16,8 +16,8 @@ import (
 //  3. message must be non-empty and a valid Go template when it contains "{{".
 //  4. when/or condition field values are valid Go templates when they contain "{{".
 func (e *executor) validateEmit() error {
-	funcMap := buildFuncMapForValidation(e.k.Notes)
-	for crdName, crd := range e.k.EnabledCRDs() {
+	funcMap := buildFuncMapForValidation(e.cat.Notes)
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for name, entry := range crd.Box().EmitEntries() {
 			if err := validateEmitEventEntry(crdName, name, entry, funcMap); err != nil {
 				return err

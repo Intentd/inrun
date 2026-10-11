@@ -5,7 +5,6 @@ package cmdutil
 import (
 	"bytes"
 	"encoding/json"
-	"strings"
 
 	sigsyaml "sigs.k8s.io/yaml"
 
@@ -44,7 +43,7 @@ func ParseMultiDocCRs(data []byte) map[string][]*unstructured.Unstructured {
 			continue
 		}
 		if kind := cr.GetKind(); kind != "" {
-			key := strings.ToLower(kind)
+			key := CRKey(kind)
 			crs[key] = append(crs[key], &cr)
 		}
 	}
@@ -71,7 +70,7 @@ type CRSimInputs struct {
 // docs of the CRD's own kind". Documents of OTHER kinds become cross: peers,
 // one per kind (first document wins), exactly as before.
 func ResolveCRInputs(crs map[string][]*unstructured.Unstructured, kind string) (CRSimInputs, bool) {
-	kindKey := strings.ToLower(kind)
+	kindKey := CRKey(kind)
 	docs, ok := crs[kindKey]
 	if !ok || len(docs) == 0 {
 		return CRSimInputs{}, false

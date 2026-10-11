@@ -1,6 +1,6 @@
 package template
 
-import "github.com/inrundev/inrun/pkg/types"
+import "github.com/intentd/inrun/pkg/types"
 
 // RenderString evaluates a single template expression against the resolver's
 // current data map. Returns (result, true) on success; ("", false) on error.

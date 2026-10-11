@@ -3,12 +3,12 @@ package mux
 import (
 	"context"
 	"fmt"
-	"github.com/inrundev/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/intent"
 	"sync"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/queue"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 )

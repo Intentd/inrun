@@ -3,9 +3,9 @@ package constructor
 import (
 	"context"
 	"fmt"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/kubeclient/adapter"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient/adapter"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	webappv1 "github.com/inrundev/inrun-ctrlruntime-constructor/api/v1alpha1"
+	webappv1 "github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1"
 )
 
 // WebAppReconciler is written in pure controller-runtime style.
@@ -51,7 +51,7 @@ func (r *WebAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	// List ConfigMaps by field index — served from cache when the watch informer
 	// has synced; falls back to live API during the first reconcile cycle.
 	cmList := &corev1.ConfigMapList{}
-	if err := r.List(ctx, cmList, client.MatchingFields{"metadata.labels.app": webapp.Name}); err != nil {
+	if err := r.List(ctx, cmList, client.MatchingFields{"app": webapp.Name}); err != nil {
 		log.Error(err, "list ConfigMaps by index failed")
 	} else {
 		log.Info("configmaps found via index", "count", len(cmList.Items))

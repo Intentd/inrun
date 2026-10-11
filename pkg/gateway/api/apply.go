@@ -26,15 +26,15 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils/common"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils/common"
 )
 
 // ApplyResponse is returned for every POST /api/v1/apply request.
@@ -150,11 +150,11 @@ func scopedDynamic(kube kubeclient.Interface, capture *warningCapture) dynamic.I
 func applyHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 ) http.HandlerFunc {
 	var notes types.NoteRegistry
-	if !kat.Empty() {
-		notes = kat.UserNotes()
+	if !cat.Empty() {
+		notes = cat.UserNotes()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -170,11 +170,12 @@ func applyHandler(
 			return
 		}
 
-		// Decode into a raw map first to detect target vs full CR mode.
-		var raw map[string]interface{}
-		if err := json.Unmarshal(body, &raw); err != nil {
+		// Decode into a raw map first to detect target vs full CR mode. The
+		// body may be JSON or YAML, like an intent file for serve play.
+		raw, err := intent.Decode(body)
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, ApplyResponse{
-				Message: fmt.Sprintf("invalid JSON: %v", err),
+				Message: err.Error(),
 			})
 			return
 		}
@@ -204,13 +205,13 @@ func applyHandler(
 				return
 			}
 
-			resolution := kat.LookupByTargetOrAlias(target)
+			resolution := cat.LookupByTargetOrAlias(target)
 			if resolution == nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: fmt.Sprintf(
 						"unknown target %q — available: %s",
 						target,
-						strings.Join(kat.AvailableTargets(), ", "),
+						strings.Join(cat.AvailableTargets(), ", "),
 					),
 				})
 				return
@@ -233,7 +234,7 @@ func applyHandler(
 				return
 			}
 			obj = built
-			InjectProvenanceAnnotations(obj, crd.ServeTarget(), alias, OIDCSubFromContext(r.Context()))
+			InjectProvenanceAnnotations(obj, crd.ServeTarget(), alias)
 			InjectServeIntentAnnotation(obj, raw)
 			gvr = crd.GVR()
 
@@ -258,7 +259,7 @@ func applyHandler(
 				return
 			}
 
-			crd = kat.LookupByKind(full.GetKind()).Entry()
+			crd = cat.LookupByKind(full.GetKind()).Entry()
 			if crd == nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: fmt.Sprintf("unknown kind %q", full.GetKind()),
@@ -303,7 +304,7 @@ func applyHandler(
 			obj = &full
 
 			// ─── Inject Provenance Annotations ────────────────────────────────────────
-			InjectProvenanceAnnotations(obj, crd.ServeTarget(), matchedTarget, OIDCSubFromContext(r.Context()))
+			InjectProvenanceAnnotations(obj, crd.ServeTarget(), matchedTarget)
 			if matchedTarget != "" {
 				InjectFieldSelectorAnnotations(obj, matchedTarget, crd.FieldSelectorForTarget(matchedTarget))
 			}
@@ -701,7 +702,7 @@ func boolPtr(b bool) *bool { return &b }
 // InjectProvenanceAnnotations stamps the three serve provenance annotations onto
 // obj before SSA. Empty strings are skipped — callers pass "" for fields that
 // don't apply to the current request path (e.g. alias is "" on primary targets).
-func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias, source string) {
+func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias string) {
 	ann := obj.GetAnnotations()
 	if ann == nil {
 		ann = make(map[string]string, 3)
@@ -711,9 +712,6 @@ func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias, 
 	}
 	if alias != "" {
 		ann[labels.AnnotationServeAlias] = alias
-	}
-	if source != "" {
-		ann[labels.AnnotationServeSource] = source
 	}
 	obj.SetAnnotations(ann)
 }

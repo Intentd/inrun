@@ -1,8 +1,12 @@
 package intent
 
 import (
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/utils/common"
+	"fmt"
+
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/utils/common"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 )
 
 // Target extracts the effective target from a CR's annotations.
@@ -28,6 +32,22 @@ func Target(annotations map[string]string) string {
 	return ""
 }
 
+// SetTarget marks obj as created through target, the way the gateway does.
+// The runtime picks a CR's target from this annotation only (see Target);
+// without it a CR is a direct apply and reconciles with the CRD-level box.
+// An empty target leaves obj unchanged. This is used by simulate
+func SetTarget(obj *unstructured.Unstructured, target string) {
+	if target == "" {
+		return
+	}
+	ann := obj.GetAnnotations()
+	if ann == nil {
+		ann = map[string]string{}
+	}
+	ann[labels.AnnotationServeTarget] = target
+	obj.SetAnnotations(ann)
+}
+
 // FromObject extracts the raw intent payload from the
 // inrun.dev/serve-intent annotation on a CR object map.
 // Returns nil when the annotation is absent or unparseable.
@@ -35,4 +55,18 @@ func Target(annotations map[string]string) string {
 // the resolver so validation rules can reference intent-vocabulary fields.
 func FromObject(obj map[string]interface{}) map[string]interface{} {
 	return common.ResolveAnnotationFromObject(obj, labels.AnnotationServeIntent)
+}
+
+// Decode parses an intent written as JSON or YAML. YAML is converted to JSON
+// first, so values have json.Unmarshal's types (numbers are float64) whatever
+// the format, and the same intent builds the same CR either way.
+func Decode(data []byte) (map[string]interface{}, error) {
+	var raw map[string]interface{}
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("invalid JSON or YAML: %w", err)
+	}
+	if raw == nil {
+		return nil, fmt.Errorf("empty intent")
+	}
+	return raw, nil
 }

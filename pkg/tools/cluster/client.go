@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient"
 	"k8s.io/client-go/tools/clientcmd"
 )
 

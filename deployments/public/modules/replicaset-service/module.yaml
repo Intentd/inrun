@@ -6,7 +6,7 @@ metadata:
   description: >
     ReplicaSet + ClusterIP Service. Shows that Inrun manages ReplicaSets
     as first-class resources — no Deployment wrapper required.
-  author: inrundev
+  author: intentd
   tags:
     - replicaset
     - service

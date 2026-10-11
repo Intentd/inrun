@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 )
 
 const timeout = 3 * time.Second

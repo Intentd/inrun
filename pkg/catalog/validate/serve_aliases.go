@@ -18,7 +18,7 @@ import (
 //  5. (Warning) Primary surface disabled and no enabled aliases declared — the CRD
 //     is not reachable via the Gateway API at all.
 func (e *executor) validateServeAliases() error {
-	gatewayTokens := e.k.GatewayTokenNames()
+	gatewayTokens := e.cat.GatewayTokenNames()
 	knownTokens := make(map[string]struct{}, len(gatewayTokens))
 	for _, name := range gatewayTokens {
 		knownTokens[name] = struct{}{}
@@ -27,13 +27,13 @@ func (e *executor) validateServeAliases() error {
 	// Build the full routing namespace: primary targets first, then aliases.
 	// Key = name, value = "primary target on <crd>" or "alias on <crd>".
 	routing := make(map[string]string)
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if crd.HasServeTarget() {
 			routing[crd.ServeTarget()] = fmt.Sprintf("primary target on %q", crdName)
 		}
 	}
 
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.ServeEnabled() || !crd.TargetModeEnabled() {
 			continue
 		}
@@ -65,7 +65,7 @@ func (e *executor) validateServeAliases() error {
 					"this CRD is not reachable via the Gateway API",
 				crdName,
 			))
-			e.k.EnabledCRDs()[crdName] = crd
+			e.cat.EnabledCRDs()[crdName] = crd
 			continue
 		}
 

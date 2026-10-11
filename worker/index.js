@@ -12,7 +12,7 @@
 //   *              → 404
 
 const UPSTREAM =
-  "https://raw.githubusercontent.com/inrundev/inrun/refs/heads/main/install.sh";
+  "https://raw.githubusercontent.com/intentd/inrun/refs/heads/main/install.sh";
 
 const PLAIN_TEXT = "text/plain; charset=utf-8";
 

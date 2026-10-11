@@ -43,6 +43,18 @@ func Init(level string) {
 	ctrllog.SetLogger(zerologr.New(&log.Logger))
 }
 
+// Quiet raises the global level to warn until restore is called, so info logs
+// from code being exercised, such as a simulated reconciler, stay out of the
+// CLI's output. A level already at warn or above is left alone.
+func Quiet() (restore func()) {
+	prev := zerolog.GlobalLevel()
+	if prev >= zerolog.WarnLevel {
+		return func() {}
+	}
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	return func() { zerolog.SetGlobalLevel(prev) }
+}
+
 func FromContext(ctx context.Context) *zerolog.Logger {
 	l := log.With()
 

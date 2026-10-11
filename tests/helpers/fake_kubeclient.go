@@ -2,7 +2,7 @@
 package helpers
 
 import (
-	"github.com/inrundev/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 )

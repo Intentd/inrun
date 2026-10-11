@@ -7,10 +7,10 @@ import (
 
 	"errors"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -128,7 +128,10 @@ func (f *Factory) WaitForCacheSync(ctx context.Context) bool {
 	syncFuncs := make([]cache.InformerSynced, 0, len(f.informers))
 
 	for _, entry := range f.informers {
-		if entry == nil || entry.Missing {
+		if entry == nil {
+			continue
+		}
+		if entry.Missing {
 			entry.WasNeverStarted = true
 			logger.Warn().
 				Str("name", entry.Name).

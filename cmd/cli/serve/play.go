@@ -4,17 +4,16 @@ package serve
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
+	"github.com/intentd/inrun/cmd/cli/testsuite"
+	"github.com/intentd/inrun/pkg/registry/simulate"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 // servePlayCmd runs the full gateway apply chain locally from a flat intent
@@ -33,7 +32,8 @@ For get/list/delete: no intent file needed — pass --target, --namespace, and
 (for get/delete) --name. Runs target resolution, token check, and shows the
 response config that would apply.
 
-Files ending in .json are parsed as JSON. Everything else is parsed as YAML.
+The intent may be JSON or YAML, whatever the file is called; the gateway
+accepts either as a request body too.
 
 No cluster connection is required. No CR is applied or fetched.
 
@@ -83,12 +83,15 @@ Example intent.json:
 		if simulateConfig == "-" {
 			simulateConfig = "" // op-print mode — no spec file
 		}
+		var simOpts testsuite.CliSimulateOptions
+		simOpts.UseEnvtest, _ = cmd.Flags().GetBool("envtest")
+		simOpts.K8sVersion, _ = cmd.Flags().GetString("k8s-version")
 
 		if tokenName == "" {
 			return fmt.Errorf("%s --token is required", cmdutil.FailureMark())
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -111,15 +114,15 @@ Example intent.json:
 			}
 			catalogFile = paths[0]
 
-			return playWrite(cmd.Context(), k, catalogFile, intentFile, targetOverride, tokenName, op, simulateFlag, simulateConfig)
+			return playWrite(cmd.Context(), cat, catalogFile, intentFile, targetOverride, tokenName, op, simulateFlag, simulateConfig, simOpts)
 		}
-		return playRead(k, targetOverride, tokenName, op, namespace, name)
+		return playRead(cat, targetOverride, tokenName, op, namespace, name)
 	},
 }
 
 // ── create / update path ─────────────────────────────────────────────────────
 
-func playWrite(ctx context.Context, k *catalog.Catalog, catalogFile, intentFile, targetOverride, tokenName string, op types.ServeOperation, doSimulate bool, simulateConfig string) error {
+func playWrite(ctx context.Context, cat *catalog.Catalog, catalogFile, intentFile, targetOverride, tokenName string, op types.ServeOperation, doSimulate bool, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
 	if intentFile == "" {
 		intentFile = resolveDefaultIntentFile()
 		if intentFile == "" {
@@ -140,9 +143,9 @@ func playWrite(ctx context.Context, k *catalog.Catalog, catalogFile, intentFile,
 		return fmt.Errorf(`%s "target" must be set in the intent file or via --target`, cmdutil.FailureMark())
 	}
 
-	printPlayHeader(intentFile, target, tokenName, string(op))
+	printPlayHeader(intentFile, target, tokenName, op)
 
-	obj, crd, alias, err := runCreateUpdateChain(k, raw, tokenName, "", op)
+	obj, crd, alias, err := planChain(cat, raw, tokenName, op, stageNarrator{})
 	if err != nil {
 		return err
 	}
@@ -156,14 +159,14 @@ func playWrite(ctx context.Context, k *catalog.Catalog, catalogFile, intentFile,
 	fmt.Println()
 
 	if doSimulate {
-		return playRunSimulate(ctx, catalogFile, obj, simulateConfig)
+		return playRunSimulate(ctx, catalogFile, obj, simulateConfig, simOpts)
 	}
 	return nil
 }
 
 // ── get / list / delete path ─────────────────────────────────────────────────
 
-func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperation, namespace, name string) error {
+func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOperation, namespace, name string) error {
 	if strings.TrimSpace(target) == "" {
 		return fmt.Errorf("%s --target is required for %s", cmdutil.FailureMark(), op)
 	}
@@ -171,13 +174,13 @@ func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperat
 		return fmt.Errorf("%s --name is required for %s", cmdutil.FailureMark(), op)
 	}
 
-	printPlayHeaderRead(target, tokenName, string(op), namespace, name)
+	printPlayHeaderRead(target, tokenName, op, namespace, name)
 
 	// Stage 1: Target resolution
 	printStage(1, "Target resolution")
-	resolution := k.LookupByTargetOrAlias(target)
+	resolution := cat.LookupByTargetOrAlias(target)
 	if resolution == nil {
-		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(k.AvailableTargets(), ", ")))
+		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(cat.AvailableTargets(), ", ")))
 		return fmt.Errorf("target %q not found", target)
 	}
 	crd, alias := resolution.CRD, resolution.Alias
@@ -185,11 +188,9 @@ func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperat
 
 	// Stage 2: Token check
 	printStage(2, "Token check")
-	allowed, denyReason := crd.TokenAllowedFor(alias, tokenName, string(op), namespace, types.ServeClassResources)
-	if !allowed {
-		msg := denyReason.Message(tokenName, string(op), crd.Kind(), namespace)
-		printStageError(msg)
-		return fmt.Errorf("token %q denied: %s", tokenName, msg)
+	if err := checkToken(cat, crd, alias, tokenName, op, namespace); err != nil {
+		printStageError(err.Error())
+		return err
 	}
 	printStageOK(fmt.Sprintf("token %s can %s on %s", cmdutil.Bold(tokenName), op, cmdutil.Bold(crd.Kind())))
 
@@ -228,101 +229,6 @@ func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperat
 	return nil
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-func resolveDefaultIntentFile() string {
-	for _, name := range []string{"intent.yaml", "intent.json"} {
-		if _, err := os.Stat(name); err == nil {
-			return name
-		}
-	}
-	return ""
-}
-
-func readIntentFile(path string) (map[string]interface{}, error) {
-	data, err := cmdutil.ReadLocal(path)
-	if err != nil {
-		return nil, err
-	}
-	var raw map[string]interface{}
-	if strings.HasSuffix(path, ".json") {
-		if err := json.Unmarshal(data, &raw); err != nil {
-			return nil, fmt.Errorf("invalid JSON: %w", err)
-		}
-	} else {
-		if err := yaml.Unmarshal(data, &raw); err != nil {
-			return nil, fmt.Errorf("invalid YAML: %w", err)
-		}
-	}
-	return raw, nil
-}
-
-func namespaceOrAny(ns string) string {
-	if ns == "" {
-		return "(all namespaces)"
-	}
-	return ns
-}
-
-// ── print helpers ─────────────────────────────────────────────────────────────
-
-func printPlayHeader(file, target, token, op string) {
-	fmt.Println()
-	fmt.Printf("%s  inrun serve play\n", cmdutil.Bold("▶"))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("intent:"), cmdutil.Cyan(file))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("target:"), cmdutil.Bold(target))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("token: "), cmdutil.Bold(token))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("op:    "), cmdutil.Bold(op))
-	fmt.Println()
-}
-
-func printPlayHeaderRead(target, token, op, namespace, name string) {
-	fmt.Println()
-	fmt.Printf("%s  inrun serve play\n", cmdutil.Bold("▶"))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("target:   "), cmdutil.Bold(target))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("token:    "), cmdutil.Bold(token))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("op:       "), cmdutil.Bold(op))
-	if namespace != "" {
-		fmt.Printf("  %s %s\n", cmdutil.Gray("namespace:"), cmdutil.Bold(namespace))
-	}
-	if name != "" {
-		fmt.Printf("  %s %s\n", cmdutil.Gray("name:     "), cmdutil.Bold(name))
-	}
-	fmt.Println()
-}
-
-func printStage(n int, name string) {
-	fmt.Printf("%s  stage %d · %s\n", cmdutil.Cyan("→"), n, cmdutil.Bold(name))
-}
-
-func printStageOK(detail string) {
-	fmt.Printf("   %s %s\n", cmdutil.SuccessMark(), detail)
-}
-
-func printStageError(detail string) {
-	fmt.Printf("   %s %s\n", cmdutil.FailureMark(), cmdutil.Red(detail))
-}
-
-func printStageDetail(detail string) {
-	fmt.Printf("      %s\n", detail)
-}
-
-func printIndentedJSON(v interface{}) {
-	b, err := json.MarshalIndent(v, "      ", "  ")
-	if err != nil {
-		fmt.Printf("      %s\n", cmdutil.Gray("(could not marshal)"))
-		return
-	}
-	fmt.Printf("      %s\n", cmdutil.Gray(string(b)))
-}
-
-func aliasOrNone(alias string) string {
-	if alias == "" {
-		return cmdutil.Gray("(none)")
-	}
-	return cmdutil.Cyan(alias)
-}
-
 func init() {
 	servePlayCmd.Flags().StringP("intent", "i", "", "Intent file to play (YAML or JSON; default: intent.yaml or intent.json in cwd)")
 	servePlayCmd.Flags().StringP("token", "t", "", "Token name to authenticate with")
@@ -332,6 +238,8 @@ func init() {
 	servePlayCmd.Flags().StringP("name", "n", "", "Resource name (for get/delete)")
 	servePlayCmd.Flags().StringP("simulate", "S", "", "After play, hand the built CR to inrun simulate; pass a simulate.yaml path to use assert mode")
 	servePlayCmd.Flags().Lookup("simulate").NoOptDefVal = "-"
+	servePlayCmd.Flags().Bool("envtest", false, "With --simulate, run against a local kube-apiserver + etcd instead of fake clients")
+	servePlayCmd.Flags().String("k8s-version", simulate.DefaultEnvtestK8sVersion, "Kubernetes version for envtest binaries; only used with --envtest")
 
 	_ = servePlayCmd.MarkFlagRequired("token")
 

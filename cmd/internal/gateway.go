@@ -15,26 +15,26 @@ import (
 	"os"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	apigateway "github.com/inrundev/inrun/pkg/gateway/api"
-	"github.com/inrundev/inrun/pkg/gateway/certmanager"
-	gwhandlers "github.com/inrundev/inrun/pkg/gateway/handlers"
-	"github.com/inrundev/inrun/pkg/gateway/webhook"
-	"github.com/inrundev/inrun/pkg/health"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/process"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	apigateway "github.com/intentd/inrun/pkg/gateway/api"
+	"github.com/intentd/inrun/pkg/gateway/certmanager"
+	gwhandlers "github.com/intentd/inrun/pkg/gateway/handlers"
+	"github.com/intentd/inrun/pkg/gateway/webhook"
+	"github.com/intentd/inrun/pkg/health"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/process"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // RunGateway starts the production gateway — TLS, WebhookServer
 // (admission/conversion), and the Serve layer (Gateway API + intake webhooks).
 // No leader election — the gateway is stateless and supports multiple replicas.
-func RunGateway(kfg *config.Config, m *merger.Merger, ctx context.Context) {
+func RunGateway(cfg *config.Config, m *merger.Merger, ctx context.Context) {
 
 	if !utils.IsRunningInPod() {
 		fmt.Println("inrun: inrun gate only runs inside a Kubernetes pod. Use 'inrun gate run' for local development.")
@@ -42,25 +42,25 @@ func RunGateway(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 	}
 
 	// ── 1a. Instance ────────────────────────────────────────────────────────────
-	kfg.SetInstance(config.Gateway())
+	cfg.SetInstance(config.Gateway())
 
 	// ── 1b. Catalog ────────────────────────────────────────────────────────────
 	// Needed to know which CRDs require webhooks.
-	kat := pipeline.NewCatalog(kfg, m)
+	cat := pipeline.NewCatalog(cfg, m)
 
-	if registryURL := kfg.RegistryConfig().RegistryURL; registryURL != "" {
+	if registryURL := cfg.RegistryConfig().RegistryURL; registryURL != "" {
 		m.SetRegistryURL(registryURL)
 		logger.Info().Str("registry", registryURL).Msg("registry URL configured from INRUN_REGISTRY")
 	}
 
 	// ── 2. Scheme ─────────────────────────────────────────────────────────────
-	scheme, err := catalog.NewSchemeRegistry(kat)
+	scheme, err := catalog.NewSchemeRegistry(cat)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to build scheme registry")
 	}
 
 	// ── 3. Kubeclient ─────────────────────────────────────────────────────────
-	kube := kubeclient.NewKubeclient(kfg, scheme)
+	kube := kubeclient.NewKubeclient(cfg, scheme)
 
 	if err := kube.Start(ctx); err != nil {
 		logger.Fatal().Err(err).Msg("failed to start kubeclient")
@@ -74,7 +74,7 @@ func RunGateway(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 	var tlsCert, tlsKey string
 	var secErr error
 	var tlsBundle *certmanager.TLSBundle
-	tlsCert, tlsKey, certMgr, tlsBundle, secErr = ensureSecurity(ctx, kfg, kat, kube)
+	tlsCert, tlsKey, certMgr, tlsBundle, secErr = ensureSecurity(ctx, cfg, cat, kube)
 	if secErr != nil {
 		logger.Fatal().Err(secErr).Msg("security setup failed")
 	}
@@ -84,38 +84,38 @@ func RunGateway(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 			Str("cert_file", tlsCert).
 			Str("cert_key", tlsKey).
 			Msg("passing generated TLS cert to webhook server")
-		kfg.Security().Webhooks.TLSCert = tlsCert
-		kfg.Security().Webhooks.TLSKey = tlsKey
+		cfg.Security().Webhooks.TLSCert = tlsCert
+		cfg.Security().Webhooks.TLSKey = tlsKey
 	}
 
 	// ── 5. HealthServer — HTTP (probes + metrics + /catalog API) ────────────────
-	hs := health.NewHealthServer(kfg)
+	hs := health.NewHealthServer(cfg)
 
 	// ── 6. WebhookServer ──────────────────────────────────────────────────────
-	ws := webhook.NewWebhookServer(kube.Clientset(), kat, kfg)
+	ws := webhook.NewWebhookServer(kube.Clientset(), cat, cfg)
 	if certMgr != nil {
 		ws.SetCertManager(certMgr)
 	}
 	if tlsBundle != nil {
 		ws.SetCertBundle(tlsBundle.CertPEM, tlsBundle.KeyPEM, tlsBundle.CACertPEM,
-			certmanager.DefaultTLSSecretName, kfg.Cluster().Namespace())
+			certmanager.DefaultTLSSecretName, cfg.Cluster().Namespace())
 	}
 	// Wire housekeeper infrastructure reconcilers — keeps namespace labels and
 	// CRD conversion caBundles correct throughout the deployment lifecycle.
-	WireWebhookHousekeeperInfra(ws, kube, kat, kfg)
+	WireWebhookHousekeeperInfra(ws, kube, cat, cfg)
 
 	// ── 7. /catalog routes — gateway serves its own stats surface ────────────
 	// The console discovers this endpoint via the "gatewayEndpoint" field
 	// in the runtime /catalog response and merges per-CRD stats by GVR key.
-	hs.Register("/catalog", gwhandlers.BuildGatewayCatalogHandler(kat, ws))
+	hs.Register("/catalog", gwhandlers.BuildGatewayCatalogHandler(cat, ws))
 
-	for _, crd := range kat.Enabled() {
+	for _, crd := range cat.Enabled() {
 		crdName := strings.ToLower(crd.Name)
 		gvr := crd.GVR()
 		gvrKey := webhook.GVRKey(gvr.Group, gvr.Version, gvr.Resource)
 		hs.Register(
 			"/catalog/"+crdName,
-			gwhandlers.BuildGatewayCRDHandler(crd.Name, crd.GVKString(), gvr.String(), gvrKey, ws, kat),
+			gwhandlers.BuildGatewayCRDHandler(crd.Name, crd.GVKString(), gvr.String(), gvrKey, ws, cat),
 		)
 	}
 	logger.Debug().Msg("gateway /catalog routes registered")
@@ -126,12 +126,12 @@ func RunGateway(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 	// CRD has serve.enabled: true.
 
 	// Build the cluster registry once — shared by the API server and intake server.
-	clusters, clustersErr := apigateway.BuildClusterRegistry(ctx, kat, kube, kfg.Cluster().Namespace())
+	clusters, clustersErr := apigateway.BuildClusterRegistry(ctx, cat, kube, cfg.Cluster().Namespace())
 	if clustersErr != nil {
 		logger.Fatal().Err(clustersErr).Msg("gateway cluster registry setup failed")
 	}
 
-	api, apiErr := apigateway.NewAPIServer(ctx, kat, kube, clusters, kfg.Cluster().Namespace())
+	api, apiErr := apigateway.NewAPIServer(ctx, cat, kube, clusters, cfg.Cluster().Namespace())
 	if apiErr != nil {
 		logger.Fatal().Err(apiErr).Msg("gateway API setup failed")
 	}
@@ -150,9 +150,9 @@ func RunGateway(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 
 	// ── 8. Inrun ───────────────────────────────────────────────────────────
 	o := process.New(
-		kfg.RunningInstance(),
-		kfg.Catalog().ShutdownGracePeriod(),
-		kfg.Inrun().LogLevel(),
+		cfg.RunningInstance(),
+		cfg.Catalog().ShutdownGracePeriod(),
+		cfg.Inrun().LogLevel(),
 	)
 	o.Register(components)
 

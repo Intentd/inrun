@@ -8,6 +8,8 @@ on:
     paths:
       - 'cmd/**'
       - 'pkg/**'
+      - 'domain/**'
+      - 'examples/**'
       - 'go.mod'
       - 'go.sum'
 
@@ -83,6 +85,48 @@ jobs:
 
       - name: Run tests (no cluster required)
         run: make test
+
+  # Runs every example's simulate.yaml against the CLI built from this
+  # checkout, the way each example's README tells users to. No cluster.
+  # Typed examples are skipped: each builds its own binary from a nested
+  # module, which needs a published Inrun version.
+  simulate-examples:
+    name: Simulate examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build inrun
+        run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
+
+      - name: Start the remote example's reconciler
+        working-directory: examples/reconcilers/remote
+        env:
+          RECONCILER_TOKEN: inrun-demo-token
+        run: |
+          python3 reconciler/main.py > "$RUNNER_TEMP/reconciler.log" 2>&1 &
+          for i in $(seq 30); do
+            curl -s -o /dev/null localhost:8025 && exit 0
+            sleep 1
+          done
+          echo "reconciler did not start"; cat "$RUNNER_TEMP/reconciler.log"; exit 1
+
+      - name: Simulate declarative and remote examples
+        working-directory: examples
+        run: |
+          "$RUNNER_TEMP/inrun" simulate ./... --skip typed,intent
+
+      - name: Simulate the intent example
+        working-directory: examples/intent
+        run: |
+          "$RUNNER_TEMP/inrun" serve play -i intent.json --token dev --simulate=test/simulate.yaml
 
   # Runs as its own job, in parallel with validate-code, so a slow vuln DB
   # fetch doesn't add to the critical path of the tests everyone's actually

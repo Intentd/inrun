@@ -27,17 +27,17 @@ package validate
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/profiles"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func (e *executor) validateResourceProfile() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectResourceProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue
 			}
-			_, userDefined := e.k.Profiles.LookupResource(entry.Profile)
+			_, userDefined := e.cat.Profiles.LookupResource(entry.Profile)
 			if !userDefined && !profiles.IsValidResourceProfile(entry.Profile) {
 				return fmt.Errorf(
 					"%s crd %q: %s %q (phase %s) has unknown resources.profile %q — "+
@@ -58,12 +58,12 @@ func (e *executor) validateResourceProfile() error {
 }
 
 func (e *executor) validateProbeProfiles() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectProbeProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue
 			}
-			_, userDefined := e.k.Profiles.LookupProbe(entry.Profile)
+			_, userDefined := e.cat.Profiles.LookupProbe(entry.Profile)
 			if !userDefined && !profiles.IsValidProbeProfile(entry.Profile) {
 				return fmt.Errorf(
 					"%s crd %q: %s probe in %s %q (phase %s) has unknown probe profile %q — "+

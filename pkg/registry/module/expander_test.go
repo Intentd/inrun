@@ -3,8 +3,8 @@ package module_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func loadTestModule(t *testing.T, path string) *types.Module {

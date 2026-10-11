@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	apiv1 "github.com/inrundev/inrun-args-hooks-targets/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/deployments"
+	apiv1 "github.com/intentd/inrun-args-hooks-targets/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/deployments"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,18 +16,18 @@ func BlockchainAppHooks() domain.AnyReconcileHooks {
 	return domain.ReconcileHooks[*apiv1.BlockchainAppWithTargets]{OnReconcile: onBlockchainAppWithTargetsReconcile}
 }
 
-func onBlockchainAppWithTargetsReconcile(ctx context.Context, obj *apiv1.BlockchainAppWithTargets) error {
+func onBlockchainAppWithTargetsReconcile(ctx context.Context, req domain.Request, obj *apiv1.BlockchainAppWithTargets) (domain.Result, error) {
 	kube, ok := kubeclient.FromContext(ctx)
 	if !ok {
-		return fmt.Errorf("kubeclient not in context")
+		return domain.Result{}, fmt.Errorf("kubeclient not in context")
 	}
 
 	// Both values come from the Catalog args — resolved per target surface.
 	// v2-enabled target: featureEnabled="true", enqueueGate blocks outside hours.
 	// v2-disabled target: featureEnabled="false", no gate.
 	// The hook binary is identical — only the args change between targets.
-	inBusinessHours := kube.Args().String("inBusinessHours") == "true"
-	featureEnabled := kube.Args().String("featureEnabled") == "true"
+	inBusinessHours := req.Args().String("inBusinessHours") == "true"
+	featureEnabled := req.Args().String("featureEnabled") == "true"
 
 	annotation := "false"
 	if inBusinessHours && featureEnabled {
@@ -49,10 +49,10 @@ func onBlockchainAppWithTargetsReconcile(ctx context.Context, obj *apiv1.Blockch
 		},
 	}
 	if err := deployments.Apply(ctx, kube, obj, spec); err != nil {
-		return fmt.Errorf("blockchainappwithtargets deployment: %w", err)
+		return domain.Result{}, fmt.Errorf("blockchainappwithtargets deployment: %w", err)
 	}
 
-	return kube.PatchStatus(ctx, obj, map[string]any{
+	return domain.Result{}, kube.PatchStatus(ctx, obj, map[string]any{
 		"featureEnabled":  annotation,
 		"inBusinessHours": inBusinessHours,
 	}, metav1.PatchOptions{})

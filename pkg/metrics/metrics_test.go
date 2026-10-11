@@ -14,7 +14,7 @@ package metrics_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/stretchr/testify/assert"
 )
 

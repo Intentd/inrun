@@ -17,33 +17,33 @@ import (
 	"context"
 	"fmt"
 
-	rpv1alpha1 "github.com/inrundev/inrun-resource-probe/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/clusterrolebindings"
-	"github.com/inrundev/inrun/pkg/resources/clusterroles"
-	"github.com/inrundev/inrun/pkg/resources/configmaps"
-	"github.com/inrundev/inrun/pkg/resources/cronjobs"
-	"github.com/inrundev/inrun/pkg/resources/deployments"
-	"github.com/inrundev/inrun/pkg/resources/hpas"
-	"github.com/inrundev/inrun/pkg/resources/ingresses"
-	"github.com/inrundev/inrun/pkg/resources/jobs"
-	"github.com/inrundev/inrun/pkg/resources/limitranges"
-	"github.com/inrundev/inrun/pkg/resources/namespaces"
-	"github.com/inrundev/inrun/pkg/resources/networkpolicies"
-	"github.com/inrundev/inrun/pkg/resources/pdbs"
-	"github.com/inrundev/inrun/pkg/resources/pods"
-	"github.com/inrundev/inrun/pkg/resources/pvcs"
-	"github.com/inrundev/inrun/pkg/resources/pvs"
-	"github.com/inrundev/inrun/pkg/resources/replicasets"
-	"github.com/inrundev/inrun/pkg/resources/resourcequotas"
-	"github.com/inrundev/inrun/pkg/resources/rolebindings"
-	"github.com/inrundev/inrun/pkg/resources/roles"
-	"github.com/inrundev/inrun/pkg/resources/secrets"
-	"github.com/inrundev/inrun/pkg/resources/serviceaccounts"
-	"github.com/inrundev/inrun/pkg/resources/services"
-	"github.com/inrundev/inrun/pkg/resources/statefulsets"
-	"github.com/inrundev/inrun/pkg/types"
+	rpv1alpha1 "github.com/intentd/inrun-resource-probe/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/clusterrolebindings"
+	"github.com/intentd/inrun/pkg/resources/clusterroles"
+	"github.com/intentd/inrun/pkg/resources/configmaps"
+	"github.com/intentd/inrun/pkg/resources/cronjobs"
+	"github.com/intentd/inrun/pkg/resources/deployments"
+	"github.com/intentd/inrun/pkg/resources/hpas"
+	"github.com/intentd/inrun/pkg/resources/ingresses"
+	"github.com/intentd/inrun/pkg/resources/jobs"
+	"github.com/intentd/inrun/pkg/resources/limitranges"
+	"github.com/intentd/inrun/pkg/resources/namespaces"
+	"github.com/intentd/inrun/pkg/resources/networkpolicies"
+	"github.com/intentd/inrun/pkg/resources/pdbs"
+	"github.com/intentd/inrun/pkg/resources/pods"
+	"github.com/intentd/inrun/pkg/resources/pvcs"
+	"github.com/intentd/inrun/pkg/resources/pvs"
+	"github.com/intentd/inrun/pkg/resources/replicasets"
+	"github.com/intentd/inrun/pkg/resources/resourcequotas"
+	"github.com/intentd/inrun/pkg/resources/rolebindings"
+	"github.com/intentd/inrun/pkg/resources/roles"
+	"github.com/intentd/inrun/pkg/resources/secrets"
+	"github.com/intentd/inrun/pkg/resources/serviceaccounts"
+	"github.com/intentd/inrun/pkg/resources/services"
+	"github.com/intentd/inrun/pkg/resources/statefulsets"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ResourceProbeHooks returns the hook implementation for the ResourceProbe CRD.
@@ -55,10 +55,10 @@ func ResourceProbeHooks() domain.AnyReconcileHooks {
 	}
 }
 
-func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
+func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.ResourceProbe) (domain.Result, error) {
 	kube, ok := kubeclient.FromContext(ctx)
 	if !ok {
-		return fmt.Errorf("kubeclient not in context")
+		return domain.Result{}, fmt.Errorf("kubeclient not in context")
 	}
 
 	var reg *types.ProfileRegistry
@@ -69,7 +69,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Name: ns,
 	}, obj.Name)
 	if err := namespaces.Update(ctx, kube, obj, nsSpec); err != nil {
-		return fmt.Errorf("namespace: %w", err)
+		return domain.Result{}, fmt.Errorf("namespace: %w", err)
 	}
 
 	// ── ConfigMap ─────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		},
 	}, obj.Name)
 	if err := configmaps.Update(ctx, kube, obj, cmSpec); err != nil {
-		return fmt.Errorf("configmap: %w", err)
+		return domain.Result{}, fmt.Errorf("configmap: %w", err)
 	}
 
 	// ── Secret ────────────────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		},
 	}, obj.Name)
 	if err := secrets.Update(ctx, kube, obj, secretSpec); err != nil {
-		return fmt.Errorf("secret: %w", err)
+		return domain.Result{}, fmt.Errorf("secret: %w", err)
 	}
 
 	// ── ServiceAccount (Create — no Update) ───────────────────────────────────
@@ -104,7 +104,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Namespace: ns,
 	}, obj.Name)
 	if err := serviceaccounts.Create(ctx, kube, obj, saSpec); err != nil {
-		return fmt.Errorf("serviceaccount: %w", err)
+		return domain.Result{}, fmt.Errorf("serviceaccount: %w", err)
 	}
 
 	// ── ClusterRole ───────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		},
 	}, obj.Name)
 	if err := clusterroles.Update(ctx, kube, obj, crSpec); err != nil {
-		return fmt.Errorf("clusterrole: %w", err)
+		return domain.Result{}, fmt.Errorf("clusterrole: %w", err)
 	}
 
 	// ── ClusterRoleBinding ────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		},
 	}, obj.Name)
 	if err := clusterrolebindings.Update(ctx, kube, obj, crbSpec); err != nil {
-		return fmt.Errorf("clusterrolebinding: %w", err)
+		return domain.Result{}, fmt.Errorf("clusterrolebinding: %w", err)
 	}
 
 	// ── Role ──────────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		},
 	}, obj.Name)
 	if err := roles.Update(ctx, kube, obj, roleSpec); err != nil {
-		return fmt.Errorf("role: %w", err)
+		return domain.Result{}, fmt.Errorf("role: %w", err)
 	}
 
 	// ── RoleBinding ───────────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Subjects:  []types.SubjectSpec{{Kind: "ServiceAccount", Name: obj.Name + "-sa", Namespace: ns}},
 	}, obj.Name)
 	if err := rolebindings.Update(ctx, kube, obj, rbSpec); err != nil {
-		return fmt.Errorf("rolebinding: %w", err)
+		return domain.Result{}, fmt.Errorf("rolebinding: %w", err)
 	}
 
 	// ── NetworkPolicy ─────────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Namespace: ns,
 	}, obj.Name, reg)
 	if err := networkpolicies.Update(ctx, kube, obj, netpolSpec); err != nil {
-		return fmt.Errorf("networkpolicy: %w", err)
+		return domain.Result{}, fmt.Errorf("networkpolicy: %w", err)
 	}
 
 	// ── ResourceQuota ─────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Hard:      map[string]string{"cpu": "4", "memory": "8Gi", "pods": "20"},
 	}, obj.Name, reg)
 	if err := resourcequotas.Update(ctx, kube, obj, quotaSpec); err != nil {
-		return fmt.Errorf("resourcequota: %w", err)
+		return domain.Result{}, fmt.Errorf("resourcequota: %w", err)
 	}
 
 	// ── LimitRange ────────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		},
 	}, obj.Name, reg)
 	if err := limitranges.Update(ctx, kube, obj, lrSpec); err != nil {
-		return fmt.Errorf("limitrange: %w", err)
+		return domain.Result{}, fmt.Errorf("limitrange: %w", err)
 	}
 
 	// ── Deployment ────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		ServiceAccountName: obj.Name + "-sa",
 	}, obj.Name, reg)
 	if err := deployments.Update(ctx, kube, obj, deploySpec); err != nil {
-		return fmt.Errorf("deployment: %w", err)
+		return domain.Result{}, fmt.Errorf("deployment: %w", err)
 	}
 
 	// ── StatefulSet ───────────────────────────────────────────────────────────
@@ -213,7 +213,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Port:      obj.Spec.Port,
 	}, obj.Name, reg)
 	if err := statefulsets.Update(ctx, kube, obj, stsSpec); err != nil {
-		return fmt.Errorf("statefulset: %w", err)
+		return domain.Result{}, fmt.Errorf("statefulset: %w", err)
 	}
 
 	// ── ReplicaSet ────────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Port:      obj.Spec.Port,
 	}, obj.Name, reg)
 	if err := replicasets.Update(ctx, kube, obj, rsSpec); err != nil {
-		return fmt.Errorf("replicaset: %w", err)
+		return domain.Result{}, fmt.Errorf("replicaset: %w", err)
 	}
 
 	// ── Pod ───────────────────────────────────────────────────────────────────
@@ -236,7 +236,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Port:      obj.Spec.Port,
 	}, obj.Name, reg)
 	if err := pods.Update(ctx, kube, obj, podSpec); err != nil {
-		return fmt.Errorf("pod: %w", err)
+		return domain.Result{}, fmt.Errorf("pod: %w", err)
 	}
 
 	// ── Job (Create — no Update) ──────────────────────────────────────────────
@@ -247,7 +247,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Command:   []string{"/bin/sh", "-c", "echo probe-job-ok"},
 	}, 3, obj.Name, reg)
 	if err := jobs.Create(ctx, kube, obj, jobSpec); err != nil {
-		return fmt.Errorf("job: %w", err)
+		return domain.Result{}, fmt.Errorf("job: %w", err)
 	}
 
 	// ── CronJob ───────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		Command:   []string{"/bin/sh", "-c", "echo probe-cron-ok"},
 	}, obj.Name, reg)
 	if err := cronjobs.Update(ctx, kube, obj, cronSpec); err != nil {
-		return fmt.Errorf("cronjob: %w", err)
+		return domain.Result{}, fmt.Errorf("cronjob: %w", err)
 	}
 
 	// ── Service ───────────────────────────────────────────────────────────────
@@ -270,7 +270,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		TargetPort: obj.Spec.Port,
 	}, obj.Name)
 	if err := services.Update(ctx, kube, obj, svcSpec); err != nil {
-		return fmt.Errorf("service: %w", err)
+		return domain.Result{}, fmt.Errorf("service: %w", err)
 	}
 
 	// ── Ingress ───────────────────────────────────────────────────────────────
@@ -282,7 +282,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		ServicePort: "80",
 	}, obj.Name)
 	if err := ingresses.Update(ctx, kube, obj, ingSpec); err != nil {
-		return fmt.Errorf("ingress: %w", err)
+		return domain.Result{}, fmt.Errorf("ingress: %w", err)
 	}
 
 	// ── HPA ───────────────────────────────────────────────────────────────────
@@ -298,7 +298,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		MaxReplicas: "3",
 	}, obj.Name, reg)
 	if err := hpas.Update(ctx, kube, obj, hpaSpec); err != nil {
-		return fmt.Errorf("hpa: %w", err)
+		return domain.Result{}, fmt.Errorf("hpa: %w", err)
 	}
 
 	// ── PDB ───────────────────────────────────────────────────────────────────
@@ -309,7 +309,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		MinAvailable: "1",
 	}, obj.Name, reg)
 	if err := pdbs.Update(ctx, kube, obj, pdbSpec); err != nil {
-		return fmt.Errorf("pdb: %w", err)
+		return domain.Result{}, fmt.Errorf("pdb: %w", err)
 	}
 
 	// ── PV ────────────────────────────────────────────────────────────────────
@@ -320,7 +320,7 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		HostPath:    "/tmp/inrun-" + obj.Name,
 	}, obj.Name)
 	if err := pvs.Update(ctx, kube, obj, pvSpec); err != nil {
-		return fmt.Errorf("pv: %w", err)
+		return domain.Result{}, fmt.Errorf("pv: %w", err)
 	}
 
 	// ── PVC ───────────────────────────────────────────────────────────────────
@@ -332,14 +332,14 @@ func onReconcile(ctx context.Context, obj *rpv1alpha1.ResourceProbe) error {
 		VolumeName:  obj.Name + "-pv",
 	}, obj.Name)
 	if err := pvcs.Update(ctx, kube, obj, pvcSpec); err != nil {
-		return fmt.Errorf("pvc: %w", err)
+		return domain.Result{}, fmt.Errorf("pvc: %w", err)
 	}
 
-	return nil
+	return domain.Result{}, nil
 }
 
 // onDelete is a no-op: ResourceProbe is cluster-scoped, so owner references work
 // for all resources (namespaced in probe-ns and cluster-scoped). GC handles cleanup.
-func onDelete(_ context.Context, _ *rpv1alpha1.ResourceProbe) error {
-	return nil
+func onDelete(_ context.Context, _ domain.Request, _ *rpv1alpha1.ResourceProbe) (domain.Result, error) {
+	return domain.Result{}, nil
 }

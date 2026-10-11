@@ -3,7 +3,7 @@ package runners
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func ptr32(i int32) *int32 { return &i }

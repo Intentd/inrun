@@ -6,67 +6,75 @@ package pipeline
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/validate"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/typeregistry"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/typeregistry"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // NewCatalog returns a fully built and validated Catalog.
 // Exits the process on any error
-func NewCatalog(kfg *config.Config, m *merger.Merger) *catalog.Catalog {
-	k := &catalog.Catalog{}
-	k.SetConfig(kfg)
+func NewCatalog(cfg *config.Config, m *merger.Merger) *catalog.Catalog {
+	cat := &catalog.Catalog{}
+	cat.SetConfig(cfg)
 
-	paths := kfg.Catalog().Paths()
+	paths := cfg.Catalog().Paths()
 
 	typeregistry.RegisterRuntimeObjects()
 
-	entries, err := k.BuildRuntimeCatalog(kfg, m, paths...)
+	entries, err := cat.BuildRuntimeCatalog(cfg, m, paths...)
 	if err != nil {
 		utils.Exit(err)
 	}
 
-	if len(entries) == 0 && !k.IsStandaloneGateway() {
+	// The gateway never runs a reconciler, so it needs none of the project's
+	// compiled types: every CR is unstructured there, and the stock gateway
+	// image serves typed Catalogs too.
+	gateway := cfg.IsGatewayInstance()
+	if gateway {
+		cat.UseUnstructured()
+	}
+
+	if len(entries) == 0 && !cat.IsStandaloneGateway() {
 		utils.Exit(fmt.Errorf("validation error: catalog empty"))
 	}
 
 	for _, crd := range entries {
-		if len(types.ObjectRegistry) == 0 && !crd.IsDynamic() {
+		if !gateway && len(types.ObjectRegistry) == 0 && !crd.IsDynamic() {
 			utils.Exit(fmt.Errorf(
 				"ObjectRegistry is empty — run 'inrun generate registry --file <my-catalog.yaml>' first",
 			))
 		}
 	}
 
-	if err := validate.Execute(k, kfg); err != nil {
+	if err := validate.Execute(cat, cfg); err != nil {
 		utils.Exit(err)
 	}
 
-	if err := k.CheckDeprecationPolicy(); err != nil {
+	if err := cat.CheckDeprecationPolicy(); err != nil {
 		utils.Exit(err)
 	}
 
-	k, err = k.UpdateResourceMapAndReturn()
+	cat, err = cat.UpdateResourceMapAndReturn()
 	if err != nil {
 		utils.Exit(err)
 	}
 
-	return k
+	return cat
 }
 
 // BuildExpanded is the canonical pipeline for CLI commands that need a fully
 // ready Catalog: merge → expand modules → validate.
-func BuildExpanded(kfg *config.Config, m *merger.Merger) (*catalog.Catalog, error) {
-	k := &catalog.Catalog{}
-	if _, err := k.BuildRuntimeCatalog(kfg, m); err != nil {
+func BuildExpanded(cfg *config.Config, m *merger.Merger) (*catalog.Catalog, error) {
+	cat := &catalog.Catalog{}
+	if _, err := cat.BuildRuntimeCatalog(cfg, m); err != nil {
 		return nil, err
 	}
-	if err := validate.Execute(k, kfg); err != nil {
+	if err := validate.Execute(cat, cfg); err != nil {
 		return nil, fmt.Errorf("catalog validate: %w", err)
 	}
-	return k, nil
+	return cat, nil
 }

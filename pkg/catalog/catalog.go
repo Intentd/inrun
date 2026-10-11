@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/typeregistry"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/typeregistry"
+	"github.com/intentd/inrun/pkg/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,7 +20,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // NewSchemeRegistry returns a new scheme
-func NewSchemeRegistry(k *Catalog) (*runtime.Scheme, error) {
+func NewSchemeRegistry(cat *Catalog) (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 
 	// 1. Register built-in Kubernetes types
@@ -33,48 +34,72 @@ func NewSchemeRegistry(k *Catalog) (*runtime.Scheme, error) {
 	// 3. Register CRDs
 	var err error
 	// Register dynamic scheme
-	if scheme, err = k.registerDynamicScheme(scheme); err != nil {
+	if scheme, err = cat.registerDynamicScheme(scheme); err != nil {
 		return nil, err
 	}
-	// Register typed scheme
-	if scheme, err = typeregistry.RegisterTypedScheme(scheme); err != nil {
-		return nil, err
+	// Register typed scheme. The gateway handles every CR as unstructured
+	// (UseUnstructured), so a typed registration would clash with it.
+	if cat.config == nil || !cat.config.IsGatewayInstance() {
+		if scheme, err = typeregistry.RegisterTypedScheme(scheme); err != nil {
+			return nil, err
+		}
 	}
 
 	// 4. Register external GVKs from custom: blocks so the fake dynamic client's
 	// object tracker can create/get them during simulate (in-memory cluster).
 	// Without this, the tracker has no schema entry and Create calls fail silently.
-	if scheme, err = k.registerCustomResourceScheme(scheme); err != nil {
+	if scheme, err = cat.registerCustomResourceScheme(scheme); err != nil {
 		return nil, err
 	}
 
 	return scheme, nil
 }
 
+// UseUnstructured switches every CRD to dynamic mode, so each CR is handled
+// as *unstructured.Unstructured and no compiled type is needed. The gateway
+// calls it: it serves, admits and views CRs but never reconciles them.
+func (c *Catalog) UseUnstructured() {
+	for name, crd := range c.enabledCRDs {
+		c.enabledCRDs[name] = unstructuredEntry(crd)
+	}
+	for name, crd := range c.Spec.CRDs {
+		c.Spec.CRDs[name] = unstructuredEntry(crd)
+	}
+}
+
+func unstructuredEntry(crd types.CRDEntry) types.CRDEntry {
+	if crd.IsBuiltInType() {
+		return crd
+	}
+	crd.Mode = types.CRDModeDynamic
+	crd.APITypes.Location = ""
+	return crd
+}
+
 // Helpers
 // UpdateResourceMapAndReturn maps each enabled CRD's dynamic object type into
 // the package-level resourceTypeMap for O(1) GVK reverse-lookups, then returns k.
-func (k *Catalog) UpdateResourceMapAndReturn() (*Catalog, error) {
+func (c *Catalog) UpdateResourceMapAndReturn() (*Catalog, error) {
 	// Map the type of the object
-	for _, c := range k.enabledCRDs {
-		if k.EnabledCRDsEmpty() {
+	for _, crd := range c.enabledCRDs {
+		if c.EnabledCRDsEmpty() {
 			return nil, fmt.Errorf("no enabled CRDs found")
 		}
 
 		// Map the type of the object
-		logger.Debug().Msgf("updating resource map for %s", c.GroupVersionKind.String())
-		resourceTypeMap[reflect.TypeOf(c.DynamicModeObject)] = c.GroupVersionKind.String()
+		logger.Debug().Msgf("updating resource map for %s", crd.GroupVersionKind.String())
+		resourceTypeMap[reflect.TypeOf(crd.DynamicModeObject)] = crd.GroupVersionKind.String()
 	}
 
-	return k, nil
+	return c, nil
 }
 
 // registerCustomResourceScheme registers external GVKs declared in custom: blocks
 // (onCreate and onReconcile) into the scheme so the fake dynamic client's object
 // tracker can store and retrieve them during simulate. Deduplicates by GVK string.
-func (k *Catalog) registerCustomResourceScheme(scheme *runtime.Scheme) (*runtime.Scheme, error) {
+func (c *Catalog) registerCustomResourceScheme(scheme *runtime.Scheme) (*runtime.Scheme, error) {
 	seen := make(map[string]bool)
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if crd.HasOnCreate() && crd.Box().EffectiveOnCreate().CustomResource != nil {
 			for i := range crd.Box().EffectiveOnCreate().CustomResource {
 				cr := &crd.Box().EffectiveOnCreate().CustomResource[i]
@@ -115,8 +140,8 @@ func (k *Catalog) registerCustomResourceScheme(scheme *runtime.Scheme) (*runtime
 
 // Register dynamic CRDs — tells the watch stream to decode
 // these GVKs as *unstructured.Unstructured instead of failing
-func (k *Catalog) registerDynamicScheme(scheme *runtime.Scheme) (*runtime.Scheme, error) {
-	for _, crd := range k.enabledCRDs {
+func (c *Catalog) registerDynamicScheme(scheme *runtime.Scheme) (*runtime.Scheme, error) {
+	for _, crd := range c.enabledCRDs {
 		if crd.IsDynamic() && crd.APITypes.Location == "" && !crd.IsBuiltInType() {
 			// Register Object
 			scheme.AddKnownTypeWithName(

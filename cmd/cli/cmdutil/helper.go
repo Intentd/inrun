@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -70,6 +70,8 @@ var (
 	ContainsTag         = utils.ContainsFold
 	IsTerminal          = utils.IsTerminal
 	HumanDuration       = utils.FormatDuration
+	DumpCRsJSON         = utils.DumpCRsJSON
+	DumpCRsYAML         = utils.DumpCRsYAML
 )
 
 // SortedKeys returns a sorted slice of all keys from the given map.
@@ -126,8 +128,8 @@ func ShadowGlobalCommandFlags(cmd *cobra.Command, flags ...string) {
 
 // PrintTemplateSummary prints the human-readable default output of `inrun template`.
 // CRDs are listed in startup order so the user sees the dependency sequence.
-func PrintTemplateSummary(k *catalog.Catalog, crds map[string]types.CRDEntry, startupOrder []string) {
-	meta := k.Metadata()
+func PrintTemplateSummary(cat *catalog.Catalog, crds map[string]types.CRDEntry, startupOrder []string) {
+	meta := cat.Metadata()
 
 	fmt.Printf("\n%s", Cyan(Bold("Catalog")))
 	if meta.Name != "" {
@@ -136,8 +138,8 @@ func PrintTemplateSummary(k *catalog.Catalog, crds map[string]types.CRDEntry, st
 	if meta.Version != "" {
 		fmt.Printf(" %s", Dim("("+meta.Version+")"))
 	}
-	if k.APIVersion != "" {
-		fmt.Printf("  %s", Dim(k.APIVersion))
+	if cat.APIVersion != "" {
+		fmt.Printf("  %s", Dim(cat.APIVersion))
 	}
 	fmt.Println()
 
@@ -904,4 +906,9 @@ func ExtractBinaryFromTarGz(r io.Reader, binary string, dst io.Writer) error {
 	}
 
 	return fmt.Errorf("binary %q not found in archive", binary)
+}
+
+// CRKey is the key CRs are grouped and looked up by: the kind, lowercased.
+func CRKey(kind string) string {
+	return strings.ToLower(kind)
 }

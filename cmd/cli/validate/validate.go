@@ -8,16 +8,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"path/filepath"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/registry/e2e"
-	modulepkg "github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/registry/e2e"
+	modulepkg "github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -83,8 +83,7 @@ Examples:
 			}
 
 			if config.IsSimulateKind(kind) {
-				playMode, _ := cmd.Flags().GetBool("play")
-				return validateSimulateFilePlay(path, playMode)
+				return validateSimulateFile(path)
 			}
 
 			docKind = kind
@@ -99,7 +98,7 @@ Examples:
 		}
 		spin.Stop()
 
-		k, err := pipeline.BuildExpanded(cmdutil.Kfg, m.Merger)
+		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m.Merger)
 		if err != nil {
 			var typedErr *catalog.TypedOperatorError
 			if errors.As(err, &typedErr) {
@@ -107,14 +106,14 @@ Examples:
 			}
 			return err
 		}
-		entries := k.EnabledCRDs()
+		entries := cat.EnabledCRDs()
 
 		kindLabel := "Catalog"
 		if config.IsStackKind(docKind) {
 			kindLabel = "Stack"
 		}
 
-		if k.IsStandaloneGateway() {
+		if cat.IsStandaloneGateway() {
 			kindLabel = "Gateway Standalone"
 		}
 
@@ -125,17 +124,17 @@ Examples:
 		// --notes / --profiles: quiet mode — skip full validate output, print only that registry.
 		if showNotes || showProfiles {
 			if showNotes {
-				printValidateNotes(k.Notes)
+				printValidateNotes(cat.Notes)
 			}
 			if showProfiles {
-				printValidateProfiles(k.Profiles)
+				printValidateProfiles(cat.Profiles)
 			}
 			return nil
 		}
 
 		var perCRDPerms map[string][]rbacv1.PolicyRule
 		if full {
-			perCRDPerms = k.GeneratePerCRDRBACRules()
+			perCRDPerms = cat.GeneratePerCRDRBACRules()
 		}
 
 		// Sort entries by name for stable output across runs.
@@ -158,11 +157,11 @@ Examples:
 		if config.IsStackKind(docKind) {
 			deprecationHint = "To acknowledge this import, add it to lifecycle.accept.patterns in your Stack."
 		}
-		cmdutil.PrintCatalogDeprecationWithHint(k.Deprecation(), deprecationHint)
+		cmdutil.PrintCatalogDeprecationWithHint(cat.Deprecation(), deprecationHint)
 
 		// Print each CRD entry with enrichment info
 		for _, entry := range sortedEntries {
-			printCRDValidationLine(k, entry)
+			printCRDValidationLine(cat, entry)
 			if full {
 				printCRDPermissions(perCRDPerms[entry.Name])
 				printCRDProfiles(entry)
@@ -185,23 +184,23 @@ Examples:
 		fmt.Println(strings.Repeat("─", 60))
 		fmt.Printf("%d %s valid (%d built-in, %d custom)\n", len(entries), crdText, builtIn, custom)
 
-		for _, w := range k.CronConditionWarnings() {
+		for _, w := range cat.CronConditionWarnings() {
 			fmt.Printf("\n%s  %s\n", cmdutil.Yellow("⚠"), w)
 		}
 
 		if full {
-			if dd := k.DependencyDisplayData(); dd != nil {
+			if dd := cat.DependencyDisplayData(); dd != nil {
 				printValidateDependencyGraph(dd)
 			}
-			printRuntimePermissionsSection(k.GenerateRuntimeRBACRules())
-			printGatewayPermissionsSection(k.GenerateGatewayRBACRules())
+			printRuntimePermissionsSection(cat.GenerateRuntimeRBACRules())
+			printGatewayPermissionsSection(cat.GenerateGatewayRBACRules())
 			printRuntimeContext()
 			fmt.Println()
 		}
 
 		// Always print non-empty registries inline.
-		printValidateNotes(k.Notes)
-		printValidateProfiles(k.Profiles)
+		printValidateNotes(cat.Notes)
+		printValidateProfiles(cat.Profiles)
 
 		return nil
 	},
@@ -408,18 +407,16 @@ func ValidateE2EFile(path string) error {
 
 // validateSimulateFile validates a Simulate spec file and prints a summary.
 func validateSimulateFile(path string) error {
-	return validateSimulateFileOpts(path, false, false)
+	return validateSimulateFileOpts(path, false)
 }
 
-func validateSimulateFilePlay(path string, play bool) error {
-	return validateSimulateFileOpts(path, false, play)
-}
-
+// ValidateSimulateFileQuiet validates without printing; the returned error
+// lists every problem.
 func ValidateSimulateFileQuiet(path string) error {
-	return validateSimulateFileOpts(path, true, false)
+	return validateSimulateFileOpts(path, true)
 }
 
-func validateSimulateFileOpts(path string, quiet, playMode bool) error {
+func validateSimulateFileOpts(path string, quiet bool) error {
 	if !quiet {
 		fmt.Println()
 		fmt.Println(cmdutil.Bold("Validating Simulate..."))
@@ -464,11 +461,19 @@ func validateSimulateFileOpts(path string, quiet, playMode bool) error {
 		} else if !cmdutil.FileExists(filepath.Join(baseDir, doc.Spec.Catalog)) {
 			errs = append(errs, "spec.catalog not found: "+doc.Spec.Catalog)
 		}
-		if len(doc.Spec.AllCRPaths()) == 0 {
-			if !playMode {
-				errs = append(errs, "spec.cr or spec.crFiles is required (or use --play if inrun serve play will supply the CR)")
+		switch {
+		case doc.Spec.Intent != "" && len(doc.Spec.AllCRPaths()) > 0:
+			errs = append(errs, "set spec.intent or spec.cr/crFiles, not both")
+		case doc.Spec.Intent != "":
+			if !cmdutil.FileExists(filepath.Join(baseDir, doc.Spec.Intent)) {
+				errs = append(errs, "intent file not found: "+doc.Spec.Intent)
 			}
-		} else {
+			if doc.Spec.Token == "" {
+				errs = append(errs, "spec.token is required with spec.intent: the gateway token the intent is sent with")
+			}
+		case len(doc.Spec.AllCRPaths()) == 0:
+			errs = append(errs, "spec.cr, spec.crFiles or spec.intent is required")
+		default:
 			for _, p := range doc.Spec.AllCRPaths() {
 				if !cmdutil.FileExists(filepath.Join(baseDir, p)) {
 					errs = append(errs, "cr file not found: "+p)
@@ -531,6 +536,9 @@ func validateSimulateFileOpts(path string, quiet, playMode bool) error {
 			fmt.Println()
 			fmt.Println(strings.Repeat("─", 60))
 		}
+		if quiet {
+			return fmt.Errorf("%d validation error(s) in %s:\n  - %s", len(errs), path, strings.Join(errs, "\n  - "))
+		}
 		return fmt.Errorf("%d validation error(s) in %s", len(errs), path)
 	}
 
@@ -556,7 +564,11 @@ func validateSimulateFileOpts(path string, quiet, playMode bool) error {
 			cycles = 10
 		}
 		fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("catalog : %s", doc.Spec.Catalog)))
-		fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("cr      : %s", doc.Spec.CR)))
+		if doc.Spec.Intent != "" {
+			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("intent  : %s (token %s)", doc.Spec.Intent, doc.Spec.Token)))
+		} else {
+			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("cr      : %s", doc.Spec.CR)))
+		}
 		fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("cycles  : %d", cycles)))
 		if doc.Spec.Expect != nil {
 			totalOps := len(doc.Spec.Expect.Ops)
@@ -790,7 +802,6 @@ func init() {
 	validateCmd.Flags().Bool("full", false, "Show per-CRD permissions, dependency graph, and system-level RBAC")
 	validateCmd.Flags().Bool("notes", false, "Quiet mode: print only the merged note registry, skip full validate output")
 	validateCmd.Flags().Bool("profiles", false, "Quiet mode: print only the merged profile registry, skip full validate output")
-	validateCmd.Flags().Bool("play", false, "For Simulate specs: skip spec.cr requirement (inrun serve play will supply the CR)")
 
 	// Shadow global flags so they don't appear under `inrun validate`
 	cmdutil.ShadowGlobalCommandFlags(validateCmd)

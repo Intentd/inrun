@@ -3,29 +3,34 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
+	corev1 "k8s.io/api/core/v1"
+	"path"
 	"runtime"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/metrics"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/post"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
-	"github.com/inrundev/inrun/pkg/template"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/maintain"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/template"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Worker that only processes items for a specific GVK
-func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID string) {
-	wq, ok := k.queueRegistry.For(gvk)
+func (c *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID string) {
+	wq, ok := c.queueRegistry.For(gvk)
 
 	if !ok {
 		logger.Warn().Str("gvk", gvk).Msg("no queue for CRD. Using default queue")
-		wq = k.defaultWorkqueue
+		wq = c.defaultWorkqueue
 	}
 
 	logger.Debug().Str("worker_id", workerID).Str("gvk", gvk).Msg("worker started")
@@ -47,16 +52,16 @@ func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 			}
 
 			// Worker is now processing
-			k.crdHealthMap[gvk].MarkWorkerProcessing(workerID)
+			c.crdHealthMap[gvk].MarkWorkerProcessing(workerID)
 
 			// Process the item
 			func() {
 				defer wq.Done(item)
-				k.processItemForGVK(ctx, gvk, item)
+				c.processItemForGVK(ctx, gvk, item)
 			}()
 
 			// Back to idle after processing
-			k.crdHealthMap[gvk].MarkWorkerIdle(workerID)
+			c.crdHealthMap[gvk].MarkWorkerIdle(workerID)
 
 			// Update metrics (outside of processing state)
 			depth := float64(wq.Depth())
@@ -64,15 +69,15 @@ func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 
 			// Push live depth into AutoMetrics so the autoscaler can read it.
 			// No-op for non-autoscaled CRDs (runtimeMap entry has no autoscaler).
-			k.mu.RLock()
-			rt := k.runtimeMap[gvk]
-			k.mu.RUnlock()
+			c.mu.RLock()
+			rt := c.runtimeMap[gvk]
+			c.mu.RUnlock()
 			if rt != nil {
 				rt.autoMetrics.SetQueueDepth(int64(wq.Depth()))
 			}
 
 			// Resource count — read from this CRD's informer cache
-			if entry, ok := k.catalog.Get(gvk); ok && entry.Informer != nil {
+			if entry, ok := c.catalog.Get(gvk); ok && entry.Informer != nil {
 				count := float64(len(entry.Informer.GetIndexer().List()))
 				metrics.SetResourceCount(gvk, count)
 			}
@@ -81,16 +86,16 @@ func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 }
 
 // processItemForGVK handles a single reconciliation item
-func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item queue.QueueItem) {
+func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item queue.QueueItem) {
 	if err := ctx.Err(); err != nil {
 		logger.Debug().Msg("process item: context cancelled")
 		return
 	}
 
 	// Resolve queue — per-CRD if registered, default otherwise
-	wq, ok := k.queueRegistry.For(gvk)
+	wq, ok := c.queueRegistry.For(gvk)
 	if !ok {
-		wq = k.defaultWorkqueue
+		wq = c.defaultWorkqueue
 	}
 
 	// Added to help shutdown workers and preserve the queue on missing crds
@@ -122,9 +127,9 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	}
 
 	// Look up the pre-built reconciler
-	k.mu.RLock()
-	rec := k.reconcilers[gvk]
-	k.mu.RUnlock()
+	c.mu.RLock()
+	rec := c.reconcilers[gvk]
+	c.mu.RUnlock()
 
 	if rec == nil {
 		logger.Error().Str("gvk", gvk).Str("key", item.Key).Msg("no reconciler found — dropping item")
@@ -135,14 +140,17 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	// Pre-reconcile gate: evaluate operatorBox.preReconcile.when/or conditions.
 	// The reconciler is never called when conditions are not met — gated state
 	// is idle, not failure; error rate and health state are unaffected.
-	entry, hasEntry := k.catalog.Get(gvk)
+	entry, hasEntry := c.catalog.Get(gvk)
 	if hasEntry && entry.CRD.HasAnyReconcileGate() {
-		obj := k.objectFromCache(entry, item.Key)
-		sentinelMap := wq.Sentinels(item)
-		if gated, reason := k.evaluatePreReconcileCheck(ctx, obj, entry.CRD.Name, sentinelMap); gated {
-			k.crdHealthMap[gvk].RecordGated(reason)
-			wq.Forget(item)
-			return
+		// A CR being deleted is never gated: its finalizing reconcile releases
+		// Inrun's finalizer.
+		if obj := c.objectFromCache(entry, item.Key); obj == nil || obj.GetDeletionTimestamp() == nil {
+			sentinelMap := wq.Sentinels(item)
+			if gated, reason := c.evaluatePreReconcileCheck(ctx, obj, entry.CRD.Name, sentinelMap); gated {
+				c.crdHealthMap[gvk].RecordGated(reason)
+				wq.Forget(item)
+				return
+			}
 		}
 	}
 
@@ -156,14 +164,14 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 		prepared, valResult, prepErr = prepare.Prepare(ctx, prepare.Input{
 			Entry:    entry,
 			Key:      item.Key,
-			Kat:      k.kat,
-			Kube:     k.kube,
-			Registry: k.catalog,
+			Cat:      c.cat,
+			Kube:     c.kube,
+			Registry: c.catalog,
 		})
 		if prepErr != nil {
 			logger.Error().Err(prepErr).Str("gvk", gvk).Str("key", item.Key).Msg("prepare failed")
 			wq.AddRateLimited(item)
-			k.failedReconcile(gvk)
+			c.failedReconcile(gvk)
 			return
 		}
 		if prepared == nil {
@@ -173,54 +181,130 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	}
 
 	// Box and resolver are extracted once here and shared by cleanup and maintain.
-	var cleanupTriggered bool
+	// Cleanup never suspends reconciling: a due cleanup deletes the CR here; a
+	// pending one only shapes when the next pass runs.
+	var cleanup cleanupWait
 	if hasEntry && prepared != nil {
 		box, resolver := prepare.BoxFrom(prepared), prepared.Context.(*template.Resolver)
 
-		triggered, waitFor, cleanupErr := k.runCleanupGate(ctx, prepared.Object, box, resolver)
+		check, cleanupErr := checkCleanup(ctx, c.kube, prepared.Object, box, resolver)
 		if cleanupErr != nil {
 			logger.Error().Err(cleanupErr).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup evaluation failed")
 			wq.AddRateLimited(item)
-			k.failedReconcile(gvk)
+			c.failedReconcile(gvk)
 			return
 		}
-		if waitFor > 0 {
-			// Grace period running — schedule re-evaluation after the remaining duration.
-			wq.Forget(item)
-			wq.AddAfter(item, waitFor)
-			return
-		}
-		cleanupTriggered = triggered
 
-		if maintErr := k.runMaintain(ctx, entry, prepared.Object, box, resolver, cleanupTriggered); maintErr != nil {
+		if maintErr := c.runMaintain(ctx, entry, prepared.Object, box, resolver, check.due); maintErr != nil {
 			logger.Error().Err(maintErr).Str("gvk", gvk).Str("key", item.Key).Msg("maintain failed")
 			wq.AddRateLimited(item)
-			k.failedReconcile(gvk)
+			c.failedReconcile(gvk)
 			return
 		}
 
-		if cleanupTriggered {
-			if delErr := k.deleteCR(ctx, prepared.Object); delErr != nil {
+		if check.due {
+			if delErr := c.deleteCR(ctx, prepared.Object, check.reason); delErr != nil {
 				logger.Error().Err(delErr).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: delete failed")
 				wq.AddRateLimited(item)
-				k.failedReconcile(gvk)
+				c.failedReconcile(gvk)
 				return
 			}
 			wq.Forget(item)
-			k.successReconcile(gvk)
+			c.successReconcile(gvk)
 			return
 		}
+		cleanup = check.cleanupWait
 	}
 
 	// safeReconcile catches panics
-	result, reconcileErr := k.safeReconcile(rec, k.crdHealthMap[gvk], ctx, item.Key, gvk, prepared)
+	result, reconcileErr := c.safeReconcile(rec, c.crdHealthMap[gvk], ctx, item.Key, gvk, prepared)
+
+	// A CR being deleted: Inrun's cleanup finalizer holds it until the
+	// reconciler returns without a requeue, or until runtime.finalizers.timeout
+	// passes. Only that requeue counts; the Result's writes are ignored so
+	// nothing recreates children of a CR on its way out.
+	finalizing := hasEntry && prepared != nil && prepared.Finalizing
+	if finalizing {
+		box := prepare.BoxFrom(prepared)
+		d, reason := result.EffectiveRequeue()
+		done := reconcileErr == nil && d <= 0
+		expired, left := finalizeDeadline(prepared.Object, box.EffectiveFinalizerConfig(), time.Now())
+		ns, name := prepared.Object.GetNamespace(), prepared.Object.GetName()
+
+		if done || expired {
+			if !done {
+				why := reason
+				if reconcileErr != nil {
+					why = reconcileErr.Error()
+				}
+				c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "FinalizeTimeout",
+					"Still finalizing after runtime.finalizers.timeout; removing Inrun's finalizer anyway (last: %s)", why)
+				reconcileErr = nil
+			}
+			// Children owner references cannot reach go before the finalizer.
+			// After a timeout the CR is released even if this fails.
+			if _, err := deleteChildren(ctx, c.kube, entry.CRD, prepared); err != nil {
+				if done {
+					reconcileErr = fmt.Errorf("deleting children: %w", err)
+				} else {
+					logger.Warn().Err(err).Str("key", item.Key).Msg("finalize timeout: deleting children failed")
+				}
+			}
+			// On any error the finalizer stays and the CR is retried below.
+			if reconcileErr == nil {
+				if err := maintain.Finalize(ctx, c.kube, prepared.Object, box); err != nil {
+					reconcileErr = fmt.Errorf("removing finalizers: %w", err)
+				} else {
+					if done {
+						c.event.Eventf(prepared.Object, corev1.EventTypeNormal, "Finalized",
+							"Reconciler finished; removed Inrun's finalizer from %s/%s", ns, name)
+					}
+					wq.Forget(item)
+					c.successReconcile(gvk)
+					return
+				}
+			}
+		} else if reconcileErr == nil {
+			// Never sleep past the timeout.
+			if left > 0 && d > left {
+				d = left
+			}
+			result = domain.Result{Requeue: &domain.Requeue{After: d, Reason: reason}}
+		}
+	}
+
+	// Apply the resources, labels and annotations the Result returns. Every
+	// reconciler's writes take this one path; a failure is a reconcile failure.
+	// Children it applied before and no longer returns are pruned when the
+	// effective reconcile.prune is enabled.
+	if reconcileErr == nil && hasEntry && prepared != nil && !finalizing {
+		prune := entry.CRD.EffectivePrune(intent.Target(prepared.Object.GetAnnotations()))
+		pruned, err := apply.Result(ctx, c.kube, prepared.Object, entry.CRD.AllManagedResources(), prune, result)
+		for _, p := range pruned {
+			c.event.Eventf(prepared.Object, corev1.EventTypeNormal, "Pruned",
+				"Deleted %s %s: no longer in the result", p.Kind, path.Join(p.Namespace, p.Name))
+		}
+		if err != nil {
+			c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ApplyFailed",
+				"Applying the result for %s/%s: %v", prepared.Object.GetNamespace(), prepared.Object.GetName(), err)
+			reconcileErr = err
+		}
+	}
+
+	// A CR that moved to another serve target loses what the previous one
+	// created, now that the new target's children are in place.
+	if reconcileErr == nil && hasEntry && prepared != nil && !finalizing {
+		if err := sweepPreviousSurface(ctx, c.kube, entry.CRD, prepared.Object); err != nil {
+			reconcileErr = fmt.Errorf("surface sweep: %w", err)
+		}
+	}
 
 	// Post: status patch + emit — always runs, even on reconcile failure.
 	if hasEntry && prepared != nil {
 		reconcileErr = runPost(ctx, PostInput{
-			Kube:      k.kube,
-			Event:     k.event,
-			Health:    k.crdHealthMap[gvk],
+			Kube:      c.kube,
+			Event:     c.event,
+			Health:    c.crdHealthMap[gvk],
 			CRD:       entry.CRD,
 			Prepared:  prepared,
 			Result:    result,
@@ -229,15 +313,45 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	}
 
 	if reconcileErr != nil {
+		if hasEntry && prepared != nil {
+			c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ReconcileError",
+				"Reconciling %s: %v", item.Key, reconcileErr)
+		}
 		logger.Error().Err(reconcileErr).Str("gvk", gvk).Str("key", item.Key).Msg("reconcile failed")
 		wq.AddRateLimited(item)
-		k.failedReconcile(gvk)
+		// A failing reconcile never delays a pending cleanup.
+		if cleanup.pending {
+			wq.AddAfter(item, cleanup.wait)
+		}
+		c.failedReconcile(gvk)
 		return
 	}
 
+	if hasEntry && prepared != nil {
+		c.event.Eventf(prepared.Object, corev1.EventTypeNormal, "Reconciled", "Reconciled %s", item.Key)
+	}
+
+	// Record or withdraw the cleanup this Result requests. A failed reconcile
+	// (above) changes neither, and a CR being deleted has nothing to clean up.
+	if hasEntry && prepared != nil && !finalizing {
+		w, err := settleResultCleanup(ctx, c.kube, prepared.Object, result.Cleanup)
+		if err != nil {
+			logger.Warn().Err(err).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: could not record the result's request")
+		}
+		if w.pending {
+			cleanup.add(w.wait)
+		}
+	}
+
+	// Requeue and cleanup are independent: wake at whichever is due first; the
+	// next pass recomputes both.
 	wq.Forget(item)
-	if requeueAfter := k.resolveRequeueAfter(ctx, gvk, entry, item.Key, result, prepared); requeueAfter >= 0 {
-		wq.AddAfter(item, requeueAfter)
+	next := c.resolveRequeueAfter(ctx, gvk, entry, item.Key, result, prepared)
+	if cleanup.pending && (next < 0 || cleanup.wait < next) {
+		next = cleanup.wait
+	}
+	if next >= 0 {
+		wq.AddAfter(item, next)
 	}
 }
 
@@ -255,7 +369,7 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 //
 // This function guarantees that no matter what happens inside rec.Reconcile(),
 // the controller process stays alive and the failure is reported deterministically.
-func (k *Controller) safeReconcile(
+func (c *Controller) safeReconcile(
 	rec domain.Reconciler,
 	health *vitals.CRDHealth,
 	ctx context.Context,
@@ -286,7 +400,7 @@ func (k *Controller) safeReconcile(
 				Msg("reconciler panic recovered")
 
 			// Update CRD health state and metrics.
-			health.RecordFailure(err, k.failureThreshold[gvk])
+			health.RecordFailure(err, c.failureThreshold[gvk])
 			metrics.RecordReconcile(gvk, "error")
 
 			// TODO: track panic stats differently with recovery
@@ -300,6 +414,8 @@ func (k *Controller) safeReconcile(
 	// Execute the operator's reconcile logic.
 	// Any returned error is treated as a reconcile failure.
 	ns, name, _ := cache.SplitMetaNamespaceKey(key)
+
+	prepared.Args = prepare.Args(prepared)
 	result, err = rec.Reconcile(ctx, domain.Request{
 		Key:            key,
 		NamespacedName: apitypes.NamespacedName{Namespace: ns, Name: name},
@@ -307,14 +423,15 @@ func (k *Controller) safeReconcile(
 	})
 	if err != nil {
 		// Update CRD health state and metrics.
-		health.RecordFailure(err, k.failureThreshold[gvk])
+		health.RecordFailure(err, c.failureThreshold[gvk])
 		metrics.RecordReconcile(gvk, "error")
 		return result, err
 	}
 
 	// Successful reconcile path.
 	health.RecordSuccess()
-	k.successReconcile(gvk)
+	c.successReconcile(gvk)
+	vitals.InvalidateChildrenCache(ns, name)
 	metrics.RecordReconcile(gvk, "success")
 	return result, nil
 }

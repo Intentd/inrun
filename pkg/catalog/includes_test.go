@@ -7,8 +7,8 @@ import (
 // ── serve.include ───────────────────────────────────────────────────────────────
 
 func TestServeInclude_ExpandsFields(t *testing.T) {
-	k := mustParseTestdata(t, "include/serve.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/serve.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil {
 		t.Fatal("platform CRD not found")
 	}
@@ -29,8 +29,8 @@ func TestServeInclude_ExpandsFields(t *testing.T) {
 }
 
 func TestServeInclude_InlineOverridesIncluded(t *testing.T) {
-	k := mustParseTestdata(t, "include/serve.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/serve.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.Serve == nil {
 		t.Fatal("platform CRD or Serve is nil")
 	}
@@ -42,8 +42,8 @@ func TestServeInclude_InlineOverridesIncluded(t *testing.T) {
 }
 
 func TestServeInclude_ClearedAfterExpansion(t *testing.T) {
-	k := mustParseTestdata(t, "include/serve.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/serve.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.Serve == nil {
 		t.Fatal("platform CRD or Serve is nil")
 	}
@@ -55,8 +55,8 @@ func TestServeInclude_ClearedAfterExpansion(t *testing.T) {
 // ── validation.include ────────────────────────────────────────────────────────
 
 func TestValidationInclude_ExpandsRules(t *testing.T) {
-	k := mustParseTestdata(t, "include/validation.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/validation.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveValidation() == nil {
 		t.Fatal("platform CRD or Validation is nil")
 	}
@@ -67,8 +67,8 @@ func TestValidationInclude_ExpandsRules(t *testing.T) {
 }
 
 func TestValidationInclude_IncludedRulesFirst(t *testing.T) {
-	k := mustParseTestdata(t, "include/validation.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/validation.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveValidation() == nil {
 		t.Fatal("platform CRD or Validation is nil")
 	}
@@ -84,8 +84,8 @@ func TestValidationInclude_IncludedRulesFirst(t *testing.T) {
 }
 
 func TestValidationInclude_ClearedAfterExpansion(t *testing.T) {
-	k := mustParseTestdata(t, "include/validation.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/validation.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveValidation() == nil {
 		t.Fatal("platform CRD or Validation is nil")
 	}
@@ -97,8 +97,8 @@ func TestValidationInclude_ClearedAfterExpansion(t *testing.T) {
 // ── mutation.include ──────────────────────────────────────────────────────────
 
 func TestMutationInclude_ExpandsRules(t *testing.T) {
-	k := mustParseTestdata(t, "include/mutation.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/mutation.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveMutation() == nil {
 		t.Fatal("platform CRD or Mutation is nil")
 	}
@@ -109,8 +109,8 @@ func TestMutationInclude_ExpandsRules(t *testing.T) {
 }
 
 func TestMutationInclude_IncludedRulesFirst(t *testing.T) {
-	k := mustParseTestdata(t, "include/mutation.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/mutation.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveMutation() == nil {
 		t.Fatal("platform CRD or Mutation is nil")
 	}
@@ -126,8 +126,8 @@ func TestMutationInclude_IncludedRulesFirst(t *testing.T) {
 }
 
 func TestMutationInclude_ClearedAfterExpansion(t *testing.T) {
-	k := mustParseTestdata(t, "include/mutation.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/mutation.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveMutation() == nil {
 		t.Fatal("platform CRD or Mutation is nil")
 	}
@@ -139,8 +139,8 @@ func TestMutationInclude_ClearedAfterExpansion(t *testing.T) {
 // ── conversion.include ────────────────────────────────────────────────────────
 
 func TestConversionInclude_ExpandsPaths(t *testing.T) {
-	k := mustParseTestdata(t, "include/conversion.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/conversion.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveConversion() == nil {
 		t.Fatal("platform CRD or Conversion is nil")
 	}
@@ -151,8 +151,8 @@ func TestConversionInclude_ExpandsPaths(t *testing.T) {
 }
 
 func TestConversionInclude_IncludedPathsFirst(t *testing.T) {
-	k := mustParseTestdata(t, "include/conversion.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/conversion.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveConversion() == nil {
 		t.Fatal("platform CRD or Conversion is nil")
 	}
@@ -168,8 +168,8 @@ func TestConversionInclude_IncludedPathsFirst(t *testing.T) {
 }
 
 func TestConversionInclude_ClearedAfterExpansion(t *testing.T) {
-	k := mustParseTestdata(t, "include/conversion.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/conversion.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.EffectiveConversion() == nil {
 		t.Fatal("platform CRD or Conversion is nil")
 	}
@@ -181,8 +181,8 @@ func TestConversionInclude_ClearedAfterExpansion(t *testing.T) {
 // ── status.include ────────────────────────────────────────────────────────────
 
 func TestStatusInclude_ExpandsFields(t *testing.T) {
-	k := mustParseTestdata(t, "include/status.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/status.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.OperatorBox.EffectiveStatus() == nil {
 		t.Fatal("platform CRD or Status is nil")
 	}
@@ -193,8 +193,8 @@ func TestStatusInclude_ExpandsFields(t *testing.T) {
 }
 
 func TestStatusInclude_IncludedFieldsFirst(t *testing.T) {
-	k := mustParseTestdata(t, "include/status.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/status.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.OperatorBox.EffectiveStatus() == nil {
 		t.Fatal("platform CRD or Status is nil")
 	}
@@ -210,8 +210,8 @@ func TestStatusInclude_IncludedFieldsFirst(t *testing.T) {
 }
 
 func TestStatusInclude_ClearedAfterExpansion(t *testing.T) {
-	k := mustParseTestdata(t, "include/status.yaml")
-	crd, _ := k.Get("platform")
+	cat := mustParseTestdata(t, "include/status.yaml")
+	crd, _ := cat.Get("platform")
 	if crd == nil || crd.OperatorBox.EffectiveStatus() == nil {
 		t.Fatal("platform CRD or Status is nil")
 	}

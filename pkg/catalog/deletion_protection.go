@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -48,15 +48,15 @@ import (
 //
 // When running outside the cluster (e.g. `inrun`), the webhook cannot be
 // reached, so no rules are returned.
-func (k *Catalog) DeletionProtectionGVRs() []GVREntry {
-	if !k.IsDeletionProtectionEnabled() {
+func (c *Catalog) DeletionProtectionGVRs() []GVREntry {
+	if !c.IsDeletionProtectionEnabled() {
 		return nil
 	}
 	if !utils.IsRunningInPod() {
 		return nil
 	}
 
-	gvr := append(k.customResourceGVRs(), inrunInternalGVRs()...)
+	gvr := append(c.customResourceGVRs(), inrunInternalGVRs()...)
 	return gvr
 }
 
@@ -119,12 +119,12 @@ func inrunInternalGVRs() []GVREntry {
 // Important: This function does NOT protect the CRD definitions themselves.
 // Those are protected separately by the first webhook (CRD protection) using
 // DeletionProtectedCRDNames(), which respects ShouldProtectCRD().
-func (k *Catalog) customResourceGVRs() []GVREntry {
+func (c *Catalog) customResourceGVRs() []GVREntry {
 	seen := make(map[string]bool)
 	var gvrList []GVREntry
 
 	// Owner CRDs managed by this Catalog.
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if !crd.ShouldProtectCRs() {
 			continue
 		}
@@ -149,7 +149,7 @@ func (k *Catalog) customResourceGVRs() []GVREntry {
 	// Custom children declared in onCreate/onReconcile custom blocks.
 	// Respects the parent CRD's ShouldProtectCRs() — if the parent opts out,
 	// its children are not registered either.
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if !crd.ShouldProtectCRs() {
 			continue
 		}
@@ -215,17 +215,17 @@ func customChildGVRs(crd types.CRDEntry, seen map[string]bool) []GVREntry {
 //
 // When running outside the cluster (e.g. `inrun`), the webhook cannot be
 // reached, so no protection is guaranteed.
-func (k *Catalog) DeletionProtectedCRDNames() map[string]struct{} {
-	if !k.IsDeletionProtectionEnabled() {
+func (c *Catalog) DeletionProtectedCRDNames() map[string]struct{} {
+	if !c.IsDeletionProtectionEnabled() {
 		return nil
 	}
 	if !utils.IsRunningInPod() {
 		return nil
 	}
-	names := make(map[string]struct{}, k.Len())
+	names := make(map[string]struct{}, c.Len())
 
 	// Owner CRDs managed by this Catalog.
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if crd.IsBuiltIn {
 			continue
 		}
@@ -242,7 +242,7 @@ func (k *Catalog) DeletionProtectedCRDNames() map[string]struct{} {
 	// deleting the CRD cascades all instances regardless of instance-level protection.
 	// Respects the parent CRD's ShouldProtectCRD() — if the parent opts out,
 	// its children's CRD types are not protected either.
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if !crd.ShouldProtectCRD() {
 			continue
 		}

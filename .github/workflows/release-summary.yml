@@ -36,7 +36,7 @@ on:
         description: 'Container registry base (e.g., ghcr.io/owner)'
         required: false
         type: string
-        default: 'ghcr.io/inrundev'
+        default: 'ghcr.io/intentd'
       inrun:
         description: 'Shorthand for inrun (used in helm, namespace, etc.)'
         required: false
@@ -56,7 +56,7 @@ on:
         description: 'Helm repository URL'
         required: false
         type: string
-        default: 'https://inrundev.github.io/inrun'
+        default: 'https://intentd.github.io/inrun'
       helm_chart:
         description: 'Helm chart reference (repo/chart)'
         required: false
@@ -66,7 +66,7 @@ on:
         description: 'Homebrew tap (owner/tap)'
         required: false
         type: string
-        default: 'inrundev/tap'
+        default: 'intentd/tap'
 
 jobs:
   summary:

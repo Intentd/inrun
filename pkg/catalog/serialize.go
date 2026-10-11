@@ -4,8 +4,8 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,8 +17,8 @@ import (
 //
 // Must be called after BuildRuntimeCatalog; returns an error if no CRDs
 // are present (indicates expansion hasn't been run yet).
-func (k *Catalog) SerializeExpanded() ([]byte, error) {
-	if k.EnabledCRDsEmpty() && !k.IsStandaloneGateway() {
+func (c *Catalog) SerializeExpanded() ([]byte, error) {
+	if c.EnabledCRDsEmpty() && !c.IsStandaloneGateway() {
 		return nil, fmt.Errorf("Catalog has no enabled CRDs")
 	}
 
@@ -26,14 +26,14 @@ func (k *Catalog) SerializeExpanded() ([]byte, error) {
 	// Always kind: Catalog — the bundle has no imports; Stack sources become
 	// plain Catalogs after expansion so the runtime always takes the loadCatalog path.
 	kf := types.CatalogFile{
-		APIVersion: k.APIVersion,
+		APIVersion: c.APIVersion,
 		Kind:       config.CatalogKind(),
-		Metadata:   k.metadata,
-		Spec:       types.CatalogSpec{CRDs: withoutLocalPaths(k.enabledCRDs)},
-		Security:   k.Security,
-		Gateway:    k.Gateway,
-		Profiles:   k.Profiles,
-		Notes:      k.Notes,
+		Metadata:   c.metadata,
+		Spec:       types.CatalogSpec{CRDs: withoutLocalPaths(c.enabledCRDs)},
+		Security:   c.Security,
+		Gateway:    c.Gateway,
+		Profiles:   c.Profiles,
+		Notes:      c.Notes,
 	}
 
 	out, err := yaml.Marshal(kf)

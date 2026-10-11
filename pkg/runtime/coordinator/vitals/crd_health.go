@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/queue"
 )
 
 // CRDHealth tracks the runtime health of a single CRD's reconciler.
@@ -149,7 +149,7 @@ func (h *CRDHealth) RecordSuccess() {
 
 	// If all online for this catalog
 	if h.inrunHealth.allOnline.Load() {
-		h.inrunHealth.katReady.Store(true)
+		h.inrunHealth.catReady.Store(true)
 	}
 }
 
@@ -166,7 +166,7 @@ func (h *CRDHealth) RecordFailure(err error, degradeThreshold int) {
 	// If too many failures in a row, mark the reconciler and catalog unhealthy.
 	if h.consecutiveFails.Load() >= int64(degradeThreshold) {
 		h.inrunHealth.mu.Lock()
-		h.inrunHealth.katReady.Store(false)
+		h.inrunHealth.catReady.Store(false)
 		h.inrunHealth.mu.Unlock()
 
 		h.crdCheckMu.Lock()

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/cluster"
 	"gopkg.in/yaml.v3"
 )
 

@@ -3,14 +3,14 @@ package coordinator
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/post"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // PostInput holds everything runPost needs from the worker.
@@ -30,12 +30,12 @@ func runPost(ctx context.Context, in PostInput, reconcileErr error) error {
 	box := prepare.BoxFrom(in.Prepared)
 	resolver := in.Prepared.Context.(*template.Resolver)
 	post.Apply(ctx, post.Input{
-		CRD:         in.CRD,
-		Kube:        in.Kube,
-		Recorder:    in.Event,
-		MetricsMap:  in.Health.GetAutoMetrics(),
-		HealthMap:   in.Health.HealthAsMap(),
-		StatusPatch: in.Result.StatusPatch,
+		CRD:        in.CRD,
+		Kube:       in.Kube,
+		Recorder:   in.Event,
+		MetricsMap: in.Health.GetAutoMetrics(),
+		HealthMap:  in.Health.HealthAsMap(),
+		Status:     in.Result.Status,
 	}, in.Prepared.Object, resolver, box, reconcileErr, in.ValResult)
 
 	return reconcileErr

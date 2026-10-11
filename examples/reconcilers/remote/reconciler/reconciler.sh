@@ -33,6 +33,8 @@ namespace=$(jq -r '.object.metadata.namespace  // "default"'  <<< "$body")
 image=$(jq -r     '.object.spec.image          // "nginx:latest"' <<< "$body")
 replicas=$(jq -r  '.object.spec.replicas       // 1'          <<< "$body")
 port=$(jq -r      '.object.spec.port           // 80'         <<< "$body")
+# jq's // treats false as missing, so test for false explicitly.
+expose=$(jq -r    'if .object.spec.expose == false then "false" else "true" end' <<< "$body")
 
 app_name=$(jq -r    '.args.appName     // empty' <<< "$body")
 log_level=$(jq -r   '.args.logLevel   // "info"' <<< "$body")
@@ -70,13 +72,21 @@ service=$(jq -cn \
         }
     }')
 
+# Without expose the Service is left out; prune deletes the one applied before.
+if [[ "$expose" == "true" ]]; then
+    resources=$(jq -cn --argjson d "$deployment" --argjson s "$service" '[$d, $s]')
+else
+    resources=$(jq -cn --argjson d "$deployment" '[$d]')
+fi
+
 # ── build response ───────────────────────────────────────────────────────────
 response=$(jq -cn \
-    --argjson deployment "$deployment" \
-    --argjson service    "$service" \
+    --argjson resources "$resources" \
     --arg name      "$name" \
     --arg namespace "$namespace" \
     --argjson replicas "$replicas" \
+    --arg environment "$environment" \
+    --arg image     "$image" \
     '{
         result: "ok",
         status: {
@@ -84,7 +94,9 @@ response=$(jq -cn \
             endpoint: (($name + "-svc.") + $namespace + ".svc.cluster.local"),
             replicas: $replicas
         },
-        resources: [$deployment, $service]
+        labels:      { environment: $environment },
+        annotations: { "webapp.example.com/image": $image },
+        resources: $resources
     }')
 
 len=${#response}

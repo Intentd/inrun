@@ -3,7 +3,7 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,12 +15,12 @@ func catalogWithWatch(crdName string, box types.OperatorBoxConfig) *executor {
 }
 
 func TestValidateWatchEntries_Empty(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{})
-	assert.NoError(t, k.validateWatchEntries())
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{})
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateWatchEntries_Valid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "apps/v1", Kind: "Deployment"},
@@ -29,51 +29,51 @@ func TestValidateWatchEntries_Valid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateWatchEntries_MissingAPIVersion(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{Kind: "Deployment"},
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "apiVersion must not be empty")
 }
 
 func TestValidateWatchEntries_MissingKind(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "apps/v1"},
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "kind must not be empty")
 }
 
 func TestValidateWatchEntries_InvalidOnValue(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "apps/v1", Kind: "Deployment", On: []string{"modified"}},
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "modified")
 	assert.Contains(t, err.Error(), "create, update, delete")
 }
 
 func TestValidateWatchEntries_DuplicateEntry(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "apps/v1", Kind: "Deployment"},
@@ -81,13 +81,13 @@ func TestValidateWatchEntries_DuplicateEntry(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate watch entry")
 }
 
 func TestValidateWatchEntries_DuplicateWithDifferentNamespace(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "ConfigMap", Namespace: "ns-a"},
@@ -95,52 +95,52 @@ func TestValidateWatchEntries_DuplicateWithDifferentNamespace(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateWatchEntries_ValidAllOnValues(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "Node", On: []string{"create", "update", "delete"}},
 			},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateSentinels_Valid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "labelsChanged"},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateSentinels_Unknown(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "specChanged"},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "specChanged")
 	assert.Contains(t, err.Error(), "generationChanged, labelsChanged, annotationsChanged")
 }
 
 func TestValidateSentinels_AllValid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "labelsChanged", "annotationsChanged"},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateSentinels_EnqueueGateValid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "labelsChanged", "annotationsChanged"},
 			EnqueueGate: &types.GateConditions{
@@ -148,11 +148,11 @@ func TestValidateSentinels_EnqueueGateValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateSentinels_EnqueueGateInValid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "labelsChanged", "annotationsChanged"},
 			EnqueueGate: &types.GateConditions{
@@ -160,11 +160,11 @@ func TestValidateSentinels_EnqueueGateInValid(t *testing.T) {
 			},
 		},
 	})
-	assert.Error(t, k.validateWatchEntries())
+	assert.Error(t, e.validateWatchEntries())
 }
 
 func TestValidateSentinels_ReconcileGateValid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "labelsChanged", "annotationsChanged"},
 			ReconcileGate: &types.GateConditions{
@@ -172,11 +172,11 @@ func TestValidateSentinels_ReconcileGateValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateSentinels_ReconcileGateInValid(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged", "labelsChanged", "annotationsChanged"},
 			ReconcileGate: &types.GateConditions{
@@ -184,11 +184,11 @@ func TestValidateSentinels_ReconcileGateInValid(t *testing.T) {
 			},
 		},
 	})
-	assert.Error(t, k.validateWatchEntries())
+	assert.Error(t, e.validateWatchEntries())
 }
 
 func TestValidateGateTemplate_DeclaredSentinelParsesOK(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged"},
 			EnqueueGate: &types.GateConditions{
@@ -198,11 +198,11 @@ func TestValidateGateTemplate_DeclaredSentinelParsesOK(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateWatchEntries())
+	assert.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateGateTemplate_UndeclaredSentinelFails(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		PreReconcile: &types.PreReconcileConfig{
 			Sentinels: []string{"generationChanged"},
 			EnqueueGate: &types.GateConditions{
@@ -212,68 +212,68 @@ func TestValidateGateTemplate_UndeclaredSentinelFails(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid template")
 }
 
 func TestValidateKeyFrom_ValidLabel(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "ConfigMap", KeyFrom: &types.WatchKeyFrom{Label: "app.kubernetes.io/cr-owner"}},
 			},
 		},
 	})
-	require.NoError(t, k.validateWatchEntries())
+	require.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateKeyFrom_ValidName(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "Node", KeyFrom: &types.WatchKeyFrom{Name: "my-singleton"}},
 			},
 		},
 	})
-	require.NoError(t, k.validateWatchEntries())
+	require.NoError(t, e.validateWatchEntries())
 }
 
 func TestValidateKeyFrom_BothLabelAndName(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "ConfigMap", KeyFrom: &types.WatchKeyFrom{Label: "some-label", Name: "some-name"}},
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "exactly one of label or name")
 }
 
 func TestValidateKeyFrom_NeitherLabelNorName(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "ConfigMap", KeyFrom: &types.WatchKeyFrom{}},
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "neither label nor name")
 }
 
 func TestValidateKeyFrom_NamespaceWithLabelRejected(t *testing.T) {
-	k := catalogWithWatch("myapp", types.OperatorBoxConfig{
+	e := catalogWithWatch("myapp", types.OperatorBoxConfig{
 		Observe: &types.Observe{
 			Watch: []types.WatchEntry{
 				{APIVersion: "v1", Kind: "ConfigMap", KeyFrom: &types.WatchKeyFrom{Label: "some-label", Namespace: "default"}},
 			},
 		},
 	})
-	err := k.validateWatchEntries()
+	err := e.validateWatchEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "namespace has no effect")
 }

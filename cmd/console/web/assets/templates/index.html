@@ -183,15 +183,15 @@
             </div>
 
             <div class="console-card-grid" id="catalogGrid">
-               {{ range $kat := .Catalogs }}
-               {{ if gt (len $kat.Namespaces) 1 }}
-               {{ range $ns := $kat.Namespaces }}
-               {{ $detail := index $kat.NamespaceDetails $ns }}
+               {{ range $cat := .Catalogs }}
+               {{ if gt (len $cat.Namespaces) 1 }}
+               {{ range $ns := $cat.Namespaces }}
+               {{ $detail := index $cat.NamespaceDetails $ns }}
                <div class="console-card catalog-item"
-                    data-catalog="{{ $kat.Name }}"
+                    data-catalog="{{ $cat.Name }}"
                     data-name="{{ $ns }}"
                     data-status="{{ if $detail.Healthy }}healthy{{ else }}degraded{{ end }}"
-                    data-cluster="{{ $kat.ClusterName }}"
+                    data-cluster="{{ $cat.ClusterName }}"
                     data-namespaces="{{ $ns }}">
                   <div class="console-card-body">
                      <div class="flex items-center justify-between mb-2">
@@ -206,14 +206,14 @@
                         </span>
                         {{ end }}
                      </div>
-                     {{ if $kat.ClusterName }}
+                     {{ if $cat.ClusterName }}
                      <div class="flex gap-2 flex-wrap mb-2">
-                       <span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $kat.ClusterName }}</span>
-                       <span class="console-dep-pill">{{ $kat.Name }}</span>
+                       <span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $cat.ClusterName }}</span>
+                       <span class="console-dep-pill">{{ $cat.Name }}</span>
                      </div>
                      {{ else }}
                      <div class="flex gap-2 flex-wrap mb-2">
-                       <span class="console-dep-pill">{{ $kat.Name }}</span>
+                       <span class="console-dep-pill">{{ $cat.Name }}</span>
                      </div>
                      {{ end }}
                      <p class="console-card-desc">
@@ -238,7 +238,7 @@
                            <span class="console-card-row-value">{{ $detail.Resources }}</span>
                         </div>
                      </div>
-                     <a href="/console/catalog/{{ $kat.Name }}?ns={{ $ns }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
+                     <a href="/console/catalog/{{ $cat.Name }}?ns={{ $ns }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
                         View Panel
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                            <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -249,15 +249,15 @@
                {{ end }}
                {{ else }}
                <div class="console-card catalog-item"
-                    data-catalog="{{ $kat.Name }}"
-                    data-name="{{ $kat.Name }}"
-                    data-status="{{ if $kat.Healthy }}healthy{{ else }}degraded{{ end }}"
-                    data-cluster="{{ $kat.ClusterName }}"
-                    data-namespaces="{{ range $i, $ns := $kat.Namespaces }}{{ if $i }},{{ end }}{{ $ns }}{{ end }}">
+                    data-catalog="{{ $cat.Name }}"
+                    data-name="{{ $cat.Name }}"
+                    data-status="{{ if $cat.Healthy }}healthy{{ else }}degraded{{ end }}"
+                    data-cluster="{{ $cat.ClusterName }}"
+                    data-namespaces="{{ range $i, $ns := $cat.Namespaces }}{{ if $i }},{{ end }}{{ $ns }}{{ end }}">
                   <div class="console-card-body">
                      <div class="flex items-center justify-between mb-2">
-                        <h3 class="console-card-title">{{ $kat.Name }}</h3>
-                        {{ if $kat.Healthy }}
+                        <h3 class="console-card-title">{{ $cat.Name }}</h3>
+                        {{ if $cat.Healthy }}
                         <span class="console-badge console-badge-healthy" data-live="badge">
                         <span class="console-status-dot healthy"></span>Healthy
                         </span>
@@ -267,35 +267,35 @@
                         </span>
                         {{ end }}
                      </div>
-                     {{ if or $kat.ClusterName $kat.Namespaces }}
+                     {{ if or $cat.ClusterName $cat.Namespaces }}
                      <div class="flex gap-2 flex-wrap mb-2">
-                       {{ if $kat.ClusterName }}<span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $kat.ClusterName }}</span>{{ end }}
-                       {{ range $kat.Namespaces }}<span class="console-dep-pill">{{ . }}</span>{{ end }}
+                       {{ if $cat.ClusterName }}<span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $cat.ClusterName }}</span>{{ end }}
+                       {{ range $cat.Namespaces }}<span class="console-dep-pill">{{ . }}</span>{{ end }}
                      </div>
                      {{ end }}
                      <p class="console-card-desc">
-                        {{ if $kat.Description }}{{ truncate $kat.Description 100 }}{{ else }}<em>No description</em>{{ end }}
+                        {{ if $cat.Description }}{{ truncate $cat.Description 100 }}{{ else }}<em>No description</em>{{ end }}
                      </p>
-                     {{ if $kat.Version }}
-                     <div class="text-xs text-muted font-mono mb-3">{{ if not (hasPrefix $kat.Version "v") }}v{{ end }}{{ $kat.Version }}</div>
+                     {{ if $cat.Version }}
+                     <div class="text-xs text-muted font-mono mb-3">{{ if not (hasPrefix $cat.Version "v") }}v{{ end }}{{ $cat.Version }}</div>
                      {{ end }}
                   </div>
                   <div class="console-card-footer">
                      <div class="console-card-meta mb-3">
                         <div class="console-card-row">
                            <span class="console-card-row-label">CRDs</span>
-                           <span class="console-card-row-value" data-live="totalCRDs">{{ $kat.TotalCRDs }} <span class="text-muted">({{ $kat.HealthyCRDs }} healthy)</span></span>
+                           <span class="console-card-row-value" data-live="totalCRDs">{{ $cat.TotalCRDs }} <span class="text-muted">({{ $cat.HealthyCRDs }} healthy)</span></span>
                         </div>
                         <div class="console-card-row">
                            <span class="console-card-row-label">Workers</span>
-                           <span class="console-card-row-value" data-live="totalWorkers">{{ $kat.TotalWorkers }}</span>
+                           <span class="console-card-row-value" data-live="totalWorkers">{{ $cat.TotalWorkers }}</span>
                         </div>
                         <div class="console-card-row">
                            <span class="console-card-row-label">Resources</span>
-                           <span class="console-card-row-value" data-live="totalResources">{{ $kat.TotalResources }}</span>
+                           <span class="console-card-row-value" data-live="totalResources">{{ $cat.TotalResources }}</span>
                         </div>
                      </div>
-                     <a href="/console/catalog/{{ $kat.Name }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
+                     <a href="/console/catalog/{{ $cat.Name }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
                         View Panel
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                            <path d="M5 12h14M12 5l7 7-7 7"/>

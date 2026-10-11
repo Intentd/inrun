@@ -4,7 +4,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,16 +50,16 @@ func TestRegistryRef_IsDefault_WithSHA(t *testing.T) {
 // ── RegistrySource.ResolvedURL ────────────────────────────────────────────────
 
 func TestRegistrySource_ResolvedURL_AtShorthand(t *testing.T) {
-	s := types.RegistrySource{URL: "ghcr.io/inrundev/registry/postgres@v14"}
+	s := types.RegistrySource{URL: "ghcr.io/intentd/registry/postgres@v14"}
 	clean, ver := s.ResolvedURL()
-	assert.Equal(t, "ghcr.io/inrundev/registry/postgres", clean)
+	assert.Equal(t, "ghcr.io/intentd/registry/postgres", clean)
 	assert.Equal(t, "v14", ver)
 }
 
 func TestRegistrySource_ResolvedURL_ExplicitVersion(t *testing.T) {
-	s := types.RegistrySource{URL: "ghcr.io/inrundev/postgres", Version: "v14.2.0", OCI: true}
+	s := types.RegistrySource{URL: "ghcr.io/intentd/postgres", Version: "v14.2.0", OCI: true}
 	clean, ver := s.ResolvedURL()
-	assert.Equal(t, "ghcr.io/inrundev/postgres", clean)
+	assert.Equal(t, "ghcr.io/intentd/postgres", clean)
 	assert.Equal(t, "v14.2.0", ver)
 }
 

@@ -11,17 +11,17 @@ import (
 // validateGateway fails fast when both standalone mode and an explicit endpoint are set.
 // A simple "enabled: true" works
 func (e *executor) validateGateway() error {
-	if !e.k.NeedsGateway() {
+	if !e.cat.NeedsGateway() {
 		return nil
 	}
 
 	// If enabled, return early
-	if e.k.IsGatewayEnabled() {
+	if e.cat.IsGatewayEnabled() {
 		return nil
 	}
 
 	// Conflict: only one of standalone or explicit endpoint can be used
-	if e.k.IsStandaloneGateway() && e.k.GatewayEndpoint() != "" {
+	if e.cat.IsStandaloneGateway() && e.cat.GatewayEndpoint() != "" {
 		return fmt.Errorf(
 			"%s inrun: cannot enable both gateway.standalone and gateway.endpoint\n\n"+
 				"Conflicting configuration:\n"+
@@ -30,32 +30,32 @@ func (e *executor) validateGateway() error {
 				"Fix - set only one:\n"+
 				"  • Standalone mode: set gateway.standalone = true and unset gateway.endpoint\n"+
 				"  • Runtime Companion mode: set gateway.endpoint and set gateway.standalone = false (or omit it)",
-			failureMark(), e.k.GatewayEndpoint(),
+			failureMark(), e.cat.GatewayEndpoint(),
 		)
 	}
 
 	// Standalone gateway mode – no endpoint needed
-	if e.k.IsStandaloneGateway() {
+	if e.cat.IsStandaloneGateway() {
 		return nil
 	}
 
 	// External gateway endpoint provided – ok
-	if e.k.GatewayEndpoint() != "" {
+	if e.cat.GatewayEndpoint() != "" {
 		return nil
 	}
 
 	// If we reach here, gateway is needed but no standalone or endpoint was set.
 	var reasons []string
-	if e.k.IsDeletionProtectionEnabled() {
+	if e.cat.IsDeletionProtectionEnabled() {
 		reasons = append(reasons, "  • security.deletionProtection")
 	}
-	if e.k.IsAdmissionEnabled() {
+	if e.cat.IsAdmissionEnabled() {
 		reasons = append(reasons, "  • security.webhooks.admission")
 	}
-	if e.k.IsConversionEnabled() {
+	if e.cat.IsConversionEnabled() {
 		reasons = append(reasons, "  • security.conversion")
 	}
-	if e.k.IsNamespaceProtectionEnabled() {
+	if e.cat.IsNamespaceProtectionEnabled() {
 		reasons = append(reasons, "  • security.namespaceProtection")
 	}
 

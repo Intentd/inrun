@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -57,19 +57,19 @@ func TestIsValidServeTarget_Invalid(t *testing.T) {
 // ── validateServeTarget — format ──────────────────────────────────────────────
 
 func TestValidateServeTarget_ValidFormat(t *testing.T) {
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res": crdWithTarget("my-resource"),
 	})
-	if err := k.validateServeTarget(); err != nil {
+	if err := e.validateServeTarget(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeTarget_InvalidFormat(t *testing.T) {
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res": crdWithTarget("My_Resource"),
 	})
-	err := k.validateServeTarget()
+	err := e.validateServeTarget()
 	if err == nil {
 		t.Fatal("expected error for invalid target format")
 	}
@@ -81,11 +81,11 @@ func TestValidateServeTarget_InvalidFormat(t *testing.T) {
 // ── validateServeTarget — uniqueness ──────────────────────────────────────────
 
 func TestValidateServeTarget_DuplicateTarget(t *testing.T) {
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res1": crdWithTarget("app"),
 		"res2": crdWithTarget("app"),
 	})
-	err := k.validateServeTarget()
+	err := e.validateServeTarget()
 	if err == nil {
 		t.Fatal("expected error for duplicate target")
 	}
@@ -95,20 +95,20 @@ func TestValidateServeTarget_DuplicateTarget(t *testing.T) {
 }
 
 func TestValidateServeTarget_UniqueTargets(t *testing.T) {
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res1": crdWithTarget("web"),
 		"res2": crdWithTarget("api"),
 	})
-	if err := k.validateServeTarget(); err != nil {
+	if err := e.validateServeTarget(); err != nil {
 		t.Fatalf("unexpected error for unique targets: %v", err)
 	}
 }
 
 func TestValidateServeTarget_NoServe(t *testing.T) {
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res": {APITypes: types.APITypes{Kind: "MyResource"}},
 	})
-	if err := k.validateServeTarget(); err != nil {
+	if err := e.validateServeTarget(); err != nil {
 		t.Fatalf("unexpected error for CRD without serve: %v", err)
 	}
 }
@@ -118,21 +118,23 @@ func TestValidateServeTarget_NoServe(t *testing.T) {
 func TestValidateServeTarget_TargetBoxTemplatesOnly(t *testing.T) {
 	box := &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{OnCreate: &types.HookTemplates{}},
-		Runtime:   &types.RuntimeConfig{Finalizers: []string{"my.finalizer/cleanup"}},
+		Runtime: &types.RuntimeConfig{Finalizers: &types.FinalizerConfig{
+			Names: []string{"my.finalizer/cleanup"},
+		}},
 	}
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res": crdWithTargetAndBox("web", box),
 	})
-	if err := k.validateServeTarget(); err != nil {
+	if err := e.validateServeTarget(); err != nil {
 		t.Fatalf("unexpected error for valid target box: %v", err)
 	}
 }
 
 func TestValidateServeTarget_NilTargetBox(t *testing.T) {
-	k := catalogWithTargetCRDs(map[string]types.CRDEntry{
+	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res": crdWithTargetAndBox("web", nil),
 	})
-	if err := k.validateServeTarget(); err != nil {
+	if err := e.validateServeTarget(); err != nil {
 		t.Fatalf("unexpected error for nil target box: %v", err)
 	}
 }

@@ -1,7 +1,7 @@
 package vitals
 
 import (
-	"github.com/inrundev/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/config"
 )
 
 // NewCRDHealth initializes a CRDHealth tracker for a given CRD name.
@@ -21,6 +21,6 @@ func NewCRDHealth(name string) *CRDHealth {
 func NewRuntimeHealth() *RuntimeHealth {
 	h := &RuntimeHealth{name: config.CLI}
 	h.inrunReady.Store(true)
-	h.katReady.Store(false)
+	h.catReady.Store(false)
 	return h
 }

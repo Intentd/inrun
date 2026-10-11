@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: pod-probe
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     PodProbe — living integration test for pod notes.

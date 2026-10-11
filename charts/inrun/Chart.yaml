@@ -17,16 +17,16 @@ keywords:
   - crd
   - gateway
 
-home: https://github.com/inrundev/inrun
+home: https://github.com/intentd/inrun
 sources:
-  - https://github.com/inrundev/inrun
+  - https://github.com/intentd/inrun
 
 maintainers:
-  - name: inrundev
+  - name: intentd
     email: releases@inrun.dev
-    url: https://github.com/inrundev/inrun
+    url: https://github.com/intentd/inrun
 
-icon: https://raw.githubusercontent.com/inrundev/inrun/main/docs/assets/inrun-mark.svg
+icon: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/inrun-mark.svg
 
 annotations:
   artifacthub.io/license: Apache-2.0
@@ -34,23 +34,23 @@ annotations:
   artifacthub.io/operatorCapabilities: Deep Insights
   artifacthub.io/images: |
     - name: runtime
-      image: ghcr.io/inrundev/inrun
+      image: ghcr.io/intentd/inrun
     - name: gateway
-      image: ghcr.io/inrundev/inrun-gateway
+      image: ghcr.io/intentd/inrun-gateway
     - name: console
-      image: ghcr.io/inrundev/inrun-console
+      image: ghcr.io/intentd/inrun-console
   artifacthub.io/links: |
     - name: Documentation
-      url: https://github.com/inrundev/inrun/tree/main/docs
+      url: https://github.com/intentd/inrun/tree/main/docs
     - name: Examples
-      url: https://github.com/inrundev/inrun/tree/main/examples
+      url: https://github.com/intentd/inrun/tree/main/examples
   artifacthub.io/screenshots: |
     - title: Inrun Console
-      url: https://raw.githubusercontent.com/inrundev/inrun/main/docs/assets/console/console-landing.png
+      url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/console-landing.png
     - title: CRD Health View
-      url: https://raw.githubusercontent.com/inrundev/inrun/main/docs/assets/console/control-panel-app-platform.png
+      url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/control-panel-app-platform.png
     - title: Metrics Overview
-      url: https://raw.githubusercontent.com/inrundev/inrun/main/docs/assets/console/console-app-service-metrics.png
+      url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/console-app-service-metrics.png
   artifacthub.io/changes: |
     - kind: added
       description: "First Inrun release"

@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -140,7 +140,7 @@ func resolveVersion(requested string) (string, error) {
 	}
 
 	// Fetch latest release tag from GitHub API
-	resp, err := http.Get("https://api.github.com/repos/inrundev/inrun/releases/latest")
+	resp, err := http.Get("https://api.github.com/repos/intentd/inrun/releases/latest")
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch latest version: %w", err)
 	}
@@ -209,7 +209,7 @@ func installBinary(binary, platform, ver string) error {
 	installPath := filepath.Join(installDir, binary)
 
 	archive := fmt.Sprintf("%s_%s.tar.gz", binary, platform)
-	url := fmt.Sprintf("https://github.com/inrundev/inrun/releases/download/%s/%s", ver, archive)
+	url := fmt.Sprintf("https://github.com/intentd/inrun/releases/download/%s/%s", ver, archive)
 
 	fmt.Printf("→ Downloading %s...\n", archive)
 

@@ -21,22 +21,22 @@ package validate
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/profiles"
 )
 
 // validateSecurityProfiles ensures that security profiles are used correctly
 // across all template resources in every hook phase.
 func (e *executor) validateSecurityProfiles() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectSecurityProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue
 			}
-			_, csUser := e.k.Profiles.LookupContainerSecurity(entry.Profile)
-			_, psUser := e.k.Profiles.LookupPodSecurity(entry.Profile)
+			_, csUser := e.cat.Profiles.LookupContainerSecurity(entry.Profile)
+			_, psUser := e.cat.Profiles.LookupPodSecurity(entry.Profile)
 			if !csUser && !psUser && !profiles.IsValidSecurityProfile(entry.Profile) {
 				return fmt.Errorf(
 					"%s crd %q: %s %q (phase %s) has unknown %s security profile %q — "+
@@ -61,7 +61,7 @@ func (e *executor) validateSecurityProfiles() error {
 // The special value "ALL" is accepted in both lists.
 // Template expressions are skipped.
 func (e *executor) validateSecurityCapabilities() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectCapabilityEntries() {
 			if types.IsTemplate(entry.Value) {
 				continue

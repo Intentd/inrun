@@ -1,23 +1,51 @@
 package catalog
 
 import (
+	"slices"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/types"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// The verb groups every generated rule is built from: readVerbs observe a
+// resource, writeVerbs change it, and roleVerbs let a Role or ClusterRole grant
+// permissions its creator does not hold (see rbacVerbsFor).
+var (
+	readVerbs  = []string{"get", "list", "watch"}
+	writeVerbs = []string{"create", "update", "patch", "delete"}
+	roleVerbs  = []string{"escalate", "bind"}
+)
+
 // Standard verbs for managed resources.
-var defaultVerbs = []string{
-	"get", "list", "watch", "create", "update", "patch", "delete",
-}
+var defaultVerbs = concatVerbs(readVerbs, writeVerbs)
 
 // watchVerbs is the minimal verb set for secondary watch resources.
 // Watch entries only observe — they never write to watched resources.
-var watchVerbs = []string{"get", "list", "watch"}
+var watchVerbs = concatVerbs(readVerbs)
+
+// Writes reports whether rule lets its holder change objects: any write verb,
+// or escalate/bind on roles.
+func Writes(rule rbacv1.PolicyRule) bool {
+	for _, v := range rule.Verbs {
+		if slices.Contains(writeVerbs, v) || slices.Contains(roleVerbs, v) {
+			return true
+		}
+	}
+	return false
+}
+
+// concatVerbs returns a new slice holding groups in order.
+func concatVerbs(groups ...[]string) []string {
+	var out []string
+	for _, g := range groups {
+		out = append(out, g...)
+	}
+	return out
+}
 
 // rbacVerbsFor returns the appropriate verb set for a built-in resource.
 //
@@ -35,12 +63,12 @@ var watchVerbs = []string{"get", "list", "watch"}
 // detected in the Catalog, preserving least-privilege for all other operators.
 func rbacVerbsFor(group, plural string) []string {
 	if group == "rbac.authorization.k8s.io" && (plural == "roles" || plural == "clusterroles") {
-		return append(defaultVerbs, "escalate", "bind")
+		return concatVerbs(defaultVerbs, roleVerbs)
 	}
 	return defaultVerbs
 }
 
-func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
+func (c *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 	var rules []rbacv1.PolicyRule
 
 	// ───────────────────────────────────────────────
@@ -62,8 +90,8 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// Admission webhook RBAC (conditional)
 	// ───────────────────────────────────────────────
-	if k.NeedsCertificates() {
-		webhookResources := k.WebhookResources()
+	if c.NeedsCertificates() {
+		webhookResources := c.WebhookResources()
 
 		if len(webhookResources) > 0 {
 			rules = append(rules, rbacv1.PolicyRule{
@@ -89,7 +117,7 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 	// ensureNamespaceLabeled patches the Inrun namespace with deletion-protection
 	// labels at startup so the admission webhook's ObjectSelector matches it.
 	// Requires get (to confirm the namespace exists) and patch (to apply labels).
-	if k.IsDeletionProtectionEnabled() {
+	if c.IsDeletionProtectionEnabled() {
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
@@ -98,13 +126,13 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 
 		// Custom CRs registered in the deletion-protection webhook need GET so
 		// the gateway can read the instance and check its protection label/annotation.
-		rules = append(rules, k.customResourceDeletionProtectionRBACRules()...)
+		rules = append(rules, c.customResourceDeletionProtectionRBACRules()...)
 	}
 
 	// ───────────────────────────────────────────────
 	// CRD RBAC (main + status)
 	// ───────────────────────────────────────────────
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.APITypes.Group == "" || crd.APITypes.Plural == "" {
 			if !crd.IsBuiltInType() {
 				continue
@@ -148,47 +176,12 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// Typed‑mode RBAC (hooks or constructor)
 	// ───────────────────────────────────────────────
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 
-		// Hooks-managed resources
-		if crd.WithHookManagedResources() {
-			for _, r := range crd.HookManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					// optional: skip or log
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Constructor-managed resources
-		if crd.WithConstructorManagedResources() {
-			for _, r := range crd.ConstructorManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					// optional: skip or log
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Remote-managed resources
-		if crd.WithRemoteManagedResources() {
-			for _, r := range crd.RemoteManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
+		// Resources hooks, constructor and remote reconcilers may create,
+		// including per-target declarations.
+		for _, r := range crd.AllManagedResources() {
+			if gvr, ok := c.ResolveGVR(r); ok {
 				rules = append(rules, rbacv1.PolicyRule{
 					APIGroups: []string{gvr.Group},
 					Resources: []string{gvr.Resource},
@@ -199,7 +192,7 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 
 		// Watch-entry resources — read-only
 		for _, w := range crd.WatchEntries() {
-			gvr, ok := k.ResolveGVR(w.ToManagedResource())
+			gvr, ok := c.ResolveGVR(w.ToManagedResource())
 			if !ok {
 				continue
 			}
@@ -220,7 +213,7 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 		if b.Detect == nil {
 			continue
 		}
-		if k.anyDetects(b.Detect) {
+		if c.anyDetects(b.Detect) {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups: []string{b.Group},
 				Resources: []string{b.Plural},
@@ -234,7 +227,7 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 	// Built-in kinds are covered above; third-party CRDs (cert-manager, ArgoCD,
 	// Crossplane, etc.) are not in the built-in registry and must be emitted here.
 	// ───────────────────────────────────────────────
-	rules = append(rules, k.customResourceRBACRules()...)
+	rules = append(rules, c.customResourceRBACRules()...)
 
 	return rules
 }
@@ -247,19 +240,19 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 //     namespace protection, or any validation rules.
 //   - mutatingwebhookconfigurations is required only when mutation rules exist.
 //   - conversion webhooks are handled separately and do not require these resources.
-func (k *Catalog) WebhookResources() []string {
+func (c *Catalog) WebhookResources() []string {
 	var resources []string
 
 	// validatingwebhookconfigurations is needed for:
 	// - deletion protection
 	// - namespace protection
 	// - validation rules (HasValidationRules)
-	if k.IsDeletionProtectionEnabled() || k.IsNamespaceProtectionEnabled() || k.HasValidationRules() {
+	if c.IsDeletionProtectionEnabled() || c.IsNamespaceProtectionEnabled() || c.HasValidationRules() {
 		resources = append(resources, "validatingwebhookconfigurations")
 	}
 
 	// mutatingwebhookconfigurations is only needed when mutation rules exist
-	if k.HasMutationRules() {
+	if c.HasMutationRules() {
 		resources = append(resources, "mutatingwebhookconfigurations")
 	}
 
@@ -286,16 +279,16 @@ func secretNamesFrom(refs []*types.APISecretRef) (names []string, hasTemplate bo
 
 // HasExternalSecretRefs returns true when any enabled CRD declares an external call
 // with auth.secretRef. Used to gate automatic secrets-get RBAC generation.
-func (k *Catalog) HasExternalSecretRefs() bool {
-	names, hasTemplate := secretNamesFrom(k.collectExternalSecretRefs())
+func (c *Catalog) HasExternalSecretRefs() bool {
+	names, hasTemplate := secretNamesFrom(c.collectExternalSecretRefs())
 	return hasTemplate || len(names) > 0
 }
 
 // collectExternalSecretRefs gathers all auth.secretRef from external call
 // declarations across all lifecycle blocks of every enabled CRD.
-func (k *Catalog) collectExternalSecretRefs() []*types.APISecretRef {
+func (c *Catalog) collectExternalSecretRefs() []*types.APISecretRef {
 	var refs []*types.APISecretRef
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		var calls []types.ExternalCallSpec
 		if crd.Box().EffectiveOnReconcile() != nil {
 			calls = append(calls, crd.Box().EffectiveOnReconcile().External...)
@@ -303,7 +296,7 @@ func (k *Catalog) collectExternalSecretRefs() []*types.APISecretRef {
 		if crd.Box().EffectiveOnCreate() != nil {
 			calls = append(calls, crd.Box().EffectiveOnCreate().External...)
 		}
-		calls = append(calls, crd.HooksExternal()...)
+		calls = append(calls, crd.ReconcileExternal()...)
 		if crd.EffectiveValidation() != nil {
 			calls = append(calls, crd.EffectiveValidation().External...)
 		}
@@ -321,16 +314,16 @@ func (k *Catalog) collectExternalSecretRefs() []*types.APISecretRef {
 
 // HasRemoteSecretRefs returns true when any enabled CRD declares a remote reconciler
 // with auth.secretRef. Used to gate automatic secrets-get RBAC generation.
-func (k *Catalog) HasRemoteSecretRefs() bool {
-	names, hasTemplate := secretNamesFrom(k.collectRemoteSecretRefs())
+func (c *Catalog) HasRemoteSecretRefs() bool {
+	names, hasTemplate := secretNamesFrom(c.collectRemoteSecretRefs())
 	return hasTemplate || len(names) > 0
 }
 
 // collectRemoteSecretRefs gathers all auth.secretRef from remote reconciler
 // declarations across every enabled CRD.
-func (k *Catalog) collectRemoteSecretRefs() []*types.APISecretRef {
+func (c *Catalog) collectRemoteSecretRefs() []*types.APISecretRef {
 	var refs []*types.APISecretRef
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		r := crd.Box().Reconcile
 		if r == nil || r.Remote == nil || r.Remote.Auth == nil {
 			continue
@@ -341,12 +334,12 @@ func (k *Catalog) collectRemoteSecretRefs() []*types.APISecretRef {
 }
 
 // collectGatewayAPISecretRefs gathers all secretRef from Gateway API token entries.
-func (k *Catalog) collectGatewayAPISecretRefs() []*types.APISecretRef {
-	if !k.IsGatewayAPIEnabled() {
+func (c *Catalog) collectGatewayAPISecretRefs() []*types.APISecretRef {
+	if !c.IsGatewayAPIEnabled() {
 		return nil
 	}
 	var refs []*types.APISecretRef
-	for _, t := range k.Gateway.API.Auth.Tokens {
+	for _, t := range c.Gateway.API.Auth.Tokens {
 		refs = append(refs, t.SecretRef)
 	}
 	return refs
@@ -355,7 +348,7 @@ func (k *Catalog) collectGatewayAPISecretRefs() []*types.APISecretRef {
 // GenerateRuntimeRBACRules returns the RBAC rules required by the runtime reconciler process.
 // This is GenerateRBACRules() minus the NeedsCertificates() block (webhook/secrets),
 // minus the IsDeletionProtectionEnabled() namespace block, and minus CRD CA-bundle patch rules.
-func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
+func (c *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 	var rules []rbacv1.PolicyRule
 
 	// ───────────────────────────────────────────────
@@ -379,8 +372,8 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 	// Static names get a scoped rule; template names get a separate unscoped
 	// rule so one template does not prevent the others from being scoped.
 	// ───────────────────────────────────────────────
-	extNames, extTemplate := secretNamesFrom(k.collectExternalSecretRefs())
-	remoteNames, remoteTemplate := secretNamesFrom(k.collectRemoteSecretRefs())
+	extNames, extTemplate := secretNamesFrom(c.collectExternalSecretRefs())
+	remoteNames, remoteTemplate := secretNamesFrom(c.collectRemoteSecretRefs())
 	if allStatic := append(extNames, remoteNames...); len(allStatic) > 0 {
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups:     []string{""},
@@ -400,7 +393,7 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// CRD RBAC (main + status, no CA bundle patch)
 	// ───────────────────────────────────────────────
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.APITypes.Group == "" || crd.APITypes.Plural == "" {
 			if !crd.IsBuiltInType() {
 				continue
@@ -425,45 +418,12 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// Typed‑mode RBAC (hooks or constructor)
 	// ───────────────────────────────────────────────
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 
-		// Hooks-managed resources
-		if crd.WithHookManagedResources() {
-			for _, r := range crd.HookManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Constructor-managed resources
-		if crd.WithConstructorManagedResources() {
-			for _, r := range crd.ConstructorManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Remote-managed resources
-		if crd.WithRemoteManagedResources() {
-			for _, r := range crd.RemoteManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
+		// Resources hooks, constructor and remote reconcilers may create,
+		// including per-target declarations.
+		for _, r := range crd.AllManagedResources() {
+			if gvr, ok := c.ResolveGVR(r); ok {
 				rules = append(rules, rbacv1.PolicyRule{
 					APIGroups: []string{gvr.Group},
 					Resources: []string{gvr.Resource},
@@ -474,7 +434,7 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 
 		// Watch-entry resources — read-only
 		for _, w := range crd.WatchEntries() {
-			gvr, ok := k.ResolveGVR(w.ToManagedResource())
+			gvr, ok := c.ResolveGVR(w.ToManagedResource())
 			if !ok {
 				continue
 			}
@@ -493,7 +453,7 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 		if b.Detect == nil {
 			continue
 		}
-		if k.anyDetects(b.Detect) {
+		if c.anyDetects(b.Detect) {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups: []string{b.Group},
 				Resources: []string{b.Plural},
@@ -505,15 +465,15 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// Custom resource RBAC
 	// ───────────────────────────────────────────────
-	rules = append(rules, k.customResourceRBACRules()...)
+	rules = append(rules, c.customResourceRBACRules()...)
 
 	return rules
 }
 
 // GenerateGatewayRBACRules returns the RBAC rules required by the gateway process
 // (webhook server, certificate management, namespace labeling).
-func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
-	if !k.IsGatewayEnabled() {
+func (c *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
+	if !c.IsGatewayEnabled() {
 		return nil
 	}
 
@@ -522,8 +482,8 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// Admission webhook RBAC (conditional)
 	// ───────────────────────────────────────────────
-	if k.NeedsCertificates() {
-		webhookResources := k.WebhookResources()
+	if c.NeedsCertificates() {
+		webhookResources := c.WebhookResources()
 
 		if len(webhookResources) > 0 {
 			rules = append(rules, rbacv1.PolicyRule{
@@ -544,7 +504,7 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// Deletion protection — namespace labeling
 	// ───────────────────────────────────────────────
-	if k.IsDeletionProtectionEnabled() {
+	if c.IsDeletionProtectionEnabled() {
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
@@ -557,14 +517,20 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// get: read existing token; create: self-bootstrap when Secret is absent.
 	// Uses the same annotation-based rotation as pkg/runners secrets_once.go.
-	// Scoped to ResourceNames when all names are static.
-	gatewayNames, gatewayTemplate := secretNamesFrom(k.collectGatewayAPISecretRefs())
+	// get is scoped to ResourceNames when all names are static; create cannot
+	// be (Kubernetes never authorizes create by resource name), so it gets its
+	// own rule.
+	gatewayNames, gatewayTemplate := secretNamesFrom(c.collectGatewayAPISecretRefs())
 	if len(gatewayNames) > 0 {
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups:     []string{""},
 			Resources:     []string{"secrets"},
 			ResourceNames: gatewayNames,
-			Verbs:         []string{"get", "create"},
+			Verbs:         []string{"get"},
+		}, rbacv1.PolicyRule{
+			APIGroups: []string{""},
+			Resources: []string{"secrets"},
+			Verbs:     []string{"create"},
 		})
 	}
 	if gatewayTemplate {
@@ -580,8 +546,8 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// Only CRDs whose default routing is local (serve.cluster absent).
 	// CRDs with a remote serve.cluster are handled in GenerateGatewayClusterRBACRules.
 	// ───────────────────────────────────────────────
-	if k.HasServeEnabled() {
-		for _, crd := range k.Enabled() {
+	if c.HasServeEnabled() {
+		for _, crd := range c.Enabled() {
 			if !crd.ServeEnabled() {
 				continue
 			}
@@ -591,7 +557,7 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups: []string{crd.APITypes.Group},
 				Resources: []string{crd.APITypes.Plural},
-				Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
+				Verbs:     concatVerbs([]string{"get", "list"}, writeVerbs), // the gateway never watches
 			})
 			// Schema endpoint reads the CRD object to extract the OpenAPI spec.
 			// Scoped to the exact CRD name — least-privilege get only.
@@ -607,7 +573,7 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// CRD CA bundle patching (conversion webhooks)
 	// ───────────────────────────────────────────────
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.EffectiveConversion() != nil && crd.UpdateCRDCaBundle() {
 			rules = append(rules, rbacv1.PolicyRule{
 				APIGroups:     []string{"apiextensions.k8s.io"},
@@ -632,13 +598,13 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 //
 // CRDs with no serve.cluster (local fallback) do not appear in the returned map.
 // They are handled by GenerateGatewayRBACRules instead.
-func (k *Catalog) GenerateGatewayClusterRBACRules() (map[string][]rbacv1.PolicyRule, []string) {
+func (c *Catalog) GenerateGatewayClusterRBACRules() (map[string][]rbacv1.PolicyRule, []string) {
 	// Return early if gateway is disabled, serve is disabled, or NO clusters are defined
-	if !k.IsGatewayEnabled() || !k.HasServeEnabled() || k.GatewayClustersEmpty() {
+	if !c.IsGatewayEnabled() || !c.HasServeEnabled() || c.GatewayClustersEmpty() {
 		return nil, nil
 	}
 
-	clusters := k.GatewayClusters()
+	clusters := c.GatewayClusters()
 	// Initialize a slot for every registered cluster
 	clusterRules := make(map[string][]rbacv1.PolicyRule, len(clusters))
 	for name := range clusters {
@@ -647,13 +613,13 @@ func (k *Catalog) GenerateGatewayClusterRBACRules() (map[string][]rbacv1.PolicyR
 
 	var templateKinds []string
 
-	for _, crd := range k.ServeEnabledCRDs() {
+	for _, crd := range c.ServeEnabledCRDs() {
 		// Build rules for this specific CRD
 		crdRules := []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{crd.APITypes.Group},
 				Resources: []string{crd.APITypes.Plural, crd.APITypes.Plural + "/status"},
-				Verbs:     []string{"get", "list", "create", "update", "patch", "delete"},
+				Verbs:     concatVerbs([]string{"get", "list"}, writeVerbs), // the gateway never watches
 			},
 			{
 				APIGroups:     []string{"apiextensions.k8s.io"},
@@ -715,12 +681,12 @@ func (k *Catalog) GenerateGatewayClusterRBACRules() (map[string][]rbacv1.PolicyR
 }
 
 // ResolveGVR resolves a ManagedResource into a concrete GroupVersionResource.
-func (k *Catalog) ResolveGVR(mr domain.ManagedResource) (schema.GroupVersionResource, bool) {
+func (c *Catalog) ResolveGVR(mr domain.ManagedResource) (schema.GroupVersionResource, bool) {
 	return children.ResolveGVR(mr)
 }
 
 // ResolveGVK resolves a ManagedResource into a concrete GroupVersionKind.
-func (k *Catalog) ResolveGVK(mr domain.ManagedResource) (schema.GroupVersionKind, bool) {
+func (c *Catalog) ResolveGVK(mr domain.ManagedResource) (schema.GroupVersionKind, bool) {
 	return children.ResolveGVK(mr)
 }
 
@@ -728,112 +694,93 @@ func (k *Catalog) ResolveGVK(mr domain.ManagedResource) (schema.GroupVersionKind
 // The map key is the CRD name. Excludes system-level rules (leases, events,
 // secrets, namespaces, webhook configurations) — use GenerateRuntimeRBACRules /
 // GenerateGatewayRBACRules for those.
-func (k *Catalog) GeneratePerCRDRBACRules() map[string][]rbacv1.PolicyRule {
-	result := make(map[string][]rbacv1.PolicyRule, k.Len())
+func (c *Catalog) GeneratePerCRDRBACRules() map[string][]rbacv1.PolicyRule {
+	result := make(map[string][]rbacv1.PolicyRule, c.Len())
+	for name, crd := range c.Enabled() {
+		result[name] = c.RBACRulesForCRD(crd)
+	}
+	return result
+}
 
-	for name, crd := range k.Enabled() {
-		var rules []rbacv1.PolicyRule
+// RBACRulesForCRD returns the rules one CRD contributes: the CRD and its status,
+// its managed resources, read-only watch entries, and the kinds its templates
+// create. validate --full, the console and the generated bundle all read it.
+func (c *Catalog) RBACRulesForCRD(crd types.CRDEntry) []rbacv1.PolicyRule {
+	var rules []rbacv1.PolicyRule
 
-		if crd.APITypes.Group != "" || crd.IsBuiltInType() {
-			if crd.APITypes.Plural != "" {
-				rules = append(rules,
-					rbacv1.PolicyRule{
-						APIGroups: []string{crd.APITypes.Group},
-						Resources: []string{crd.APITypes.Plural},
-						Verbs:     defaultVerbs,
-					},
-					rbacv1.PolicyRule{
-						APIGroups: []string{crd.APITypes.Group},
-						Resources: []string{crd.APITypes.Plural + "/status"},
-						Verbs:     []string{"get", "update", "patch"},
-					},
-				)
-			}
-			if crd.EffectiveConversion() != nil && crd.UpdateCRDCaBundle() {
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups:     []string{"apiextensions.k8s.io"},
-					Resources:     []string{"customresourcedefinitions"},
-					Verbs:         []string{"patch"},
-					ResourceNames: []string{crd.APITypes.Plural + "." + crd.APITypes.Group},
-				})
-			}
-		}
-
-		if crd.WithHookManagedResources() {
-			for _, r := range crd.HookManagedResources() {
-				if gvr, ok := k.ResolveGVR(r); ok {
-					rules = append(rules, rbacv1.PolicyRule{
-						APIGroups: []string{gvr.Group},
-						Resources: []string{gvr.Resource},
-						Verbs:     defaultVerbs,
-					})
-				}
-			}
-		}
-
-		if crd.WithConstructorManagedResources() {
-			for _, r := range crd.ConstructorManagedResources() {
-				if gvr, ok := k.ResolveGVR(r); ok {
-					rules = append(rules, rbacv1.PolicyRule{
-						APIGroups: []string{gvr.Group},
-						Resources: []string{gvr.Resource},
-						Verbs:     defaultVerbs,
-					})
-				}
-			}
-		}
-
-		if crd.WithRemoteManagedResources() {
-			for _, r := range crd.RemoteManagedResources() {
-				if gvr, ok := k.ResolveGVR(r); ok {
-					rules = append(rules, rbacv1.PolicyRule{
-						APIGroups: []string{gvr.Group},
-						Resources: []string{gvr.Resource},
-						Verbs:     defaultVerbs,
-					})
-				}
-			}
-		}
-
-		// Watch-entry resources — read-only
-		for _, w := range crd.WatchEntries() {
-			if gvr, ok := k.ResolveGVR(w.ToManagedResource()); ok {
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     watchVerbs,
-				})
-			}
-		}
-
-		for _, b := range children.AllBuiltInKindDefs() {
-			if b.Detect != nil && b.Detect(crd) {
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{b.Group},
-					Resources: []string{b.Plural},
+	if crd.APITypes.Group != "" || crd.IsBuiltInType() {
+		if crd.APITypes.Plural != "" {
+			rules = append(rules,
+				rbacv1.PolicyRule{
+					APIGroups: []string{crd.APITypes.Group},
+					Resources: []string{crd.APITypes.Plural},
 					Verbs:     defaultVerbs,
-				})
-			}
+				},
+				rbacv1.PolicyRule{
+					APIGroups: []string{crd.APITypes.Group},
+					Resources: []string{crd.APITypes.Plural + "/status"},
+					Verbs:     []string{"get", "update", "patch"},
+				},
+			)
 		}
-
-		for _, rule := range customRBACRulesForCRD(crd) {
-			rules = append(rules, rule)
+		if crd.EffectiveConversion() != nil && crd.UpdateCRDCaBundle() {
+			rules = append(rules, rbacv1.PolicyRule{
+				APIGroups:     []string{"apiextensions.k8s.io"},
+				Resources:     []string{"customresourcedefinitions"},
+				Verbs:         []string{"patch"},
+				ResourceNames: []string{crd.APITypes.Plural + "." + crd.APITypes.Group},
+			})
 		}
-
-		result[name] = rules
 	}
 
-	return result
+	// Resources hooks, constructor and remote reconcilers may create,
+	// including per-target declarations.
+	for _, r := range crd.AllManagedResources() {
+		if gvr, ok := c.ResolveGVR(r); ok {
+			rules = append(rules, rbacv1.PolicyRule{
+				APIGroups: []string{gvr.Group},
+				Resources: []string{gvr.Resource},
+				Verbs:     defaultVerbs,
+			})
+		}
+	}
+
+	// Watch-entry resources — read-only
+	for _, w := range crd.WatchEntries() {
+		if gvr, ok := c.ResolveGVR(w.ToManagedResource()); ok {
+			rules = append(rules, rbacv1.PolicyRule{
+				APIGroups: []string{gvr.Group},
+				Resources: []string{gvr.Resource},
+				Verbs:     watchVerbs,
+			})
+		}
+	}
+
+	for _, b := range children.AllBuiltInKindDefs() {
+		if b.Detect != nil && b.Detect(crd) {
+			rules = append(rules, rbacv1.PolicyRule{
+				APIGroups: []string{b.Group},
+				Resources: []string{b.Plural},
+				Verbs:     defaultVerbs,
+			})
+		}
+	}
+
+	for _, rule := range customRBACRulesForCRD(crd) {
+		rules = append(rules, rule)
+	}
+
+	return rules
 }
 
 // customResourceRBACRules collects RBAC rules for all third-party CRDs declared
 // in onCreate/onReconcile custom: blocks across every enabled CRD.
 // Built-in Kubernetes kinds are already covered by the builtInRegistry loop;
 // this handles everything else (cert-manager, ArgoCD, Crossplane, etc.).
-func (k *Catalog) customResourceRBACRules() []rbacv1.PolicyRule {
+func (c *Catalog) customResourceRBACRules() []rbacv1.PolicyRule {
 	var rules []rbacv1.PolicyRule
 	seen := make(map[string]bool)
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		for _, rule := range customRBACRulesForCRD(crd) {
 			key := strings.Join(rule.APIGroups, ",") + "/" + strings.Join(rule.Resources, ",")
 			if !seen[key] {
@@ -886,10 +833,10 @@ func customRBACRulesForCRD(crd types.CRDEntry) []rbacv1.PolicyRule {
 // GET on every custom child resource that the deletion-protection webhook
 // intercepts. Mirrors customRBACRulesForCRD but uses get-only verbs — the
 // gateway reads each object to check its protection label before allowing the DELETE.
-func (k *Catalog) customResourceDeletionProtectionRBACRules() []rbacv1.PolicyRule {
+func (c *Catalog) customResourceDeletionProtectionRBACRules() []rbacv1.PolicyRule {
 	seen := make(map[string]bool)
 	var rules []rbacv1.PolicyRule
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		for _, rule := range customRBACRulesForCRD(crd) {
 			key := strings.Join(rule.APIGroups, ",") + "/" + strings.Join(rule.Resources, ",")
 			if seen[key] {

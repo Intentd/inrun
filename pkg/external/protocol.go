@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ProtocolClient executes one external call and returns the result map to

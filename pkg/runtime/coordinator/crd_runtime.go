@@ -5,9 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/queue"
 )
 
 // perCRDRuntime holds the per-CRD concurrency and autoscale state owned by
@@ -63,13 +63,13 @@ func (t *coordinatorTarget) SetResyncInterval(d time.Duration) {
 // startResyncLoop runs the adjustable resync goroutine for a CRD.
 // Idle (polling 500ms) when resyncNs == 0; fires at the stored interval otherwise.
 // Mirrors the resync logic that was previously on generic.Reconciler.
-func (k *Controller) startResyncLoop(ctx context.Context, gvk string) {
-	rt := k.runtimeMap[gvk]
-	entry, ok := k.catalog.Get(gvk)
+func (c *Controller) startResyncLoop(ctx context.Context, gvk string) {
+	rt := c.runtimeMap[gvk]
+	entry, ok := c.catalog.Get(gvk)
 	if !ok || entry.Informer == nil {
 		return
 	}
-	wq, _ := k.queueRegistry.For(gvk)
+	wq, _ := c.queueRegistry.For(gvk)
 	go func() {
 		for {
 			ns := rt.resyncNs.Load()

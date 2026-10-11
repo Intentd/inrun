@@ -32,12 +32,37 @@ def reconcile(body: dict) -> dict:
     image     = spec.get("image", "nginx:latest")
     replicas  = spec.get("replicas", 1)
     port      = spec.get("port", 80)
+    expose    = spec.get("expose", True) is not False
 
     log_level   = args.get("logLevel", "info")
     environment = args.get("environment", "development")
 
     log.info("reconcile  key=%s/%s  image=%s  logLevel=%s  env=%s",
              namespace, name, image, log_level, environment)
+
+    resources = [
+        {
+            "type": "deployment",
+            "fields": {
+                "name":     name,
+                "image":    image,
+                "replicas": replicas,
+                "port":     port,
+            },
+        },
+    ]
+    # Without expose the Service is left out; prune deletes the one applied before.
+    if expose:
+        resources.append(
+            {
+                "type": "service",
+                "fields": {
+                    "name":       f"{name}-svc",
+                    "port":       80,
+                    "targetPort": port,
+                },
+            }
+        )
 
     return {
         "result": "ok",
@@ -46,25 +71,10 @@ def reconcile(body: dict) -> dict:
             "endpoint": f"{name}-svc.{namespace}.svc.cluster.local",
             "replicas": replicas,
         },
-        "resources": [
-            {
-                "type": "deployment",
-                "fields": {
-                    "name":     name,
-                    "image":    image,
-                    "replicas": replicas,
-                    "port":     port,
-                },
-            },
-            {
-                "type": "service",
-                "fields": {
-                    "name":       f"{name}-svc",
-                    "port":       80,
-                    "targetPort": port,
-                },
-            },
-        ],
+        # Set on the WebApp itself; dropping a key here removes it.
+        "labels":      {"environment": environment},
+        "annotations": {"webapp.example.com/image": image},
+        "resources": resources,
     }
 
 
@@ -107,7 +117,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def log_message(self, fmt, *args):
-        pass
+        pass  # silence http.server's per-request access log; reconcile() logs each call
+
 
 
 if __name__ == "__main__":

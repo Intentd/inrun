@@ -21,8 +21,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/note"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/types"
 	"gopkg.in/yaml.v3"
 )
 

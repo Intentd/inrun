@@ -235,6 +235,56 @@ func TestSplitSemicolonSeparated(t *testing.T) {
 	}
 }
 
+func TestSplitField(t *testing.T) {
+	cases := map[string][]string{
+		"":                     nil,
+		"spec.replicas":        {"spec", "replicas"},
+		".spec.replicas":       {"spec", "replicas"},
+		"metadata.labels.tier": {"metadata", "labels", "tier"},
+		`metadata.labels.app\.kubernetes\.io/name`: {"metadata", "labels", "app.kubernetes.io/name"},
+		`a\b.c`: {`a\b`, "c"}, // a backslash not before a dot is kept
+		`a\`:    {`a\`},
+	}
+	for in, want := range cases {
+		if got := SplitField(in); !reflect.DeepEqual(got, want) {
+			t.Errorf("SplitField(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestEscapePathKey_RoundTrip(t *testing.T) {
+	key := "app.kubernetes.io/name"
+	got := SplitField("metadata.labels." + EscapePathKey(key))
+	if want := []string{"metadata", "labels", key}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestNestedPaths_DottedKey(t *testing.T) {
+	path := "metadata.labels." + EscapePathKey("app.kubernetes.io/name")
+	obj := map[string]interface{}{}
+
+	if err := SetNestedPath(obj, path, "web"); err != nil {
+		t.Fatal(err)
+	}
+	labels := obj["metadata"].(map[string]interface{})["labels"].(map[string]interface{})
+	if labels["app.kubernetes.io/name"] != "web" {
+		t.Fatalf("labels = %v, want the key kept whole", labels)
+	}
+	if v, ok := GetNestedPath(obj, path); !ok || v != "web" {
+		t.Errorf("GetNestedPath = %v, %v", v, ok)
+	}
+	DeleteNestedPath(obj, path)
+	if len(labels) != 0 {
+		t.Errorf("DeleteNestedPath left %v", labels)
+	}
+
+	SetFieldPath(obj, path, "api")
+	if labels["app.kubernetes.io/name"] != "api" {
+		t.Errorf("SetFieldPath: labels = %v", labels)
+	}
+}
+
 func BenchmarkSplitBySeparator(b *testing.B) {
 	input := "a,b,c,d,e,f,g,h,i,j"
 	for b.Loop() {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,10 +139,10 @@ func BuildRawCatalogHandler(m *merger.Merger) http.HandlerFunc {
 //
 // This shows what Inrun actually uses at runtime versus what the user wrote.
 // ─────────────────────────────────────────────────────────────────────────────
-func BuildCRDEnrichedHandler(kat *catalog.Catalog, crdName string) http.HandlerFunc {
+func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get the enriched CRD from the validated Catalog
-		crd, err := kat.Get(crdName)
+		crd, err := cat.Get(crdName)
 		if err != nil {
 			utils.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
 				"error": fmt.Sprintf("CRD %q not found in enriched Catalog", crdName),
@@ -209,9 +209,9 @@ func BuildCRDEnrichedHandler(kat *catalog.Catalog, crdName string) http.HandlerF
 //	}
 //
 // ─────────────────────────────────────────────────────────────────────────────
-func BuildEnrichedCatalogHandler(kat *catalog.Catalog) http.HandlerFunc {
+func BuildEnrichedCatalogHandler(cat *catalog.Catalog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Use the pruned writer to remove all null/empty values
-		utils.WriteJSONPruned(w, http.StatusOK, kat.ToUI())
+		utils.WriteJSONPruned(w, http.StatusOK, cat.ToUI())
 	}
 }

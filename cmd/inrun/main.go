@@ -12,14 +12,14 @@ package main
 import (
 	"context"
 
-	"github.com/inrundev/inrun/cmd/cli"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/cmd/cli"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 func main() {
-	kfg, err := config.Init()
+	cfg, err := config.Init()
 	if err != nil {
 		logger.Fatal().AnErr("failed to load configurations", err)
 		utils.Exit(err)
@@ -29,5 +29,5 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cli.Execute(kfg, ctx)
+	cli.Execute(cfg, ctx)
 }

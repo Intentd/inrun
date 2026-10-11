@@ -1,41 +1,32 @@
 package types
 
 import (
-	"fmt"
 	"reflect"
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/intentd/inrun/pkg/utils"
 )
 
-// serveFieldRef is one serve.fields / serve.labels and serve.annotations entry, resolved to
-// the field expression a synthesized validation rule would target.
+// serveFieldRef is one serve.fields, serve.labels or serve.annotations entry
+// and the path its synthesized rules target.
 type serveFieldRef struct {
-	name  string // the plain serve.fields / serve.labels and serve.annotations key, for sorting
-	field string // "spec.<name>" dot-path, or a getLabel/getAnnotation template
-	link  string // same as name, for ValidationRule.Link — set only when field isn't already "spec.<name>"
+	name  string // the serve key
+	field string // its path: spec.<name>, or metadata.labels / metadata.annotations.<escaped key>
+	link  string // the key, for ValidationRule.Link; empty for spec fields, whose path already reads well
 	label string
 	cfg   ServeFieldConfig
 }
 
-// allServeFieldRefs walks serve.fields, serve.labels, and
-// serve.annotations, yielding one serveFieldRef per entry —
-// the shared source both RequiredServeFieldRules and
-// EnumServeFieldRules synthesize from.
-//
-// serve.labels and serve.annotations entries resolve through
-// the "getLabel/getAnnotation" notes rather than a raw
-// "metadata.labels.<name>" dot-path. This is because an annotation key
-// following the Kubernetes-recommended prefix/name shape might contains dots
-// itself, which the Resolver would misparse as extra path segments.
-//
-// Also, the notes (template expressions) are not valid display names either,
-// which is what serveFieldRef.link is for — see ValidationRule.Link.
-//
-// Returned sorted by cfg.Order (0 = unset, sorts last),
-// then name — the same rule the Console uses to arrange
-// the rendered form. Sorting to match the form means the
-// field a developer sees first is also the one whose violation wins.
+// labelPath and annotationPath are the paths of a label or annotation key;
+// dots in the key are escaped (see utils.SplitField).
+func labelPath(key string) string      { return "metadata.labels." + utils.EscapePathKey(key) }
+func annotationPath(key string) string { return "metadata.annotations." + utils.EscapePathKey(key) }
+
+// allServeFieldRefs returns one serveFieldRef per serve field, label and
+// annotation, sorted like the console form: by order (0 last), then name. The
+// field shown first is also the one whose violation is reported first.
 func (c *CRDEntry) allServeFieldRefs() []serveFieldRef {
 	if c == nil || c.Serve == nil {
 		return nil
@@ -49,10 +40,10 @@ func (c *CRDEntry) allServeFieldRefs() []serveFieldRef {
 		refs = append(refs, serveFieldRef{name: name, field: "spec." + name, label: serveFieldLabel(cfg, name), cfg: cfg})
 	}
 	for name, cfg := range c.ServeLabels() {
-		refs = append(refs, serveFieldRef{name: name, field: fmt.Sprintf(`{{ getLabel . %q }}`, name), link: name, label: serveFieldLabel(cfg, name), cfg: cfg})
+		refs = append(refs, serveFieldRef{name: name, field: labelPath(name), link: name, label: serveFieldLabel(cfg, name), cfg: cfg})
 	}
 	for name, cfg := range c.ServeAnnotations() {
-		refs = append(refs, serveFieldRef{name: name, field: fmt.Sprintf(`{{ getAnnotation . %q }}`, name), link: name, label: serveFieldLabel(cfg, name), cfg: cfg})
+		refs = append(refs, serveFieldRef{name: name, field: annotationPath(name), link: name, label: serveFieldLabel(cfg, name), cfg: cfg})
 	}
 
 	sort.Slice(refs, func(i, j int) bool {
@@ -71,17 +62,9 @@ func (c *CRDEntry) allServeFieldRefs() []serveFieldRef {
 	return refs
 }
 
-// DuplicateServeFieldOrders reports every explicit (non-zero) serve.fields /
-// serve.labels and serve.annotations order: value shared by more than one field on this
-// CRD, keyed by the colliding order number, field names sorted for a
-// deterministic error message. order: 0 (unset) is never a collision — any
-// number of fields can leave it unset at once, see allServeFieldRefs.
-//
-// order used to be purely cosmetic (form layout). It no longer is:
-// allServeFieldRefs sorts by it to decide synthesized validation-rule
-// priority, so two fields silently sharing an order value now means an
-// arbitrary (name-based) tiebreak decides which one's violation gets
-// reported when both fail at once — worth catching at load time instead.
+// DuplicateServeFieldOrders returns each non-zero order shared by more than one
+// serve field, label or annotation, with the field names sorted. Order decides
+// which violation is reported first, so a shared value is an error.
 func (c *CRDEntry) DuplicateServeFieldOrders() map[int][]string {
 	if c == nil || c.Serve == nil {
 		return nil
@@ -113,13 +96,9 @@ func serveFieldLabel(cfg ServeFieldConfig, name string) string {
 	return name
 }
 
-// RequiredServeFieldRules synthesizes an implicit exists validation rule for
-// every serve.fields / serve.labels and serve.annotations entry marked required: true —
-// enforced server-side, for every Gateway API client, not just the Control
-// Center form. See "Required fields are enforced automatically" at
-// https://inrun.dev/docs/reference/schema/catalog/validation#required-fields-are-enforced-automatically
-// for the full rationale, including why inheriting the field's own
-// When/Or matters for discriminator-routed CRDs.
+// RequiredServeFieldRules returns an exists rule for every serve field, label
+// or annotation marked required, so every gateway client is checked, not just
+// the console form. Each rule keeps the field's when/or.
 func (c *CRDEntry) RequiredServeFieldRules() []ValidationRule {
 	var rules []ValidationRule
 	for _, ref := range c.allServeFieldRefs() {
@@ -139,16 +118,9 @@ func (c *CRDEntry) RequiredServeFieldRules() []ValidationRule {
 	return rules
 }
 
-// EnumServeFieldRules synthesizes an implicit `in` validation rule for every
-// serve.fields / serve.labels and serve.annotations entry declaring type: enum with a
-// non-empty enum list. See "Enum fields are validated automatically" at
-// https://inrun.dev/docs/reference/schema/catalog/validation#enum-fields-are-validated-automatically for the full
-// rationale.
-//
-// The exists gate is always added regardless of required: membership and
-// presence are independent — RequiredServeFieldRules alone decides whether a
-// field is mandatory, this only decides whether its value (if any) is
-// valid.
+// EnumServeFieldRules returns an `in` rule for every enum serve field, label or
+// annotation. It checks a value only when one is set; whether one must be set
+// is RequiredServeFieldRules' job.
 func (c *CRDEntry) EnumServeFieldRules() []ValidationRule {
 	var rules []ValidationRule
 	for _, ref := range c.allServeFieldRefs() {
@@ -171,15 +143,9 @@ func (c *CRDEntry) EnumServeFieldRules() []ValidationRule {
 	return rules
 }
 
-// ServeFieldMutationRules synthesizes an implicit mutation rule for every
-// serve.fields / serve.labels and serve.annotations entry declaring a default: or
-// override: value. See "Default and Override fields are enforced automatically" at
-// https://inrun.dev/docs/reference/schema/catalog/mutation#default-and-override-fields-are-enforced-automatically
-// for the full rationale.
-//
-// For serve.fields, only override: is honored — spec fields carry their defaults
-// from the CRD schema. For serve.labels and serve.annotations, both default: and
-// override: synthesize a rule.
+// ServeFieldMutationRules returns a mutation rule for every serve field, label
+// or annotation with a default or override. Spec fields honour only override,
+// since the CRD schema carries their defaults.
 func (c *CRDEntry) ServeFieldMutationRules() []MutationRule {
 	if c == nil || c.Serve == nil {
 		return nil
@@ -222,7 +188,7 @@ func (c *CRDEntry) ServeFieldMutationRules() []MutationRule {
 			cfg.Default = nil
 		}
 		rules = append(rules, MutationRule{
-			Field:     fmt.Sprintf(`{{ getLabel . %q }}`, name),
+			Field:     labelPath(name),
 			Default:   cfg.Default,
 			Override:  cfg.Override,
 			ValueType: cfg.Type,
@@ -231,7 +197,7 @@ func (c *CRDEntry) ServeFieldMutationRules() []MutationRule {
 		})
 	}
 
-	// serve.anotations
+	// serve.annotations
 	for name, cfg := range c.ServeAnnotations() {
 		if !cfg.HasDefault() && !cfg.HasOverride() {
 			continue
@@ -242,7 +208,7 @@ func (c *CRDEntry) ServeFieldMutationRules() []MutationRule {
 			cfg.Default = nil
 		}
 		rules = append(rules, MutationRule{
-			Field:     fmt.Sprintf(`{{ getAnnotation . %q }}`, name),
+			Field:     annotationPath(name),
 			Default:   cfg.Default,
 			Override:  cfg.Override,
 			ValueType: cfg.Type,

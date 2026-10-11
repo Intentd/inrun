@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -18,11 +18,11 @@ import (
 //  2. Evaluate when/or conditions — if conditions are declared and fail, return 0.
 //  3. Render the after: template against the live CR; parse as a Go duration.
 //  4. Return the parsed duration (0 on parse failure — fail-open for requeue).
-func (k *Catalog) EvaluateRequeue(ctx context.Context, crdName string, obj *unstructured.Unstructured, resolver *template.Resolver) time.Duration {
+func (c *Catalog) EvaluateRequeue(ctx context.Context, crdName string, obj *unstructured.Unstructured, resolver *template.Resolver) time.Duration {
 	if obj == nil || resolver == nil {
 		return 0
 	}
-	entry, ok := k.CRDEntry(crdName)
+	entry, ok := c.CRDEntry(crdName)
 	if !ok {
 		return 0
 	}

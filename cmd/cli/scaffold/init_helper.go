@@ -14,10 +14,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/examples"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/examples"
+	"github.com/intentd/inrun/pkg/version"
 )
 
 //
@@ -167,7 +167,7 @@ func downloadExamplePack(root, pack, version string, refresh bool) error {
 
 	// Otherwise download
 	url := fmt.Sprintf(
-		"https://github.com/inrundev/inrun/releases/download/%s/%s",
+		"https://github.com/intentd/inrun/releases/download/%s/%s",
 		version, filename,
 	)
 

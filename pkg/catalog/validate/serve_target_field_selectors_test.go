@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,50 +48,50 @@ func catalogWithServeTargetsAndFieldSelectors(targets map[string]map[string]stri
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 func TestValidateServeFieldSelector_NoFieldSelector(t *testing.T) {
-	k := catalogWithServeAndTarget("myapp")
-	if err := k.validateServeFieldSelector(); err != nil {
+	e := catalogWithServeAndTarget("myapp")
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldSelector_SingleTargetValid(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan": "dinner",
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldSelector_MultipleFieldsValid(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan":      "dinner",
 		"spec.kitchenConfig": "standard",
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldSelector_MaxThreeFields(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.field1": "value1",
 		"spec.field2": "value2",
 		"spec.field3": "value3",
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldSelector_MoreThanThreeFields(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.field1": "value1",
 		"spec.field2": "value2",
 		"spec.field3": "value3",
 		"spec.field4": "value4",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when more than 3 field selectors")
 	}
@@ -101,11 +101,11 @@ func TestValidateServeFieldSelector_MoreThanThreeFields(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_DuplicateSelectorsAcrossTargets(t *testing.T) {
-	k := catalogWithServeTargetsAndFieldSelectors(map[string]map[string]string{
+	e := catalogWithServeTargetsAndFieldSelectors(map[string]map[string]string{
 		"kitchen":  {"spec.mealPlan": "dinner"},
 		"payments": {"spec.mealPlan": "dinner"}, // duplicate
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when field selectors are duplicated across targets")
 	}
@@ -115,20 +115,20 @@ func TestValidateServeFieldSelector_DuplicateSelectorsAcrossTargets(t *testing.T
 }
 
 func TestValidateServeFieldSelector_UniqueSelectors(t *testing.T) {
-	k := catalogWithServeTargetsAndFieldSelectors(map[string]map[string]string{
+	e := catalogWithServeTargetsAndFieldSelectors(map[string]map[string]string{
 		"kitchen":  {"spec.mealPlan": "dinner"},
 		"payments": {"spec.paymentMethod": "card"},
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeFieldSelector_InvalidPathFormat(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		".invalid": "value",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error for invalid field selector path format")
 	}
@@ -138,10 +138,10 @@ func TestValidateServeFieldSelector_InvalidPathFormat(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_EmptyPath(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"": "value",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error for empty field selector path")
 	}
@@ -151,10 +151,10 @@ func TestValidateServeFieldSelector_EmptyPath(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_EmptyValue(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan": "",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error for empty field selector value")
 	}
@@ -172,7 +172,7 @@ func TestValidateServeFieldSelector_CRModeDisabledNoSelector(t *testing.T) {
 			FieldSelector: nil,
 		},
 	}
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Enabled: true,
@@ -182,7 +182,7 @@ func TestValidateServeFieldSelector_CRModeDisabledNoSelector(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -198,7 +198,7 @@ func TestValidateServeFieldSelector_CRModeDisabledWithSelector(t *testing.T) {
 			},
 		},
 	}
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"myresource": {
 			Serve: &types.ServeConfig{
 				Enabled: true,
@@ -208,21 +208,21 @@ func TestValidateServeFieldSelector_CRModeDisabledWithSelector(t *testing.T) {
 			},
 		},
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// Check that a warning was added
-	entry := k.k.EnabledCRDs()["myresource"]
+	entry := e.cat.EnabledCRDs()["myresource"]
 	if !entry.Warnings.HasWarnings() {
 		t.Fatal("expected warning for CR mode disabled with no field selector")
 	}
 }
 
 func TestValidateServeFieldSelector_TemplateInPath(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.{{.env}}.mealPlan": "dinner",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when field selector path contains template syntax")
 	}
@@ -232,10 +232,10 @@ func TestValidateServeFieldSelector_TemplateInPath(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_TemplateInValue(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan": "{{.mealType}}",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when field selector value contains template syntax")
 	}
@@ -245,10 +245,10 @@ func TestValidateServeFieldSelector_TemplateInValue(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_TemplateInBothPathAndValue(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.{{.env}}.mealPlan": "{{.mealType}}",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when both path and value contain template syntax")
 	}
@@ -259,11 +259,11 @@ func TestValidateServeFieldSelector_TemplateInBothPathAndValue(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_TemplateMultipleSelectors(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan":      "dinner",
 		"spec.{{.env}}.name": "production",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when one selector has template syntax")
 	}
@@ -276,11 +276,11 @@ func TestValidateServeFieldSelector_TemplateMultipleSelectors(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_TemplateInValueWithMultipleSelectors(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan":      "{{.meal}}",
 		"spec.kitchenConfig": "standard",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when one selector value has template syntax")
 	}
@@ -323,10 +323,10 @@ func TestValidateServeFieldSelector_TemplateWithBraces(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+			e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 				tc.path: tc.value,
 			})
-			err := k.validateServeFieldSelector()
+			err := e.validateServeFieldSelector()
 			if err == nil {
 				t.Fatal("expected error for template syntax")
 			}
@@ -338,21 +338,21 @@ func TestValidateServeFieldSelector_TemplateWithBraces(t *testing.T) {
 }
 
 func TestValidateServeFieldSelector_NoTemplateInValidSelectors(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.mealPlan":      "dinner",
 		"spec.kitchenConfig": "standard",
 		"metadata.namespace": "default",
 	})
-	if err := k.validateServeFieldSelector(); err != nil {
+	if err := e.validateServeFieldSelector(); err != nil {
 		t.Fatalf("unexpected error for valid selectors: %v", err)
 	}
 }
 
 func TestValidateServeFieldSelector_TemplateInPathMultipleBraces(t *testing.T) {
-	k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+	e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 		"spec.{{.env}}.mealPlan.{{.time}}": "dinner",
 	})
-	err := k.validateServeFieldSelector()
+	err := e.validateServeFieldSelector()
 	if err == nil {
 		t.Fatal("expected error when path has multiple template placeholders")
 	}
@@ -382,10 +382,10 @@ func TestValidateServeFieldSelector_TemplateVariablePatterns(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k := catalogWithServeAndFieldSelector("kitchen", map[string]string{
+			e := catalogWithServeAndFieldSelector("kitchen", map[string]string{
 				"spec." + tc.template: "value",
 			})
-			err := k.validateServeFieldSelector()
+			err := e.validateServeFieldSelector()
 			if err == nil {
 				t.Errorf("expected error for template syntax: %s", tc.template)
 			}

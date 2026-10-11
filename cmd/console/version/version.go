@@ -4,9 +4,9 @@ import "fmt"
 
 // These variables are set at build time via ldflags:
 //
-//	-X github.com/inrundev/inrun/console/version.Version=v1.0.0
-//	-X github.com/inrundev/inrun/console/version.Commit=abc1234
-//	-X github.com/inrundev/inrun/console/version.Date=2026-03-19T10:00:00Z
+//	-X github.com/intentd/inrun/console/version.Version=v1.0.0
+//	-X github.com/intentd/inrun/console/version.Commit=abc1234
+//	-X github.com/intentd/inrun/console/version.Date=2026-03-19T10:00:00Z
 var (
 	Version = "dev"
 	Commit  = "none"

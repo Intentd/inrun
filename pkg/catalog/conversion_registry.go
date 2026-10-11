@@ -4,7 +4,7 @@ package catalog
 import (
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ConversionRegistry is the interface used by the health server's /convert handler.
@@ -66,8 +66,8 @@ func (reg *InMemoryConversionRegistry) registerConversionRulesFromSpec(entry typ
 	reg.RegisterConversionRules(rules)
 }
 
-func (k *Catalog) ConversionRegistry() ConversionRegistry {
-	return k.conversionRegistry
+func (c *Catalog) ConversionRegistry() ConversionRegistry {
+	return c.conversionRegistry
 }
 
 // Test exports

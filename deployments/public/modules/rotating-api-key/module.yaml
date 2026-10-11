@@ -7,7 +7,7 @@ metadata:
     Auto-generates an API key and signing key on first creation.
     Rotated automatically after rotateAfter. Never drift-corrected —
     the secret is stable between rotations.
-  author: inrundev
+  author: intentd
   tags:
     - secret
     - api-key

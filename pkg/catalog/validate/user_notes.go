@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/note"
 )
 
 // validateUserNotes checks the notes: block declared on the Catalog.
@@ -16,7 +16,7 @@ import (
 //  4. No duplicate names.
 //  5. Warns when a note name shadows a built-in unless shadow: true is set.
 func (e *executor) validateUserNotes() error {
-	reg := e.k.Notes
+	reg := e.cat.Notes
 	if reg.Empty() {
 		return nil
 	}
@@ -53,7 +53,7 @@ func (e *executor) validateUserNotes() error {
 		}
 
 		if _, isBuiltin := builtins[n.Name]; isBuiltin && !n.Shadow {
-			e.k.Warnings.AddWarning(fmt.Sprintf("notes %q shadows a built-in Inrun note — add `shadow: true` to acknowledge",
+			e.cat.Warnings.AddWarning(fmt.Sprintf("notes %q shadows a built-in Inrun note — add `shadow: true` to acknowledge",
 				n.Name))
 		}
 	}

@@ -6,7 +6,7 @@ metadata:
     Run with: inrun simulate --dev-server
 
     The dev server returns "true" for all flag requests. The constructor reads
-    flagUrl from kube.Args() (template-resolved per CR), makes the HTTP call
+    flagUrl from req.Args (template-resolved per CR), makes the HTTP call
     itself, and creates the Deployment at spec.replicas (5).
     This is the difference from hooks: the constructor owns the HTTP call.
 

@@ -3,7 +3,10 @@ kind: Catalog
 metadata:
   name: website-intent
   version: 0.1.0
-  description: A Website operator that callers reach through the gateway with an intent.
+  description: >
+    A Website operator that callers reach through the gateway with an intent.
+    The Catalog maps the CR to flat args for a Python reconciler, and its
+    result comes back to the caller as a view.
 
 gateway:
   api:
@@ -12,6 +15,17 @@ gateway:
       tokens:
         - name: dev
           token: "${INTENT_TOKEN}"
+
+notes:
+  functions:
+    - name: reconcilerEndpoint
+      description: Remote reconciler HTTP endpoint — its in-cluster Service, or localhost when inrun runs outside the cluster
+      expression: >
+        {{ if .inrun.inPod }}
+          http://website-reconciler.default.svc.cluster.local:8025/reconcile
+        {{ else }}
+          http://localhost:8025/reconcile
+        {{ end }}
 
 spec:
   crds:
@@ -23,8 +37,10 @@ spec:
         # Intent fields the caller may send; each lands on spec.<field>.
         fields:
           image: {}
-          replicas: {}
-          port: {}
+          replicas:
+            type: integer
+          port:
+            type: integer
         # What the caller reads back: only this view, not the full CR.
         config:
           response:
@@ -36,27 +52,35 @@ spec:
               endpoint: '{{ .status.endpoint }}'
             poll:
               field: status.phase
+      setup:
+        - ./manifests/secret.yaml
       operatorBox:
         reconcile:
-          onCreate:
-            deployments:
-              - name: "{{ .metadata.name }}"
-                image: "{{ .spec.image }}"
-                replicas: "{{ .spec.replicas }}"
-                port: "{{ .spec.port }}"
-                reconcile: true
-            services:
-              - name: "{{ .metadata.name }}-svc"
-                port: "80"
-                targetPort: "{{ .spec.port }}"
-                reconcile: true
-        emit:
-          status:
-            fields:
-              - path: phase
-                value: "Running"
-              - path: endpoint
-                value: "{{ .metadata.name }}.{{ .metadata.namespace }}.svc.cluster.local"
+          default: false
+          managedResources:
+            - kind: deployment
+            - kind: service
+          # The mapping: the CR in the reconciler's own flat vocabulary. The
+          # reconciler reads only these, never the CR.
+          args:
+            appName: "{{ .metadata.name }}"
+            namespace: "{{ .metadata.namespace }}"
+            image: "{{ .spec.image }}"
+            replicas: "{{ .spec.replicas }}"
+            port: "{{ .spec.port }}"
+          remote:
+            endpoint: "{{ reconcilerEndpoint }}"
+            timeout: 15s
+            auth:
+              secretRef:
+                name: website-reconciler-token
+                namespace: default
+                key: token
+            request:
+              object:
+                exclude:
+                  - metadata.managedFields
+                  - spec    # Don't send spec
         runtime:
           allowedNamespaces:
             - default

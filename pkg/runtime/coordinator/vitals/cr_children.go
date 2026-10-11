@@ -6,15 +6,17 @@ package vitals
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -68,8 +70,9 @@ var knownChildGVRs = func() []childGVREntry {
 //   - multiple      → []ChildSummary        (UI renders as array)
 //   - none          → key absent from map
 //
-// Only queries the resource types declared in rc (onCreate/onReconcile templates).
-// Results are cached for childrenCacheTTL to avoid repeated concurrent LISTs.
+// Only queries the resource types rc creates (see relevantGVRsFromConfig).
+// Results are cached for childrenCacheTTL, and dropped after each successful
+// reconcile (InvalidateChildrenCache), to avoid repeated concurrent LISTs.
 func readChildrenForEndpoint(
 	ctx context.Context,
 	kube *kubeclient.Kubeclient,
@@ -95,11 +98,12 @@ func readChildrenForEndpoint(
 	fetchCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 
-	labelSelector := fmt.Sprintf("inrun-owner=%s", name)
+	// Children carry the surface-aware owner key (name, or name.target when the
+	// CR came through a serve target), as stamped by labels.StampInrunLabels.
+	annotations, _, _ := unstructured.NestedStringMap(owner, "metadata", "annotations")
+	labelSelector := labels.InrunOwner + "=" + labels.EffectiveOwnerKey(name, annotations)
 
-	// Only query types declared in the Catalog — avoids firing 22 concurrent
-	// LISTs when the CR uses 2-3 resource types. Falls back to all types when
-	// no config is provided (e.g. Catalog with Go hooks instead of templates).
+	// Only query the kinds the CR creates, not every known kind.
 	gvrs := relevantGVRsFromConfig(rc)
 
 	type result struct {
@@ -152,9 +156,9 @@ func readChildrenForEndpoint(
 	return childMap
 }
 
-// InvalidateChildrenCache removes the cached children for a CR.
-// Called by the reconciler after a successful reconcile so the next endpoint
-// request reflects the latest state immediately.
+// InvalidateChildrenCache removes the cached children for a CR. The worker
+// calls it after each successful reconcile, so the next request reads the
+// latest state.
 func InvalidateChildrenCache(namespace, name string) {
 	endpointChildrenCache.Delete(namespace + "/" + name)
 }
@@ -163,35 +167,47 @@ func InvalidateChildrenCache(namespace, name string) {
 // GVR filtering
 // ─────────────────────────────────────────────────────────────────────────────
 
-// relevantGVRsFromConfig returns only the GVR entries for resource types
-// declared in the OperatorBoxConfig's onCreate/onReconcile templates, per
-// OperatorBoxConfig.DeclaredChildKinds() — the single source of truth for
-// "which built-in kinds does this box declare," colocated with HookTemplates
-// itself in pkg/types rather than duplicated here.
-//
-// When OnCreate and OnReconcile are both nil — no declarative template info
-// at all (e.g. a Catalog using Go hooks instead of templates) — every known
-// GVR is checked, since there's nothing to narrow the search with. This is
-// distinct from a CRD that declares only custom: entries and zero built-in
-// kinds: DeclaredChildKinds() correctly returns empty there too, but firing
-// all ~24 built-in LIST calls anyway both wastes work and risks the fixed
-// fetchTimeout expiring before the (separately-fetched) custom resources
-// block ever runs, silently returning empty children with no error.
+// relevantGVRsFromConfig returns the child kinds a CR can have: the built-in
+// kinds its onCreate/onReconcile templates declare, plus its
+// reconcile.managedResources (what a remote or typed reconciler returns).
+// Only when the box declares neither is every known kind checked; a box with
+// templates but no built-in kinds (custom: entries only) checks none, so the
+// separate custom-resource fetch is not starved by the fetch timeout.
 func relevantGVRsFromConfig(box *types.OperatorBoxConfig) []childGVREntry {
-	if box.EffectiveOnCreate() == nil && box.EffectiveOnReconcile() == nil {
+	hasTemplates := box.EffectiveOnCreate() != nil || box.EffectiveOnReconcile() != nil
+	var managed []domain.ManagedResource
+	if box != nil && box.Reconcile != nil {
+		managed = box.Reconcile.ManagedResources
+	}
+	if !hasTemplates && len(managed) == 0 {
 		return knownChildGVRs
 	}
+
 	needed := box.DeclaredChildKinds()
-	if len(needed) == 0 {
-		return nil
+	if needed == nil {
+		needed = map[string]bool{}
 	}
-	result := make([]childGVREntry, 0, len(needed))
+	result := make([]childGVREntry, 0, len(needed)+len(managed))
 	for _, e := range knownChildGVRs {
-		if needed[e.Key] {
+		if needed[e.Key] || managesKind(managed, e) {
 			result = append(result, e)
 		}
 	}
 	return result
+}
+
+// managesKind reports whether a managedResources entry names e, by kind or by
+// group and plural.
+func managesKind(managed []domain.ManagedResource, e childGVREntry) bool {
+	for _, mr := range managed {
+		if mr.Kind != "" && strings.EqualFold(mr.Kind, e.Key) {
+			return true
+		}
+		if mr.Plural != "" && mr.Plural == e.GVR.Resource && mr.Group == e.GVR.Group {
+			return true
+		}
+	}
+	return false
 }
 
 // mergeCustomResourceSrcs collects all custom resource template entries from

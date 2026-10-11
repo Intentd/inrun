@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateServeTokenRestrictions confirms:
@@ -22,7 +22,7 @@ import (
 func (e *executor) validateServeTokenRestrictions() error {
 	// A serve.tokens key must name a gateway.api.auth.tokens entry
 	// (a Bearer or OIDC caller).
-	gatewayTokens := e.k.GatewayTokenNames()
+	gatewayTokens := e.cat.GatewayTokenNames()
 	knownTokens := make(map[string]struct{}, len(gatewayTokens))
 	for _, name := range gatewayTokens {
 		knownTokens[name] = struct{}{}
@@ -32,7 +32,7 @@ func (e *executor) validateServeTokenRestrictions() error {
 	restrictedNamespaces := make(map[string]map[string]bool)
 
 	// Keyed by the enabledCRDs map key.
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		allowedNamespaces[crdName] = make(map[string]bool)
 		for _, ns := range crd.AllAllowedNamespaces() {
 			allowedNamespaces[crdName][ns] = true
@@ -48,7 +48,7 @@ func (e *executor) validateServeTokenRestrictions() error {
 		types.ServeOpList: true,
 	}
 
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if crd.Serve == nil || !crd.Serve.HasTokenRestrictions() {
 			continue
 		}
@@ -128,7 +128,7 @@ func (e *executor) validateServeTokenRestrictions() error {
 								"it will be ignored for schema and only apply to resources",
 							crdName, tokenName, op,
 						))
-						e.k.EnabledCRDs()[crdName] = crd
+						e.cat.EnabledCRDs()[crdName] = crd
 					}
 				}
 			}
@@ -175,7 +175,7 @@ func (e *executor) validateServeTokenRestrictions() error {
 						"the token can authenticate but cannot perform any operation on this CRD",
 					failureMark(), crdName, tokenName,
 				))
-				e.k.EnabledCRDs()[crdName] = crd
+				e.cat.EnabledCRDs()[crdName] = crd
 			}
 
 			// 7. (Warning) Namespace restrictions on a cluster-scoped CRD.
@@ -185,7 +185,7 @@ func (e *executor) validateServeTokenRestrictions() error {
 						"namespace restrictions are ignored for cluster-scoped resources",
 					failureMark(), crdName, tokenName, crdName,
 				))
-				e.k.EnabledCRDs()[crdName] = crd
+				e.cat.EnabledCRDs()[crdName] = crd
 			}
 
 			// 8. Every namespace must be allowed at CRD level.

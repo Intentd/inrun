@@ -1,13 +1,15 @@
 package http
 
 import (
+	"encoding/json"
+	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"testing"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -42,170 +44,12 @@ func TestResolveEndpoint_NilPrepared_FallsBack(t *testing.T) {
 	assert.Equal(t, "http://{{ .metadata.namespace }}-svc/reconcile", r.resolveEndpoint(domain.Request{}))
 }
 
-func TestResolveArgs_NoArgs(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	assert.Nil(t, r.resolveArgs(domain.Request{}))
-}
-
-func TestResolveArgs_StaticPassThrough(t *testing.T) {
-	r := &Reconciler{
-		decl: &types.RemoteReconcilerDeclaration{
-			Endpoint: "http://svc/reconcile",
-			Args:     map[string]interface{}{"env": "prod", "replicas": 3},
-		},
-	}
-	got := r.resolveArgs(domain.Request{})
-	assert.Equal(t, "prod", got["env"])
-	assert.Equal(t, 3, got["replicas"])
-}
-
-func TestResolveArgs_TemplateCoercion(t *testing.T) {
-	r := &Reconciler{
-		decl: &types.RemoteReconcilerDeclaration{
-			Endpoint: "http://svc/reconcile",
-			Args: map[string]interface{}{
-				"replicas": `{{ index . "replicas" }}`,
-				"debug":    `{{ index . "debug" }}`,
-			},
-		},
-	}
-	req := reqWithResolver(map[string]interface{}{"replicas": "5", "debug": "true"})
-	got := r.resolveArgs(req)
-	assert.Equal(t, float64(5), got["replicas"])
-	assert.Equal(t, true, got["debug"])
-}
-
-// ownerObj builds a minimal *unstructured.Unstructured for use as an owner in tests.
-func ownerObj(name, namespace string) *unstructured.Unstructured {
-	u := &unstructured.Unstructured{}
-	u.SetName(name)
-	u.SetNamespace(namespace)
-	u.SetAPIVersion("example.io/v1")
-	u.SetKind("App")
-	u.SetUID("test-uid")
-	return u
-}
-
-func reqWithOwner(owner domain.Object) domain.Request {
-	return domain.Request{
-		Key: owner.GetNamespace() + "/" + owner.GetName(),
-		Prepared: &domain.PreparedRequest{
-			Object: owner,
-		},
-	}
-}
-
-func TestResolveResources_Empty(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	got, err := r.resolveResources(nil, domain.Request{})
-	require.NoError(t, err)
-	assert.Nil(t, got)
-}
-
-func TestResolveResources_FullForm_PassThrough(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	full := map[string]interface{}{
-		"apiVersion": "apps/v1",
-		"kind":       "Deployment",
-		"metadata":   map[string]interface{}{"name": "my-app"},
-	}
-	got, err := r.resolveResources([]map[string]interface{}{full}, domain.Request{})
-	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.Equal(t, "apps/v1", got[0]["apiVersion"])
-}
-
-func TestResolveResources_IntentForm_Deployment(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	req := reqWithOwner(ownerObj("my-app", "default"))
-	intent := map[string]interface{}{
-		"type": "deployment",
-		"fields": map[string]interface{}{
-			"name":  "my-app",
-			"image": "nginx:1.25",
-		},
-	}
-	got, err := r.resolveResources([]map[string]interface{}{intent}, req)
-	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.Equal(t, "apps/v1", got[0]["apiVersion"])
-	assert.Equal(t, "Deployment", got[0]["kind"])
-}
-
-func TestResolveResources_IntentForm_UnknownType(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	req := reqWithOwner(ownerObj("my-app", "default"))
-	intent := map[string]interface{}{
-		"type":   "daemonset",
-		"fields": map[string]interface{}{"name": "my-ds"},
-	}
-	_, err := r.resolveResources([]map[string]interface{}{intent}, req)
-	assert.ErrorContains(t, err, "unknown resource type")
-}
-
-func TestResolveResources_IntentForm_NilOwner_Errors(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	intent := map[string]interface{}{
-		"type":   "deployment",
-		"fields": map[string]interface{}{"name": "my-app", "image": "nginx:1.25"},
-	}
-	_, err := r.resolveResources([]map[string]interface{}{intent}, domain.Request{})
-	assert.ErrorContains(t, err, "prepared request")
-}
-
-func TestResolveResources_IntentForm_Custom(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	req := reqWithOwner(ownerObj("my-app", "default"))
-	intent := map[string]interface{}{
-		"type": "custom",
-		"fields": map[string]interface{}{
-			"apiVersion": "example.io/v1",
-			"kind":       "WebApp",
-			"name":       "my-app",
-			"spec":       map[string]interface{}{"replicas": float64(3)},
-		},
-	}
-	got, err := r.resolveResources([]map[string]interface{}{intent}, req)
-	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.Equal(t, "example.io/v1", got[0]["apiVersion"])
-	assert.Equal(t, "WebApp", got[0]["kind"])
-}
-
-func TestResolveResources_IntentForm_Custom_MissingAPIVersion(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	req := reqWithOwner(ownerObj("my-app", "default"))
-	intent := map[string]interface{}{
-		"type": "custom",
-		"fields": map[string]interface{}{
-			"kind": "WebApp",
-			"name": "my-app",
-		},
-	}
-	_, err := r.resolveResources([]map[string]interface{}{intent}, req)
-	assert.ErrorContains(t, err, "apiVersion is required")
-}
-
-func TestResolveResources_MixedForms(t *testing.T) {
-	r := newReconcilerForTest("http://svc/reconcile")
-	req := reqWithOwner(ownerObj("my-app", "default"))
-	raw := []map[string]interface{}{
-		{"apiVersion": "v1", "kind": "ConfigMap", "metadata": map[string]interface{}{"name": "cfg"}},
-		{"type": "serviceaccount", "fields": map[string]interface{}{"name": "my-sa"}},
-	}
-	got, err := r.resolveResources(raw, req)
-	require.NoError(t, err)
-	require.Len(t, got, 2)
-	assert.Equal(t, "v1", got[0]["apiVersion"])
-	assert.Equal(t, "ServiceAccount", got[1]["kind"])
-}
-
 func TestApplyObjectExclusions_RemovesPaths(t *testing.T) {
 	r := &Reconciler{
 		decl: &types.RemoteReconcilerDeclaration{
 			Endpoint: "http://svc/reconcile",
-			Payload: &types.RemotePayloadConfig{
-				Object: &types.RemotePayloadObjectConfig{
+			Request: &types.RemoteRequestConfig{
+				Object: &types.RemoteRequestObjectConfig{
 					Exclude: []string{"metadata.managedFields", "metadata.annotations"},
 				},
 			},
@@ -219,7 +63,7 @@ func TestApplyObjectExclusions_RemovesPaths(t *testing.T) {
 		},
 		"spec": map[string]interface{}{"replicas": float64(2)},
 	}}
-	got := r.applyObjectExclusions(obj, r.decl.Payload.Object.Exclude)
+	got := r.applyObjectExclusions(obj, r.decl.Request.Object.Exclude)
 	meta := got["metadata"].(map[string]interface{})
 	assert.Equal(t, "my-app", meta["name"])
 	assert.Nil(t, meta["managedFields"])
@@ -257,9 +101,9 @@ func TestApplyObjectExclusions_DoesNotMutateOriginal(t *testing.T) {
 func TestApplyChildrenConfig_ResourcesFilter(t *testing.T) {
 	r := &Reconciler{
 		decl: &types.RemoteReconcilerDeclaration{
-			Payload: &types.RemotePayloadConfig{
-				Children: &types.RemotePayloadChildrenConfig{
-					Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+			Request: &types.RemoteRequestConfig{
+				Children: &types.RemoteRequestChildrenConfig{
+					Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 						"deployment": {},
 					},
 				},
@@ -278,8 +122,8 @@ func TestApplyChildrenConfig_ResourcesFilter(t *testing.T) {
 func TestApplyChildrenConfig_RootExcludeStripsPath(t *testing.T) {
 	r := &Reconciler{
 		decl: &types.RemoteReconcilerDeclaration{
-			Payload: &types.RemotePayloadConfig{
-				Children: &types.RemotePayloadChildrenConfig{
+			Request: &types.RemoteRequestConfig{
+				Children: &types.RemoteRequestChildrenConfig{
 					Exclude: []string{"metadata.managedFields"},
 				},
 			},
@@ -305,10 +149,10 @@ func TestApplyChildrenConfig_RootExcludeStripsPath(t *testing.T) {
 func TestApplyChildrenConfig_PerResourceExcludeOverridesRoot(t *testing.T) {
 	r := &Reconciler{
 		decl: &types.RemoteReconcilerDeclaration{
-			Payload: &types.RemotePayloadConfig{
-				Children: &types.RemotePayloadChildrenConfig{
+			Request: &types.RemoteRequestConfig{
+				Children: &types.RemoteRequestChildrenConfig{
 					Exclude: []string{"metadata.managedFields"},
-					Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+					Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 						"deployment": {Exclude: []string{"spec.template.metadata.annotations"}},
 						"service":    nil, // uses root exclude
 					},
@@ -344,14 +188,52 @@ func TestApplyChildrenConfig_PerResourceExcludeOverridesRoot(t *testing.T) {
 	assert.Nil(t, svcMeta["managedFields"])
 }
 
-func TestResolveArgs_NilPrepared_FallsBack(t *testing.T) {
-	raw := map[string]interface{}{"env": "{{ .spec.env }}"}
+func TestBuildBody_ExplicitWireForm(t *testing.T) {
+	disabled := false
 	r := &Reconciler{
+		gvk: schema.GroupVersionKind{Group: "demo.inrun.dev", Version: "v1alpha1", Kind: "Website"},
 		decl: &types.RemoteReconcilerDeclaration{
 			Endpoint: "http://svc/reconcile",
-			Args:     raw,
+			Request: &types.RemoteRequestConfig{
+				Object: &types.RemoteRequestObjectConfig{Exclude: []string{"spec"}},
+				// Listing children needs a kube client; covered by the children tests.
+				Children: &types.RemoteRequestChildrenConfig{Enabled: &disabled},
+			},
 		},
 	}
-	got := r.resolveArgs(domain.Request{})
-	assert.Equal(t, raw, got)
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{"name": "a", "namespace": "default"},
+		"spec":     map[string]interface{}{"image": "nginx"},
+	}}
+	req := domain.Request{
+		Key:      "default/a",
+		Prepared: &domain.PreparedRequest{Object: obj, Target: "website", Args: domain.Args{"image": "nginx"}},
+	}
+
+	raw, err := r.buildBody(req)
+	require.NoError(t, err)
+	var body map[string]interface{}
+	require.NoError(t, json.Unmarshal(raw, &body))
+
+	keys := make([]string, 0, len(body))
+	for k := range body {
+		keys = append(keys, k)
+	}
+	assert.ElementsMatch(t, []string{"key", "apiVersion", "kind", "target", "object", "args"}, keys)
+	assert.Equal(t, "demo.inrun.dev/v1alpha1", body["apiVersion"])
+	assert.Equal(t, "Website", body["kind"])
+	assert.Equal(t, "website", body["target"])
+	assert.NotContains(t, body["object"], "spec", "excluded paths must not reach the reconciler")
+	assert.NotContains(t, string(raw), `"spec"`, "no other copy of the CR in the body")
+
+	// A CR being deleted adds finalizing; otherwise it is omitted.
+	req.Prepared.Finalizing = true
+	raw, err = r.buildBody(req)
+	require.NoError(t, err)
+	assert.Contains(t, string(raw), `"finalizing":true`)
+
+	// No prepared state: identity only, and no panic.
+	raw, err = r.buildBody(domain.Request{Key: "default/a"})
+	require.NoError(t, err)
+	assert.Contains(t, string(raw), `"key":"default/a"`)
 }
