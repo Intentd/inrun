@@ -32,3 +32,10 @@ func (r Request) Args() Args {
 	}
 	return r.Prepared.Args
 }
+
+// Finalizing reports whether the CR is being deleted. A reconciler returns
+// without a requeue once its cleanup is done; Inrun then removes its finalizer.
+// Resources, labels and annotations returned while finalizing are ignored.
+func (r Request) Finalizing() bool {
+	return r.Prepared != nil && r.Prepared.Finalizing
+}

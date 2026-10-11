@@ -82,6 +82,20 @@ func Prune(
 	return pruned, nil
 }
 
+// DeleteChildren deletes every child a Result applied for owner, in any
+// namespace and cluster-scoped ones included, except kinds in keep. The runtime
+// calls it once a finalizing reconcile is done: owner references cover only
+// same-namespace children, so the rest would outlive the CR.
+func DeleteChildren(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	owner domain.Object,
+	managed []domain.ManagedResource,
+	keep []string,
+) ([]Pruned, error) {
+	return Prune(ctx, dyn, owner, managed, &types.PruneConfig{Enabled: true, AllowEmpty: true, Keep: keep}, nil)
+}
+
 // pruneGVRs resolves the managed kinds to list, without duplicates and
 // without the kinds in keep.
 func pruneGVRs(managed []domain.ManagedResource, keep []string) []schema.GroupVersionResource {

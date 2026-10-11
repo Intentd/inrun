@@ -294,7 +294,6 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 		r = generic.New(
 			crdEntry,
 			inf,
-			nil,
 			recKube,
 			hookBinder,
 			newObjFn,

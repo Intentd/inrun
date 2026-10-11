@@ -28,8 +28,9 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 
 // remoteRequest is the JSON body POSTed to the remote endpoint: the CR's
 // identity, the CR itself with request.object.exclude applied, the rendered
-// reconcile.args and, when request.children is set, the CR's children. Nothing
-// else from the runtime's prepared state is sent.
+// reconcile.args, finalizing while the CR is being deleted and, when
+// request.children is set, the CR's children. Nothing else from the runtime's
+// prepared state is sent.
 type remoteRequest struct {
 	Key        string                 `json:"key"`
 	APIVersion string                 `json:"apiVersion"`
@@ -37,6 +38,7 @@ type remoteRequest struct {
 	Target     string                 `json:"target,omitempty"`
 	Object     interface{}            `json:"object"`
 	Args       map[string]interface{} `json:"args,omitempty"`
+	Finalizing bool                   `json:"finalizing,omitempty"`
 	Children   childrenMap            `json:"children,omitempty"`
 }
 
@@ -106,6 +108,7 @@ func (r *Reconciler) buildBody(req domain.Request) ([]byte, error) {
 		APIVersion: r.gvk.GroupVersion().String(),
 		Kind:       r.gvk.Kind,
 		Args:       req.Args(),
+		Finalizing: req.Finalizing(),
 	}
 	if prep := req.Prepared; prep != nil {
 		body.Target = prep.Target

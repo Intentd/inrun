@@ -257,7 +257,6 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		r = generic.New(
 			effectiveCRDEntry,
 			informer,
-			nil,
 			fakeKube,
 			hookBinder,
 			newObjFn,

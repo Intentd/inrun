@@ -248,11 +248,13 @@ func mergeCRDEntry(base, override types.CRDEntry) types.CRDEntry {
 		for _, f := range result.Box().EffectiveFinalizers() {
 			seen[f] = struct{}{}
 		}
+		names := result.Box().EffectiveFinalizers()
 		for _, f := range overrideFinals {
 			if _, ok := seen[f]; !ok {
-				result.Box().Runtime.Finalizers = append(result.Box().Runtime.Finalizers, f)
+				names = append(names, f)
 			}
 		}
+		result.Box().Runtime.SetFinalizerNames(names)
 	}
 
 	// ── Reconcile config — override only declared blocks ──────────────────

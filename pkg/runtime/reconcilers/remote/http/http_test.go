@@ -226,6 +226,12 @@ func TestBuildBody_ExplicitWireForm(t *testing.T) {
 	assert.NotContains(t, body["object"], "spec", "excluded paths must not reach the reconciler")
 	assert.NotContains(t, string(raw), `"spec"`, "no other copy of the CR in the body")
 
+	// A CR being deleted adds finalizing; otherwise it is omitted.
+	req.Prepared.Finalizing = true
+	raw, err = r.buildBody(req)
+	require.NoError(t, err)
+	assert.Contains(t, string(raw), `"finalizing":true`)
+
 	// No prepared state: identity only, and no panic.
 	raw, err = r.buildBody(domain.Request{Key: "default/a"})
 	require.NoError(t, err)

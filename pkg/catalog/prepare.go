@@ -2,9 +2,11 @@ package catalog
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/profiles"
 	"github.com/intentd/inrun/pkg/types"
@@ -122,10 +124,15 @@ func (c *Catalog) SetDefaults(cfg *config.Config) error {
 				boxFinalizers = append(boxFinalizers, target.OperatorBox.EffectiveFinalizers()...)
 			}
 		}
+		// Every CR Inrun manages carries its cleanup finalizer, whatever the
+		// reconciler: deletion waits for a finalizing reconcile to finish.
+		if !slices.Contains(boxFinalizers, labels.CleanupFinalizer) {
+			boxFinalizers = append(boxFinalizers, labels.CleanupFinalizer)
+		}
 		if crd.Box().Runtime == nil {
 			crd.Box().Runtime = &types.RuntimeConfig{}
 		}
-		crd.Box().Runtime.Finalizers = boxFinalizers
+		crd.Box().Runtime.SetFinalizerNames(boxFinalizers)
 
 		if crd.Box().Reconcile == nil {
 			crd.Box().Reconcile = &types.ReconcileConfig{}

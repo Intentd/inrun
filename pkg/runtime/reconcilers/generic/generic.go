@@ -4,20 +4,14 @@ package generic
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/intentd/inrun/pkg/runtime/runners"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -33,7 +27,6 @@ import (
 // because the informer cache stores the underlying concrete object.
 type Reconciler[PTR domain.Object] struct {
 	informer cache.SharedIndexInformer
-	event    event.Recorder
 	kube     kubeclient.Interface
 	// hooks holds type-erased, domain.Object-parameterized callbacks built at
 	// construction time from the user's ReconcileHooks[PTR]. Stored as
@@ -53,12 +46,6 @@ type Reconciler[PTR domain.Object] struct {
 	cat         *catalog.Catalog
 }
 
-// discardRecorder is the package-private noop used when nil is passed for ev.
-// Used by inrun simulate
-type discardRecorder struct{}
-
-func (discardRecorder) Eventf(_ runtime.Object, _, _, _ string, _ ...interface{}) {}
-
 // New constructs a Reconciler for the given CRD.
 //
 // PTR must be a pointer to the concrete CR type (e.g. *Database). When called
@@ -72,7 +59,6 @@ func (discardRecorder) Eventf(_ runtime.Object, _, _, _ string, _ ...interface{}
 func New[PTR domain.Object](
 	crd types.CRDEntry,
 	informer cache.SharedIndexInformer,
-	ev event.Recorder,
 	kube kubeclient.Interface,
 	anyHooks domain.AnyReconcileHooks,
 	newObj func() PTR,
@@ -107,27 +93,12 @@ func New[PTR domain.Object](
 		}
 	}
 
-	if ev == nil {
-		ev = discardRecorder{}
-	}
-
 	box := crd.OperatorBox
-	// Always inject a system finalizer so handleDeletion runs before the CR is removed.
-	// This guarantees explicit GC for cluster-scoped resources (Namespaces, ClusterRoles,
-	// ClusterRoleBindings, PVs, cluster-scoped custom resources) that Kubernetes GC
-	// cannot cascade through owner references.
-	if !slices.Contains(box.EffectiveFinalizers(), labels.CleanupFinalizer) {
-		if box.Runtime == nil {
-			box.Runtime = &types.RuntimeConfig{}
-		}
-		box.Runtime.Finalizers = append(box.Runtime.Finalizers, labels.CleanupFinalizer)
-	}
 
 	r := &Reconciler[PTR]{
 		crd:         crd,
 		operatorBox: box,
 		informer:    informer,
-		event:       ev,
 		kube:        kube,
 		hooks:       hooks,
 		targetHooks: targetHooks,
@@ -175,8 +146,6 @@ func (r *Reconciler[PTR]) Reconcile(ctx context.Context, req domain.Request) (do
 		logger.FromContext(ctx).Info().
 			Str("name", obj.GetName()).
 			Msgf("deletion handler called for %s", r.crd.GVKString())
-		r.event.Eventf(obj, corev1.EventTypeNormal, "Deleting",
-			fmt.Sprintf("Deleting %s %s/%s", r.crd.GVKString(), obj.GetNamespace(), obj.GetName()))
 		return r.handleDeletion(ctx, req, resolver, obj, box, hooks)
 	}
 
@@ -185,7 +154,7 @@ func (r *Reconciler[PTR]) Reconcile(ctx context.Context, req domain.Request) (do
 		return domain.Result{}, err
 	}
 
-	return result, r.cleanupPreviousSurface(ctx, obj)
+	return result, nil
 }
 
 // reconcileImpl dispatches to the correct reconcile implementation and returns
@@ -234,15 +203,8 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, req domain.Request,
 			Str("name", obj.GetName()).
 			Msgf("reconciliation failed for %s", r.crd.GVKString())
 
-		r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"ReconcileError",
-			fmt.Sprintf("Failed to reconcile %s %s/%s: %v",
-				r.crd.GVKString(), obj.GetNamespace(), obj.GetName(), err))
 		return domain.Result{}, err
 	}
-
-	r.event.Eventf(obj, corev1.EventTypeNormal, r.crd.APITypes.Kind+"Reconciled",
-		fmt.Sprintf("Successfully reconciled %s %s/%s",
-			r.crd.GVKString(), obj.GetNamespace(), obj.GetName()))
 
 	logger.FromContext(ctx).Info().
 		Str("name", obj.GetName()).
@@ -251,18 +213,18 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, req domain.Request,
 	return result, nil
 }
 
-// handleDeletion runs cleanup then removes our finalizers.
-// Finalizers are never removed on error — object stays protected until
-// cleanup succeeds. An OnDelete hook that asks for a requeue also keeps them,
-// so it is called again later; only that requeue is returned, since status,
-// resources and cleanup mean nothing for an object being deleted.
+// handleDeletion runs the CR's deletion logic: the OnDelete hook or onDelete
+// templates. It returns without a requeue when that is done; the coordinator
+// then deletes the children owner references cannot reach and removes Inrun's
+// finalizer. On an error, or when OnDelete asks for a requeue, the
+// finalizer stays and the CR is reconciled again; only that requeue is
+// returned, since status, resources and cleanup mean nothing for an object
+// being deleted.
 func (r *Reconciler[PTR]) handleDeletion(ctx context.Context, req domain.Request, resolver *template.Resolver, obj PTR, box types.OperatorBoxConfig, hooks domain.ObjectHooks) (domain.Result, error) {
 	switch {
 	case hooks.OnDelete != nil:
 		res, err := hooks.OnDelete(ctx, req, obj)
 		if err != nil {
-			r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"DeleteError",
-				fmt.Sprintf("Deletion hook failed: %v", err))
 			return domain.Result{}, fmt.Errorf("deletion hook: %w", err)
 		}
 		if d, reason := res.EffectiveRequeue(); d > 0 {
@@ -276,33 +238,9 @@ func (r *Reconciler[PTR]) handleDeletion(ctx context.Context, req domain.Request
 
 	case box.EffectiveOnDelete() != nil:
 		if err := r.runTemplateOnDelete(ctx, resolver, obj, box); err != nil {
-			r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"DeleteError",
-				fmt.Sprintf("Template deletion failed: %v", err))
 			return domain.Result{}, fmt.Errorf("template deletion: %w", err)
 		}
 	}
-
-	// Cluster-scoped resources require explicit deletion regardless of whether an
-	// onDelete block exists: the GC does not cascade through owner references on them.
-	// runTemplateOnDelete already handles this when OnDelete is set; run it here for all
-	// other cases (no onDelete block, or Go hook path).
-	if box.EffectiveOnDelete() == nil {
-		if kube, ok := kubeclient.FromContext(ctx); ok {
-			if err := runners.DeleteOwnedClusterScopedResources(ctx, kube, resolver, obj, box); err != nil {
-				return domain.Result{}, fmt.Errorf("namespace cleanup: %w", err)
-			}
-		}
-	}
-
-	if err := r.patchStripFinalizers(ctx, obj, box); err != nil {
-		r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"FinalizerRemovalError",
-			fmt.Sprintf("Failed to remove finalizers: %v", err))
-		return domain.Result{}, err
-	}
-
-	r.event.Eventf(obj, corev1.EventTypeNormal, r.crd.APITypes.Kind+"Deleted",
-		fmt.Sprintf("Successfully deleted %s %s/%s",
-			r.crd.GVKString(), obj.GetNamespace(), obj.GetName()))
 
 	return domain.Result{}, nil
 }

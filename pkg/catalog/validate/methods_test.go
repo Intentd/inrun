@@ -6,6 +6,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -121,11 +122,10 @@ func TestSetDefaults_OperatorBoxFinalizersDefault(t *testing.T) {
 	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
+	// The spec's finalizers, plus Inrun's cleanup finalizer on every CRD.
 	entry := e.cat.EnabledCRDs()["app"]
 	boxFinalizers := entry.OperatorBox.EffectiveFinalizers()
-	if !reflect.DeepEqual(boxFinalizers, e.cat.Spec.Finalizers) {
-		t.Fatalf("unexpected error. want true, got false")
-	}
+	assert.ElementsMatch(t, []string{"spec-finalizer", labels.CleanupFinalizer}, boxFinalizers)
 }
 
 func TestSetDefaults_SpecFinalizerAddToOperatorBoxFinalizer(t *testing.T) {
@@ -143,7 +143,7 @@ func TestSetDefaults_SpecFinalizerAddToOperatorBoxFinalizer(t *testing.T) {
 		t.Fatalf("unexpected error. want false, got true")
 	}
 
-	if len(boxFinalizers) != 2 {
+	if len(boxFinalizers) != 3 { // spec, cleanup, box
 		t.Fatalf("unexpected error. want true, got false: %d", len(boxFinalizers))
 	}
 }
@@ -155,7 +155,9 @@ func TestSetDefaults_TargetOperatorBoxFinalizersDefault(t *testing.T) {
 			Entries: map[string]*types.ServeTargetConfig{
 				"testfixture": {
 					OperatorBox: &types.OperatorBoxConfig{
-						Runtime: &types.RuntimeConfig{Finalizers: []string{"target-finalizer"}},
+						Runtime: &types.RuntimeConfig{Finalizers: &types.FinalizerConfig{
+							Names: []string{"target-finalizer"},
+						}},
 					},
 				},
 			},
@@ -183,8 +185,8 @@ func TestSetDefaults_TargetOperatorBoxFinalizersDefault(t *testing.T) {
 		t.Fatalf("unexpected error. want true, got false")
 	}
 
-	if len(boxFinalizers) != 2 {
-		t.Fatalf("unexpected boxFinalizers length: want 2, got %d", len(boxFinalizers))
+	if len(boxFinalizers) != 3 { // spec, target, cleanup
+		t.Fatalf("unexpected boxFinalizers length: want 3, got %d", len(boxFinalizers))
 	}
 
 	targetFinalizers := entry.Serve.Target.Entries["testfixture"].OperatorBox.EffectiveFinalizers()

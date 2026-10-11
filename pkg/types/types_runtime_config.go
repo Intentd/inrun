@@ -1,14 +1,19 @@
 // pkg/types/types_runtime_config.go
 package types
 
+import (
+	"time"
+
+	"github.com/intentd/inrun/pkg/utils"
+)
+
 // RuntimeConfig governs the operatorBox as a long-lived entity, not a single reconcile cycle.
 // Covers autoscaling the worker pool, finalizer lifecycle, namespace guards, and deletion protection.
 type RuntimeConfig struct {
-	// Finalizers is the per-CRD finalizer list. Falls back to the Catalog-level finalizer.
-	Finalizers []string `yaml:"finalizers,omitempty" json:"finalizers,omitempty" validate:"omitempty"`
-
-	// RemoveFinalizers strips all Inrun finalizers from this CRD's CRs. Testing only.
-	RemoveFinalizers bool `yaml:"removeFinalizers,omitempty" json:"removeFinalizers,omitempty"`
+	// Finalizers configures the finalizers on this CRD's CRs: extra names, a
+	// finalizing timeout, and removal. Inrun's own inrun.dev/cleanup is always
+	// added and never listed.
+	Finalizers *FinalizerConfig `yaml:"finalizers,omitempty" json:"finalizers,omitempty" validate:"omitempty"`
 
 	// DeletionProtection overrides the global deletion protection policy for this CRD.
 	DeletionProtection *DeletionProtectionOverride `yaml:"deletionProtection,omitempty" json:"deletionProtection,omitempty"`
@@ -68,3 +73,41 @@ func (r *RuntimeConfig) EffectiveCleanup() *CleanupConfig {
 }
 
 func (r *RuntimeConfig) Empty() bool { return r == nil }
+
+// FinalizerConfig is runtime.finalizers.
+type FinalizerConfig struct {
+	// Names are finalizers added to every CR besides Inrun's inrun.dev/cleanup.
+	// The Catalog-level spec.finalizers are merged in.
+	Names []string `yaml:"names,omitempty" json:"names,omitempty"`
+
+	// Timeout releases a CR still finalizing this long after its deletion
+	// started: Inrun removes its finalizers even though the reconciler has not
+	// returned without a requeue, and emits a warning. A duration such as "30m"
+	// or "2h"; off unless set. Read it with TimeoutDuration.
+	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+
+	// Remove strips the finalizers from this CRD's CRs instead of adding them.
+	// Testing only.
+	Remove bool `yaml:"remove,omitempty" json:"remove,omitempty"`
+}
+
+// SetFinalizerNames sets runtime.finalizers.names, creating the block when absent.
+func (r *RuntimeConfig) SetFinalizerNames(names []string) {
+	if r.Finalizers == nil {
+		r.Finalizers = &FinalizerConfig{}
+	}
+	r.Finalizers.Names = names
+}
+
+// TimeoutDuration parses Timeout; 0 when unset. Validation rejects anything
+// that does not parse to a positive duration, so errors are not expected here.
+func (f *FinalizerConfig) TimeoutDuration() time.Duration {
+	if f == nil || f.Timeout == "" {
+		return 0
+	}
+	d, err := utils.ParseTimeDuration(f.Timeout)
+	if err != nil {
+		return 0
+	}
+	return d
+}

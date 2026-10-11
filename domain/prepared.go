@@ -79,4 +79,9 @@ type PreparedRequest struct {
 	// Args are the Catalog's reconcile.args, rendered against the CR for this
 	// reconcile. Read them with Request.Args().
 	Args Args
+
+	// Finalizing is true when the CR is being deleted. Inrun's finalizer holds
+	// it until the reconciler returns without a requeue. Read it with
+	// Request.Finalizing().
+	Finalizing bool
 }

@@ -38,6 +38,17 @@ spec:
           name: my-webapp
           namespace: default
 
+    - name: Inrun's finalizer on the CR
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.finalizers[0]
+            equals: inrun.dev/cleanup
+
     - name: Status written by reconciler
       after: cr-applied
       timeout: 60s

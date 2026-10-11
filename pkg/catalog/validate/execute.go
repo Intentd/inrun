@@ -284,6 +284,11 @@ func (e *executor) run() error {
 		return err
 	}
 
+	// 51b. Finalizer timeout
+	if err := e.validateFinalizerTimeout(); err != nil {
+		return err
+	}
+
 	// 52. Cross declaration
 	if err := e.validateCrossDecl(); err != nil {
 		return err

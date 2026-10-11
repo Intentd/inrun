@@ -6,12 +6,9 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/external"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -77,18 +74,4 @@ func (r *Reconciler[PTR]) namespaceGuardFunc() func(ctx context.Context, obj dom
 	return func(ctx context.Context, obj domain.Object, ns string) bool {
 		return prepare.CheckNamespace(ctx, obj, ns, restricted, allowed, kind).Allowed
 	}
-}
-
-// patchStripFinalizers removes all box-declared finalizers from obj and patches the API server.
-func (r *Reconciler[PTR]) patchStripFinalizers(ctx context.Context, obj PTR, box types.OperatorBoxConfig) error {
-	if len(obj.GetFinalizers()) == 0 {
-		return nil
-	}
-	if !labels.StripFinalizers(obj, box.EffectiveFinalizers()) {
-		return nil
-	}
-	logger.Debug().
-		Str("name", obj.GetName()).
-		Msgf("removing finalizers → %v", obj.GetFinalizers())
-	return r.kube.PatchFinalizers(ctx, obj, obj.GetFinalizers(), metav1.PatchOptions{})
 }

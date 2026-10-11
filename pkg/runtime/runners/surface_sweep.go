@@ -1,13 +1,17 @@
-// pkg/runners/surface_sweep.go
 package runners
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 // SweepOwnedNamespacedResources deletes all namespace-scoped resources in ns
@@ -192,6 +196,46 @@ func SweepOwnedClusterScopedResources(
 
 	if len(errs) > 0 {
 		return fmt.Errorf("cluster-scoped surface sweep %q: %v", ownerKey, errs)
+	}
+	return nil
+}
+
+// SweepOwnedManagedResources deletes resources of the managed kinds, in any
+// namespace, whose inrun-owner label matches ownerKey. It covers what the two
+// built-in sweeps above cannot: custom kinds, and children a reconciler's
+// Result placed in other namespaces.
+func SweepOwnedManagedResources(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	managed []domain.ManagedResource,
+	ownerKey string,
+) error {
+	opts := metav1.ListOptions{LabelSelector: labels.InrunOwner + "=" + ownerKey}
+	background := metav1.DeletePropagationBackground
+
+	var errs []error
+	seen := map[schema.GroupVersionResource]bool{}
+	for _, mr := range managed {
+		gvr, ok := children.ResolveGVR(mr)
+		if !ok || seen[gvr] {
+			continue
+		}
+		seen[gvr] = true
+		list, err := dyn.Resource(gvr).Namespace("").List(ctx, opts)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("list %s: %w", gvr.Resource, err))
+			continue
+		}
+		for _, item := range list.Items {
+			err := dyn.Resource(gvr).Namespace(item.GetNamespace()).Delete(ctx, item.GetName(),
+				metav1.DeleteOptions{PropagationPolicy: &background})
+			if err != nil && !apierrors.IsNotFound(err) {
+				errs = append(errs, fmt.Errorf("%s/%s: %w", gvr.Resource, item.GetName(), err))
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("managed surface sweep %q: %v", ownerKey, errs)
 	}
 	return nil
 }

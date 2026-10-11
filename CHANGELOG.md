@@ -58,6 +58,8 @@ redeploy.
 - Reconcilers can return labels and annotations for their resource. Inrun applies them with server-side apply: a key the reconciler stops returning is removed, and keys set by anyone else are left alone. The `inrun.dev` domain is reserved.
 - Requeues carry a reason, shown in the logs.
 - Typed reconcilers can return resources, in full or intent form.
+- The CR lifecycle moves from the generic reconciler into the runtime, so every reconciler gets it: the cleanup finalizer and a finalizing reconcile (`req.Finalizing()`; remote: `"finalizing": true`), deletion of children owner references cannot reach, the serve-target sweep, and `Reconciled`/`ReconcileError` events.
+- `runtime.finalizers.timeout` releases a CR still finalizing after that long, with a `FinalizeTimeout` warning.
 - `reconcile.prune` deletes children a reconciler applied before and no longer returns. It is off unless `prune.enabled` is true, and a serve target can set its own. Only children labelled with the CR's UID (`inrun.dev/owner-uid`) and applied by `inrun-reconciler` are candidates; `prune.keep` spares kinds such as PersistentVolumeClaims, an empty Result prunes nothing unless `prune.allowEmpty` is set, and nothing is pruned when the reconcile or an apply fails. Each deletion emits a `Pruned` event.
 - Intent form covers `namespace` and `pdb`, besides `deployment`, `statefulset`, `service`, `ingress`, `configmap`, `secret`, `serviceaccount`, `job`, `cronjob` and `custom`.
 - `inrun simulate` runs remote reconcilers against their endpoint.

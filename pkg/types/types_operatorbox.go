@@ -520,8 +520,17 @@ func (c *OperatorBoxConfig) GetWatchEntry(secondaryGVK string) *WatchEntry {
 	return nil
 }
 
-// EffectiveFinalizers returns the finalizer list from runtime.finalizers. Safe on nil receiver.
+// EffectiveFinalizers returns the finalizer names from runtime.finalizers.names.
+// Safe on nil receiver.
 func (c *OperatorBoxConfig) EffectiveFinalizers() []string {
+	if f := c.EffectiveFinalizerConfig(); f != nil {
+		return f.Names
+	}
+	return nil
+}
+
+// EffectiveFinalizerConfig returns runtime.finalizers, or nil. Safe on nil receiver.
+func (c *OperatorBoxConfig) EffectiveFinalizerConfig() *FinalizerConfig {
 	if c == nil || c.Runtime == nil {
 		return nil
 	}
@@ -549,9 +558,10 @@ func (c *OperatorBoxConfig) EffectiveCleanup() *CleanupConfig {
 	return c.Runtime.EffectiveCleanup()
 }
 
-// EffectiveRemoveFinalizers reports whether runtime.removeFinalizers is set. Safe on nil receiver.
+// EffectiveRemoveFinalizers reports whether runtime.finalizers.remove is set. Safe on nil receiver.
 func (c *OperatorBoxConfig) EffectiveRemoveFinalizers() bool {
-	return c != nil && c.Runtime != nil && c.Runtime.RemoveFinalizers
+	f := c.EffectiveFinalizerConfig()
+	return f != nil && f.Remove
 }
 
 // EffectiveStatus returns the status config from emit.status.

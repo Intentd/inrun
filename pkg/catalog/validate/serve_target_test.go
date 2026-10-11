@@ -118,7 +118,9 @@ func TestValidateServeTarget_NoServe(t *testing.T) {
 func TestValidateServeTarget_TargetBoxTemplatesOnly(t *testing.T) {
 	box := &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{OnCreate: &types.HookTemplates{}},
-		Runtime:   &types.RuntimeConfig{Finalizers: []string{"my.finalizer/cleanup"}},
+		Runtime: &types.RuntimeConfig{Finalizers: &types.FinalizerConfig{
+			Names: []string{"my.finalizer/cleanup"},
+		}},
 	}
 	e := catalogWithTargetCRDs(map[string]types.CRDEntry{
 		"res": crdWithTargetAndBox("web", box),

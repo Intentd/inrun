@@ -148,10 +148,11 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 	}
 
 	return &domain.PreparedRequest{
-		Object:  normalized,
-		Context: resolver,
-		Target:  target,
-		Box:     box,
+		Object:     normalized,
+		Context:    resolver,
+		Target:     target,
+		Box:        box,
+		Finalizing: obj.GetDeletionTimestamp() != nil,
 	}, valResult, nil
 }
 

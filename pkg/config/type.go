@@ -2,8 +2,6 @@ package config
 
 import (
 	"time"
-
-	"github.com/intentd/inrun/pkg/labels"
 )
 
 type Config struct {
@@ -235,11 +233,6 @@ func (c *Config) Leader() *leaderElection {
 // Catalog returns catalog Configurations
 func (c *Config) Catalog() *catalogConfig {
 	return &c.catalog
-}
-
-// Finalizers return a list of default finalizers
-func (c *Config) Finalizers() []string {
-	return []string{labels.FinalizerInrun}
 }
 
 // Security returns the unified security configuration.

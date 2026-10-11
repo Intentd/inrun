@@ -173,7 +173,6 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 
 	logger.Debug().Msg("wiring CRDs into coordinator registry...")
 
-	finalizers := cfg.Finalizers()
 	for _, crd := range cat.Enabled() {
 		crd := crd
 		gvk := crd.GVKString()
@@ -255,8 +254,6 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 			inf = infFactory.For(object, ctx, opts)
 		}
 
-		finalizers = append(finalizers, crd.Box().EffectiveFinalizers()...)
-
 		infCopy := inf
 
 		// Build the reconciler factory.
@@ -286,7 +283,6 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 				return generic.New(
 					crd,
 					infCopy,
-					ev,
 					hookKube,
 					anyHooks,
 					func() domain.Object {
@@ -501,10 +497,6 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 		infFactory,    // 6. informer factory — starts watchers, closes ready channel
 		coord,         // 7. dependency coordinator — starts workers in topo order
 	}
-
-	// suppress unused variable warning — finalizers is populated but only
-	// referenced by the reconciler closures captured above.
-	_ = finalizers
 
 	// ── 8. Inrun ───────────────────────────────────────────────────────────
 	// The supervisor. Calls Start() on each component in order.

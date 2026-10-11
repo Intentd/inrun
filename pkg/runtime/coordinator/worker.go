@@ -13,6 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/maintain"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
@@ -141,12 +142,15 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	// is idle, not failure; error rate and health state are unaffected.
 	entry, hasEntry := c.catalog.Get(gvk)
 	if hasEntry && entry.CRD.HasAnyReconcileGate() {
-		obj := c.objectFromCache(entry, item.Key)
-		sentinelMap := wq.Sentinels(item)
-		if gated, reason := c.evaluatePreReconcileCheck(ctx, obj, entry.CRD.Name, sentinelMap); gated {
-			c.crdHealthMap[gvk].RecordGated(reason)
-			wq.Forget(item)
-			return
+		// A CR being deleted is never gated: its finalizing reconcile releases
+		// Inrun's finalizer.
+		if obj := c.objectFromCache(entry, item.Key); obj == nil || obj.GetDeletionTimestamp() == nil {
+			sentinelMap := wq.Sentinels(item)
+			if gated, reason := c.evaluatePreReconcileCheck(ctx, obj, entry.CRD.Name, sentinelMap); gated {
+				c.crdHealthMap[gvk].RecordGated(reason)
+				wq.Forget(item)
+				return
+			}
 		}
 	}
 
@@ -215,11 +219,65 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	// safeReconcile catches panics
 	result, reconcileErr := c.safeReconcile(rec, c.crdHealthMap[gvk], ctx, item.Key, gvk, prepared)
 
+	// A CR being deleted: Inrun's cleanup finalizer holds it until the
+	// reconciler returns without a requeue, or until runtime.finalizers.timeout
+	// passes. Only that requeue counts; the Result's writes are ignored so
+	// nothing recreates children of a CR on its way out.
+	finalizing := hasEntry && prepared != nil && prepared.Finalizing
+	if finalizing {
+		box := prepare.BoxFrom(prepared)
+		d, reason := result.EffectiveRequeue()
+		done := reconcileErr == nil && d <= 0
+		expired, left := finalizeDeadline(prepared.Object, box.EffectiveFinalizerConfig(), time.Now())
+		ns, name := prepared.Object.GetNamespace(), prepared.Object.GetName()
+
+		if done || expired {
+			if !done {
+				why := reason
+				if reconcileErr != nil {
+					why = reconcileErr.Error()
+				}
+				c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "FinalizeTimeout",
+					"Still finalizing after runtime.finalizers.timeout; removing Inrun's finalizer anyway (last: %s)", why)
+				reconcileErr = nil
+			}
+			// Children owner references cannot reach go before the finalizer.
+			// After a timeout the CR is released even if this fails.
+			if _, err := deleteChildren(ctx, c.kube, entry.CRD, prepared); err != nil {
+				if done {
+					reconcileErr = fmt.Errorf("deleting children: %w", err)
+				} else {
+					logger.Warn().Err(err).Str("key", item.Key).Msg("finalize timeout: deleting children failed")
+				}
+			}
+			// On any error the finalizer stays and the CR is retried below.
+			if reconcileErr == nil {
+				if err := maintain.Finalize(ctx, c.kube, prepared.Object, box); err != nil {
+					reconcileErr = fmt.Errorf("removing finalizers: %w", err)
+				} else {
+					if done {
+						c.event.Eventf(prepared.Object, corev1.EventTypeNormal, "Finalized",
+							"Reconciler finished; removed Inrun's finalizer from %s/%s", ns, name)
+					}
+					wq.Forget(item)
+					c.successReconcile(gvk)
+					return
+				}
+			}
+		} else if reconcileErr == nil {
+			// Never sleep past the timeout.
+			if left > 0 && d > left {
+				d = left
+			}
+			result = domain.Result{Requeue: &domain.Requeue{After: d, Reason: reason}}
+		}
+	}
+
 	// Apply the resources, labels and annotations the Result returns. Every
 	// reconciler's writes take this one path; a failure is a reconcile failure.
 	// Children it applied before and no longer returns are pruned when the
 	// effective reconcile.prune is enabled.
-	if reconcileErr == nil && hasEntry && prepared != nil {
+	if reconcileErr == nil && hasEntry && prepared != nil && !finalizing {
 		prune := entry.CRD.EffectivePrune(intent.Target(prepared.Object.GetAnnotations()))
 		pruned, err := apply.Result(ctx, c.kube, prepared.Object, entry.CRD.AllManagedResources(), prune, result)
 		for _, p := range pruned {
@@ -230,6 +288,14 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 			c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ApplyFailed",
 				"Applying the result for %s/%s: %v", prepared.Object.GetNamespace(), prepared.Object.GetName(), err)
 			reconcileErr = err
+		}
+	}
+
+	// A CR that moved to another serve target loses what the previous one
+	// created, now that the new target's children are in place.
+	if reconcileErr == nil && hasEntry && prepared != nil && !finalizing {
+		if err := sweepPreviousSurface(ctx, c.kube, entry.CRD, prepared.Object); err != nil {
+			reconcileErr = fmt.Errorf("surface sweep: %w", err)
 		}
 	}
 
@@ -247,6 +313,10 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	}
 
 	if reconcileErr != nil {
+		if hasEntry && prepared != nil {
+			c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ReconcileError",
+				"Reconciling %s: %v", item.Key, reconcileErr)
+		}
 		logger.Error().Err(reconcileErr).Str("gvk", gvk).Str("key", item.Key).Msg("reconcile failed")
 		wq.AddRateLimited(item)
 		// A failing reconcile never delays a pending cleanup.
@@ -257,9 +327,13 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 		return
 	}
 
-	// Record or withdraw the cleanup this Result requests. A failed reconcile
-	// (above) changes neither.
 	if hasEntry && prepared != nil {
+		c.event.Eventf(prepared.Object, corev1.EventTypeNormal, "Reconciled", "Reconciled %s", item.Key)
+	}
+
+	// Record or withdraw the cleanup this Result requests. A failed reconcile
+	// (above) changes neither, and a CR being deleted has nothing to clean up.
+	if hasEntry && prepared != nil && !finalizing {
 		w, err := settleResultCleanup(ctx, c.kube, prepared.Object, result.Cleanup)
 		if err != nil {
 			logger.Warn().Err(err).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: could not record the result's request")

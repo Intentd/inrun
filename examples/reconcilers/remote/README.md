@@ -81,7 +81,7 @@ Inrun POSTs the CR's identity, the CR itself (with `managedFields` stripped) and
   "args": { "logLevel": "info", "environment": "development", "appName": "my-webapp" } }
 ```
 
-`target` is added when the CR came through a serve target, and `children` when `request.children` is set. `request.object.exclude` removes paths from `object`; nothing else in the body carries the CR.
+`target` is added when the CR came through a serve target, and `children` when `request.children` is set. `finalizing: true` is added while the CR is being deleted: Inrun's finalizer holds it until the reconciler replies without a requeue, and resources, labels and annotations in that reply are ignored. A reconciler with nothing to clean up outside the cluster just replies `ok`. `request.object.exclude` removes paths from `object`; nothing else in the body carries the CR.
 
 The reconciler returns status, labels and annotations for the WebApp, and
 resources in intent form: a built-in `type` and flat `fields`. Inrun builds the

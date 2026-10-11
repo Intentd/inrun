@@ -153,6 +153,12 @@ func (f *Factory) allowEnqueue(
 		return true
 	}
 
+	// A CR being deleted always gets through: its finalizing reconcile is what
+	// releases Inrun's finalizer, so no condition may hold it back.
+	if domObj.GetDeletionTimestamp() != nil {
+		return true
+	}
+
 	// Queue behaviour conditions.
 	if wq.NeedsBehaviourEval() {
 		if !f.catalog.EvaluateQueueBehaviourConditions(ctx, gvkStr, domObj, domain.EvaluateOptions{Sentinels: sentinels}) {

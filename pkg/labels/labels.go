@@ -141,10 +141,9 @@ const (
 	// ────────────────────────────────────────────────────────────────────────────────
 	//
 
-	// FinalizerInrun ensures cleanup runs before a CR is removed.
-	FinalizerInrun = "inrun.dev/finalizer"
-
-	// CleanupFinalizer ensures cluster-scoped GC runs before a CR is removed.
+	// CleanupFinalizer is on every CR Inrun manages. It holds a deleted CR
+	// until a finalizing reconcile returns without a requeue, so reconcilers
+	// can clean up first (including cluster-scoped children).
 	CleanupFinalizer = "inrun.dev/cleanup"
 
 	//

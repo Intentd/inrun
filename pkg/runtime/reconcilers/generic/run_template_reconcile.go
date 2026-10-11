@@ -221,11 +221,5 @@ func (r *Reconciler[PTR]) runTemplateOnDelete(ctx context.Context, resolver *tem
 		}
 	}
 
-	// Cluster-scoped resources cannot have namespace-scoped owners, so GC never cleans them up.
-	// Always run explicit cleanup regardless of ordered/unordered path.
-	if err := runners.DeleteOwnedClusterScopedResources(ctx, kube, resolver, obj, box); err != nil {
-		return fmt.Errorf("cluster-scoped resource cleanup: %w", err)
-	}
-
 	return nil
 }
