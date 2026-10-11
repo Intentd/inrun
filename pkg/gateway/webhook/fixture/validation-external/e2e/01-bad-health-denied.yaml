@@ -3,7 +3,7 @@ expect:
     after: cr-applied
     timeout: 30s
     commands:
-      - run: kubectl apply -f ./cr-bad-health.yaml
+      - run: kubectl apply -f ../cr-bad-health.yaml
         exitCode: 1
         outputContains: "denied the request"
 
@@ -11,7 +11,7 @@ expect:
     after: cr-applied
     timeout: 30s
     commands:
-      - run: kubectl apply -f ./cr-bad-health.yaml
+      - run: kubectl apply -f ../cr-bad-health.yaml
         exitCode: 1
         outputContains: "health check failed at admission"
 

@@ -54,15 +54,13 @@ func init() {
 //
 // Hook entries — factory functions for Go hook implementations.
 //
-//	Called by addHooks() during Catalog validation to wire HookFactory
-//	onto the CRD entry. generic.Reconciler calls HookFactory() once at
-//	startCRDWorkers time to obtain the typed hooks.
+//	Looked up by GVK (CRDEntry.HookFactory) when the runtime builds the
+//	generic reconciler; Catalog validation checks they exist.
 //
 // Reconciler entries — constructor functions for custom reconcilers.
 //
-//	Called by AddConstructors() during Catalog validation to wire Constructor
-//	onto the CRD entry. DependencyCoordinator calls Constructor() once at
-//	startCRDWorkers time to build the reconciler.
+//	Looked up by GVK (CRDEntry.Constructor) when the runtime builds the
+//	reconciler; Catalog validation checks they exist.
 func RegisterRuntimeObjects() {
 	logger.Debug().Msg("RegisterRuntimeObjects called")
 
@@ -73,7 +71,7 @@ func RegisterRuntimeObjects() {
 		func() runtime.Object { return &bcappwithtargetsv1.BlockchainAppWithTargetsList{} }
 
 	// BlockchainAppWithTargets/v2-enabled — per-target Go hook factory
-	// Distinct hook binary for this target; TargetHookFactories carries it into startCRDWorkers.
+	// Distinct hook binary for this target; looked up by CRDEntry.TargetHookFactories.
 	{
 		gvk := schema.GroupVersionKind{Group: "demo.inrun.dev", Version: "v1alpha1", Kind: "BlockchainAppWithTargets"}
 		if types.TargetHookRegistry[gvk] == nil {
@@ -85,7 +83,7 @@ func RegisterRuntimeObjects() {
 	}
 
 	// BlockchainAppWithTargets/v2-disabled — per-target Go hook factory
-	// Distinct hook binary for this target; TargetHookFactories carries it into startCRDWorkers.
+	// Distinct hook binary for this target; looked up by CRDEntry.TargetHookFactories.
 	{
 		gvk := schema.GroupVersionKind{Group: "demo.inrun.dev", Version: "v1alpha1", Kind: "BlockchainAppWithTargets"}
 		if types.TargetHookRegistry[gvk] == nil {
@@ -97,7 +95,7 @@ func RegisterRuntimeObjects() {
 	}
 
 	// BlockchainAppWithTargets/v2-ctor — per-target custom reconciler constructor
-	// Distinct reconciler for this target; TargetReconcilerFactories carries it into startCRDWorkers.
+	// Distinct reconciler for this target; looked up by CRDEntry.TargetConstructors.
 	{
 		gvk := schema.GroupVersionKind{Group: "demo.inrun.dev", Version: "v1alpha1", Kind: "BlockchainAppWithTargets"}
 		if types.TargetReconcilerRegistry[gvk] == nil {

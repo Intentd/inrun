@@ -3,19 +3,10 @@ package catalog
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime"
-)
-
-// -----------------------------------------------------------------------------
-// Variables
-// -----------------------------------------------------------------------------
-var (
-	// For updating the CRD instance - needed for lookups
-	resourceTypeMap = map[reflect.Type]string{}
 )
 
 // -----------------------------------------------------------------------------

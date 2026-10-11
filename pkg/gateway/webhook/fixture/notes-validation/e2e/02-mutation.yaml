@@ -6,7 +6,7 @@ expect:
       - field: "{{ inBusinessHours }}"
         equals: "false"
     commands:
-      - run: kubectl apply -f ./cr.yaml
+      - run: kubectl apply -f ../cr.yaml
         exitCode: 1
         outputContains: "business hours"
 
@@ -18,7 +18,7 @@ expect:
         equals: "true"
     kubectl:
       apply:
-        - file: ./cr.yaml
+        - file: ../cr.yaml
       get:
         - kind: DeploymentRequest
           name: my-app

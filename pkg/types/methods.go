@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -188,13 +187,6 @@ func (c *CRDEntry) ConditionalActiveEnrichTargets(data map[string]interface{}, e
 // These resources become "Ready" immediately upon creation.
 func (c *CRDEntry) IsStatuslessType() bool {
 	return c.IsStatusless
-}
-
-// GetRuntimeObjects returns the object and list constructors appropriate for the
-// current mode (dynamic or typed). Used by the reconciler to instantiate new
-// runtime objects for watches, lists, and reconciliation.
-func (c *CRDEntry) GetRuntimeObjects() (runtime.Object, runtime.Object) {
-	return c.DynamicModeObject(), c.ListDynamicModeObject()
 }
 
 // IsDynamic determines whether this CRD should operate in dynamic mode.
@@ -524,17 +516,23 @@ func (c *CRDEntry) HasCrossDecl() bool {
 	return !c.Box().Empty() && len(c.Box().EffectiveCross()) > 0
 }
 
-// HasHooks reports whether this CRD has hooks wired — either a YAML-declared
-// hooks block or a Go-registered HookFactory.
+// HasHooks reports whether this CRD has hooks: a declared hooks block or a
+// registered hook factory.
 func (c *CRDEntry) HasHooks() bool {
-	r := c.Box().Reconcile
-	return r != nil && (r.Hooks != nil || r.HookFactory != nil)
+	if r := c.Box().Reconcile; r != nil && r.Hooks != nil {
+		return true
+	}
+	_, ok := c.HookFactory()
+	return ok
 }
 
-// HasConstructor reports whether a Go-registered constructor is wired for this CRD.
+// HasConstructor reports whether this CRD runs a registered constructor.
 func (c *CRDEntry) HasConstructor() bool {
-	r := c.Box().Reconcile
-	return r != nil && r.Constructor != nil
+	if !c.NeedsConstructor() {
+		return false
+	}
+	_, ok := c.Constructor()
+	return ok
 }
 
 // ReconcileExternal returns the external call specs declared under reconcile.external.

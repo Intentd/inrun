@@ -125,7 +125,7 @@ func TypeRegistry(crds map[string]types.CRDEntry, dryRun bool) (bool, error) {
 		// ── Custom constructors ───────────────────────────────────────────────
 		// reconciler.default: false means the user owns the entire reconcile loop.
 		// We need to import their constructor and register it in ReconcilerRegistry
-		// so AddConstructors() can wire it at startup.
+		// so the runtime can look it up by GVK.
 		if !crd.DefaultReconcile() {
 			if crd.Box().Reconcile == nil || crd.Box().Reconcile.ConstructorDecl == nil {
 				return false, fmt.Errorf(

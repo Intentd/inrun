@@ -64,41 +64,9 @@ func (e *executor) run() error {
 		return err
 	}
 
-	// The gateway never reconciles, so it wires no constructors or hooks and
-	// needs none compiled in (steps 7, 8, 10, 11).
-	wire := !e.cfg.IsGatewayInstance()
-
-	// 7. Reconcilers
-	if wire {
-		if err := e.cat.AddConstructors(); err != nil {
-			return err
-		}
-	}
-
-	// 8. Target constructors
-	if wire {
-		if err := e.cat.AddTargetConstructors(); err != nil {
-			return err
-		}
-	}
-
-	// 9. Runtime objects
-	if err := e.cat.AddRuntimeObjects(); err != nil {
+	// 7–11. Registrations: constructors, object types and hooks
+	if err := e.validateRegistrations(); err != nil {
 		return err
-	}
-
-	// 10. Hooks
-	if wire {
-		if err := e.cat.AddHooks(); err != nil {
-			return err
-		}
-	}
-
-	// 11. Target hooks
-	if wire {
-		if err := e.cat.AddTargetHooks(); err != nil {
-			return err
-		}
 	}
 
 	// 12. Status

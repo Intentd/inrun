@@ -632,7 +632,7 @@ func operatorBoxInfoStruct(crd types.CRDEntry) OperatorBoxInfo {
 			Location:   r.Hooks.Location,
 			Function:   r.Hooks.Function,
 		}
-	} else if r := box.Reconcile; r != nil && r.HookFactory != nil {
+	} else if _, ok := crd.HookFactory(); ok {
 		hooksInfo = HooksInfo{
 			Configured: true,
 			Source:     "go",
@@ -647,7 +647,7 @@ func operatorBoxInfoStruct(crd types.CRDEntry) OperatorBoxInfo {
 			Location:   r.ConstructorDecl.Location,
 			Function:   r.ConstructorDecl.Function,
 		}
-	} else if r := box.Reconcile; r != nil && r.Constructor != nil {
+	} else if crd.HasConstructor() {
 		constructorInfo = ConstructorInfo{
 			Configured: true,
 			Source:     "go",

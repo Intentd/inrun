@@ -52,15 +52,13 @@ func init() {
 //
 // Hook entries — factory functions for Go hook implementations.
 //
-//	Called by addHooks() during Catalog validation to wire HookFactory
-//	onto the CRD entry. generic.Reconciler calls HookFactory() once at
-//	startCRDWorkers time to obtain the typed hooks.
+//	Looked up by GVK (CRDEntry.HookFactory) when the runtime builds the
+//	generic reconciler; Catalog validation checks they exist.
 //
 // Reconciler entries — constructor functions for custom reconcilers.
 //
-//	Called by AddConstructors() during Catalog validation to wire Constructor
-//	onto the CRD entry. DependencyCoordinator calls Constructor() once at
-//	startCRDWorkers time to build the reconciler.
+//	Looked up by GVK (CRDEntry.Constructor) when the runtime builds the
+//	reconciler; Catalog validation checks they exist.
 func RegisterRuntimeObjects() {
 	logger.Debug().Msg("RegisterRuntimeObjects called")
 

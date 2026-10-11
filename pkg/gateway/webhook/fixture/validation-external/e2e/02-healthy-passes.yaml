@@ -4,7 +4,7 @@ expect:
     timeout: 30s
     kubectl:
       apply:
-        - file: ./cr.yaml
+        - file: ../cr.yaml
       get:
         - kind: WebApp
           name: my-app

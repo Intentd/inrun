@@ -46,6 +46,10 @@ func Factory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 	if !crd.HasTargetConstructorFactories() && !crd.HasTargetRemoteDeclarations() {
 		return base, nil
 	}
+	ctors, err := crd.TargetConstructors()
+	if err != nil {
+		return nil, err
+	}
 	remoteDecls := crd.TargetRemoteDeclarations()
 	for name, decl := range remoteDecls {
 		if _, err := remote.New(decl, crd.GVK(), d.Kube, d.Event, crd.ManagedResources(), d.OwnNamespace); err != nil {
@@ -53,8 +57,8 @@ func Factory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 		}
 	}
 	return func() domain.Reconciler {
-		targets := make(map[string]domain.Reconciler, len(crd.TargetReconcilerFactories)+len(remoteDecls))
-		for name, ctor := range crd.TargetReconcilerFactories {
+		targets := make(map[string]domain.Reconciler, len(ctors)+len(remoteDecls))
+		for name, ctor := range ctors {
 			targets[name] = ctor(constructorKube(crd, d))
 		}
 		for name, decl := range remoteDecls {
@@ -71,12 +75,15 @@ func baseFactory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 	switch {
 	case crd.DefaultReconcile():
 		var hooks domain.AnyReconcileHooks
-		if r := crd.Box().Reconcile; r != nil && r.HookFactory != nil {
-			hooks = r.HookFactory()
+		if factory, ok := crd.HookFactory(); ok {
+			hooks = factory()
 		}
 		// Hooks read reconcile.args with req.Args(), like every reconciler.
 		kube := d.Kube.WithForceConflict(crd.ResolveForceConflict())
-		object, _ := crd.GetRuntimeObjects()
+		object, _, err := crd.RuntimeObjects()
+		if err != nil {
+			return nil, err
+		}
 		return func() domain.Reconciler {
 			return generic.New(crd, d.Informer, kube, hooks,
 				func() domain.Object { return object.DeepCopyObject().(domain.Object) },
@@ -96,14 +103,15 @@ func baseFactory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 		}, nil
 
 	default:
-		if !crd.ConstructorEnabled() {
+		ctor, ok := crd.Constructor()
+		if !crd.ConstructorEnabled() || !ok {
 			return nil, fmt.Errorf("reconcile.default is false but no constructor is registered for %s", crd.GVKString())
 		}
 		// Constructor authors reach the informer and event recorder through
 		// kube (kube.GetInformer() and so on); args arrive on each request.
 		kube := constructorKube(crd, d)
 		return func() domain.Reconciler {
-			return crd.Box().Reconcile.Constructor(kube)
+			return ctor(kube)
 		}, nil
 	}
 }

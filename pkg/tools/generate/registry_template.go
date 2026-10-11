@@ -18,8 +18,8 @@ import "text/template"
 //	HookRegistry
 //	  Required when reconciler.hooks is declared.
 //	  The hook function lives in an external package. The generator writes the
-//	  import and a closure that calls the user's function. addHooks() reads
-//	  this registry at startup and sets HookFactory on the CRD entry.
+//	  import and a closure that calls the user's function. The runtime looks
+//	  the factory up by GVK (CRDEntry.HookFactory) when it builds the reconciler.
 //
 //	ReconcilerRegistry
 //	  Required when reconciler.default: false and reconciler.constructor is declared.
@@ -28,12 +28,12 @@ import "text/template"
 //	TargetHookRegistry
 //	  Required when a serve.target entry declares reconciler.hooks with a different
 //	  location than the CRD-level hooks binary. Keyed by GVK then target name.
-//	  addTargetHooks() reads this at startup to set TargetHookFactories.
+//	  Looked up by CRDEntry.TargetHookFactories.
 //
 //	TargetReconcilerRegistry
 //	  Required when a serve.target entry declares reconciler.default: false with
 //	  its own constructor. Keyed by GVK then target name.
-//	  addTargetConstructors() reads this at startup to set TargetReconcilerFactories.
+//	  Looked up by CRDEntry.TargetConstructors.
 //
 //	RegisterTypedScheme
 //	  Called by NewSchemeRegistry for typed CRDs.
@@ -98,14 +98,12 @@ func init() {
 //   and type assertion during reconciliation.
 //
 // Hook entries — factory functions for Go hook implementations.
-//   Called by addHooks() during Catalog validation to wire HookFactory
-//   onto the CRD entry. generic.Reconciler calls HookFactory() once at
-//   startCRDWorkers time to obtain the typed hooks.
+//   Looked up by GVK (CRDEntry.HookFactory) when the runtime builds the
+//   generic reconciler; Catalog validation checks they exist.
 //
 // Reconciler entries — constructor functions for custom reconcilers.
-//   Called by AddConstructors() during Catalog validation to wire Constructor
-//   onto the CRD entry. DependencyCoordinator calls Constructor() once at
-//   startCRDWorkers time to build the reconciler.
+//   Looked up by GVK (CRDEntry.Constructor) when the runtime builds the
+//   reconciler; Catalog validation checks they exist.
 func RegisterRuntimeObjects() {
 	logger.Debug().Msg("RegisterRuntimeObjects called")
 {{ range .Entries }}
@@ -133,7 +131,7 @@ func RegisterRuntimeObjects() {
 {{ end }}{{ end }}
 {{ if .TargetHookEntries }}{{ range .TargetHookEntries }}
 	// {{ .Kind }}/{{ .TargetName }} — per-target Go hook factory
-	// Distinct hook binary for this target; TargetHookFactories carries it into startCRDWorkers.
+	// Distinct hook binary for this target; looked up by CRDEntry.TargetHookFactories.
 	{
 		gvk := schema.GroupVersionKind{Group: "{{ .Group }}", Version: "{{ .Version }}", Kind: "{{ .Kind }}"}
 		if types.TargetHookRegistry[gvk] == nil {
@@ -146,7 +144,7 @@ func RegisterRuntimeObjects() {
 {{ end }}{{ end }}
 {{ if .TargetRecEntries }}{{ range .TargetRecEntries }}
 	// {{ .Kind }}/{{ .TargetName }} — per-target custom reconciler constructor
-	// Distinct reconciler for this target; TargetReconcilerFactories carries it into startCRDWorkers.
+	// Distinct reconciler for this target; looked up by CRDEntry.TargetConstructors.
 	{
 		gvk := schema.GroupVersionKind{Group: "{{ .Group }}", Version: "{{ .Version }}", Kind: "{{ .Kind }}"}
 		if types.TargetReconcilerRegistry[gvk] == nil {

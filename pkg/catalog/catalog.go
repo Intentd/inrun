@@ -1,10 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-	"reflect"
-
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/typeregistry"
 	"github.com/intentd/inrun/pkg/types"
 
@@ -77,23 +73,6 @@ func unstructuredEntry(crd types.CRDEntry) types.CRDEntry {
 }
 
 // Helpers
-// UpdateResourceMapAndReturn maps each enabled CRD's dynamic object type into
-// the package-level resourceTypeMap for O(1) GVK reverse-lookups, then returns k.
-func (c *Catalog) UpdateResourceMapAndReturn() (*Catalog, error) {
-	// Map the type of the object
-	for _, crd := range c.enabledCRDs {
-		if c.EnabledCRDsEmpty() {
-			return nil, fmt.Errorf("no enabled CRDs found")
-		}
-
-		// Map the type of the object
-		logger.Debug().Msgf("updating resource map for %s", crd.GroupVersionKind.String())
-		resourceTypeMap[reflect.TypeOf(crd.DynamicModeObject)] = crd.GroupVersionKind.String()
-	}
-
-	return c, nil
-}
-
 // registerCustomResourceScheme registers external GVKs declared in custom: blocks
 // (onCreate and onReconcile) into the scheme so the fake dynamic client's object
 // tracker can store and retrieve them during simulate. Deduplicates by GVK string.

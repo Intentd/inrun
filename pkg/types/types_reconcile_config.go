@@ -206,11 +206,6 @@ type ReconcileConfig struct {
 	OnReconcile *HookTemplates `yaml:"onReconcile,omitempty" json:"onReconcile,omitempty" validate:"omitempty"`
 	OnDelete    *HookTemplates `yaml:"onDelete,omitempty" json:"onDelete,omitempty" validate:"omitempty"`
 
-	// --- At runtime mapping ---
-
-	HookFactory func() domain.AnyReconcileHooks `yaml:"-" json:"-"`
-	Constructor NewReconcilerFunc               `yaml:"-" json:"-"`
-
 	// Include is a path to a YAML file whose reconcile: block is merged under this config.
 	// Inline fields take precedence. Cleared after expansion.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`

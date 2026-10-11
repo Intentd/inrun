@@ -59,11 +59,6 @@ func NewCatalog(cfg *config.Config, m *merger.Merger, instance config.Instance) 
 		utils.Exit(err)
 	}
 
-	cat, err = cat.UpdateResourceMapAndReturn()
-	if err != nil {
-		utils.Exit(err)
-	}
-
 	return cat
 }
 

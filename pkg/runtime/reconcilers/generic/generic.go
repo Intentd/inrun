@@ -85,8 +85,9 @@ func New[PTR domain.Object](
 
 	// Build per-target hook sets for targets that declare a distinct hook binary.
 	// Targets that share the CRD-level binary only override args and use hooks above.
-	targetHooks := make(map[string]domain.ObjectHooks, len(crd.TargetHookFactories))
-	for targetName, factory := range crd.TargetHookFactories {
+	factories, _ := crd.TargetHookFactories() // validated with the Catalog
+	targetHooks := make(map[string]domain.ObjectHooks, len(factories))
+	for targetName, factory := range factories {
 		anyH := factory()
 		if binder, ok := anyH.(domain.HookBinder); ok {
 			targetHooks[targetName] = binder.BindToObjectHooks()

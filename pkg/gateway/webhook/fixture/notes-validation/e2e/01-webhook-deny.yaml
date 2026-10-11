@@ -3,7 +3,7 @@ expect:
     after: cr-applied
     timeout: 30s
     commands:
-      - run: kubectl apply -f ./cr-bad-image.yaml
+      - run: kubectl apply -f ../cr-bad-image.yaml
         exitCode: 1
         outputContains: "denied the request"
 
@@ -11,6 +11,6 @@ expect:
     after: cr-applied
     timeout: 30s
     commands:
-      - run: kubectl apply -f ./cr-bad-image.yaml
+      - run: kubectl apply -f ../cr-bad-image.yaml
         exitCode: 1
         outputContains: "image must be from myorg/"

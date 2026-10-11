@@ -10,8 +10,6 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/profiles"
 	"github.com/intentd/inrun/pkg/types"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -164,55 +162,6 @@ func (c *Catalog) SetDefaults(cfg *config.Config) error {
 		}
 		crd.Box().Reconcile = rec
 
-		c.enabledCRDs[name] = crd
-	}
-	return nil
-}
-
-// AddRuntimeObjects wires object and list constructor functions onto every
-// enabled CRD entry. Dynamic CRDs get unstructured constructors; typed CRDs
-// are looked up in the global ObjectRegistry / ListRegistry.
-// Must be called after SetGroupVersionKind.
-func (c *Catalog) AddRuntimeObjects() error {
-	for name, crd := range c.enabledCRDs {
-		gvk := crd.GroupVersionKind
-
-		if crd.IsDynamic() {
-			g := crd.APITypes.Group
-			v := crd.APITypes.Version
-			ki := crd.APITypes.Kind
-			crd.DynamicModeObject = func() runtime.Object {
-				u := &unstructured.Unstructured{}
-				u.SetGroupVersionKind(schema.GroupVersionKind{Group: g, Version: v, Kind: ki})
-				return u
-			}
-			crd.ListDynamicModeObject = func() runtime.Object {
-				ul := &unstructured.UnstructuredList{}
-				ul.SetGroupVersionKind(schema.GroupVersionKind{Group: g, Version: v, Kind: ki + "List"})
-				return ul
-			}
-			c.enabledCRDs[name] = crd
-			continue
-		}
-
-		objFn, ok := types.ObjectRegistry[gvk]
-		if !ok {
-			err := fmt.Errorf("addRuntimeObjects: no object constructor registered for %s", gvk)
-			if crd.RegistryRef != "" {
-				return &TypedOperatorError{Ref: crd.RegistryRef, Err: err}
-			}
-			return err
-		}
-		listFn, ok := types.ListRegistry[gvk]
-		if !ok {
-			err := fmt.Errorf("%s addRuntimeObjects: no list constructor registered for %s", failureMark(), gvk)
-			if crd.RegistryRef != "" {
-				return &TypedOperatorError{Ref: crd.RegistryRef, Err: err}
-			}
-			return err
-		}
-		crd.DynamicModeObject = objFn
-		crd.ListDynamicModeObject = listFn
 		c.enabledCRDs[name] = crd
 	}
 	return nil

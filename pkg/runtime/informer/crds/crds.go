@@ -40,7 +40,12 @@ func NewFactory(
 		if crd.IsDynamic() {
 			continue
 		}
-		object, list := crd.GetRuntimeObjects()
+		object, list, err := crd.RuntimeObjects()
+		if err != nil {
+			// Catalog validation already reports a missing registration.
+			logger.Error().Err(err).Str("gvk", crd.GVKString()).Msg("no client provider registered")
+			continue
+		}
 		logger.Debug().Str("gvk", crd.GVKString()).Msg("registering CRD client provider")
 
 		provider.Register(object, func(k *kubeclient.Kubeclient) (informer.GenericClient, error) {
@@ -71,7 +76,7 @@ func Informer(
 	qr *queue.QueueRegistry,
 ) cache.SharedIndexInformer {
 	gvk := crd.GVKString()
-	object, _ := crd.GetRuntimeObjects()
+	object, _, _ := crd.RuntimeObjects() // validated with the Catalog
 	wq := qr.Register(gvk, crd.QueueConfig())
 
 	labelSelector := types.Labels(crd.LabelSelector).String()

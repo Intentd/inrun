@@ -258,12 +258,10 @@ func mergeCRDEntry(base, override types.CRDEntry) types.CRDEntry {
 	// ── Reconcile config — override only declared blocks ──────────────────
 	// If the override declares onCreate, it replaces the base onCreate.
 	// If it doesn't declare it, the base onCreate is preserved.
-	// Same for onReconcile, onDelete, hooks, constructor, status.
+	// Same for onReconcile, onDelete and status.
 	if override.Box().EffectiveOnCreate() != nil ||
 		override.Box().EffectiveOnReconcile() != nil ||
-		override.Box().EffectiveOnDelete() != nil ||
-		(override.Box().Reconcile != nil && override.Box().Reconcile.HookFactory != nil) ||
-		(override.Box().Reconcile != nil && override.Box().Reconcile.Constructor != nil) {
+		override.Box().EffectiveOnDelete() != nil {
 		if result.Box().Reconcile == nil {
 			result.Box().Reconcile = &types.ReconcileConfig{}
 		}
@@ -276,12 +274,6 @@ func mergeCRDEntry(base, override types.CRDEntry) types.CRDEntry {
 		}
 		if override.Box().EffectiveOnDelete() != nil {
 			rc.OnDelete = override.Box().EffectiveOnDelete()
-		}
-		if override.Box().Reconcile != nil && override.Box().Reconcile.HookFactory != nil {
-			rc.HookFactory = override.Box().Reconcile.HookFactory
-		}
-		if override.Box().Reconcile != nil && override.Box().Reconcile.Constructor != nil {
-			rc.Constructor = override.Box().Reconcile.Constructor
 		}
 	}
 

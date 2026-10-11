@@ -13,10 +13,10 @@ import (
 // Package-level registries — one set per Inrun instance.
 // Populated by RegisterRuntimeObjects() in zz_generated_runtime_registry.go,
 // which is produced by `inrun generate registry --file <path>`.
-// Keyed by schema.GroupVersionKind. Set during Catalog validation.
+// Keyed by schema.GroupVersionKind.
 //
-// User code never reads or writes these directly. Inrun reads them during
-// Catalog validation via addRuntimeObjects(), addHooks(), and AddConstructors().
+// User code never reads or writes these directly. Inrun looks entries up
+// through the CRDEntry methods in registrations.go.
 
 var ObjectRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
 var ListRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
@@ -27,7 +27,7 @@ var ReconcilerRegistry = map[schema.GroupVersionKind]NewReconcilerFunc{}
 // CRDs whose targets declare a distinct hook binary or custom constructor.
 // Outer key: GVK. Inner key: target name (matches serve.target.<name>).
 // Populated by the generator alongside HookRegistry / ReconcilerRegistry and
-// consumed by addTargetHooks() / addTargetConstructors() during Catalog validation.
+// looked up by CRDEntry.TargetHookFactories / TargetConstructors.
 //
 // Targets that share the CRD-level binary (only overriding reconcile.args) do NOT
 // appear here — mergeReconcilerConfig in EffectiveOperatorBox handles them at

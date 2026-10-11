@@ -3,7 +3,6 @@ package catalog
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
@@ -78,107 +77,6 @@ func (c *Catalog) Meta() types.CatalogMeta {
 	return c.metadata
 }
 
-// Exists returns true if a CRD with the given name exists in the catalog.
-func (c *Catalog) Exists(name string) bool {
-	_, ok := c.Spec.CRDs[name]
-	return ok
-}
-
-// Describe returns a human‑readable summary of a CRD.
-func (c *Catalog) Describe(name string) (string, error) {
-	crd, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	b := &strings.Builder{}
-	fmt.Fprintf(b, "Name:        %s\n", crd.Name)
-	fmt.Fprintf(b, "Group:       %s\n", crd.APITypes.Group)
-	fmt.Fprintf(b, "Version:     %s\n", crd.APITypes.Version)
-	fmt.Fprintf(b, "Kind:        %s\n", crd.APITypes.Kind)
-	fmt.Fprintf(b, "Plural:      %s\n", crd.APITypes.Plural)
-	fmt.Fprintf(b, "Namespaced:  %v\n", crd.Namespaced)
-	if crd.IsNamespaced() {
-		fmt.Fprintf(b, "Namespace:   %s\n", crd.Namespace)
-	}
-	fmt.Fprintf(b, "Workers:     %d\n", crd.SetWorkers(0))
-	fmt.Fprintf(b, "Resync:      %s\n", crd.SetResync(0).String())
-	fmt.Fprintf(b, "Enabled:     %v\n", crd.Enabled)
-
-	deps := crd.DependsOn.Names()
-	if len(deps) > 0 {
-		fmt.Fprintf(b, "Dependencies: %v\n", strings.Join(deps, " "))
-	} else {
-		fmt.Fprint(b, "Dependencies: None")
-	}
-
-	fmt.Fprintf(b, "Description:\n%s\n", crd.Description)
-
-	return b.String(), nil
-}
-
-// Explain returns a technical explanation of how Inrun handles this CRD.
-func (c *Catalog) Explain(name string) (string, error) {
-	crd, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	b := &strings.Builder{}
-	fmt.Fprintf(b, "%s (%s/%s)\n", crd.APITypes.Kind, crd.APITypes.Group, crd.APITypes.Version)
-	fmt.Fprintf(b, "----------------------------------------\n")
-	fmt.Fprintf(b, "API Path:     %s\n", crd.APITypes.APIPath)
-	fmt.Fprintf(b, "GVK:          %s\n", crd.GroupVersionKind.String())
-	fmt.Fprint(b, "List Type:    runtime.Object")
-	fmt.Fprint(b, "Object Type:  runtime.Object")
-	if crd.DefaultReconcile() {
-		fmt.Fprint(b, "operatorBox:   Default\n")
-	} else {
-		r := crd.Box().Reconcile
-		if r != nil && r.Constructor != nil {
-			fmt.Fprintf(b, "operatorBox:   %T\n", r.Constructor)
-		} else {
-			fmt.Fprint(b, "operatorBox:   Custom\n")
-		}
-	}
-	fmt.Fprintf(b, "Informer:     LIST, WATCH\n")
-
-	deps := crd.DependsOn.Names()
-	if len(deps) > 0 {
-		fmt.Fprintf(b, "Dependencies: %v\n", strings.Join(deps, " "))
-	} else {
-		fmt.Fprint(b, "Dependencies: None")
-	}
-
-	return b.String(), nil
-}
-
-// Graph returns a map of CRD name → dependency names.
-func (c *Catalog) Graph() map[string][]string {
-	graph := make(map[string][]string, c.Len())
-	for name, crd := range c.enabledCRDs {
-		graph[name] = crd.DependsOn.Names()
-	}
-	return graph
-}
-
-// Order returns CRDs in dependency‑safe order (topological sort).
-func (c *Catalog) Order() []string {
-	depGraph := NewDependencyGraph(c)
-	return depGraph.ShutdownOrder()
-}
-
-// Controllers returns a list of CRDs that have reconcilers.
-func (c *Catalog) Controllers() []string {
-	var out []string
-	for _, crd := range c.enabledCRDs {
-		if crd.HasConstructor() {
-			out = append(out, crd.Name)
-		}
-	}
-	return out
-}
-
 // CRDNames returns the names of all enabled CRDs.
 func (c *Catalog) CRDNames() []string {
 	names := make([]string, 0, c.Len())
@@ -186,27 +84,6 @@ func (c *Catalog) CRDNames() []string {
 		names = append(names, name)
 	}
 	return names
-}
-
-// Depends returns true if crdName depends on target.
-func (c *Catalog) Depends(crdName, target string) bool {
-	crd, err := c.Get(crdName)
-	if err != nil {
-		return false
-	}
-	_, ok := crd.DependsOn[target]
-	return ok
-}
-
-// Dependents returns all CRDs that depend on the given CRD.
-func (c *Catalog) Dependents(name string) []string {
-	var out []string
-	for _, crd := range c.enabledCRDs {
-		if _, ok := crd.DependsOn[name]; ok {
-			out = append(out, crd.Name)
-		}
-	}
-	return out
 }
 
 // Enabled returns only the enabled CRDs in the catalog.
