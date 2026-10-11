@@ -28,29 +28,29 @@ func catalogWithMutationRule(crdName string, rules ...types.MutationRule) *execu
 }
 
 func TestValidateAdmissionOperators_NoCRDs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{})
-	assert.NoError(t, k.validateAdmissionOperators())
+	e := newCatalogExec(map[string]types.CRDEntry{})
+	assert.NoError(t, e.validateAdmissionOperators())
 }
 
 func TestValidateAdmissionOperators_NoOperatorSet(t *testing.T) {
-	k := catalogWithValidationRule("app", types.ValidationRule{
+	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.image", Prefix: "myorg/", Message: "must be from myorg",
 	})
-	assert.NoError(t, k.validateAdmissionOperators())
+	assert.NoError(t, e.validateAdmissionOperators())
 }
 
 func TestValidateAdmissionOperators_KnownOperator(t *testing.T) {
-	k := catalogWithValidationRule("app", types.ValidationRule{
+	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Operator: types.ConditionLte, Value: "10", Message: "too many replicas",
 	})
-	assert.NoError(t, k.validateAdmissionOperators())
+	assert.NoError(t, e.validateAdmissionOperators())
 }
 
 func TestValidateAdmissionOperators_UnknownOperator(t *testing.T) {
-	k := catalogWithValidationRule("app", types.ValidationRule{
+	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Operator: "lte2", Value: "10", Message: "too many replicas",
 	})
-	err := k.validateAdmissionOperators()
+	err := e.validateAdmissionOperators()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "lte2")
 	assert.Contains(t, err.Error(), "app")
@@ -58,43 +58,43 @@ func TestValidateAdmissionOperators_UnknownOperator(t *testing.T) {
 }
 
 func TestValidateAdmissionOperators_UnknownOperatorInWhen(t *testing.T) {
-	k := catalogWithValidationRule("app", types.ValidationRule{
+	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Prefix: "x", Message: "msg",
 		When: []types.Condition{{Field: "spec.tier", Operator: "greaterOrEqual"}},
 	})
-	err := k.validateAdmissionOperators()
+	err := e.validateAdmissionOperators()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "greaterOrEqual")
 }
 
 func TestValidateAdmissionOperators_UnknownOperatorInOr(t *testing.T) {
-	k := catalogWithValidationRule("app", types.ValidationRule{
+	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Prefix: "x", Message: "msg",
 		Or: []types.Condition{{Field: "spec.tier", Operator: "notARealOp"}},
 	})
-	err := k.validateAdmissionOperators()
+	err := e.validateAdmissionOperators()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "notARealOp")
 }
 
 func TestValidateAdmissionOperators_MutationRuleUnknownOperatorInWhen(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Field:   "spec.tier",
 		Default: "standard",
 		When:    []types.Condition{{Field: "spec.env", Operator: "isEqualTo"}},
 	})
-	err := k.validateAdmissionOperators()
+	err := e.validateAdmissionOperators()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "isEqualTo")
 }
 
 func TestValidateAdmissionOperators_MutationRuleKnownOperator(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Field:   "spec.tier",
 		Default: "standard",
 		When:    []types.Condition{{Field: "spec.env", Operator: types.ConditionGte, Value: "1"}},
 	})
-	assert.NoError(t, k.validateAdmissionOperators())
+	assert.NoError(t, e.validateAdmissionOperators())
 }
 
 func catalogWithServeValidationRule(crdName string, srv *types.ServeConfig, rules ...types.ValidationRule) *executor {
@@ -108,10 +108,10 @@ func catalogWithServeValidationRule(crdName string, srv *types.ServeConfig, rule
 }
 
 func TestValidateValidationRuleLinks_NoLink(t *testing.T) {
-	k := catalogWithValidationRule("app", types.ValidationRule{
+	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.image", Prefix: "myorg/", Message: "must be from myorg",
 	})
-	assert.NoError(t, k.validateValidationRuleLinks())
+	assert.NoError(t, e.validateValidationRuleLinks())
 }
 
 func TestValidateValidationRuleLinks_MatchesAdditionalLabelField(t *testing.T) {
@@ -119,10 +119,10 @@ func TestValidateValidationRuleLinks_MatchesAdditionalLabelField(t *testing.T) {
 		Enabled: true,
 		Labels:  map[string]types.ServeFieldConfig{"team": {Label: "Team"}},
 	}
-	k := catalogWithServeValidationRule("app", serve, types.ValidationRule{
+	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
 		Field: `{{ isDNS1123Subdomain team }}`, Link: "team", Equals: "true", Message: "must be a valid subdomain",
 	})
-	assert.NoError(t, k.validateValidationRuleLinks())
+	assert.NoError(t, e.validateValidationRuleLinks())
 }
 
 func TestValidateValidationRuleLinks_MatchesAdditionalAnnotationField(t *testing.T) {
@@ -130,10 +130,10 @@ func TestValidateValidationRuleLinks_MatchesAdditionalAnnotationField(t *testing
 		Enabled:     true,
 		Annotations: map[string]types.ServeFieldConfig{"platform.myorg.io/jira-ticket": {Label: "Jira Ticket"}},
 	}
-	k := catalogWithServeValidationRule("app", serve, types.ValidationRule{
+	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
 		Field: `{{ getAnnotation . "platform.myorg.io/jira-ticket" }}`, Link: "platform.myorg.io/jira-ticket", Message: "must be set",
 	})
-	assert.NoError(t, k.validateValidationRuleLinks())
+	assert.NoError(t, e.validateValidationRuleLinks())
 }
 
 func TestValidateValidationRuleLinks_SpecFieldWithWrappingExpression(t *testing.T) {
@@ -144,10 +144,10 @@ func TestValidateValidationRuleLinks_SpecFieldWithWrappingExpression(t *testing.
 		Enabled: true, Fields: map[string]types.ServeFieldConfig{
 			"repoURL": {Label: "Repository URL"},
 		}}
-	k := catalogWithServeValidationRule("app", serve, types.ValidationRule{
+	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
 		Field: `{{ isValidGitRepository .spec.repoURL }}`, Link: "repoURL", Equals: "true", Message: "must be a valid git repository",
 	})
-	assert.NoError(t, k.validateValidationRuleLinks())
+	assert.NoError(t, e.validateValidationRuleLinks())
 }
 
 func TestValidateValidationRuleLinks_RedundantSpecFieldLink(t *testing.T) {
@@ -156,10 +156,10 @@ func TestValidateValidationRuleLinks_RedundantSpecFieldLink(t *testing.T) {
 		Fields: map[string]types.ServeFieldConfig{
 			"team": {Label: "Team"},
 		}}
-	k := catalogWithServeValidationRule("app", serve, types.ValidationRule{
+	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
 		Field: "spec.team", Link: "team", Operator: types.ConditionExists, Message: "team is required",
 	})
-	err := k.validateValidationRuleLinks()
+	err := e.validateValidationRuleLinks()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "redundant")
 	assert.Contains(t, err.Error(), "team")
@@ -170,66 +170,66 @@ func TestValidateValidationRuleLinks_UnknownLink(t *testing.T) {
 		Enabled: true,
 		Labels:  map[string]types.ServeFieldConfig{"team": {Label: "Team"}},
 	}
-	k := catalogWithServeValidationRule("app", serve, types.ValidationRule{
+	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
 		Field: `{{ isDNS1123Subdomain typo }}`, Link: "typo", Equals: "true", Message: "must be valid",
 	})
-	err := k.validateValidationRuleLinks()
+	err := e.validateValidationRuleLinks()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "typo")
 	assert.Contains(t, err.Error(), "does not match any serve field")
 }
 
 func TestValidateValidationRuleLinks_NoServeConfig(t *testing.T) {
-	k := catalogWithServeValidationRule("app", nil, types.ValidationRule{
+	e := catalogWithServeValidationRule("app", nil, types.ValidationRule{
 		Field: `{{ isDNS1123Subdomain team }}`, Link: "team", Equals: "true", Message: "must be valid",
 	})
-	err := k.validateValidationRuleLinks()
+	err := e.validateValidationRuleLinks()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "team")
 }
 
 // Mutation Rules
 func TestValidateMutationRules_FieldDefault(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Field:   "metadata.name",
 		Default: "my-app",
 	})
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	assert.NoError(t, err)
 }
 
 func TestValidateMutationRules_FieldOverride(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Field:    "metadata.name",
 		Override: "my-app",
 	})
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	assert.NoError(t, err)
 }
 
 func TestValidateMutationRules_FieldEmpty(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Default:   3,
 		ValueType: "int",
 	})
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "field is required")
 }
 
 func TestValidateMutationRules_DefaultAndOverride(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Field:     "spec.deploy.replicas",
 		Default:   3,
 		Override:  6,
 		ValueType: "int",
 	})
 
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	crd := k.k.EnabledCRDs()["app"]
+	crd := e.cat.EnabledCRDs()["app"]
 	if !crd.Warnings.HasWarnings() {
 		t.Fatal("expected warning for default and override definition")
 	}
@@ -244,17 +244,17 @@ func TestValidateMutationRules_DefaultAndOverride(t *testing.T) {
 
 // With Serve Synthesis
 func TestValidateMutationRules_ServeFieldEmpty(t *testing.T) {
-	k := catalogWithMutationRule("app", types.MutationRule{
+	e := catalogWithMutationRule("app", types.MutationRule{
 		Default:   3,
 		ValueType: "int",
 	})
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "field is required")
 }
 
 func TestValidateMutationRules_ServeFieldOverride(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Fields: map[string]types.ServeFieldConfig{
 			"image": {
@@ -263,12 +263,12 @@ func TestValidateMutationRules_ServeFieldOverride(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	assert.NoError(t, err)
 }
 
 func TestValidateMutationRules_ServeFieldDefault(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Fields: map[string]types.ServeFieldConfig{
 			"image": {
@@ -278,13 +278,13 @@ func TestValidateMutationRules_ServeFieldDefault(t *testing.T) {
 		},
 	})
 
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "'default' is not allowed for serve.fields.image")
 }
 
 func TestValidateMutationRules_ServeLabelDefaultAndOverride(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Labels: map[string]types.ServeFieldConfig{
 			"image": {
@@ -295,11 +295,11 @@ func TestValidateMutationRules_ServeLabelDefaultAndOverride(t *testing.T) {
 		},
 	})
 
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	crd := k.k.EnabledCRDs()["myresource"]
+	crd := e.cat.EnabledCRDs()["myresource"]
 	if !crd.Warnings.HasWarnings() {
 		t.Fatal("expected warning for default and override definition")
 	}
@@ -313,7 +313,7 @@ func TestValidateMutationRules_ServeLabelDefaultAndOverride(t *testing.T) {
 }
 
 func TestValidateMutationRules_ServeAnnotationDefaultAndOverride(t *testing.T) {
-	k := catalogWithServe(&types.ServeConfig{
+	e := catalogWithServe(&types.ServeConfig{
 		Enabled: true,
 		Annotations: map[string]types.ServeFieldConfig{
 			"image": {
@@ -324,11 +324,11 @@ func TestValidateMutationRules_ServeAnnotationDefaultAndOverride(t *testing.T) {
 		},
 	})
 
-	err := k.validateMutationRules()
+	err := e.validateMutationRules()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	crd := k.k.EnabledCRDs()["myresource"]
+	crd := e.cat.EnabledCRDs()["myresource"]
 	if !crd.Warnings.HasWarnings() {
 		t.Fatal("expected warning for default and override definition")
 	}

@@ -85,7 +85,7 @@ func (e *executor) ValidateServe() error {
 // type: enum fields declare a non-empty enum, and that no key collides with
 // serve.fields or between the labels/annotations buckets themselves.
 func (e *executor) validateServeLabelAndAnnotationFields() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if crd.Serve != nil {
 			if err := validateServeFieldTypes(crdName, "fields", crd.Serve.Fields); err != nil {
 				return err
@@ -118,7 +118,7 @@ func (e *executor) validateServeLabelAndAnnotationFields() error {
 // CRDEntry.DuplicateServeFieldOrders — not just form layout, so a collision
 // is no longer purely cosmetic.
 func (e *executor) validateServeFieldOrder() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		dups := crd.DuplicateServeFieldOrders()
 		if len(dups) == 0 {
 			continue
@@ -159,7 +159,7 @@ once, not just where it renders on the form.
 //     (CRDEntry.PinnedToNamespace) — a CR resolved into any other namespace
 //     would be created but never reconciled, silently, forever.
 func (e *executor) validateServeNamespace() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.ServeEnabled() {
 			continue
 		}

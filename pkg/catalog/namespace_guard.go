@@ -18,13 +18,13 @@ type NamespaceRuleEntry struct {
 // lookup key used by the /namespace-protection handler.
 //
 // Returns nil when namespace protection is disabled.
-func (k *Catalog) NamespaceProtectionRuleMap() map[string]NamespaceRuleEntry {
-	if !k.IsNamespaceProtectionEnabled() {
+func (c *Catalog) NamespaceProtectionRuleMap() map[string]NamespaceRuleEntry {
+	if !c.IsNamespaceProtectionEnabled() {
 		return nil
 	}
 
 	out := make(map[string]NamespaceRuleEntry)
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if crd.IsBuiltIn || !crd.HasNamespaceRules() {
 			continue
 		}
@@ -44,8 +44,8 @@ func (k *Catalog) NamespaceProtectionRuleMap() map[string]NamespaceRuleEntry {
 //
 // When running outside the cluster (e.g. `inrun`), the webhook cannot be
 // reached, so no rules are returned.
-func (k *Catalog) NamespaceProtectionGVRs() []GVREntry {
-	if !k.IsNamespaceProtectionEnabled() {
+func (c *Catalog) NamespaceProtectionGVRs() []GVREntry {
+	if !c.IsNamespaceProtectionEnabled() {
 		return nil
 	}
 	if !utils.IsRunningInPod() {
@@ -54,7 +54,7 @@ func (k *Catalog) NamespaceProtectionGVRs() []GVREntry {
 
 	var out []GVREntry
 
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		// Skip built-ins — they are not CRDs and do not have namespace rules.
 		if crd.IsBuiltIn {
 			continue

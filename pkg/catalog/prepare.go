@@ -17,8 +17,8 @@ import (
 // SetGroupVersionKind resolves GroupVersionKind, GroupVersionResource, and
 // GroupVersion on each enabled CRD entry, then rebuilds lookup indexes.
 // Must be called after BuildRuntimeCatalog and before validators.
-func (k *Catalog) SetGroupVersionKind() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) SetGroupVersionKind() error {
+	for name, crd := range c.enabledCRDs {
 		crd.GroupVersionKind = schema.GroupVersionKind{
 			Group:   crd.APITypes.Group,
 			Version: crd.APITypes.Version,
@@ -49,29 +49,29 @@ func (k *Catalog) SetGroupVersionKind() error {
 		if crd.Description == "" {
 			crd.Description = fmt.Sprintf("%s CRD, GVK: %s", crd.APITypes.Kind, crd.GroupVersionKind.String())
 		}
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
-	k.BuildLookupIndexes()
+	c.BuildLookupIndexes()
 	return nil
 }
 
 // SetDefaults applies configuration defaults to every enabled CRD entry:
 // naming, namespacing, reconciler settings, finalizers, and notifications.
 // Must be called after SetGroupVersionKind.
-func (k *Catalog) SetDefaults(kfg *config.Config) error {
-	for name, crd := range k.enabledCRDs {
-		metaN := k.metadata.Name
+func (c *Catalog) SetDefaults(cfg *config.Config) error {
+	for name, crd := range c.enabledCRDs {
+		metaN := c.metadata.Name
 		if metaN != "" {
 			if errs := validation.IsDNS1123Label(metaN); len(errs) > 0 {
 				return fmt.Errorf("%s CRD with key '%s': invalid metadata.Name %q: %s", failureMark(), name, metaN, strings.Join(errs, "; "))
 			}
 			crd.CatalogName = metaN
 		} else {
-			crd.CatalogName = k.ClusterName() + "-" + name
+			crd.CatalogName = c.ClusterName() + "-" + name
 		}
 
 		if crd.CatalogNamespace == "" {
-			metaNs := k.metadata.Namespace
+			metaNs := c.metadata.Namespace
 			if metaNs != "" {
 				if errs := validation.IsDNS1123Label(metaNs); len(errs) > 0 {
 					return fmt.Errorf("%s CRD with key '%s': invalid metadata.Namespace %q: %s", failureMark(), name, metaNs, strings.Join(errs, "; "))
@@ -113,7 +113,7 @@ func (k *Catalog) SetDefaults(kfg *config.Config) error {
 		}
 
 		boxFinalizers := crd.Box().EffectiveFinalizers()
-		boxFinalizers = append(boxFinalizers, k.Spec.Finalizers...)
+		boxFinalizers = append(boxFinalizers, c.Spec.Finalizers...)
 		if crd.HasServeTarget() {
 			for _, target := range crd.Serve.Target.Entries {
 				if target.OperatorBox.Empty() {
@@ -132,7 +132,7 @@ func (k *Catalog) SetDefaults(kfg *config.Config) error {
 		}
 		rec := crd.Box().Reconcile
 		if rec.Profile != "" {
-			result, err := profiles.ApplyReconcilerProfile(rec.Profile, &k.Profiles)
+			result, err := profiles.ApplyReconcilerProfile(rec.Profile, &c.Profiles)
 			if err != nil {
 				return fmt.Errorf("%s CRD %q: %w", failureMark(), name, err)
 			}
@@ -147,17 +147,17 @@ func (k *Catalog) SetDefaults(kfg *config.Config) error {
 			}
 		}
 		if rec.Workers == 0 {
-			rec.Workers = kfg.Catalog().DefaultWorkers()
+			rec.Workers = cfg.Catalog().DefaultWorkers()
 		}
 		if rec.Resync.Duration == 0 {
-			rec.Resync.Duration = kfg.Catalog().DefaultResync()
+			rec.Resync.Duration = cfg.Catalog().DefaultResync()
 		}
 		if rec.Queue.FailureThreshold == 0 {
-			rec.Queue.FailureThreshold = kfg.Catalog().DefaultFailureThreshold()
+			rec.Queue.FailureThreshold = cfg.Catalog().DefaultFailureThreshold()
 		}
 		crd.Box().Reconcile = rec
 
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
@@ -166,8 +166,8 @@ func (k *Catalog) SetDefaults(kfg *config.Config) error {
 // enabled CRD entry. Dynamic CRDs get unstructured constructors; typed CRDs
 // are looked up in the global ObjectRegistry / ListRegistry.
 // Must be called after SetGroupVersionKind.
-func (k *Catalog) AddRuntimeObjects() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddRuntimeObjects() error {
+	for name, crd := range c.enabledCRDs {
 		gvk := crd.GroupVersionKind
 
 		if crd.IsDynamic() {
@@ -184,7 +184,7 @@ func (k *Catalog) AddRuntimeObjects() error {
 				ul.SetGroupVersionKind(schema.GroupVersionKind{Group: g, Version: v, Kind: ki + "List"})
 				return ul
 			}
-			k.enabledCRDs[name] = crd
+			c.enabledCRDs[name] = crd
 			continue
 		}
 
@@ -206,7 +206,7 @@ func (k *Catalog) AddRuntimeObjects() error {
 		}
 		crd.DynamicModeObject = objFn
 		crd.ListDynamicModeObject = listFn
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }

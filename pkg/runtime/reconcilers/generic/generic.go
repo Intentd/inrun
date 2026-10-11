@@ -50,7 +50,7 @@ type Reconciler[PTR domain.Object] struct {
 	operatorBox *types.OperatorBoxConfig
 	newObj      func() PTR
 	crd         types.CRDEntry
-	kat         *catalog.Catalog
+	cat         *catalog.Catalog
 }
 
 // discardRecorder is the package-private noop used when nil is passed for ev.
@@ -76,7 +76,7 @@ func New[PTR domain.Object](
 	kube kubeclient.Interface,
 	anyHooks domain.AnyReconcileHooks,
 	newObj func() PTR,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 ) *Reconciler[PTR] {
 
 	// Adapt the user's strongly-typed ReconcileHooks[PTR] to the type-erased
@@ -132,7 +132,7 @@ func New[PTR domain.Object](
 		hooks:       hooks,
 		targetHooks: targetHooks,
 		newObj:      newObj,
-		kat:         kat,
+		cat:         cat,
 	}
 
 	return r

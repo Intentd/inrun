@@ -67,12 +67,12 @@ func (c *Console) handleDocsLanding(w http.ResponseWriter, r *http.Request) {
 		if inst.Catalog == nil {
 			continue
 		}
-		kat := inst.Catalog
+		cat := inst.Catalog
 		var crdEntries []DocsCRDEntry
-		for _, c := range kat.CRDs {
+		for _, c := range cat.CRDs {
 			crdEntries = append(crdEntries, DocsCRDEntry{
 				Name:        c.Name,
-				CatalogName: kat.Name,
+				CatalogName: cat.Name,
 				State:       c.State,
 			})
 		}
@@ -80,10 +80,10 @@ func (c *Console) handleDocsLanding(w http.ResponseWriter, r *http.Request) {
 			return crdEntries[i].Name < crdEntries[j].Name
 		})
 		entries = append(entries, DocsCatalogEntry{
-			Name:        kat.Name,
-			Description: kat.Description,
-			Version:     kat.Version,
-			Author:      kat.Author,
+			Name:        cat.Name,
+			Description: cat.Description,
+			Version:     cat.Version,
+			Author:      cat.Author,
 			CRDs:        crdEntries,
 		})
 	}

@@ -123,19 +123,19 @@ type GatewayCRDStatsResponse struct {
 // BuildGatewayCatalogHandler returns the handler for GET /catalog on the gateway.
 // It iterates the enabled CRDs from the Catalog, looks up per-CRD stats from ws,
 // and returns a GatewayCatalogResponse.
-func BuildGatewayCatalogHandler(kat *catalog.Catalog, ws GatewayStatsProvider) http.HandlerFunc {
+func BuildGatewayCatalogHandler(cat *catalog.Catalog, ws GatewayStatsProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		crds := buildGatewayCRDStats(kat, ws)
+		crds := buildGatewayCRDStats(cat, ws)
 
 		resp := GatewayCatalogResponse{
 			Source:                     "gateway",
-			Name:                       kat.Meta().Name,
-			Version:                    kat.Meta().Version,
-			AdmissionEnabled:           kat.IsAdmissionEnabled(),
-			ConversionEnabled:          kat.IsConversionEnabled(),
-			DeletionProtectionEnabled:  kat.IsDeletionProtectionEnabled(),
-			NamespaceProtectionEnabled: kat.IsNamespaceProtectionEnabled(),
-			StrictModeEnabled:          kat.IsStrictModeEnabled(),
+			Name:                       cat.Meta().Name,
+			Version:                    cat.Meta().Version,
+			AdmissionEnabled:           cat.IsAdmissionEnabled(),
+			ConversionEnabled:          cat.IsConversionEnabled(),
+			DeletionProtectionEnabled:  cat.IsDeletionProtectionEnabled(),
+			NamespaceProtectionEnabled: cat.IsNamespaceProtectionEnabled(),
+			StrictModeEnabled:          cat.IsStrictModeEnabled(),
 			CRDs:                       crds,
 			GatewayVersion:             version.Short(),
 		}
@@ -143,7 +143,7 @@ func BuildGatewayCatalogHandler(kat *catalog.Catalog, ws GatewayStatsProvider) h
 		if infra := ws.InfraProtectionStats(); infra != nil {
 			snap := infra.GetStats()
 			resp.InfraProtection = &DeletionProtectionStatsResponse{
-				Enabled: kat.IsDeletionProtectionEnabled(),
+				Enabled: cat.IsDeletionProtectionEnabled(),
 				Total:   snap.TotalRequests,
 				Blocked: snap.Blocked,
 				Allowed: snap.Allowed,
@@ -164,9 +164,9 @@ func BuildGatewayCatalogHandler(kat *catalog.Catalog, ws GatewayStatsProvider) h
 
 // BuildGatewayCRDHandler returns the handler for GET /catalog/{crd} on the gateway.
 // name, gvk, gvrStr, and gvrKey are derived from the CRDEntry at registration time.
-func BuildGatewayCRDHandler(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, kat *catalog.Catalog) http.HandlerFunc {
+func BuildGatewayCRDHandler(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, cat *catalog.Catalog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp := buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey, ws, kat)
+		resp := buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey, ws, cat)
 		utils.WriteJSON(w, http.StatusOK, resp)
 	}
 }
@@ -175,8 +175,8 @@ func BuildGatewayCRDHandler(name, gvk, gvrStr, gvrKey string, ws GatewayStatsPro
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-func buildGatewayCRDStats(kat *catalog.Catalog, ws GatewayStatsProvider) []GatewayCRDStatsResponse {
-	enabled := kat.Enabled()
+func buildGatewayCRDStats(cat *catalog.Catalog, ws GatewayStatsProvider) []GatewayCRDStatsResponse {
+	enabled := cat.Enabled()
 	out := make([]GatewayCRDStatsResponse, 0, len(enabled))
 	for _, crd := range enabled {
 		if crd.IsBuiltIn {
@@ -190,13 +190,13 @@ func buildGatewayCRDStats(kat *catalog.Catalog, ws GatewayStatsProvider) []Gatew
 			gvr.String(),
 			gvrKey,
 			ws,
-			kat,
+			cat,
 		))
 	}
 	return out
 }
 
-func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, kat *catalog.Catalog) GatewayCRDStatsResponse {
+func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, cat *catalog.Catalog) GatewayCRDStatsResponse {
 	resp := GatewayCRDStatsResponse{
 		Name: name,
 		GVK:  gvk,
@@ -204,7 +204,7 @@ func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStat
 	}
 
 	// Admission stats — only when admission webhooks are enabled for this CRD.
-	if kat.IsAdmissionEnabled() {
+	if cat.IsAdmissionEnabled() {
 		if adm := ws.AdmissionStatsFor(gvrKey); adm != nil {
 			snap := adm.GetStats(true)
 			resp.Admission = &AdmissionStatsResponse{
@@ -227,7 +227,7 @@ func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStat
 	}
 
 	// Conversion stats.
-	if kat.IsConversionEnabled() {
+	if cat.IsConversionEnabled() {
 		if conv := ws.ConversionStatsFor(gvrKey); conv != nil {
 			snap := conv.GetStats()
 			resp.Conversion = &ConversionStatsResponse{
@@ -244,7 +244,7 @@ func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStat
 	}
 
 	// Deletion protection stats.
-	if kat.IsDeletionProtectionEnabled() {
+	if cat.IsDeletionProtectionEnabled() {
 		if prot := ws.ProtectionStatsFor(gvrKey); prot != nil {
 			snap := prot.GetStats()
 			resp.DeletionProtection = &DeletionProtectionStatsResponse{
@@ -259,7 +259,7 @@ func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStat
 	}
 
 	// Namespace protection stats.
-	if kat.IsNamespaceProtectionEnabled() {
+	if cat.IsNamespaceProtectionEnabled() {
 		if ns := ws.NamespaceStatsFor(gvrKey); ns != nil {
 			snap := ns.GetStats()
 			resp.NamespaceProtection = &NamespaceProtectionResponse{

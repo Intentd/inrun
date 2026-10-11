@@ -43,12 +43,12 @@ func (r ClusterCheckResult) Failed() bool {
 // produce — callers may range over them directly.
 func CheckClusters(
 	ctx context.Context,
-	k *catalog.Catalog,
+	cat *catalog.Catalog,
 	clusters map[string]types.GatewayClusterConfig,
 	localKube kubeclient.Interface,
 	ownNS string,
 ) []ClusterCheckResult {
-	scheme, _ := k.Scheme()
+	scheme, _ := cat.Scheme()
 
 	results := make([]ClusterCheckResult, 0, len(clusters))
 
@@ -79,8 +79,8 @@ func CheckClusters(
 			continue
 		}
 
-		if k != nil {
-			for _, crd := range k.ServeEnabledCRDsForCluster(name) {
+		if cat != nil {
+			for _, crd := range cat.ServeEnabledCRDsForCluster(name) {
 				_, listErr := remoteKube.DynamicClient().Resource(crd.GVR()).
 					List(ctx, metav1.ListOptions{Limit: 1})
 				r.CRDs[crd.APITypes.Kind] = listErr

@@ -15,7 +15,7 @@ import (
 //  4. scaleUp without scaleDown is allowed but emits a warning.
 //  5. autoscale: conflicts with a sibling HPA that targets the same deployment.
 func (e *executor) validateWorkloadAutoscale() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		box := crd.OperatorBox
 
 		// Collect all HPAs across hooks so we can check for conflicts.

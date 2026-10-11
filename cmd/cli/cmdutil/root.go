@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	Kfg *config.Config
+	Cfg *config.Config
 	Ctx context.Context
 )
 
@@ -24,7 +24,7 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute(k *config.Config, c context.Context) {
-	Kfg = k
+	Cfg = k
 	Ctx = c
 
 	if err := RootCmd.Execute(); err != nil {
@@ -57,8 +57,8 @@ func initConfig() {
 	kubeconfig := resolveKubeconfig(RootCmd)
 
 	// Persist resolved values into global Config
-	if Kfg != nil {
-		Kfg.Cluster().SetKubeconfigPath(kubeconfig)
+	if Cfg != nil {
+		Cfg.Cluster().SetKubeconfigPath(kubeconfig)
 	}
 }
 
@@ -69,7 +69,7 @@ func resolveKubeconfig(cmd *cobra.Command) string {
 		return flagVal
 	}
 
-	if envVal := Kfg.Cluster().KubeconfigPath(); envVal != "" {
+	if envVal := Cfg.Cluster().KubeconfigPath(); envVal != "" {
 		return envVal
 	}
 	if home, err := os.UserHomeDir(); err == nil {
@@ -89,7 +89,7 @@ func resolveLogLevel(cmd *cobra.Command) string {
 		return "debug"
 	}
 
-	if envVal := Kfg.Inrun().LogLevel(); envVal != "" {
+	if envVal := Cfg.Inrun().LogLevel(); envVal != "" {
 		return envVal
 	}
 

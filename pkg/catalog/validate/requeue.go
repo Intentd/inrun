@@ -6,7 +6,7 @@ import "fmt"
 // or a valid duration string accepted by utils.ParseTimeDuration.
 // Empty string is allowed — it means no requeue.
 func (e *executor) validateRequeue() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		rc := crd.Box().Reconcile
 		if rc == nil || rc.Requeue == nil {
 			continue

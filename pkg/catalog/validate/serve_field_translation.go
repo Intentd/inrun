@@ -19,9 +19,9 @@ import (
 //   - all template expressions (value, values) must compile
 //   - expressions must not be empty strings
 func (e *executor) validateServeFieldTranslation() error {
-	funcMap := buildFuncMapForValidation(e.k.Notes)
+	funcMap := buildFuncMapForValidation(e.cat.Notes)
 
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.ServeEnabled() || !crd.HasServeFields() {
 			continue
 		}

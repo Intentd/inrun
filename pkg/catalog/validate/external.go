@@ -5,7 +5,7 @@ import (
 )
 
 func (e *executor) validateExternalCalls() error {
-	for crdName, entry := range e.k.EnabledCRDs() {
+	for crdName, entry := range e.cat.EnabledCRDs() {
 		if ht := entry.OperatorBox.EffectiveOnReconcile(); ht != nil {
 			if err := external.ValidateCalls(crdName, "onReconcile.external", ht.External); err != nil {
 				return err

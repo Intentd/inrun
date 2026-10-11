@@ -14,8 +14,8 @@ import (
 
 // startCRDWorkers activates a CRD: builds runtime state, wires health
 // callbacks, builds and registers the reconciler, then starts all goroutines.
-func (k *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string, workers int) {
-	entry, ok := k.catalog.Get(gvk)
+func (dc *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string, workers int) {
+	entry, ok := dc.catalog.Get(gvk)
 	if !ok {
 		logger.Fatal().Str("gvk", gvk).Msg("no catalog entry found")
 		return
@@ -24,12 +24,12 @@ func (k *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string,
 	crdCtx, cancel := context.WithCancel(ctx)
 	wg := &sync.WaitGroup{}
 
-	rt := k.buildCRDRuntime(crdCtx, gvk, workers, wg, entry.CRD)
-	k.mu.Lock()
-	k.runtimeMap[gvk] = rt
-	k.mu.Unlock()
+	rt := dc.buildCRDRuntime(crdCtx, gvk, workers, wg, entry.CRD)
+	dc.mu.Lock()
+	dc.runtimeMap[gvk] = rt
+	dc.mu.Unlock()
 
-	k.wireCRDHealthCallbacks(gvk, rt, workers, entry.CRD)
+	dc.wireCRDHealthCallbacks(gvk, rt, workers, entry.CRD)
 
 	rec := entry.ReconcilerFactory()
 
@@ -37,28 +37,28 @@ func (k *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string,
 		go rt.autoscaler.Run(crdCtx)
 	}
 	if entry.CRD.OperatorBox.EffectiveAutoscale() != nil {
-		k.startResyncLoop(crdCtx, gvk)
+		dc.startResyncLoop(crdCtx, gvk)
 	}
 
-	k.mu.Lock()
-	k.reconcilers[gvk] = rec
-	k.cancelFuncs[gvk] = cancel
-	k.wgs[gvk] = wg
-	k.crdHealthMap[gvk].SetStarted()
-	k.crdHealthMap[gvk].SetTotalWorkers(int32(workers))
-	k.crdHealthMap[gvk].SetGVK(gvk)
-	k.started[gvk] = true
-	k.total[gvk]++
-	k.mu.Unlock()
+	dc.mu.Lock()
+	dc.reconcilers[gvk] = rec
+	dc.cancelFuncs[gvk] = cancel
+	dc.wgs[gvk] = wg
+	dc.crdHealthMap[gvk].SetStarted()
+	dc.crdHealthMap[gvk].SetTotalWorkers(int32(workers))
+	dc.crdHealthMap[gvk].SetGVK(gvk)
+	dc.started[gvk] = true
+	dc.total[gvk]++
+	dc.mu.Unlock()
 
-	k.launchWorkers(crdCtx, gvk, workers, wg)
-	k.observer.Observe(crdCtx, entry.CRD)
+	dc.launchWorkers(crdCtx, gvk, workers, wg)
+	dc.observer.Observe(crdCtx, entry.CRD)
 }
 
 // buildCRDRuntime creates the per-CRD semaphore, AutoMetrics, spawnWorker
 // closure, and (when declared) the autoscaler. The returned runtime is not yet
 // registered in runtimeMap — the caller does that under the lock.
-func (k *DependencyCoordinator) buildCRDRuntime(
+func (dc *DependencyCoordinator) buildCRDRuntime(
 	crdCtx context.Context,
 	gvk string,
 	workers int,
@@ -77,14 +77,14 @@ func (k *DependencyCoordinator) buildCRDRuntime(
 		n := workerCounter.Add(1)
 		wg.Add(1)
 		workerID := workerID(gvk, "autoscale-worker", int(n))
-		k.crdHealthMap[gvk].MarkStartupWorkerIdle(workerID)
+		dc.crdHealthMap[gvk].MarkStartupWorkerIdle(workerID)
 		go func(id string) {
 			defer wg.Done()
-			k.runWorkerForGVK(crdCtx, gvk, id)
+			dc.runWorkerForGVK(crdCtx, gvk, id)
 		}(workerID)
 	}
 
-	wq, _ := k.queueReg.For(gvk)
+	wq, _ := dc.queueReg.For(gvk)
 	if crd.AutoscaleEnabled() {
 		target := &coordinatorTarget{rt: rt, wq: wq, gvk: gvk}
 		baseline := types.AutoscaleBaseline{
@@ -93,7 +93,7 @@ func (k *DependencyCoordinator) buildCRDRuntime(
 			Resync:   crd.SetResync(0),
 		}
 		rt.autoscaler = autoscaler.NewAutoscaler(
-			k.kube.Clientset(),
+			dc.kube.Clientset(),
 			crd.APITypes.Kind,
 			crd.Box().EffectiveAutoscale(),
 			baseline,
@@ -109,15 +109,15 @@ func (k *DependencyCoordinator) buildCRDRuntime(
 
 // wireCRDHealthCallbacks registers AutoMetrics and WorkerInfo providers into
 // the CRD's health tracker so the /catalog endpoint can read them.
-func (k *DependencyCoordinator) wireCRDHealthCallbacks(
+func (dc *DependencyCoordinator) wireCRDHealthCallbacks(
 	gvk string,
 	rt *perCRDRuntime,
 	workers int,
 	crd types.CRDEntry,
 ) {
-	k.crdHealthMap[gvk].SetAutoMetricsFn(rt.autoMetrics.AsMap)
+	dc.crdHealthMap[gvk].SetAutoMetricsFn(rt.autoMetrics.AsMap)
 
-	k.crdHealthMap[gvk].SetWorkerInfoFn(func() *autoscaler.WorkerInfo {
+	dc.crdHealthMap[gvk].SetWorkerInfoFn(func() *autoscaler.WorkerInfo {
 		maxWorkers := workers
 		if rt.autoscaler != nil {
 			if snap := rt.autoscaler.Snapshot(); snap != nil && snap.EffectiveWorkers > maxWorkers {
@@ -139,14 +139,14 @@ func (k *DependencyCoordinator) wireCRDHealthCallbacks(
 }
 
 // launchWorkers spawns the baseline worker goroutines for a CRD.
-func (k *DependencyCoordinator) launchWorkers(ctx context.Context, gvk string, workers int, wg *sync.WaitGroup) {
+func (dc *DependencyCoordinator) launchWorkers(ctx context.Context, gvk string, workers int, wg *sync.WaitGroup) {
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		id := workerID(gvk, "worker", i)
-		k.crdHealthMap[gvk].MarkStartupWorkerIdle(id)
+		dc.crdHealthMap[gvk].MarkStartupWorkerIdle(id)
 		go func(workerID string) {
 			defer wg.Done()
-			k.runWorkerForGVK(ctx, gvk, workerID)
+			dc.runWorkerForGVK(ctx, gvk, workerID)
 		}(id)
 	}
 }

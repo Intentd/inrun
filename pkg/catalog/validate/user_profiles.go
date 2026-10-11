@@ -14,7 +14,7 @@ import (
 //  2. Warns (does not error) when a user profile shadows a built-in name.
 //  3. Each profile entry must have a non-empty name.
 func (e *executor) validateUserProfiles() error {
-	reg := e.k.Profiles
+	reg := e.cat.Profiles
 	if reg.Empty() {
 		return nil
 	}
@@ -96,7 +96,7 @@ func (e *executor) validateUserProfiles() error {
 			if c.isBuiltin != nil && c.isBuiltin(name) {
 				warning := fmt.Sprintf("profiles.%s %q shadows a built-in Inrun profile — the user-defined version will be used instead",
 					c.class, name)
-				e.k.Warnings.AddWarning(warning)
+				e.cat.Warnings.AddWarning(warning)
 			}
 		}
 	}
@@ -105,27 +105,27 @@ func (e *executor) validateUserProfiles() error {
 
 // isUserNetworkPolicyProfile reports whether name is in the catalog's user registry.
 func (e *executor) isUserNetworkPolicyProfile(name string) bool {
-	_, found := e.k.Profiles.LookupNetworkPolicy(name)
+	_, found := e.cat.Profiles.LookupNetworkPolicy(name)
 	return found
 }
 func (e *executor) isUserResourceQuotaProfile(name string) bool {
-	_, found := e.k.Profiles.LookupResourceQuota(name)
+	_, found := e.cat.Profiles.LookupResourceQuota(name)
 	return found
 }
 func (e *executor) isUserLimitRangeProfile(name string) bool {
-	_, found := e.k.Profiles.LookupLimitRange(name)
+	_, found := e.cat.Profiles.LookupLimitRange(name)
 	return found
 }
 func (e *executor) isUserHPAProfile(name string) bool {
-	_, found := e.k.Profiles.LookupHPA(name)
+	_, found := e.cat.Profiles.LookupHPA(name)
 	return found
 }
 func (e *executor) isUserPDBProfile(name string) bool {
-	_, found := e.k.Profiles.LookupPDB(name)
+	_, found := e.cat.Profiles.LookupPDB(name)
 	return found
 }
 func (e *executor) isUserRollingUpdateProfile(name string) bool {
-	_, found := e.k.Profiles.LookupRollingUpdate(name)
+	_, found := e.cat.Profiles.LookupRollingUpdate(name)
 	return found
 }
 func npDefNames(defs []types.NetworkPolicyProfileDef) []string {

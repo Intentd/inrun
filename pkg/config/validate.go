@@ -13,16 +13,16 @@ func Validate() *validator.Validate {
 }
 
 // Normalize environment
-func (k *Config) normalizeEnvironment() {
+func (c *Config) normalizeEnvironment() {
 	// Normalize inrun environment
-	switch strings.ToLower(k.inrun.environment) {
+	switch strings.ToLower(c.inrun.environment) {
 	case DevShort, Development:
-		k.inrun.environment = Development
+		c.inrun.environment = Development
 	case StagingShort, Staging:
-		k.inrun.environment = Staging
+		c.inrun.environment = Staging
 	case Live, ProdShort, Production:
-		k.inrun.environment = Production
+		c.inrun.environment = Production
 	default:
-		k.inrun.environment = Development
+		c.inrun.environment = Development
 	}
 }

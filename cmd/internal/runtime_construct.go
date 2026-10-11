@@ -156,10 +156,10 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 	})
 
 	// ── 4d. Coordinator registry + per-CRD wiring ──────────────────────────────
-	// ktrlRegistry maps GVK → (CRDEntry, SharedIndexInformer, ReconcilerFactory).
+	// controllerRegistry maps GVK → (CRDEntry, SharedIndexInformer, ReconcilerFactory).
 	// It also implements reconciler.CatalogRegistry via GetInformerByName,
 	// enabling cross-CRD observation with zero API server calls.
-	ktrlRegistry := coordinator.NewCoordinatorRegistry()
+	controllerRegistry := coordinator.NewCoordinatorRegistry()
 
 	// ── 4e. CRD health map ────────────────────────────────────────────────────
 	// One CRDHealth per CRD — shared between the DependencyCoordinator
@@ -370,7 +370,7 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 
 		// Register informs the DependencyCoordinator which informer and factory
 		// belong to this CRD. Workers are not started yet — that happens in Start().
-		ktrlRegistry.Register(gvk, crd, inf, factory)
+		controllerRegistry.Register(gvk, crd, inf, factory)
 		logger.Debug().Str("gvk", gvk).Msg("CRD registered")
 	}
 
@@ -378,18 +378,18 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 	// All routes registered before hs.Start() — the mux is shared.
 	//
 	// Per-CRD routes:
-	//   /catalog/{crd}/health       		→ 200 healthy, 503 degraded
-	//   /catalog/{crd}              		→ CRD config + live reconcile stats
-	//	 /catalog/{crd}/raw			 		→ the user's config
-	//   /catalog/{crd}/enriched	 		→ the runtime config
-	//   /catalog/{crd}/cr           		→ all CR instances (informer cache, <1ms)
-	//   /catalog/{crd}/cr/{ns}/{n}  		→ CR detail + children (watch cache, <50ms)
-	//   /catalog/{crd}/cr/{...}/events 	→ recent events (watch cache, <50ms)
+	//   /catalog/{crd}/health                 200 healthy, 503 degraded
+	//   /catalog/{crd}                        CRD config and live reconcile stats
+	//   /catalog/{crd}/raw                    the user's config
+	//   /catalog/{crd}/enriched               the runtime config
+	//   /catalog/{crd}/cr                     all CR instances (informer cache)
+	//   /catalog/{crd}/cr/{ns}/{name}         CR detail and children
+	//   /catalog/{crd}/cr/{ns}/{name}/events  recent events
 	//
 	// Aggregate:
-	//	 /catalog/raw				 		→ the user's catalog config
-	//	 /catalog/enriched				 	→ the runtime catalog config
-	//   /catalog                    		→ all CRDs, dependency graph, health summary
+	//   /catalog/raw                          the user's Catalog
+	//   /catalog/enriched                     the runtime Catalog
+	//   /catalog                              all CRDs, dependency graph, health summary
 	inrunHealth := vitals.NewRuntimeHealth()
 
 	for _, crd := range cat.Enabled() {
@@ -397,7 +397,7 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 		crdHealth := crdHealthMap[gvk]
 		crdName := strings.ToLower(crd.Name)
 
-		entry, _ := ktrlRegistry.Get(gvk)
+		entry, _ := controllerRegistry.Get(gvk)
 		inf := entry.Informer
 
 		if !crd.IsEnabledAllEndpoints() {
@@ -415,7 +415,7 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 			hs.Register(
 				"/catalog/"+crdName,
 				vitals.BuildCRDInfoHandler(
-					crd, cfg, inf, crdHealth,
+					crd, cat.RBACRulesForCRD(crd), cfg, inf, crdHealth,
 					inrunHealth,
 				),
 			)
@@ -449,7 +449,7 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 
 	hs.Register("/catalog/raw", vitals.BuildRawCatalogHandler(m))
 	hs.Register("/catalog/enriched", vitals.BuildEnrichedCatalogHandler(cat))
-	hs.Register("/catalog", vitals.BuildCatalogHandler(cat, cfg, ktrlRegistry, crdHealthMap, inrunHealth))
+	hs.Register("/catalog", vitals.BuildCatalogHandler(cat, cfg, controllerRegistry, crdHealthMap, inrunHealth))
 
 	// ── 6a. Secondary resource observers ────────────────────────────
 	// Observe secondary resources declared in operatorBox.observe.watch/events.
@@ -468,11 +468,11 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 	// Worker lifecycle:
 	//   Start()  → wait for informer sync → call factory() per worker → run loop
 	//   Shutdown → drain queue → stop workers → remove from active set
-	kord := coordinator.NewDependencyCoordinator(
+	coord := coordinator.NewDependencyCoordinator(
 		kube,
 		infFactory,
 		obs,
-		ktrlRegistry,
+		controllerRegistry,
 		cat,
 		ev,
 		hs,
@@ -499,7 +499,7 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 		queueRegistry, // 4. per-CRD bounded queues
 		defaultWq,     // 5. default unbounded queue
 		infFactory,    // 6. informer factory — starts watchers, closes ready channel
-		kord,          // 7. dependency coordinator — starts workers in topo order
+		coord,         // 7. dependency coordinator — starts workers in topo order
 	}
 
 	// suppress unused variable warning — finalizers is populated but only
@@ -523,7 +523,7 @@ func constructRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context)
 		komp:    &components,
 		event:   ev,
 		kube:    kube,
-		cord:    kord,
+		cord:    coord,
 		inrun:   o,
 	}
 }

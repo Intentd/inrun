@@ -21,7 +21,7 @@ import (
 //  5. Gate templates (enqueueGate/reconcileGate) must compile with the
 //     declared sentinel FuncMap — undeclared sentinels cause a parse error.
 func (e *executor) validateWatchEntries() error {
-	for crdName, crd := range e.k.Enabled() {
+	for crdName, crd := range e.cat.Enabled() {
 		if err := validateCRDWatchEntries(crdName, crd); err != nil {
 			return err
 		}
@@ -39,7 +39,7 @@ func (e *executor) validateWatchEntries() error {
 }
 
 func (e *executor) validateGateFailPolicies(crdName string) error {
-	crd, ok := e.k.EnabledCRDs()[crdName]
+	crd, ok := e.cat.EnabledCRDs()[crdName]
 	if !ok {
 		return nil
 	}
@@ -83,7 +83,7 @@ func (e *executor) validateGateFailPolicies(crdName string) error {
 		}
 	}
 	if changed {
-		e.k.EnabledCRDs()[crdName] = crd
+		e.cat.EnabledCRDs()[crdName] = crd
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func (e *executor) validatePreReconcileGateTemplates(crdName string, crd types.C
 	}
 
 	// Build the FuncMap: notes (built-ins + user) + declared sentinel stubs.
-	funcMap := buildFuncMapForValidation(e.k.Notes)
+	funcMap := buildFuncMapForValidation(e.cat.Notes)
 	for name, fn := range template.SentinelFuncMap(pr.DeclaredSentinels()) {
 		funcMap[name] = fn
 	}

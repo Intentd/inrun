@@ -21,12 +21,12 @@ func catalogWithQueue(crdName string, q *types.Queue) *executor {
 }
 
 func TestValidateQueue_Nil(t *testing.T) {
-	k := catalogWithQueue("app", nil)
-	assert.NoError(t, k.validateQueue())
+	e := catalogWithQueue("app", nil)
+	assert.NoError(t, e.validateQueue())
 }
 
 func TestValidateQueue_OnLimitValid(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{
+	e := catalogWithQueue("app", &types.Queue{
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
@@ -34,16 +34,16 @@ func TestValidateQueue_OnLimitValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateQueue())
+	assert.NoError(t, e.validateQueue())
 }
 
 func TestValidateQueue_UnLimitedValid(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{MaxDepth: 0})
-	assert.NoError(t, k.validateQueue())
+	e := catalogWithQueue("app", &types.Queue{MaxDepth: 0})
+	assert.NoError(t, e.validateQueue())
 }
 
 func TestValidateQueue_LimitedValid(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{
+	e := catalogWithQueue("app", &types.Queue{
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
@@ -51,11 +51,11 @@ func TestValidateQueue_LimitedValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateQueue())
+	assert.NoError(t, e.validateQueue())
 }
 
 func TestValidateQueue_UnLimitedInValid(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{
+	e := catalogWithQueue("app", &types.Queue{
 		MaxDepth: 0,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
@@ -64,13 +64,13 @@ func TestValidateQueue_UnLimitedInValid(t *testing.T) {
 		},
 	})
 
-	err := k.validateQueue()
+	err := e.validateQueue()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "'queue.behaviour' configuration is only valid when 'queue.maxDepth' is greater than 0")
 }
 
 func TestValidateQueue_OnLimitDropValid(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{
+	e := catalogWithQueue("app", &types.Queue{
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
@@ -78,11 +78,11 @@ func TestValidateQueue_OnLimitDropValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateQueue())
+	assert.NoError(t, e.validateQueue())
 }
 
 func TestValidateQueue_OnLimitWithValueInValid(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{
+	e := catalogWithQueue("app", &types.Queue{
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
@@ -92,13 +92,13 @@ func TestValidateQueue_OnLimitWithValueInValid(t *testing.T) {
 		},
 	})
 
-	err := k.validateQueue()
+	err := e.validateQueue()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "is not allowed in onLimit configuration")
 }
 
 func TestValidateQueue_onThresholdWarning(t *testing.T) {
-	k := catalogWithQueue("app", &types.Queue{
+	e := catalogWithQueue("app", &types.Queue{
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnThreshold: &types.QueueBehaviourSetting{
@@ -108,10 +108,10 @@ func TestValidateQueue_onThresholdWarning(t *testing.T) {
 		},
 	})
 
-	err := k.validateQueue()
+	err := e.validateQueue()
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 
 	if !entry.Warnings.HasWarnings() {
 		t.Fatal("expected crd to have warning")
@@ -148,26 +148,26 @@ func catalogWithRemote(endpoint string, protocol types.RemoteReconcileProtocol, 
 }
 
 func TestValidateRemote_Valid(t *testing.T) {
-	k := catalogWithRemote("https://svc.internal/reconcile", types.RemoteReconcileProtocolHTTP, remoteResources())
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	e := catalogWithRemote("https://svc.internal/reconcile", types.RemoteReconcileProtocolHTTP, remoteResources())
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemote_NoEndpoint(t *testing.T) {
-	k := catalogWithRemote("", types.RemoteReconcileProtocolHTTP, remoteResources())
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	e := catalogWithRemote("", types.RemoteReconcileProtocolHTTP, remoteResources())
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "endpoint is required")
 }
 
 func TestValidateRemote_InvalidType(t *testing.T) {
-	k := catalogWithRemote("https://svc.internal/reconcile", "websocket", remoteResources())
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	e := catalogWithRemote("https://svc.internal/reconcile", "websocket", remoteResources())
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "not valid")
 }
 
 func TestValidateRemote_NoManagedResources_Info(t *testing.T) {
-	k := catalogWithRemote("https://svc.internal/reconcile", types.RemoteReconcileProtocolHTTP, nil)
-	crd := crdPtr(k, "app")
-	require.NoError(t, k.validateManagedResources("app", crd))
+	e := catalogWithRemote("https://svc.internal/reconcile", types.RemoteReconcileProtocolHTTP, nil)
+	crd := crdPtr(e, "app")
+	require.NoError(t, e.validateManagedResources("app", crd))
 	assert.True(t, crd.Info.HasInfo())
 	assert.True(t, crd.Info.Contains("RBAC will not be generated"))
 }
@@ -182,8 +182,8 @@ func TestValidateRemote_ConflictsWithHooks(t *testing.T) {
 			},
 		},
 	}}
-	k := catalogWith(map[string]types.CRDEntry{"app": crd})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	e := catalogWith(map[string]types.CRDEntry{"app": crd})
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "cannot declare both")
 }
 
@@ -197,29 +197,29 @@ func TestValidateRemote_ConflictsWithConstructor(t *testing.T) {
 			},
 		},
 	}}
-	k := catalogWith(map[string]types.CRDEntry{"app": crd})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	e := catalogWith(map[string]types.CRDEntry{"app": crd})
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "cannot declare both")
 }
 
 func TestValidateRemote_TypeOmitted_Valid(t *testing.T) {
-	k := catalogWithRemote("https://svc.internal/reconcile", "", remoteResources())
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	e := catalogWithRemote("https://svc.internal/reconcile", "", remoteResources())
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemote_TemplateEndpoint_Valid(t *testing.T) {
-	k := catalogWithRemote("http://{{ .metadata.namespace }}-svc.svc.cluster.local/reconcile", types.RemoteReconcileProtocolHTTP, remoteResources())
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	e := catalogWithRemote("http://{{ .metadata.namespace }}-svc.svc.cluster.local/reconcile", types.RemoteReconcileProtocolHTTP, remoteResources())
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemote_TemplateEndpoint_InvalidTemplate(t *testing.T) {
-	k := catalogWithRemote("http://{{ .metadata.namespace }-svc/reconcile", types.RemoteReconcileProtocolHTTP, remoteResources())
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	e := catalogWithRemote("http://{{ .metadata.namespace }-svc/reconcile", types.RemoteReconcileProtocolHTTP, remoteResources())
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "invalid template")
 }
 
 func TestValidateArgs_ValidTemplate(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
 				ManagedResources: remoteResources(),
@@ -230,11 +230,11 @@ func TestValidateArgs_ValidTemplate(t *testing.T) {
 			},
 		}},
 	})
-	require.NoError(t, k.validateManagedResources("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateManagedResources("app", crdPtr(e, "app")))
 }
 
 func TestValidateArgs_InvalidTemplate(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
 				ManagedResources: remoteResources(),
@@ -245,12 +245,12 @@ func TestValidateArgs_InvalidTemplate(t *testing.T) {
 			},
 		}},
 	})
-	err := k.validateManagedResources("app", crdPtr(k, "app"))
+	err := e.validateManagedResources("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "invalid template")
 }
 
 func TestValidateRemote_DefaultFalse_Valid(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
 				Default:          boolPtr(false),
@@ -261,9 +261,9 @@ func TestValidateRemote_DefaultFalse_Valid(t *testing.T) {
 			},
 		}},
 	})
-	crd := crdPtr(k, "app")
-	require.NoError(t, k.validateRemote("app", crd))
-	require.NoError(t, k.validateManagedResources("app", crd))
+	crd := crdPtr(e, "app")
+	require.NoError(t, e.validateRemote("app", crd))
+	require.NoError(t, e.validateManagedResources("app", crd))
 }
 
 // ── Remote auth validation ────────────────────────────────────────────────────
@@ -282,46 +282,46 @@ func remoteWithAuth(auth *types.ExternalAuth) *executor {
 }
 
 func TestValidateRemote_Auth_SecretRef_Valid(t *testing.T) {
-	k := remoteWithAuth(&types.ExternalAuth{
+	e := remoteWithAuth(&types.ExternalAuth{
 		SecretRef: &types.APISecretRef{Name: "my-token", Key: "token", Namespace: "default"},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemote_Auth_SecretRef_MissingName(t *testing.T) {
-	k := remoteWithAuth(&types.ExternalAuth{
+	e := remoteWithAuth(&types.ExternalAuth{
 		SecretRef: &types.APISecretRef{Key: "token", Namespace: "default"},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "name")
 }
 
 func TestValidateRemote_Auth_SecretRef_MissingKey(t *testing.T) {
-	k := remoteWithAuth(&types.ExternalAuth{
+	e := remoteWithAuth(&types.ExternalAuth{
 		SecretRef: &types.APISecretRef{Name: "my-token", Namespace: "default"},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "key")
 }
 
 func TestValidateRemote_Auth_SecretRef_NoNamespace_Warning(t *testing.T) {
-	k := remoteWithAuth(&types.ExternalAuth{
+	e := remoteWithAuth(&types.ExternalAuth{
 		SecretRef: &types.APISecretRef{Name: "my-token", Key: "token"},
 	})
-	crd := crdPtr(k, "app")
-	require.NoError(t, k.validateRemote("app", crd))
+	crd := crdPtr(e, "app")
+	require.NoError(t, e.validateRemote("app", crd))
 	assert.True(t, crd.Warnings.Contains("namespace is empty"))
 }
 
 func TestValidateRemote_Auth_Env_NoValidation(t *testing.T) {
-	k := remoteWithAuth(&types.ExternalAuth{Env: "RECONCILER_TOKEN"})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	e := remoteWithAuth(&types.ExternalAuth{Env: "RECONCILER_TOKEN"})
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 // crdPtr returns a pointer to the named CRD entry from the executor's catalog.
-func crdPtr(k *executor, name string) *types.CRDEntry {
-	e := k.k.EnabledCRDs()[name]
-	return &e
+func crdPtr(e *executor, name string) *types.CRDEntry {
+	entry := e.cat.EnabledCRDs()[name]
+	return &entry
 }
 
 // ── Remote request validation ─────────────────────────────────────────────────
@@ -349,12 +349,12 @@ func catalogWithRemoteRequest(request *types.RemoteRequestConfig) *executor {
 }
 
 func TestValidateRemoteRequest_Nil(t *testing.T) {
-	k := catalogWithRemoteRequest(nil)
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	e := catalogWithRemoteRequest(nil)
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemoteRequest_ChildrenDisabled_SkipsChildrenValidation(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Enabled: boolPtr(false),
 			// invalid paths that would normally error — should be skipped
@@ -363,61 +363,61 @@ func TestValidateRemoteRequest_ChildrenDisabled_SkipsChildrenValidation(t *testi
 			},
 		},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemoteRequest_ObjectExclude_Valid(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Object: &types.RemoteRequestObjectConfig{
 			Exclude: []string{"metadata.managedFields", "metadata.annotations"},
 		},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemoteRequest_ObjectExclude_InvalidPath(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Object: &types.RemoteRequestObjectConfig{
 			Exclude: []string{"metadata..managedFields"},
 		},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "request.object.exclude")
 	assert.ErrorContains(t, err, "empty segment")
 }
 
 func TestValidateRemoteRequest_ObjectExclude_LeadingDot(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Object: &types.RemoteRequestObjectConfig{
 			Exclude: []string{".metadata.managedFields"},
 		},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "request.object.exclude")
 }
 
 func TestValidateRemoteRequest_Children_RootExclude_Valid(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Exclude: []string{"metadata.managedFields"},
 		},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemoteRequest_Children_RootExclude_InvalidPath(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Exclude: []string{"spec.template..annotations"},
 		},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "request.children.exclude")
 	assert.ErrorContains(t, err, "empty segment")
 }
 
 func TestValidateRemoteRequest_Children_ResourcesFilter_Valid(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"deployment": {},
@@ -425,42 +425,42 @@ func TestValidateRemoteRequest_Children_ResourcesFilter_Valid(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemoteRequest_Children_ResourceNotInManaged(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"configmap": {},
 			},
 		},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, "request.children.resources")
 	assert.ErrorContains(t, err, "configmap")
 	assert.ErrorContains(t, err, "not declared in reconcile.managedResources")
 }
 
 func TestValidateRemoteRequest_Children_PerResourceExclude_Valid(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"deployment": {Exclude: []string{"spec.template.metadata.annotations"}},
 			},
 		},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, e.validateRemote("app", crdPtr(e, "app")))
 }
 
 func TestValidateRemoteRequest_Children_PerResourceExclude_InvalidPath(t *testing.T) {
-	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
 			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"deployment": {Exclude: []string{"spec.template."}},
 			},
 		},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, `resources["deployment"].exclude`)
 }

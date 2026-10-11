@@ -22,12 +22,12 @@ import (
 )
 
 // Worker that only processes items for a specific GVK
-func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID string) {
-	wq, ok := k.queueRegistry.For(gvk)
+func (c *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID string) {
+	wq, ok := c.queueRegistry.For(gvk)
 
 	if !ok {
 		logger.Warn().Str("gvk", gvk).Msg("no queue for CRD. Using default queue")
-		wq = k.defaultWorkqueue
+		wq = c.defaultWorkqueue
 	}
 
 	logger.Debug().Str("worker_id", workerID).Str("gvk", gvk).Msg("worker started")
@@ -49,16 +49,16 @@ func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 			}
 
 			// Worker is now processing
-			k.crdHealthMap[gvk].MarkWorkerProcessing(workerID)
+			c.crdHealthMap[gvk].MarkWorkerProcessing(workerID)
 
 			// Process the item
 			func() {
 				defer wq.Done(item)
-				k.processItemForGVK(ctx, gvk, item)
+				c.processItemForGVK(ctx, gvk, item)
 			}()
 
 			// Back to idle after processing
-			k.crdHealthMap[gvk].MarkWorkerIdle(workerID)
+			c.crdHealthMap[gvk].MarkWorkerIdle(workerID)
 
 			// Update metrics (outside of processing state)
 			depth := float64(wq.Depth())
@@ -66,15 +66,15 @@ func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 
 			// Push live depth into AutoMetrics so the autoscaler can read it.
 			// No-op for non-autoscaled CRDs (runtimeMap entry has no autoscaler).
-			k.mu.RLock()
-			rt := k.runtimeMap[gvk]
-			k.mu.RUnlock()
+			c.mu.RLock()
+			rt := c.runtimeMap[gvk]
+			c.mu.RUnlock()
 			if rt != nil {
 				rt.autoMetrics.SetQueueDepth(int64(wq.Depth()))
 			}
 
 			// Resource count — read from this CRD's informer cache
-			if entry, ok := k.catalog.Get(gvk); ok && entry.Informer != nil {
+			if entry, ok := c.catalog.Get(gvk); ok && entry.Informer != nil {
 				count := float64(len(entry.Informer.GetIndexer().List()))
 				metrics.SetResourceCount(gvk, count)
 			}
@@ -83,16 +83,16 @@ func (k *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 }
 
 // processItemForGVK handles a single reconciliation item
-func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item queue.QueueItem) {
+func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item queue.QueueItem) {
 	if err := ctx.Err(); err != nil {
 		logger.Debug().Msg("process item: context cancelled")
 		return
 	}
 
 	// Resolve queue — per-CRD if registered, default otherwise
-	wq, ok := k.queueRegistry.For(gvk)
+	wq, ok := c.queueRegistry.For(gvk)
 	if !ok {
-		wq = k.defaultWorkqueue
+		wq = c.defaultWorkqueue
 	}
 
 	// Added to help shutdown workers and preserve the queue on missing crds
@@ -124,9 +124,9 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	}
 
 	// Look up the pre-built reconciler
-	k.mu.RLock()
-	rec := k.reconcilers[gvk]
-	k.mu.RUnlock()
+	c.mu.RLock()
+	rec := c.reconcilers[gvk]
+	c.mu.RUnlock()
 
 	if rec == nil {
 		logger.Error().Str("gvk", gvk).Str("key", item.Key).Msg("no reconciler found — dropping item")
@@ -137,12 +137,12 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	// Pre-reconcile gate: evaluate operatorBox.preReconcile.when/or conditions.
 	// The reconciler is never called when conditions are not met — gated state
 	// is idle, not failure; error rate and health state are unaffected.
-	entry, hasEntry := k.catalog.Get(gvk)
+	entry, hasEntry := c.catalog.Get(gvk)
 	if hasEntry && entry.CRD.HasAnyReconcileGate() {
-		obj := k.objectFromCache(entry, item.Key)
+		obj := c.objectFromCache(entry, item.Key)
 		sentinelMap := wq.Sentinels(item)
-		if gated, reason := k.evaluatePreReconcileCheck(ctx, obj, entry.CRD.Name, sentinelMap); gated {
-			k.crdHealthMap[gvk].RecordGated(reason)
+		if gated, reason := c.evaluatePreReconcileCheck(ctx, obj, entry.CRD.Name, sentinelMap); gated {
+			c.crdHealthMap[gvk].RecordGated(reason)
 			wq.Forget(item)
 			return
 		}
@@ -158,14 +158,14 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 		prepared, valResult, prepErr = prepare.Prepare(ctx, prepare.Input{
 			Entry:    entry,
 			Key:      item.Key,
-			Cat:      k.cat,
-			Kube:     k.kube,
-			Registry: k.catalog,
+			Cat:      c.cat,
+			Kube:     c.kube,
+			Registry: c.catalog,
 		})
 		if prepErr != nil {
 			logger.Error().Err(prepErr).Str("gvk", gvk).Str("key", item.Key).Msg("prepare failed")
 			wq.AddRateLimited(item)
-			k.failedReconcile(gvk)
+			c.failedReconcile(gvk)
 			return
 		}
 		if prepared == nil {
@@ -181,43 +181,43 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	if hasEntry && prepared != nil {
 		box, resolver := prepare.BoxFrom(prepared), prepared.Context.(*template.Resolver)
 
-		check, cleanupErr := checkCleanup(ctx, k.kube, prepared.Object, box, resolver)
+		check, cleanupErr := checkCleanup(ctx, c.kube, prepared.Object, box, resolver)
 		if cleanupErr != nil {
 			logger.Error().Err(cleanupErr).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup evaluation failed")
 			wq.AddRateLimited(item)
-			k.failedReconcile(gvk)
+			c.failedReconcile(gvk)
 			return
 		}
 
-		if maintErr := k.runMaintain(ctx, entry, prepared.Object, box, resolver, check.due); maintErr != nil {
+		if maintErr := c.runMaintain(ctx, entry, prepared.Object, box, resolver, check.due); maintErr != nil {
 			logger.Error().Err(maintErr).Str("gvk", gvk).Str("key", item.Key).Msg("maintain failed")
 			wq.AddRateLimited(item)
-			k.failedReconcile(gvk)
+			c.failedReconcile(gvk)
 			return
 		}
 
 		if check.due {
-			if delErr := k.deleteCR(ctx, prepared.Object, check.reason); delErr != nil {
+			if delErr := c.deleteCR(ctx, prepared.Object, check.reason); delErr != nil {
 				logger.Error().Err(delErr).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: delete failed")
 				wq.AddRateLimited(item)
-				k.failedReconcile(gvk)
+				c.failedReconcile(gvk)
 				return
 			}
 			wq.Forget(item)
-			k.successReconcile(gvk)
+			c.successReconcile(gvk)
 			return
 		}
 		cleanup = check.cleanupWait
 	}
 
 	// safeReconcile catches panics
-	result, reconcileErr := k.safeReconcile(rec, k.crdHealthMap[gvk], ctx, item.Key, gvk, prepared)
+	result, reconcileErr := c.safeReconcile(rec, c.crdHealthMap[gvk], ctx, item.Key, gvk, prepared)
 
 	// Apply the resources, labels and annotations the Result returns. Every
 	// reconciler's writes take this one path; a failure is a reconcile failure.
 	if reconcileErr == nil && hasEntry && prepared != nil {
-		if err := apply.Result(ctx, k.kube, prepared.Object, entry.CRD.AllManagedResources(), result); err != nil {
-			k.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ApplyFailed",
+		if err := apply.Result(ctx, c.kube, prepared.Object, entry.CRD.AllManagedResources(), result); err != nil {
+			c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ApplyFailed",
 				"Applying the result for %s/%s: %v", prepared.Object.GetNamespace(), prepared.Object.GetName(), err)
 			reconcileErr = err
 		}
@@ -226,9 +226,9 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	// Post: status patch + emit — always runs, even on reconcile failure.
 	if hasEntry && prepared != nil {
 		reconcileErr = runPost(ctx, PostInput{
-			Kube:      k.kube,
-			Event:     k.event,
-			Health:    k.crdHealthMap[gvk],
+			Kube:      c.kube,
+			Event:     c.event,
+			Health:    c.crdHealthMap[gvk],
 			CRD:       entry.CRD,
 			Prepared:  prepared,
 			Result:    result,
@@ -243,14 +243,14 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 		if cleanup.pending {
 			wq.AddAfter(item, cleanup.wait)
 		}
-		k.failedReconcile(gvk)
+		c.failedReconcile(gvk)
 		return
 	}
 
 	// Record or withdraw the cleanup this Result requests. A failed reconcile
 	// (above) changes neither.
 	if hasEntry && prepared != nil {
-		w, err := settleResultCleanup(ctx, k.kube, prepared.Object, result.Cleanup)
+		w, err := settleResultCleanup(ctx, c.kube, prepared.Object, result.Cleanup)
 		if err != nil {
 			logger.Warn().Err(err).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: could not record the result's request")
 		}
@@ -262,7 +262,7 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	// Requeue and cleanup are independent: wake at whichever is due first; the
 	// next pass recomputes both.
 	wq.Forget(item)
-	next := k.resolveRequeueAfter(ctx, gvk, entry, item.Key, result, prepared)
+	next := c.resolveRequeueAfter(ctx, gvk, entry, item.Key, result, prepared)
 	if cleanup.pending && (next < 0 || cleanup.wait < next) {
 		next = cleanup.wait
 	}
@@ -285,7 +285,7 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 //
 // This function guarantees that no matter what happens inside rec.Reconcile(),
 // the controller process stays alive and the failure is reported deterministically.
-func (k *Controller) safeReconcile(
+func (c *Controller) safeReconcile(
 	rec domain.Reconciler,
 	health *vitals.CRDHealth,
 	ctx context.Context,
@@ -316,7 +316,7 @@ func (k *Controller) safeReconcile(
 				Msg("reconciler panic recovered")
 
 			// Update CRD health state and metrics.
-			health.RecordFailure(err, k.failureThreshold[gvk])
+			health.RecordFailure(err, c.failureThreshold[gvk])
 			metrics.RecordReconcile(gvk, "error")
 
 			// TODO: track panic stats differently with recovery
@@ -339,14 +339,14 @@ func (k *Controller) safeReconcile(
 	})
 	if err != nil {
 		// Update CRD health state and metrics.
-		health.RecordFailure(err, k.failureThreshold[gvk])
+		health.RecordFailure(err, c.failureThreshold[gvk])
 		metrics.RecordReconcile(gvk, "error")
 		return result, err
 	}
 
 	// Successful reconcile path.
 	health.RecordSuccess()
-	k.successReconcile(gvk)
+	c.successReconcile(gvk)
 	vitals.InvalidateChildrenCache(ns, name)
 	metrics.RecordReconcile(gvk, "success")
 	return result, nil

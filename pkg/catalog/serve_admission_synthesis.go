@@ -7,8 +7,8 @@ import "github.com/intentd/inrun/pkg/types"
 // Fields with default: or override: get mutation rules via ServeFieldMutationRules.
 // Runs last, after all explicit rules (inline, include, module) have settled. Synthesized
 // validation rules are prepended so a missing field surfaces as the headline denial reason.
-func (k *Catalog) applyServeAdmissionSynthesis() {
-	for name, entry := range k.enabledCRDs {
+func (c *Catalog) applyServeAdmissionSynthesis() {
+	for name, entry := range c.enabledCRDs {
 		synthesizedVal := append(entry.RequiredServeFieldRules(), entry.EnumServeFieldRules()...)
 		synthesizedMut := entry.ServeFieldMutationRules()
 
@@ -41,6 +41,6 @@ func (k *Catalog) applyServeAdmissionSynthesis() {
 			ValidationRules: synthesizedVal,
 			MutationRules:   synthesizedMut,
 		})
-		k.enabledCRDs[name] = entry
+		c.enabledCRDs[name] = entry
 	}
 }

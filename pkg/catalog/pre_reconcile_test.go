@@ -15,7 +15,7 @@ func objForTest() domain.Object {
 }
 
 func catalogWithPreReconcile(pr types.PreReconcileConfig) *Catalog {
-	k := &Catalog{
+	cat := &Catalog{
 		enabledCRDs: map[string]types.CRDEntry{
 			gvkForTest(): {
 				APITypes: types.APITypes{
@@ -30,10 +30,10 @@ func catalogWithPreReconcile(pr types.PreReconcileConfig) *Catalog {
 		},
 	}
 
-	k.SetDefaults(config.NewDefaultConfig())
-	k.SetGroupVersionKind()
+	cat.SetDefaults(config.NewDefaultConfig())
+	cat.SetGroupVersionKind()
 
-	return k
+	return cat
 }
 
 func gvkForTest() string {
@@ -41,7 +41,7 @@ func gvkForTest() string {
 }
 
 func TestIsEventAware_InitialState(t *testing.T) {
-	k := catalogWithPreReconcile(types.PreReconcileConfig{
+	cat := catalogWithPreReconcile(types.PreReconcileConfig{
 		ReconcileGate: &types.GateConditions{
 			EventAware: true,
 		},
@@ -50,7 +50,7 @@ func TestIsEventAware_InitialState(t *testing.T) {
 	obj := objForTest()
 	gvk := gvkForTest()
 
-	box := k.effectiveBox(obj, gvk)
+	box := cat.effectiveBox(obj, gvk)
 	require.NotNil(t, box)
 	require.NotNil(t, box.PreReconcile)
 	require.NotNil(t, box.PreReconcile.ReconcileGate)
@@ -58,7 +58,7 @@ func TestIsEventAware_InitialState(t *testing.T) {
 	t.Logf("has gate: %v", box.PreReconcile.HasReconcileGate())
 	t.Logf("event aware: %v", box.PreReconcile.ReconcileGate.IsEventAware())
 
-	assert.True(t, k.IsEventAware(obj, gvk))
+	assert.True(t, cat.IsEventAware(obj, gvk))
 }
 
 func TestIsEventAware(t *testing.T) {
@@ -133,40 +133,40 @@ func TestIsEventAware(t *testing.T) {
 }
 
 func TestGetPreReconcileSentinels_ReturnsDeclared(t *testing.T) {
-	k := catalogWithPreReconcile(types.PreReconcileConfig{
+	cat := catalogWithPreReconcile(types.PreReconcileConfig{
 		Sentinels: []string{
 			"generationChanged",
 			"labelsChanged",
 		},
 	})
 
-	sentinels := k.GetPreReconcileSentinels(objForTest(), gvkForTest())
+	sentinels := cat.GetPreReconcileSentinels(objForTest(), gvkForTest())
 
 	assert.Equal(t, []string{"generationChanged", "labelsChanged"}, sentinels)
 }
 
 func TestGetPreReconcileSentinels_NoSentinels(t *testing.T) {
-	k := catalogWithPreReconcile(types.PreReconcileConfig{})
+	cat := catalogWithPreReconcile(types.PreReconcileConfig{})
 
-	sentinels := k.GetPreReconcileSentinels(objForTest(), gvkForTest())
+	sentinels := cat.GetPreReconcileSentinels(objForTest(), gvkForTest())
 
 	assert.Empty(t, sentinels)
 }
 
 func TestGetPreReconcileSentinels_Unknown(t *testing.T) {
-	k := catalogWithPreReconcile(types.PreReconcileConfig{
+	cat := catalogWithPreReconcile(types.PreReconcileConfig{
 		Sentinels: []string{"generationChanged"},
 	})
 
-	sentinels := k.GetPreReconcileSentinels(objForTest(), "unknown")
+	sentinels := cat.GetPreReconcileSentinels(objForTest(), "unknown")
 
 	assert.Nil(t, sentinels)
 }
 
 func TestGetPreReconcileSentinels_NilCatalog(t *testing.T) {
-	var k *Catalog
+	var cat *Catalog
 
-	sentinels := k.GetPreReconcileSentinels(objForTest(), gvkForTest())
+	sentinels := cat.GetPreReconcileSentinels(objForTest(), gvkForTest())
 
 	assert.Nil(t, sentinels)
 }
@@ -175,7 +175,7 @@ func TestEffectiveBox_ResolvesTargetSpecificOperatorBox(t *testing.T) {
 	targetEventAware := true
 	crdEventAware := false
 
-	k := &Catalog{
+	cat := &Catalog{
 		enabledCRDs: map[string]types.CRDEntry{
 			"app": {
 				APITypes: types.APITypes{
@@ -209,12 +209,12 @@ func TestEffectiveBox_ResolvesTargetSpecificOperatorBox(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, k.SetGroupVersionKind())
+	require.NoError(t, cat.SetGroupVersionKind())
 
 	obj := objForTest()
 	obj.SetAnnotations(map[string]string{"inrun.dev/serve-target": "canary"})
 
-	box := k.effectiveBox(obj, gvkForTest())
+	box := cat.effectiveBox(obj, gvkForTest())
 
 	require.NotNil(t, box)
 	require.NotNil(t, box.PreReconcile)

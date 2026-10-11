@@ -29,9 +29,9 @@ func (c *Console) AddInstance(rawURL string) error {
 	}
 	// Fetch its Catalog in background
 	go func() {
-		if kat, err := client.FetchCatalog(); err == nil {
+		if cat, err := client.FetchCatalog(); err == nil {
 			c.mu.Lock()
-			c.instances[url].Catalog = kat
+			c.instances[url].Catalog = cat
 			c.mu.Unlock()
 		}
 	}()

@@ -15,7 +15,7 @@ import (
 // which enforces apiVersion/kind/metadata/name/namespace/labels/annotations/template
 // rules and the namespaced defaulting semantics.
 func (e *executor) validateCustomResources() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		// Fast path: nothing to validate if constructor is declared (reconciler.default: false).
 		if crd.WithConstructorDecl() {
 			logger.Debug().

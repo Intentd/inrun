@@ -29,13 +29,14 @@ func IsValidRemoteReconcileProtocol(s string) bool {
 }
 
 // RemoteReconcilerDeclaration declares a remote HTTP reconciler.
-// The coordinator POSTs a PreparedRequest to Endpoint; the response is a RemoteReconcileResult.
+// The coordinator POSTs the request body (key, apiVersion, kind, target, object, args,
+// children) to Endpoint; the response is a RemoteReconcileResult.
 // Inrun owns the queue, backoff, informer, health, and metrics. The remote service owns logic.
 type RemoteReconcilerDeclaration struct {
 	// Protocol is the wire protocol. Default http; grpc reserved.
 	Protocol RemoteReconcileProtocol `yaml:"protocol,omitempty" json:"protocol,omitempty"`
 
-	// Endpoint is the URL the PreparedRequest is POSTed to. Required.
+	// Endpoint is the URL the request body is POSTed to. Required.
 	// Template expressions are supported and evaluated per-reconcile against the CR's resolver context:
 	// e.g. "http://{{ .metadata.namespace }}-svc.svc.cluster.local/reconcile"
 	Endpoint string `yaml:"endpoint" json:"endpoint" validate:"required"`
@@ -50,7 +51,7 @@ type RemoteReconcilerDeclaration struct {
 	Request *RemoteRequestConfig `yaml:"request,omitempty" json:"request,omitempty"`
 }
 
-// RemoteRequestConfig controls what is included in the outbound PreparedRequest body.
+// RemoteRequestConfig controls what the outbound request body carries.
 type RemoteRequestConfig struct {
 	// Object controls which paths are stripped from the CR object before serialisation.
 	Object *RemoteRequestObjectConfig `yaml:"object,omitempty" json:"object,omitempty"`
@@ -66,7 +67,7 @@ type RemoteRequestObjectConfig struct {
 	Exclude []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
 }
 
-// RemoteRequestChildrenConfig controls which child resources are injected into prepared.children.
+// RemoteRequestChildrenConfig controls which child resources are sent in the body's children.
 type RemoteRequestChildrenConfig struct {
 	// Enabled controls whether children are injected at all.
 	// Default when omitted: true. Set to false to disable children injection entirely,

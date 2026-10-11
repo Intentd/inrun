@@ -127,7 +127,7 @@ func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSim
 		return fmt.Errorf("merging Catalog: %w", err)
 	}
 	crdPaths := CatalogCRDPaths(m)
-	cat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
 		var typedErr *catalog.TypedOperatorError
 		if errors.As(err, &typedErr) {
@@ -388,7 +388,7 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		crdPaths = CatalogCRDPaths(m)
 	}
 
-	cat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
 		var typedErr *catalog.TypedOperatorError
 		if errors.As(err, &typedErr) {

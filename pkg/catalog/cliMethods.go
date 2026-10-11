@@ -18,9 +18,9 @@ type DependencyDisplay struct {
 // DependencyDisplayData builds dependency display data for inrun validate --full.
 // Returns nil when no enabled CRD declares any dependsOn — callers should skip
 // the section entirely in that case.
-func (k *Catalog) DependencyDisplayData() *DependencyDisplay {
+func (c *Catalog) DependencyDisplayData() *DependencyDisplay {
 	hasDeps := false
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if len(crd.DependsOn) > 0 {
 			hasDeps = true
 			break
@@ -30,15 +30,15 @@ func (k *Catalog) DependencyDisplayData() *DependencyDisplay {
 		return nil
 	}
 
-	dg := NewDependencyGraph(k)
+	dg := NewDependencyGraph(c)
 	conditions := make(map[string]map[string]string)
-	for name, crd := range k.enabledCRDs {
+	for name, crd := range c.enabledCRDs {
 		if len(crd.DependsOn) == 0 {
 			continue
 		}
 		m := make(map[string]string, len(crd.DependsOn))
-		for dep, c := range crd.DependsOn {
-			m[dep] = c.Condition
+		for dep, d := range crd.DependsOn {
+			m[dep] = d.Condition
 		}
 		conditions[name] = m
 	}
@@ -64,29 +64,29 @@ func (dd *DependencyDisplay) SortedDeps(crdName string) []string {
 	return names
 }
 
-func (k *Catalog) List() map[string]types.CRDEntry {
-	return k.Spec.CRDs
+func (c *Catalog) List() map[string]types.CRDEntry {
+	return c.Spec.CRDs
 }
 
 // All returns every CRD in the catalog, including disabled ones.
-func (k *Catalog) All() map[string]types.CRDEntry {
-	return k.Spec.CRDs
+func (c *Catalog) All() map[string]types.CRDEntry {
+	return c.Spec.CRDs
 }
 
 // Useful Metadata
-func (k *Catalog) Meta() types.CatalogMeta {
-	return k.metadata
+func (c *Catalog) Meta() types.CatalogMeta {
+	return c.metadata
 }
 
 // Exists returns true if a CRD with the given name exists in the catalog.
-func (k *Catalog) Exists(name string) bool {
-	_, ok := k.Spec.CRDs[name]
+func (c *Catalog) Exists(name string) bool {
+	_, ok := c.Spec.CRDs[name]
 	return ok
 }
 
 // Describe returns a human‑readable summary of a CRD.
-func (k *Catalog) Describe(name string) (string, error) {
-	crd, err := k.Get(name)
+func (c *Catalog) Describe(name string) (string, error) {
+	crd, err := c.Get(name)
 	if err != nil {
 		return "", err
 	}
@@ -118,8 +118,8 @@ func (k *Catalog) Describe(name string) (string, error) {
 }
 
 // Explain returns a technical explanation of how Inrun handles this CRD.
-func (k *Catalog) Explain(name string) (string, error) {
-	crd, err := k.Get(name)
+func (c *Catalog) Explain(name string) (string, error) {
+	crd, err := c.Get(name)
 	if err != nil {
 		return "", err
 	}
@@ -154,24 +154,24 @@ func (k *Catalog) Explain(name string) (string, error) {
 }
 
 // Graph returns a map of CRD name → dependency names.
-func (k *Catalog) Graph() map[string][]string {
-	graph := make(map[string][]string, k.Len())
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) Graph() map[string][]string {
+	graph := make(map[string][]string, c.Len())
+	for name, crd := range c.enabledCRDs {
 		graph[name] = crd.DependsOn.Names()
 	}
 	return graph
 }
 
 // Order returns CRDs in dependency‑safe order (topological sort).
-func (k *Catalog) Order() []string {
-	depGraph := NewDependencyGraph(k)
+func (c *Catalog) Order() []string {
+	depGraph := NewDependencyGraph(c)
 	return depGraph.ShutdownOrder()
 }
 
 // Controllers returns a list of CRDs that have reconcilers.
-func (k *Catalog) Controllers() []string {
+func (c *Catalog) Controllers() []string {
 	var out []string
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if crd.HasConstructor() {
 			out = append(out, crd.Name)
 		}
@@ -180,17 +180,17 @@ func (k *Catalog) Controllers() []string {
 }
 
 // CRDNames returns the names of all enabled CRDs.
-func (k *Catalog) CRDNames() []string {
-	names := make([]string, 0, k.Len())
-	for name := range k.enabledCRDs {
+func (c *Catalog) CRDNames() []string {
+	names := make([]string, 0, c.Len())
+	for name := range c.enabledCRDs {
 		names = append(names, name)
 	}
 	return names
 }
 
 // Depends returns true if crdName depends on target.
-func (k *Catalog) Depends(crdName, target string) bool {
-	crd, err := k.Get(crdName)
+func (c *Catalog) Depends(crdName, target string) bool {
+	crd, err := c.Get(crdName)
 	if err != nil {
 		return false
 	}
@@ -199,9 +199,9 @@ func (k *Catalog) Depends(crdName, target string) bool {
 }
 
 // Dependents returns all CRDs that depend on the given CRD.
-func (k *Catalog) Dependents(name string) []string {
+func (c *Catalog) Dependents(name string) []string {
 	var out []string
-	for _, crd := range k.enabledCRDs {
+	for _, crd := range c.enabledCRDs {
 		if _, ok := crd.DependsOn[name]; ok {
 			out = append(out, crd.Name)
 		}
@@ -210,16 +210,16 @@ func (k *Catalog) Dependents(name string) []string {
 }
 
 // Enabled returns only the enabled CRDs in the catalog.
-func (k *Catalog) Enabled() map[string]types.CRDEntry {
-	if k == nil {
+func (c *Catalog) Enabled() map[string]types.CRDEntry {
+	if c == nil {
 		return nil
 	}
-	return k.enabledCRDs
+	return c.enabledCRDs
 }
 
 // Get returns an enabled CRD by name.
-func (k *Catalog) Get(name string) (*types.CRDEntry, error) {
-	crd, ok := k.enabledCRDs[name]
+func (c *Catalog) Get(name string) (*types.CRDEntry, error) {
+	crd, ok := c.enabledCRDs[name]
 	if !ok {
 		return nil, fmt.Errorf("crd not found in catalog")
 	}
@@ -237,14 +237,14 @@ func (k *Catalog) Get(name string) (*types.CRDEntry, error) {
 //
 // This method is used by the /catalog/raw endpoint to provide a clean,
 // readable view of the Catalog that created the current operator.
-func (k *Catalog) ToUI() *types.CatalogForUI {
+func (c *Catalog) ToUI() *types.CatalogForUI {
 
 	return &types.CatalogForUI{
-		APIVersion: k.APIVersion,
+		APIVersion: c.APIVersion,
 		Kind:       config.CatalogKind(),
-		Metadata:   k.metadata,
+		Metadata:   c.metadata,
 		Spec: types.CatalogSpecForUI{
-			CRDs: k.Spec.CRDs,
+			CRDs: c.Spec.CRDs,
 		},
 	}
 }

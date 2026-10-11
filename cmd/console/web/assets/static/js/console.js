@@ -209,14 +209,14 @@
 
     // ── Per-catalog cards (index page) ──
     if (data.catalogs && data.catalogs.length) {
-      data.catalogs.forEach(function (kat) {
-        var card = document.querySelector('[data-catalog="' + CSS.escape(kat.name) + '"]');
+      data.catalogs.forEach(function (cat) {
+        var card = document.querySelector('[data-catalog="' + CSS.escape(cat.name) + '"]');
         if (!card) return;
 
         // Badge
         var badge = card.querySelector('[data-live="badge"]');
         if (badge) {
-          var healthy = kat.healthy;
+          var healthy = cat.healthy;
           badge.className = 'console-badge ' + (healthy ? 'console-badge-healthy' : 'console-badge-degraded');
           badge.innerHTML = healthy
             ? '<span class="console-status-dot healthy"></span>Healthy'
@@ -226,10 +226,10 @@
         // Meta values
         var crdEl = card.querySelector('[data-live="totalCRDs"]');
         if (crdEl) {
-          crdEl.innerHTML = kat.totalCRDs + ' <span class="text-muted">(' + kat.healthyCRDs + ' healthy)</span>';
+          crdEl.innerHTML = cat.totalCRDs + ' <span class="text-muted">(' + cat.healthyCRDs + ' healthy)</span>';
         }
-        setText(card.querySelector('[data-live="totalWorkers"]'), kat.totalWorkers);
-        setText(card.querySelector('[data-live="totalResources"]'), kat.totalResources);
+        setText(card.querySelector('[data-live="totalWorkers"]'), cat.totalWorkers);
+        setText(card.querySelector('[data-live="totalResources"]'), cat.totalResources);
       });
     }
   }

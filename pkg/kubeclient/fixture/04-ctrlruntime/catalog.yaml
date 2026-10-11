@@ -27,8 +27,11 @@ spec:
       operatorBox:
         reconcile:
           default: false
+          # The reconciler creates both through the controller-runtime client;
+          # Inrun generates RBAC for exactly these kinds.
           managedResources:
             - kind: Deployment
+            - kind: ConfigMap
           constructor:
             location: github.com/intentd/inrun-ctrlruntime-constructor/constructor
             function: NewWebAppReconciler

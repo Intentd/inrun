@@ -86,8 +86,8 @@ func (r *Reconciler[PTR]) runResourceGroup(
 	guard := r.namespaceGuardFunc()
 
 	labelMgr := labels.NewManager(labels.Config{
-		Standalone:                r.kat.IsStandaloneGateway(),
-		DeletionProtectionEnabled: r.kat.IsDeletionProtectionEnabled(),
+		Standalone:                r.cat.IsStandaloneGateway(),
+		DeletionProtectionEnabled: r.cat.IsDeletionProtectionEnabled(),
 	})
 
 	// Create namespaces first
@@ -138,7 +138,7 @@ func (r *Reconciler[PTR]) runResourceGroup(
 	}
 	if err := runCustomResources(ctx, kube, resolver, obj,
 		children.ExpandForEachCustomResources(resolver, t.CustomResource), update, guard, labelMgr,
-		r.kat.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
+		r.cat.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
 		return err
 	}
 	if err := runners.RunReplicaSets(ctx, kube, resolver, obj,

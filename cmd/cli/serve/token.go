@@ -112,17 +112,17 @@ func runTokenVerifyLocal(cmd *cobra.Command, jwt, audienceOverride, tokenFile st
 		return fmt.Errorf("%s %q does not look like a JWT — could not extract iss claim", cmdutil.FailureMark(), tokenFile)
 	}
 
-	k, err := cmdutil.BuildCatalog(cmd)
+	cat, err := cmdutil.BuildCatalog(cmd)
 	if err != nil {
 		return fmt.Errorf("%s %w", cmdutil.FailureMark(), err)
 	}
 
-	if !k.IsGatewayEnabled() || !k.Gateway.HasAPI() || k.Gateway.API.Auth.Empty() {
+	if !cat.IsGatewayEnabled() || !cat.Gateway.HasAPI() || cat.Gateway.API.Auth.Empty() {
 		return fmt.Errorf("%s no gateway token auth configured in this catalog", cmdutil.FailureMark())
 	}
 
 	var candidates []types.APIToken
-	for _, t := range k.Gateway.API.Auth.Tokens {
+	for _, t := range cat.Gateway.API.Auth.Tokens {
 		if t.IsOIDC() && t.OIDCIssuer() == iss {
 			candidates = append(candidates, t)
 		}
@@ -214,19 +214,19 @@ Example:
 			return fmt.Errorf("%s --name is required", cmdutil.FailureMark())
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return fmt.Errorf("%s %w", cmdutil.FailureMark(), err)
 		}
 
-		if !k.IsGatewayEnabled() || !k.Gateway.HasAPI() || k.Gateway.API.Auth.Empty() {
+		if !cat.IsGatewayEnabled() || !cat.Gateway.HasAPI() || cat.Gateway.API.Auth.Empty() {
 			return fmt.Errorf("%s no gateway token auth configured in this catalog", cmdutil.FailureMark())
 		}
 
 		var entry *types.APIToken
-		for i, t := range k.Gateway.API.Auth.Tokens {
+		for i, t := range cat.Gateway.API.Auth.Tokens {
 			if t.Name == name {
-				entry = &k.Gateway.API.Auth.Tokens[i]
+				entry = &cat.Gateway.API.Auth.Tokens[i]
 				break
 			}
 		}
@@ -331,17 +331,17 @@ Example:
   inrun token list -f catalog.yaml`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return fmt.Errorf("%s %w", cmdutil.FailureMark(), err)
 		}
 
-		if !k.IsGatewayEnabled() || !k.Gateway.HasAPI() || k.Gateway.API.Auth.Empty() {
+		if !cat.IsGatewayEnabled() || !cat.Gateway.HasAPI() || cat.Gateway.API.Auth.Empty() {
 			fmt.Printf("\n  %s no gateway token auth configured\n\n", cmdutil.Dim("—"))
 			return nil
 		}
 
-		tokens := k.Gateway.API.Auth.Tokens
+		tokens := cat.Gateway.API.Auth.Tokens
 		fmt.Printf("\n  %s  %s\n\n", cmdutil.Gray("token list"), cmdutil.Dim(fmt.Sprintf("%d entries", len(tokens))))
 
 		type row struct{ name, typ, provider, allow string }

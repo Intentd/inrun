@@ -23,43 +23,43 @@ func catalogWithPDB(crdName string, pdbs ...types.PDBTemplateSource) *executor {
 }
 
 func TestValidatePDBBehaviorProfiles_NoCRDs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{})
-	assert.NoError(t, k.validatePDBBehaviorProfiles())
+	e := newCatalogExec(map[string]types.CRDEntry{})
+	assert.NoError(t, e.validatePDBBehaviorProfiles())
 }
 
 func TestValidatePDBBehaviorProfiles_NoProfile(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{Name: "pdb"})
-	assert.NoError(t, k.validatePDBBehaviorProfiles())
+	e := catalogWithPDB("app", types.PDBTemplateSource{Name: "pdb"})
+	assert.NoError(t, e.validatePDBBehaviorProfiles())
 }
 
 func TestValidatePDBBehaviorProfiles_ValidProfile_ZeroDowntime(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Name:     "pdb",
 		Behavior: &types.PDBBehavior{Profile: "zero-downtime"},
 	})
-	assert.NoError(t, k.validatePDBBehaviorProfiles())
+	assert.NoError(t, e.validatePDBBehaviorProfiles())
 }
 
 func TestValidatePDBBehaviorProfiles_ValidProfile_Rolling(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Behavior: &types.PDBBehavior{Profile: "rolling"},
 	})
-	assert.NoError(t, k.validatePDBBehaviorProfiles())
+	assert.NoError(t, e.validatePDBBehaviorProfiles())
 }
 
 func TestValidatePDBBehaviorProfiles_ValidProfile_Relaxed(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Behavior: &types.PDBBehavior{Profile: "relaxed"},
 	})
-	assert.NoError(t, k.validatePDBBehaviorProfiles())
+	assert.NoError(t, e.validatePDBBehaviorProfiles())
 }
 
 func TestValidatePDBBehaviorProfiles_UnknownProfile(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Name:     "pdb",
 		Behavior: &types.PDBBehavior{Profile: "strict"},
 	})
-	err := k.validatePDBBehaviorProfiles()
+	err := e.validatePDBBehaviorProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown behavior.profile")
 	assert.Contains(t, err.Error(), "strict")
@@ -67,34 +67,34 @@ func TestValidatePDBBehaviorProfiles_UnknownProfile(t *testing.T) {
 }
 
 func TestValidatePDBBehaviorProfiles_MixedWithMinAvailable(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Name: "pdb",
 		Behavior: &types.PDBBehavior{
 			Profile:      "rolling",
 			MinAvailable: "1",
 		},
 	})
-	err := k.validatePDBBehaviorProfiles()
+	err := e.validatePDBBehaviorProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "minAvailable/maxUnavailable")
 }
 
 func TestValidatePDBBehaviorProfiles_MixedWithMaxUnavailable(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Name: "pdb",
 		Behavior: &types.PDBBehavior{
 			Profile:        "relaxed",
 			MaxUnavailable: "1",
 		},
 	})
-	err := k.validatePDBBehaviorProfiles()
+	err := e.validatePDBBehaviorProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "minAvailable/maxUnavailable")
 }
 
 func TestValidatePDBBehaviorProfiles_TemplateExprSkipped(t *testing.T) {
-	k := catalogWithPDB("app", types.PDBTemplateSource{
+	e := catalogWithPDB("app", types.PDBTemplateSource{
 		Behavior: &types.PDBBehavior{Profile: "{{ .Spec.PDBProfile }}"},
 	})
-	assert.NoError(t, k.validatePDBBehaviorProfiles())
+	assert.NoError(t, e.validatePDBBehaviorProfiles())
 }

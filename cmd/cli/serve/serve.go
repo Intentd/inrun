@@ -56,19 +56,19 @@ It does not check the full Catalog schema — only the Serve portions.
 
 With --full, shows a detailed breakdown of the Serve configuration.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
 
 		full, _ := cmd.Flags().GetBool("full")
 
-		if err := validate.ValidateServe(k); err != nil {
+		if err := validate.ValidateServe(cat); err != nil {
 			return err
 		}
 
 		if full {
-			printServeValidationSummary(k)
+			printServeValidationSummary(cat)
 		} else {
 			fmt.Printf("\n%s Serve configuration is valid\n", cmdutil.SuccessMark())
 		}
@@ -99,7 +99,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 			return errRequiresCRDSelector
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 
 		if alias != "" && target == "" && kind == "" && name == "" {
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(k, alias)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
 			if err != nil {
 				return err
 			}
@@ -118,7 +118,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 			}
 			header = fmt.Sprintf("\nSchema for: %s (alias: %s → target: %s)\n", crd.Name, alias, crd.ServeTarget())
 		} else {
-			crd, err = resolveCRD(k, target, kind, name)
+			crd, err = resolveCRD(cat, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -187,7 +187,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 			sortBy = "name"
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -199,7 +199,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 
 			if alias != "" && target == "" && kind == "" && name == "" {
 				var resolvedAlias string
-				crd, resolvedAlias, err = resolveCRDByAnyTarget(k, alias)
+				crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
 				if err != nil {
 					return err
 				}
@@ -208,7 +208,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 				}
 				header = fmt.Sprintf("\nFields for: %s (alias: %s → target: %s)\n", crd.Name, alias, crd.ServeTarget())
 			} else {
-				crd, err = resolveCRD(k, target, kind, name)
+				crd, err = resolveCRD(cat, target, kind, name)
 				if err != nil {
 					return err
 				}
@@ -250,7 +250,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 		}
 
 		// ── All fields across all CRDs ──────────────────────────────────────
-		crds := k.ServeEnabledCRDs()
+		crds := cat.ServeEnabledCRDs()
 		sort.Slice(crds, func(i, j int) bool {
 			if crds[i] == nil || crds[j] == nil {
 				return false
@@ -321,7 +321,7 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 			return errRequiresCRDSelector
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -330,7 +330,7 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 		if alias != "" && target == "" && kind == "" && name == "" {
 			// --alias alone: resolve CRD from alias name
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(k, alias)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
 			if err != nil {
 				return err
 			}
@@ -338,7 +338,7 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 				return fmt.Errorf("%s %q is a primary target, not an alias — use --target instead", cmdutil.FailureMark(), alias)
 			}
 		} else {
-			crd, err = resolveCRD(k, target, kind, name)
+			crd, err = resolveCRD(cat, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -412,7 +412,7 @@ var serveTargetsCmd = &cobra.Command{
 
 This shows each target, its CRD kind, and whether it has fields defined.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -425,7 +425,7 @@ This shows each target, its CRD kind, and whether it has fields defined.`,
 			Aliases  int
 		}
 
-		for _, crd := range k.ServeEnabledCRDs() {
+		for _, crd := range cat.ServeEnabledCRDs() {
 			if crd == nil {
 				continue
 			}
@@ -526,7 +526,7 @@ Examples:
 			return errRequiresCRDSelector
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -539,7 +539,7 @@ Examples:
 			alias string
 		)
 		if target != "" {
-			crd, alias, err = resolveCRDByAnyTarget(k, target)
+			crd, alias, err = resolveCRDByAnyTarget(cat, target)
 			if err != nil {
 				return err
 			}
@@ -550,7 +550,7 @@ Examples:
 			}
 		} else if aliasFlag != "" && kind == "" && name == "" {
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(k, aliasFlag)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, aliasFlag)
 			if err != nil {
 				return err
 			}
@@ -559,7 +559,7 @@ Examples:
 			}
 			alias = resolvedAlias
 		} else {
-			crd, err = resolveCRD(k, target, kind, name)
+			crd, err = resolveCRD(cat, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -571,7 +571,7 @@ Examples:
 		}
 
 		// Verify the token exists at the gateway level first.
-		gatewayTokens := k.GatewayTokenNames()
+		gatewayTokens := cat.GatewayTokenNames()
 		tokenKnown := false
 		for _, t := range gatewayTokens {
 			if t == token {
@@ -645,7 +645,7 @@ Examples:
 			return errRequiresCRDSelector
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -653,7 +653,7 @@ Examples:
 		var crd *types.CRDEntry
 		if alias != "" && target == "" && kind == "" && name == "" {
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(k, alias)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
 			if err != nil {
 				return err
 			}
@@ -661,7 +661,7 @@ Examples:
 				return fmt.Errorf("%s %q is a primary target, not an alias — use --target instead", cmdutil.FailureMark(), alias)
 			}
 		} else {
-			crd, err = resolveCRD(k, target, kind, name)
+			crd, err = resolveCRD(cat, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -800,7 +800,7 @@ Examples:
 		name, _ := cmd.Flags().GetString("name")
 		alias, _ := cmd.Flags().GetString("alias")
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -811,12 +811,12 @@ Examples:
 
 			if alias != "" && target == "" && kind == "" && name == "" {
 				// Resolve by alias — show all aliases for the same CRD.
-				crd, _, err = resolveCRDByAnyTarget(k, alias)
+				crd, _, err = resolveCRDByAnyTarget(cat, alias)
 				if err != nil {
 					return err
 				}
 			} else {
-				crd, err = resolveCRD(k, target, kind, name)
+				crd, err = resolveCRD(cat, target, kind, name)
 				if err != nil {
 					return err
 				}
@@ -829,7 +829,7 @@ Examples:
 		}
 
 		// ── All CRDs ────────────────────────────────────────────────────────
-		crds := k.ServeEnabledCRDs()
+		crds := cat.ServeEnabledCRDs()
 		sort.Slice(crds, func(i, j int) bool { return crds[i].Name < crds[j].Name })
 
 		var total int

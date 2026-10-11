@@ -22,7 +22,7 @@ func runGateway(cmd *cobra.Command, args []string) error {
 		paths = cmdutil.DefaultFilePaths()
 	}
 	if len(paths) == 0 {
-		paths = cmdutil.Kfg.Catalog().Paths()
+		paths = cmdutil.Cfg.Catalog().Paths()
 	}
 	if len(paths) == 0 {
 		return fmt.Errorf(cmdutil.ErrNoCatalog)
@@ -39,7 +39,7 @@ func runGateway(cmd *cobra.Command, args []string) error {
 		Int("enabled", m.EnabledCount()).
 		Msg("catalogs merged")
 
-	internal.RunGateway(cmdutil.Kfg, m, cmdutil.Ctx)
+	internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx)
 	return nil
 }
 

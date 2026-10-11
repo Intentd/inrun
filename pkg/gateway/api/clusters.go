@@ -45,17 +45,17 @@ func (r *ClusterRegistry) Len() int {
 // Returns an empty (non-nil) registry when no clusters are declared.
 func BuildClusterRegistry(
 	ctx context.Context,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 	kube kubeclient.Interface,
 	ownNS string,
 ) (*ClusterRegistry, error) {
 	reg := &ClusterRegistry{clients: make(map[string]kubeclient.Interface)}
-	if kat == nil || kat.Gateway == nil || !kat.Gateway.HasClusters() {
+	if cat == nil || cat.Gateway == nil || !cat.Gateway.HasClusters() {
 		return reg, nil
 	}
 
 	scheme := kube.Scheme()
-	for name, cfg := range kat.GatewayClusters() {
+	for name, cfg := range cat.GatewayClusters() {
 		restCfg, err := BuildClusterRestConfig(ctx, cfg, kube, ownNS)
 		if err != nil {
 			return nil, fmt.Errorf("building client for cluster %q: %w", name, err)

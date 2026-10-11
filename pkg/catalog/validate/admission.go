@@ -33,7 +33,7 @@ func (e *executor) validateAdmissionRules() error {
 // validation.rules before evaluation was consolidated into
 // pkg/types/validation_eval.go.
 func (e *executor) validateAdmissionOperators() error {
-	for _, crd := range e.k.EnabledCRDs() {
+	for _, crd := range e.cat.EnabledCRDs() {
 		if crd.HasValidationRules() {
 			for _, rule := range crd.EffectiveValidation().Rules {
 				if err := checkKnownOperator(rule.Operator, crd.Name, rule.Field); err != nil {
@@ -105,7 +105,7 @@ Allowed values:
 // "spec.<name>" form — link: only earns its keep when Field isn't already a
 // clean display name on its own. See ValidationRule.Link.
 func (e *executor) validateValidationRuleLinks() error {
-	for _, crd := range e.k.EnabledCRDs() {
+	for _, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasValidationRules() {
 			continue
 		}
@@ -146,7 +146,7 @@ func checkLink(rule types.ValidationRule, crd types.CRDEntry) error {
 //   - Either default or override is declared - not both
 //   - Adds warning if both are declared
 func (e *executor) validateMutationRules() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		// validate serve configuration
 		if crd.ServeEnabled() {
 			if err := e.validateServeMutationSynth(name); err != nil {
@@ -172,13 +172,13 @@ func (e *executor) validateMutationRules() error {
 			}
 		}
 
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 	return nil
 }
 
 func (e *executor) validateServeMutationSynth(crdName string) error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		// serve.fields
 		for name, cfg := range crd.ServeFields() {
 			if cfg.HasDefault() {
@@ -203,13 +203,13 @@ func (e *executor) validateServeMutationSynth(crdName string) error {
 			}
 		}
 
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 	return nil
 }
 
 func (e *executor) validateValidationRules() error {
-	for _, crd := range e.k.EnabledCRDs() {
+	for _, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasValidationRules() {
 			continue
 		}

@@ -43,7 +43,7 @@ import (
 // then expands the named profile into a complete AutoscaleSpec so the runtime
 // only ever sees a fully-formed spec (never a bare profile name).
 func (e *executor) validateAutoscaleProfile() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		spec := crd.Box().EffectiveAutoscale()
 
 		// No autoscale block → nothing to validate
@@ -88,7 +88,7 @@ func (e *executor) validateAutoscaleProfile() error {
 		}
 		crd.Box().Runtime.Autoscale = expanded
 
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 	return nil
 }

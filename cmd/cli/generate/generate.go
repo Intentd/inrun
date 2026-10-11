@@ -78,7 +78,7 @@ func buildCatalogFromPath(path string) (*catalog.Catalog, error) {
 	if err := m.Merge(); err != nil {
 		return nil, fmt.Errorf("merging catalog: %w", err)
 	}
-	return pipeline.BuildExpanded(cmdutil.Kfg, m)
+	return pipeline.BuildExpanded(cmdutil.Cfg, m)
 }
 
 var generateRbacCmd = &cobra.Command{
@@ -104,7 +104,7 @@ Examples:
 		namespace, _ := cmd.Flags().GetString("namespace")
 		outputFile, _ := cmd.Flags().GetString("output")
 
-		k, err := pipeline.BuildExpanded(cmdutil.Kfg, out.Merger)
+		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
 		if err != nil {
 			return fmt.Errorf("build catalog: %w", err)
 		}
@@ -116,11 +116,11 @@ Examples:
 			return err
 		}
 
-		if !k.IsGatewayEnabled() {
+		if !cat.IsGatewayEnabled() {
 			opts.IncludeGateway = false
 		}
-		runtimeRules := k.GenerateRuntimeRBACRules()
-		gatewayRules := k.GenerateGatewayRBACRules()
+		runtimeRules := cat.GenerateRuntimeRBACRules()
+		gatewayRules := cat.GenerateGatewayRBACRules()
 
 		output, err := generate.RBACWithOptions(runtimeRules, gatewayRules, opts, namespace, outputFile)
 		if err != nil {
@@ -131,7 +131,7 @@ Examples:
 			return err
 		}
 
-		return writeClusterRBACFiles(k, outputFile)
+		return writeClusterRBACFiles(cat, outputFile)
 	},
 }
 
@@ -154,14 +154,14 @@ Example:
 		namespace, _ := cmd.Flags().GetString("namespace")
 		outputFile, _ := cmd.Flags().GetString("output")
 
-		k, err := pipeline.BuildExpanded(cmdutil.Kfg, out.Merger)
+		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
 		if err != nil {
 			return fmt.Errorf("build catalog: %w", err)
 		}
 
 		log.Println("generating configmap...")
 
-		expanded, err := k.SerializeExpanded()
+		expanded, err := cat.SerializeExpanded()
 		if err != nil {
 			return fmt.Errorf("serialize catalog: %w", err)
 		}
@@ -202,7 +202,7 @@ Examples:
 		workloadNamespace, _ := cmd.Flags().GetString("workload-namespace")
 		outputFile, _ := cmd.Flags().GetString("output")
 
-		k, err := pipeline.BuildExpanded(cmdutil.Kfg, out.Merger)
+		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
 		if err != nil {
 			return fmt.Errorf("build catalog: %w", err)
 		}
@@ -214,13 +214,13 @@ Examples:
 
 		log.Println("generating bundle...")
 
-		if !k.IsGatewayEnabled() {
+		if !cat.IsGatewayEnabled() {
 			opts.IncludeGateway = false
 		}
-		runtimeRules := k.GenerateRuntimeRBACRules()
-		gatewayRules := k.GenerateGatewayRBACRules()
+		runtimeRules := cat.GenerateRuntimeRBACRules()
+		gatewayRules := cat.GenerateGatewayRBACRules()
 
-		expanded, err := k.SerializeExpanded()
+		expanded, err := cat.SerializeExpanded()
 		if err != nil {
 			return fmt.Errorf("serialize catalog: %w", err)
 		}
@@ -234,7 +234,7 @@ Examples:
 			return err
 		}
 
-		return writeClusterRBACFiles(k, outputFile)
+		return writeClusterRBACFiles(cat, outputFile)
 	},
 }
 
@@ -242,8 +242,8 @@ Examples:
 // that has serve-enabled CRDs routed to it. Files land in the same directory as
 // outputFile (or the current directory when outputFile is empty or "-").
 // Template-routed CRDs appear in every cluster file; a warning is printed for those.
-func writeClusterRBACFiles(k *catalog.Catalog, outputFile string) error {
-	clusterRules, templateKinds := k.GenerateGatewayClusterRBACRules()
+func writeClusterRBACFiles(cat *catalog.Catalog, outputFile string) error {
+	clusterRules, templateKinds := cat.GenerateGatewayClusterRBACRules()
 	if len(clusterRules) == 0 {
 		return nil
 	}
@@ -252,7 +252,7 @@ func writeClusterRBACFiles(k *catalog.Catalog, outputFile string) error {
 	}
 
 	dir := clusterOutputDir(outputFile)
-	clusters := k.GatewayClusters()
+	clusters := cat.GatewayClusters()
 
 	if len(templateKinds) > 0 {
 		crdTxt := "CRDs"

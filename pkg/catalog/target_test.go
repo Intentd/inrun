@@ -41,10 +41,10 @@ func catalogWith(crds map[string]types.CRDEntry) *Catalog {
 }
 
 func TestLookupByTargetOrAlias_PrimaryTarget(t *testing.T) {
-	k := catalogWith(map[string]types.CRDEntry{
+	cat := catalogWith(map[string]types.CRDEntry{
 		"smartapp": serveEntry("SmartApp", "smartapp"),
 	})
-	r := k.LookupByTargetOrAlias("smartapp")
+	r := cat.LookupByTargetOrAlias("smartapp")
 	if r == nil {
 		t.Fatal("expected resolution, got nil")
 	}
@@ -58,10 +58,10 @@ func TestLookupByTargetOrAlias_PrimaryTarget(t *testing.T) {
 
 func TestLookupByTargetOrAlias_KindDefault(t *testing.T) {
 	// No explicit target → kind is lowercased
-	k := catalogWith(map[string]types.CRDEntry{
+	cat := catalogWith(map[string]types.CRDEntry{
 		"app": serveEntry("App", ""),
 	})
-	r := k.LookupByTargetOrAlias("app")
+	r := cat.LookupByTargetOrAlias("app")
 	if r == nil {
 		t.Fatal("expected resolution via lowercased kind default")
 	}
@@ -72,9 +72,9 @@ func TestLookupByTargetOrAlias_Alias(t *testing.T) {
 		"public":   {},
 		"internal": {},
 	})
-	k := catalogWith(map[string]types.CRDEntry{"smartapp": crd})
+	cat := catalogWith(map[string]types.CRDEntry{"smartapp": crd})
 
-	r := k.LookupByTargetOrAlias("public")
+	r := cat.LookupByTargetOrAlias("public")
 	if r == nil {
 		t.Fatal("expected alias resolution")
 	}
@@ -93,11 +93,11 @@ func TestLookupByTargetOrAlias_PrimaryWinsOverAlias(t *testing.T) {
 	crd2 := withAliases(serveEntry("SmartApp", "smartapp"), map[string]*types.ServeTargetConfig{
 		"shared": {},
 	})
-	k := catalogWith(map[string]types.CRDEntry{
+	cat := catalogWith(map[string]types.CRDEntry{
 		"app":      crd1,
 		"smartapp": crd2,
 	})
-	r := k.LookupByTargetOrAlias("shared")
+	r := cat.LookupByTargetOrAlias("shared")
 	if r == nil {
 		t.Fatal("expected resolution")
 	}
@@ -120,33 +120,33 @@ func TestScalarTargetNoAliases(t *testing.T) {
 	if crd.HasServeAliases() {
 		t.Error("ServeAliases() should be empty for single-target CRD")
 	}
-	k := catalogWith(map[string]types.CRDEntry{"smartapp": crd})
-	if r := k.LookupByTargetOrAlias("anything-else"); r != nil {
+	cat := catalogWith(map[string]types.CRDEntry{"smartapp": crd})
+	if r := cat.LookupByTargetOrAlias("anything-else"); r != nil {
 		t.Errorf("expected nil for unknown name on single-target CRD, got %+v", r)
 	}
 }
 
 func TestLookupByTargetOrAlias_NotFound(t *testing.T) {
-	k := catalogWith(map[string]types.CRDEntry{
+	cat := catalogWith(map[string]types.CRDEntry{
 		"app": serveEntry("App", "app"),
 	})
-	if r := k.LookupByTargetOrAlias("unknown"); r != nil {
+	if r := cat.LookupByTargetOrAlias("unknown"); r != nil {
 		t.Errorf("expected nil, got %+v", r)
 	}
 }
 
 func TestLookupByTargetOrAlias_NilCatalog(t *testing.T) {
-	var k *Catalog
-	if r := k.LookupByTargetOrAlias("anything"); r != nil {
+	var cat *Catalog
+	if r := cat.LookupByTargetOrAlias("anything"); r != nil {
 		t.Error("nil catalog should return nil")
 	}
 }
 
 func TestLookupByTargetOrAlias_EmptyTarget(t *testing.T) {
-	k := catalogWith(map[string]types.CRDEntry{
+	cat := catalogWith(map[string]types.CRDEntry{
 		"app": serveEntry("App", "app"),
 	})
-	if r := k.LookupByTargetOrAlias(""); r != nil {
+	if r := cat.LookupByTargetOrAlias(""); r != nil {
 		t.Error("empty target should return nil")
 	}
 }
@@ -156,9 +156,9 @@ func TestAvailableTargets_IncludesAliases(t *testing.T) {
 		"public": {},
 		"v2":     {},
 	})
-	k := catalogWith(map[string]types.CRDEntry{"smartapp": crd})
+	cat := catalogWith(map[string]types.CRDEntry{"smartapp": crd})
 
-	targets := k.AvailableTargets()
+	targets := cat.AvailableTargets()
 	want := map[string]bool{"smartapp": true, "public": true, "v2": true}
 	for _, t2 := range targets {
 		delete(want, t2)

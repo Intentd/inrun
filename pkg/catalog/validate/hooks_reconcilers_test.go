@@ -88,12 +88,12 @@ func TestAddHooks_WiresFactoryWhenRegistered(t *testing.T) {
 	t.Cleanup(func() { delete(types.HookRegistry, testGVK) })
 
 	crd := crdWithGVK(testGVK)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddHooks(); err != nil {
+	if err := e.cat.AddHooks(); err != nil {
 		t.Fatalf("addHooks returned error: %v", err)
 	}
-	got := k.k.EnabledCRDs()["myapp"]
+	got := e.cat.EnabledCRDs()["myapp"]
 	if got.OperatorBox.Reconcile.HookFactory == nil {
 		t.Error("expected HookFactory to be set, got nil")
 	}
@@ -103,12 +103,12 @@ func TestAddHooks_NoEntryIsOK(t *testing.T) {
 	delete(types.HookRegistry, testGVK)
 
 	crd := crdWithGVK(testGVK)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddHooks(); err != nil {
+	if err := e.cat.AddHooks(); err != nil {
 		t.Fatalf("addHooks returned unexpected error: %v", err)
 	}
-	if k.k.EnabledCRDs()["myapp"].OperatorBox.Reconcile.HookFactory != nil {
+	if e.cat.EnabledCRDs()["myapp"].OperatorBox.Reconcile.HookFactory != nil {
 		t.Error("HookFactory should be nil when no registry entry exists")
 	}
 }
@@ -123,9 +123,9 @@ func TestAddHooks_ErrorWhenTargetSharesBinaryButNotRegistered(t *testing.T) {
 	crd.OperatorBox.Reconcile.Hooks = &types.HookDeclaration{Location: "github.com/test/hooks", Function: "New"}
 	// Target declares the same location — sharing the binary.
 	crd = withTargetHookLocation(crd, "v2", "github.com/test/hooks")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddHooks(); err == nil {
+	if err := e.cat.AddHooks(); err == nil {
 		t.Fatal("expected error when target shares binary but factory not registered, got nil")
 	}
 }
@@ -135,9 +135,9 @@ func TestAddHooks_NoErrorWhenTargetHasDistinctBinary(t *testing.T) {
 	delete(types.HookRegistry, testGVK)
 
 	crd := withTargetHookLocation(crdWithGVK(testGVK), "v2", "github.com/test/v2hooks")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddHooks(); err != nil {
+	if err := e.cat.AddHooks(); err != nil {
 		t.Fatalf("addHooks should not error for distinct-binary target (addTargetHooks validates): %v", err)
 	}
 }
@@ -145,9 +145,9 @@ func TestAddHooks_NoErrorWhenTargetHasDistinctBinary(t *testing.T) {
 func TestAddHooks_SkipsNonDefaultReconcilers(t *testing.T) {
 	crd := crdWithGVK(testGVK)
 	crd.OperatorBox.Reconcile.Default = boolPtr(false)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddHooks(); err != nil {
+	if err := e.cat.AddHooks(); err != nil {
 		t.Fatalf("addHooks returned error: %v", err)
 	}
 }
@@ -156,12 +156,12 @@ func TestAddHooks_SkipsNonDefaultReconcilers(t *testing.T) {
 
 func TestAddConstructors_DefaultReconcileSkipsConstructor(t *testing.T) {
 	crd := crdWithGVK(testGVK)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddConstructors(); err != nil {
+	if err := e.cat.AddConstructors(); err != nil {
 		t.Fatalf("AddConstructors returned error: %v", err)
 	}
-	if k.k.EnabledCRDs()["myapp"].OperatorBox.Reconcile.Constructor != nil {
+	if e.cat.EnabledCRDs()["myapp"].OperatorBox.Reconcile.Constructor != nil {
 		t.Error("Constructor should not be set for default reconciler")
 	}
 }
@@ -173,12 +173,12 @@ func TestAddConstructors_WiresConstructorWhenRegistered(t *testing.T) {
 
 	crd := crdWithGVK(testGVK)
 	crd.OperatorBox.Reconcile.Default = boolPtr(false)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddConstructors(); err != nil {
+	if err := e.cat.AddConstructors(); err != nil {
 		t.Fatalf("AddConstructors returned error: %v", err)
 	}
-	if k.k.EnabledCRDs()["myapp"].OperatorBox.Reconcile.Constructor == nil {
+	if e.cat.EnabledCRDs()["myapp"].OperatorBox.Reconcile.Constructor == nil {
 		t.Error("expected Constructor to be set, got nil")
 	}
 }
@@ -188,9 +188,9 @@ func TestAddConstructors_ErrorWhenDefaultFalseAndNotRegistered(t *testing.T) {
 
 	crd := crdWithGVK(testGVK)
 	crd.OperatorBox.Reconcile.Default = boolPtr(false)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddConstructors(); err == nil {
+	if err := e.cat.AddConstructors(); err == nil {
 		t.Fatal("expected error for missing constructor registration, got nil")
 	}
 }
@@ -205,12 +205,12 @@ func TestAddTargetHooks_WiresFactoryForDistinctBinary(t *testing.T) {
 	t.Cleanup(func() { delete(types.TargetHookRegistry, testGVK) })
 
 	crd := withTargetHookLocation(crdWithGVK(testGVK), "v2", "github.com/test/v2hooks")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetHooks(); err != nil {
+	if err := e.cat.AddTargetHooks(); err != nil {
 		t.Fatalf("addTargetHooks returned error: %v", err)
 	}
-	got := k.k.EnabledCRDs()["myapp"]
+	got := e.cat.EnabledCRDs()["myapp"]
 	if got.TargetHookFactories == nil || got.TargetHookFactories["v2"] == nil {
 		t.Error("expected TargetHookFactories[v2] to be set, got nil")
 	}
@@ -221,12 +221,12 @@ func TestAddTargetHooks_SkipsTargetWithSameBinaryAsBase(t *testing.T) {
 	crd := crdWithGVK(testGVK)
 	crd.OperatorBox.Reconcile.Hooks = &types.HookDeclaration{Location: "github.com/test/hooks"}
 	crd = withTargetHookLocation(crd, "v2", "github.com/test/hooks") // same location
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetHooks(); err != nil {
+	if err := e.cat.AddTargetHooks(); err != nil {
 		t.Fatalf("addTargetHooks returned error: %v", err)
 	}
-	if k.k.EnabledCRDs()["myapp"].TargetHookFactories != nil {
+	if e.cat.EnabledCRDs()["myapp"].TargetHookFactories != nil {
 		t.Error("TargetHookFactories should be nil when target shares base binary")
 	}
 }
@@ -235,9 +235,9 @@ func TestAddTargetHooks_ErrorWhenGVKMissingFromRegistry(t *testing.T) {
 	delete(types.TargetHookRegistry, testGVK)
 
 	crd := withTargetHookLocation(crdWithGVK(testGVK), "v2", "github.com/test/v2hooks")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetHooks(); err == nil {
+	if err := e.cat.AddTargetHooks(); err == nil {
 		t.Fatal("expected error when GVK missing from TargetHookRegistry, got nil")
 	}
 }
@@ -249,18 +249,18 @@ func TestAddTargetHooks_ErrorWhenTargetNameMissingFromRegistry(t *testing.T) {
 	t.Cleanup(func() { delete(types.TargetHookRegistry, testGVK) })
 
 	crd := withTargetHookLocation(crdWithGVK(testGVK), "v2", "github.com/test/v2hooks")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetHooks(); err == nil {
+	if err := e.cat.AddTargetHooks(); err == nil {
 		t.Fatal("expected error when target name missing from TargetHookRegistry, got nil")
 	}
 }
 
 func TestAddTargetHooks_SkipsWhenNoServeTargetEntries(t *testing.T) {
 	crd := crdWithGVK(testGVK)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetHooks(); err != nil {
+	if err := e.cat.AddTargetHooks(); err != nil {
 		t.Fatalf("addTargetHooks returned error for CRD with no serve.target.entries: %v", err)
 	}
 }
@@ -275,12 +275,12 @@ func TestAddTargetConstructors_WiresFactoryForDistinctConstructor(t *testing.T) 
 	t.Cleanup(func() { delete(types.TargetReconcilerRegistry, testGVK) })
 
 	crd := withTargetDefaultFalse(crdWithGVK(testGVK), "v2")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetConstructors(); err != nil {
+	if err := e.cat.AddTargetConstructors(); err != nil {
 		t.Fatalf("addTargetConstructors returned error: %v", err)
 	}
-	got := k.k.EnabledCRDs()["myapp"]
+	got := e.cat.EnabledCRDs()["myapp"]
 	if got.TargetReconcilerFactories == nil || got.TargetReconcilerFactories["v2"] == nil {
 		t.Error("expected TargetReconcilerFactories[v2] to be set, got nil")
 	}
@@ -295,12 +295,12 @@ func TestAddTargetConstructors_SkipsTargetWithDefaultReconciler(t *testing.T) {
 	crd.Serve.Target.Entries = map[string]*types.ServeTargetConfig{
 		"v2": {OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{Default: boolPtr(true)}}},
 	}
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetConstructors(); err != nil {
+	if err := e.cat.AddTargetConstructors(); err != nil {
 		t.Fatalf("addTargetConstructors returned error: %v", err)
 	}
-	if k.k.EnabledCRDs()["myapp"].TargetReconcilerFactories != nil {
+	if e.cat.EnabledCRDs()["myapp"].TargetReconcilerFactories != nil {
 		t.Error("TargetReconcilerFactories should be nil when target uses default reconciler")
 	}
 }
@@ -309,9 +309,9 @@ func TestAddTargetConstructors_ErrorWhenGVKMissingFromRegistry(t *testing.T) {
 	delete(types.TargetReconcilerRegistry, testGVK)
 
 	crd := withTargetDefaultFalse(crdWithGVK(testGVK), "v2")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetConstructors(); err == nil {
+	if err := e.cat.AddTargetConstructors(); err == nil {
 		t.Fatal("expected error when GVK missing from TargetReconcilerRegistry, got nil")
 	}
 }
@@ -323,18 +323,18 @@ func TestAddTargetConstructors_ErrorWhenTargetNameMissingFromRegistry(t *testing
 	t.Cleanup(func() { delete(types.TargetReconcilerRegistry, testGVK) })
 
 	crd := withTargetDefaultFalse(crdWithGVK(testGVK), "v2")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetConstructors(); err == nil {
+	if err := e.cat.AddTargetConstructors(); err == nil {
 		t.Fatal("expected error when target name missing from TargetReconcilerRegistry, got nil")
 	}
 }
 
 func TestAddTargetConstructors_SkipsWhenNoServeTargetEntries(t *testing.T) {
 	crd := crdWithGVK(testGVK)
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
+	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddTargetConstructors(); err != nil {
+	if err := e.cat.AddTargetConstructors(); err != nil {
 		t.Fatalf("addTargetConstructors returned error for CRD with no serve.target.entries: %v", err)
 	}
 }

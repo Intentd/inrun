@@ -26,7 +26,7 @@ func (e *executor) validateServeTarget() error {
 	// Track seen targets → CRD name for duplicate detection.
 	seen := make(map[string]string)
 
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasServeTarget() {
 			continue
 		}

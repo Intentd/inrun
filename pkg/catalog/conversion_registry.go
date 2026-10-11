@@ -66,8 +66,8 @@ func (reg *InMemoryConversionRegistry) registerConversionRulesFromSpec(entry typ
 	reg.RegisterConversionRules(rules)
 }
 
-func (k *Catalog) ConversionRegistry() ConversionRegistry {
-	return k.conversionRegistry
+func (c *Catalog) ConversionRegistry() ConversionRegistry {
+	return c.conversionRegistry
 }
 
 // Test exports

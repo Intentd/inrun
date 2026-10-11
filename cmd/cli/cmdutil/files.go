@@ -45,11 +45,11 @@ func FindFile(name string, dirs ...string) string {
 //
 //  1. Explicit CLI paths (highest priority)
 //  2. Default file paths in the working directory (catalog.yaml, stack.yaml, etc.)
-//  3. Paths defined in the Config (kfg.Catalog().Paths())
+//  3. Paths defined in the Config (cfg.Catalog().Paths())
 //
 // Returns an error if no catalog file can be resolved.
 func ResolveCatalogPaths(cliPaths []string) ([]string, error) {
-	cfgPaths := Kfg.Catalog().Paths()
+	cfgPaths := Cfg.Catalog().Paths()
 
 	// 1. CLI-provided paths — convert to absolute so all downstream relative
 	// path resolutions (crdFile, crFiles, setup, Stack imports) use the

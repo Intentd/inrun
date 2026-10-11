@@ -189,7 +189,7 @@ func TestValidateWorkloadAutoscale_OnReconcileOnly(t *testing.T) {
 		},
 	}
 
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"workerpool": {
 			OperatorBox: &types.OperatorBoxConfig{
 				Reconcile: &types.ReconcileConfig{
@@ -203,7 +203,7 @@ func TestValidateWorkloadAutoscale_OnReconcileOnly(t *testing.T) {
 		},
 	})
 
-	if err := k.validateWorkloadAutoscale(); err != nil {
+	if err := e.validateWorkloadAutoscale(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

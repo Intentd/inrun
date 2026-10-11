@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	kfg, err := config.Init()
+	cfg, err := config.Init()
 	if err != nil {
 		logger.Fatal().AnErr("failed to load configurations", err)
 		utils.Exit(err)
@@ -29,5 +29,5 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cli.Execute(kfg, ctx)
+	cli.Execute(cfg, ctx)
 }

@@ -16,27 +16,27 @@ func aliasEntry(kind, target string, aliases map[string]*types.ServeTargetConfig
 }
 
 func TestValidateServeAliases_ValidNames(t *testing.T) {
-	k := catalogWithGatewayTokens("ci")
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens("ci")
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"app": aliasEntry("App", "app", map[string]*types.ServeTargetConfig{
 			"public":   {},
 			"internal": {},
 			"v2":       {},
 		}),
 	})
-	if err := k.validateServeAliases(); err != nil {
+	if err := e.validateServeAliases(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeAliases_InvalidName(t *testing.T) {
-	k := catalogWithGatewayTokens()
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens()
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"app": aliasEntry("App", "app", map[string]*types.ServeTargetConfig{
 			"Public_Alias": {}, // uppercase + underscore — invalid
 		}),
 	})
-	err := k.validateServeAliases()
+	err := e.validateServeAliases()
 	if err == nil {
 		t.Fatal("expected error for invalid alias name")
 	}
@@ -46,12 +46,12 @@ func TestValidateServeAliases_InvalidName(t *testing.T) {
 }
 
 func TestValidateServeAliases_CollidesWithPrimaryTarget(t *testing.T) {
-	k := catalogWithGatewayTokens()
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens()
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"app":      serveEntry("App", "app"),
 		"smartapp": aliasEntry("SmartApp", "smartapp", map[string]*types.ServeTargetConfig{"app": {}}),
 	})
-	err := k.validateServeAliases()
+	err := e.validateServeAliases()
 	if err == nil {
 		t.Fatal("expected collision error")
 	}
@@ -61,12 +61,12 @@ func TestValidateServeAliases_CollidesWithPrimaryTarget(t *testing.T) {
 }
 
 func TestValidateServeAliases_CollidesWithOtherAlias(t *testing.T) {
-	k := catalogWithGatewayTokens()
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens()
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"app":      aliasEntry("App", "app", map[string]*types.ServeTargetConfig{"shared": {}}),
 		"smartapp": aliasEntry("SmartApp", "smartapp", map[string]*types.ServeTargetConfig{"shared": {}}),
 	})
-	err := k.validateServeAliases()
+	err := e.validateServeAliases()
 	if err == nil {
 		t.Fatal("expected alias name collision error")
 	}
@@ -74,7 +74,7 @@ func TestValidateServeAliases_CollidesWithOtherAlias(t *testing.T) {
 
 func TestValidateServeAliases_AliasTokenMustExistInCRDTokens(t *testing.T) {
 	// CRD has token restrictions — alias token not in CRD tokens.
-	k := catalogWithGatewayTokens("ci", "console")
+	e := catalogWithGatewayTokens("ci", "console")
 	crd := aliasEntry("App", "app", map[string]*types.ServeTargetConfig{
 		"public": {
 			Tokens: map[string]types.ServeTokenPermissions{
@@ -85,8 +85,8 @@ func TestValidateServeAliases_AliasTokenMustExistInCRDTokens(t *testing.T) {
 	crd.Serve.Tokens = map[string]types.ServeTokenPermissions{
 		"ci": {}, // only ci allowed at CRD level
 	}
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
-	err := k.validateServeAliases()
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
+	err := e.validateServeAliases()
 	if err == nil {
 		t.Fatal("expected error: alias token not in CRD tokens")
 	}
@@ -96,7 +96,7 @@ func TestValidateServeAliases_AliasTokenMustExistInCRDTokens(t *testing.T) {
 }
 
 func TestValidateServeAliases_AliasTokenSubsetOfCRDTokens_Valid(t *testing.T) {
-	k := catalogWithGatewayTokens("ci", "console")
+	e := catalogWithGatewayTokens("ci", "console")
 	crd := aliasEntry("App", "app", map[string]*types.ServeTargetConfig{
 		"public": {
 			Tokens: map[string]types.ServeTokenPermissions{
@@ -108,15 +108,15 @@ func TestValidateServeAliases_AliasTokenSubsetOfCRDTokens_Valid(t *testing.T) {
 		"ci":      {},
 		"console": {},
 	}
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
-	if err := k.validateServeAliases(); err != nil {
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
+	if err := e.validateServeAliases(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeAliases_NoCRDTokenRestrictions_AliasTokenCheckedAgainstGateway(t *testing.T) {
 	// CRD has no token restrictions — alias can restrict to any gateway token.
-	k := catalogWithGatewayTokens("ci", "console")
+	e := catalogWithGatewayTokens("ci", "console")
 	crd := aliasEntry("App", "app", map[string]*types.ServeTargetConfig{
 		"public": {
 			Tokens: map[string]types.ServeTokenPermissions{
@@ -125,14 +125,14 @@ func TestValidateServeAliases_NoCRDTokenRestrictions_AliasTokenCheckedAgainstGat
 		},
 	})
 	// No CRD-level tokens (all gateway tokens implicitly allowed)
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
-	if err := k.validateServeAliases(); err != nil {
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
+	if err := e.validateServeAliases(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestValidateServeAliases_NoCRDTokenRestrictions_UnknownGatewayToken(t *testing.T) {
-	k := catalogWithGatewayTokens("ci")
+	e := catalogWithGatewayTokens("ci")
 	crd := aliasEntry("App", "app", map[string]*types.ServeTargetConfig{
 		"public": {
 			Tokens: map[string]types.ServeTokenPermissions{
@@ -140,37 +140,37 @@ func TestValidateServeAliases_NoCRDTokenRestrictions_UnknownGatewayToken(t *test
 			},
 		},
 	})
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
-	err := k.validateServeAliases()
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
+	err := e.validateServeAliases()
 	if err == nil {
 		t.Fatal("expected error: token not in gateway tokens")
 	}
 }
 
 func TestValidateServeAliases_TargetDisabledNoAliases_Warns(t *testing.T) {
-	k := catalogWithGatewayTokens()
+	e := catalogWithGatewayTokens()
 	crd := serveEntry("App", "app")
 	// Disable the primary surface.
 	disabled := false
 	crd.Serve.Target.Entries["app"].Enabled = &disabled
 	// no aliases declared
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
-	if err := k.validateServeAliases(); err != nil {
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{"app": crd})
+	if err := e.validateServeAliases(); err != nil {
 		t.Errorf("should not error, only warn: %v", err)
 	}
 	// warning should have been recorded
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	if !entry.Warnings.HasWarnings() {
 		t.Error("expected a warning for unreachable CRD")
 	}
 }
 
 func TestValidateServeAliases_NoAliases_NoError(t *testing.T) {
-	k := catalogWithGatewayTokens()
-	k.k.SetEnabledCRDsForTest(map[string]types.CRDEntry{
+	e := catalogWithGatewayTokens()
+	e.cat.SetEnabledCRDsForTest(map[string]types.CRDEntry{
 		"app": serveEntry("App", "app"),
 	})
-	if err := k.validateServeAliases(); err != nil {
+	if err := e.validateServeAliases(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

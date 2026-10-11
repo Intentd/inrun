@@ -27,7 +27,7 @@ import (
 )
 
 func (e *executor) validateHPABehaviorProfiles() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectHPAProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue

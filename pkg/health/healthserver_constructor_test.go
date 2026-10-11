@@ -8,11 +8,11 @@ import (
 )
 
 func TestNewHealthServer_ConstructorWiresAllFields(t *testing.T) {
-	kfg := config.NewDefaultConfig()
-	kfg.Inrun().SetName("test-runtime")
-	kfg.Health().SetPort("8080")
+	cfg := config.NewDefaultConfig()
+	cfg.Inrun().SetName("test-runtime")
+	cfg.Health().SetPort("8080")
 
-	hs := NewHealthServer(kfg)
+	hs := NewHealthServer(cfg)
 
 	if hs.mux == nil {
 		t.Fatal("mux must not be nil")

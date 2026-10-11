@@ -19,7 +19,7 @@ import (
 //  3. keyFrom follows the same validation rules as watch entries.
 //  4. on: values are valid observe event types.
 func (e *executor) validateEventEntries() error {
-	for crdName, crd := range e.k.Enabled() {
+	for crdName, crd := range e.cat.Enabled() {
 		if err := validateCRDEventEntries(crdName, crd); err != nil {
 			return err
 		}

@@ -105,34 +105,34 @@ func NewController(
 	return k
 }
 
-func (k *Controller) Start(ctx context.Context) error {
+func (c *Controller) Start(ctx context.Context) error {
 	// CRD checks now carried out in informer
 	// Controller just accepts that crds have been checked, listens to know if any is missing
 	// Then marks as degraded
-	for _, crd := range k.crds {
+	for _, crd := range c.crds {
 		gvk := crd.GroupVersionKind.String()
 
-		if !k.informerFactory.IsMissing(gvk) {
+		if !c.informerFactory.IsMissing(gvk) {
 			continue
 		}
 		logger.Warn().Str("gvk", gvk).Msg("CRD missing — marking as degraded")
-		k.crdHealthMap[gvk].RecordStartupFailure(errors.New("CRD not found"), crd.SetFailureThreshold(0))
+		c.crdHealthMap[gvk].RecordStartupFailure(errors.New("CRD not found"), crd.SetFailureThreshold(0))
 	}
 
 	// All CRDs confirmed (filtered by informer) — now sync caches
 	logger.Debug().Msg("waiting for all informer caches to sync...")
-	if !k.informerFactory.WaitForCacheSync(ctx) {
+	if !c.informerFactory.WaitForCacheSync(ctx) {
 		return fmt.Errorf("failed to sync one or more informer caches")
 	}
 	logger.Info().Msg("all informer caches synced")
 
 	// Build reconcilers now — kube, ev, and REST clients are all live
 	logger.Debug().Msg("building reconcilers...")
-	for gvk, entry := range k.catalog.Entries() {
+	for gvk, entry := range c.catalog.Entries() {
 		rec := entry.ReconcilerFactory() // ← safe here, manager has started everything
-		k.mu.Lock()
-		k.reconcilers[gvk] = rec
-		k.mu.Unlock()
+		c.mu.Lock()
+		c.reconcilers[gvk] = rec
+		c.mu.Unlock()
 		logger.Debug().Str("gvk", gvk).Msg("reconciler built")
 	}
 
@@ -140,43 +140,43 @@ func (k *Controller) Start(ctx context.Context) error {
 }
 
 // MissingCRDs returns a map of missing crds keyed by gvk
-func (k *Controller) MissingCRDs() map[string]*informer.InformerEntry {
-	return k.informerFactory.Missing()
+func (c *Controller) MissingCRDs() map[string]*informer.InformerEntry {
+	return c.informerFactory.Missing()
 }
 
 // Set the controller ready
-func (k *Controller) SetReady(h domain.Health) {
+func (c *Controller) SetReady(h domain.Health) {
 	h.SetReady()
 }
 
 // Set the controller to degraded
-func (k *Controller) Degraded(h domain.Health) {
+func (c *Controller) Degraded(h domain.Health) {
 	h.Degraded()
 }
 
 // Healthy mark on startup
-func (k *Controller) Started() bool { return k.startedKtrl.Load() }
+func (c *Controller) Started() bool { return c.startedKtrl.Load() }
 
 // Shutdown gracefully stops inrun
-func (k *Controller) Shutdown(ctx context.Context) {}
+func (c *Controller) Shutdown(ctx context.Context) {}
 
 // Controller name
-func (k *Controller) Name() string {
+func (c *Controller) Name() string {
 	return "inrun controller"
 }
 
 // Handle failure writes for concurrency
-func (k *Controller) failedReconcile(gvk string) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
+func (c *Controller) failedReconcile(gvk string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	k.failed[gvk]++
+	c.failed[gvk]++
 }
 
 // Handle success writes for concurrency
-func (k *Controller) successReconcile(gvk string) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
+func (c *Controller) successReconcile(gvk string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	k.total[gvk]++
+	c.total[gvk]++
 }

@@ -16,7 +16,7 @@ import (
 // (the queue re-enqueues on the next resync anyway). The warning surfaces the
 // math so the user can make an informed choice.
 func (e *executor) validateRetryBackoff() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		changed := false
 		rec := crd.Box().Reconcile
 		resync := effectiveResync(rec)
@@ -67,7 +67,7 @@ func (e *executor) validateRetryBackoff() error {
 		}
 
 		if changed {
-			e.k.EnabledCRDs()[name] = crd
+			e.cat.EnabledCRDs()[name] = crd
 		}
 	}
 	return nil

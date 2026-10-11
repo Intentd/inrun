@@ -12,11 +12,11 @@ import (
 // Template expressions are parse-checked only — name resolution is deferred to
 // apply time.
 func (e *executor) ValidateGatewayClusters() error {
-	if !e.k.IsGatewayEnabled() || !e.k.Gateway.HasClusters() {
+	if !e.cat.IsGatewayEnabled() || !e.cat.Gateway.HasClusters() {
 		return nil
 	}
 
-	if err := validateClusterEntries(e.k.Gateway, &e.k.Warnings); err != nil {
+	if err := validateClusterEntries(e.cat.Gateway, &e.cat.Warnings); err != nil {
 		return err
 	}
 
@@ -79,14 +79,14 @@ func validateClusterEntries(g *types.GatewayConfig, warnings *types.Warnings) er
 // across all CRD entries. Static names must exist in gateway.clusters.
 // Template expressions are validated with the full user-defined funcMap.
 func validateServeClusterRefs(e *executor) error {
-	for crdName, entry := range e.k.EnabledCRDs() {
+	for crdName, entry := range e.cat.EnabledCRDs() {
 		if entry.Serve == nil {
 			continue
 		}
 
 		for i, c := range entry.Serve.Clusters {
 			if err := validateClusterRef(
-				e.k,
+				e.cat,
 				crdName,
 				c,
 				fmt.Sprintf("spec.crds.%s.serve.clusters[%d]", crdName, i),
@@ -98,7 +98,7 @@ func validateServeClusterRefs(e *executor) error {
 		for targetName, target := range entry.Serve.Target.Entries {
 			for i, c := range target.Clusters {
 				path := fmt.Sprintf("spec.crds.%s.serve.target.%s.clusters[%d]", crdName, targetName, i)
-				if err := validateClusterRef(e.k, crdName, c, path); err != nil {
+				if err := validateClusterRef(e.cat, crdName, c, path); err != nil {
 					return err
 				}
 				// target.clusters entries must also appear in serve.clusters.
@@ -114,12 +114,12 @@ func validateServeClusterRefs(e *executor) error {
 // validateClusterRef validates one cluster field value at the given path.
 // Template expressions are validated with the full user-defined funcMap;
 // static names must be registered.
-func validateClusterRef(k *catalog.Catalog, crdName, value, path string) error {
+func validateClusterRef(cat *catalog.Catalog, crdName, value, path string) error {
 	if value == "" {
 		return nil
 	}
 
-	funcMap := buildFuncMapForValidation(k.Notes)
+	funcMap := buildFuncMapForValidation(cat.Notes)
 	if isTemplate(value) {
 		if err := validateTemplate("serve.cluster", crdName, "cluster", path, value, funcMap); err != nil {
 			return err
@@ -127,7 +127,7 @@ func validateClusterRef(k *catalog.Catalog, crdName, value, path string) error {
 		return nil
 	}
 
-	if _, ok := k.Gateway.Cluster(value); !ok {
+	if _, ok := cat.Gateway.Cluster(value); !ok {
 		return fmt.Errorf("%s %s: cluster %q is not defined in gateway.clusters", failureMark(), path, value)
 	}
 	return nil

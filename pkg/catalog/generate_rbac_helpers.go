@@ -8,16 +8,16 @@ import (
 
 // HasConversionPaths returns true only if conversion is enabled and at least
 // one CRD declares conversion paths.
-func (k *Catalog) HasConversionPaths() bool {
-	if k == nil || k.config == nil {
+func (c *Catalog) HasConversionPaths() bool {
+	if c == nil || c.config == nil {
 		logger.Debug().Msg("catalog or config is nil")
 		return false
 	}
-	if !k.IsConversionEnabled() {
+	if !c.IsConversionEnabled() {
 		logger.Debug().Msg("conversion is disabled")
 		return false
 	}
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.EffectiveConversion() == nil {
 			logger.Debug().Str("crd", crd.Name).Msg("conversion is nil")
 			continue
@@ -32,15 +32,15 @@ func (k *Catalog) HasConversionPaths() bool {
 
 // HasValidationRules returns true if admission is enabled and at least one CRD
 // declares validation rules.
-func (k *Catalog) HasValidationRules() bool {
-	if k == nil {
+func (c *Catalog) HasValidationRules() bool {
+	if c == nil {
 		return false
 	}
-	if !k.IsAdmissionEnabled() {
+	if !c.IsAdmissionEnabled() {
 		logger.Debug().Msg("admission is disabled")
 		return false
 	}
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.EffectiveValidation() == nil {
 			continue
 		}
@@ -54,15 +54,15 @@ func (k *Catalog) HasValidationRules() bool {
 
 // HasMutationRules returns true if admission is enabled and at least one CRD
 // declares mutation rules.
-func (k *Catalog) HasMutationRules() bool {
-	if k == nil {
+func (c *Catalog) HasMutationRules() bool {
+	if c == nil {
 		return false
 	}
-	if !k.IsAdmissionEnabled() {
+	if !c.IsAdmissionEnabled() {
 		logger.Debug().Msg("admission is disabled")
 		return false
 	}
-	for _, crd := range k.Enabled() {
+	for _, crd := range c.Enabled() {
 		if crd.EffectiveMutation() == nil {
 			continue
 		}
@@ -75,28 +75,28 @@ func (k *Catalog) HasMutationRules() bool {
 }
 
 // HasValidationOrMutationRules returns true if any CRD has validation or mutation rules.
-func (k *Catalog) HasValidationOrMutationRules() bool {
-	if k == nil {
+func (c *Catalog) HasValidationOrMutationRules() bool {
+	if c == nil {
 		return false
 	}
-	return k.HasValidationRules() || k.HasMutationRules()
+	return c.HasValidationRules() || c.HasMutationRules()
 }
 
 // Uses reports whether any enabled CRD uses the given resource in a hook
 // template block. Accepts both singular ("deployment") and plural ("deployments")
 // keys, as well as shorthands ("hpa"). Drives off builtInRegistry — no separate
 // table to maintain.
-func (k *Catalog) Uses(resource string) bool {
+func (c *Catalog) Uses(resource string) bool {
 	b, ok := children.LookupBuiltInByResource(resource)
 	if !ok {
 		return false
 	}
-	return k.anyDetects(b.Detect)
+	return c.anyDetects(b.Detect)
 }
 
 // anyDetects returns true if detect returns true for any enabled CRD.
-func (k *Catalog) anyDetects(detect func(types.CRDEntry) bool) bool {
-	for _, crd := range k.Enabled() {
+func (c *Catalog) anyDetects(detect func(types.CRDEntry) bool) bool {
+	for _, crd := range c.Enabled() {
 		if detect(crd) {
 			return true
 		}

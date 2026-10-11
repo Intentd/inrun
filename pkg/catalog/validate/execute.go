@@ -6,35 +6,35 @@ import (
 )
 
 type executor struct {
-	k   *catalog.Catalog
-	kfg *config.Config
+	cat *catalog.Catalog
+	cfg *config.Config
 }
 
 // Execute runs the full validation pipeline on k, mutating it in place.
 // k must have already been populated via BuildRuntimeCatalog.
-func Execute(k *catalog.Catalog, kfg *config.Config) error {
-	e := &executor{k: k, kfg: kfg}
+func Execute(cat *catalog.Catalog, cfg *config.Config) error {
+	e := &executor{cat: cat, cfg: cfg}
 	return e.run()
 }
 
 // DetectCycles exposes dependency cycle detection for external packages (integration tests).
-func DetectCycles(k *catalog.Catalog) error {
-	return (&executor{k: k}).detectDependencyCycles()
+func DetectCycles(cat *catalog.Catalog) error {
+	return (&executor{cat: cat}).detectDependencyCycles()
 }
 
 // ValidateGatewayClusters validates the gateway clusters configuration.
-func ValidateGatewayClusters(k *catalog.Catalog) error {
-	return (&executor{k: k}).ValidateGatewayClusters()
+func ValidateGatewayClusters(cat *catalog.Catalog) error {
+	return (&executor{cat: cat}).ValidateGatewayClusters()
 }
 
 // ValidateServe validates the serve configuration across all CRDs.
-func ValidateServe(k *catalog.Catalog) error {
-	return (&executor{k: k}).ValidateServe()
+func ValidateServe(cat *catalog.Catalog) error {
+	return (&executor{cat: cat}).ValidateServe()
 }
 
 func (e *executor) run() error {
 	// 1. Struct-level field validation
-	if valErr := config.Validate().Struct(e.k); valErr != nil {
+	if valErr := config.Validate().Struct(e.cat); valErr != nil {
 		e.handleValidationErrors(valErr)
 		return valErr
 	}
@@ -66,37 +66,37 @@ func (e *executor) run() error {
 
 	// The gateway never reconciles, so it wires no constructors or hooks and
 	// needs none compiled in (steps 7, 8, 10, 11).
-	wire := !e.kfg.IsGatewayInstance()
+	wire := !e.cfg.IsGatewayInstance()
 
 	// 7. Reconcilers
 	if wire {
-		if err := e.k.AddConstructors(); err != nil {
+		if err := e.cat.AddConstructors(); err != nil {
 			return err
 		}
 	}
 
 	// 8. Target constructors
 	if wire {
-		if err := e.k.AddTargetConstructors(); err != nil {
+		if err := e.cat.AddTargetConstructors(); err != nil {
 			return err
 		}
 	}
 
 	// 9. Runtime objects
-	if err := e.k.AddRuntimeObjects(); err != nil {
+	if err := e.cat.AddRuntimeObjects(); err != nil {
 		return err
 	}
 
 	// 10. Hooks
 	if wire {
-		if err := e.k.AddHooks(); err != nil {
+		if err := e.cat.AddHooks(); err != nil {
 			return err
 		}
 	}
 
 	// 11. Target hooks
 	if wire {
-		if err := e.k.AddTargetHooks(); err != nil {
+		if err := e.cat.AddTargetHooks(); err != nil {
 			return err
 		}
 	}

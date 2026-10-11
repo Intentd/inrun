@@ -145,12 +145,12 @@ var pushCmd = &cobra.Command{
 			if err := m.Merge(); err != nil {
 				return fmt.Errorf("  ✗ %s: %w", registry.FileCatalog, err)
 			}
-			k, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+			cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 			if err != nil {
 				return fmt.Errorf("  ✗ %s: %w", registry.FileCatalog, err)
 			}
 			fmt.Printf("  %s %-20s valid\n", cmdutil.SuccessMark(), registry.FileCatalog)
-			if d := k.Deprecation(); d != nil {
+			if d := cat.Deprecation(); d != nil {
 				cmdutil.PrintCatalogDeprecation(d)
 			}
 
@@ -404,13 +404,13 @@ func extractRuntimeVersionFromGoMod(dir string) string {
 }
 
 func detectTypedCatalog(catalogPath string) *registry.PatternTyped {
-	k, err := catalog.ParseFile(catalogPath)
+	cat, err := catalog.ParseFile(catalogPath)
 	if err != nil {
 		return nil
 	}
 	var t registry.PatternTyped
-	for _, name := range k.CRDNames() {
-		entry, ok := k.CRDEntry(name)
+	for _, name := range cat.CRDNames() {
+		entry, ok := cat.CRDEntry(name)
 		if !ok {
 			continue
 		}

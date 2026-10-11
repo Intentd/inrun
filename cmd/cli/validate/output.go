@@ -33,14 +33,14 @@ import (
 
 // printCRDValidationLine prints one CRD entry's validation result.
 // Shows enrichment clearly when it occurred, and any warnings.
-func printCRDValidationLine(k *catalog.Catalog, entry types.CRDEntry) {
+func printCRDValidationLine(cat *catalog.Catalog, entry types.CRDEntry) {
 	printCRDHeader(entry)
-	strictModeText := getStrictModeText(entry, k.IsStrictModeEnabled())
+	strictModeText := getStrictModeText(entry, cat.IsStrictModeEnabled())
 	printKindInfo(entry)
 	printModeResync(entry)
-	printProtectionStatus(entry, k.IsDeletionProtectionEnabled(), strictModeText)
-	printInfo(entry.Info, k.Info)
-	printWarnings(entry.Warnings, k.Warnings)
+	printProtectionStatus(entry, cat.IsDeletionProtectionEnabled(), strictModeText)
+	printInfo(entry.Info, cat.Info)
+	printWarnings(entry.Warnings, cat.Warnings)
 }
 
 // printCRDHeader prints the CRD name with appropriate icon.

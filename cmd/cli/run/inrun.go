@@ -37,7 +37,7 @@ func runRuntime(cmd *cobra.Command, args []string) error {
 		Int("enabled", m.EnabledCount()).
 		Msg("catalogs merged")
 
-	internal.RunRuntime(cmdutil.Kfg, m, cmdutil.Ctx)
+	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx)
 	return nil
 }
 

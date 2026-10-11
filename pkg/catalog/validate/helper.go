@@ -59,7 +59,7 @@ func validateSecretRef(ref *types.APISecretRef, path string) error {
 }
 
 // validateSecretRefWithCatalogWarning validates ref (name+key) and adds a catalog-level
-// warning when namespace is empty. Pass &e.k.Warnings for gateway-level callers.
+// warning when namespace is empty. Pass &e.cat.Warnings for gateway-level callers.
 func validateSecretRefWithCatalogWarning(ref *types.APISecretRef, path string, warnings *types.Warnings) error {
 	return secretRefNamespaceWarning(ref, path, warnings)
 }

@@ -9,7 +9,7 @@ import (
 
 // validateGatewayTokens is the dispatcher for gateway.api.auth.tokens validation.
 func (e *executor) validateGatewayTokens() error {
-	if !e.k.IsGatewayEnabled() || !e.k.Gateway.HasAPI() || e.k.Gateway.API.Auth.Empty() {
+	if !e.cat.IsGatewayEnabled() || !e.cat.Gateway.HasAPI() || e.cat.Gateway.API.Auth.Empty() {
 		return nil
 	}
 	if err := e.validateGatewayTokensCommon(); err != nil {
@@ -24,7 +24,7 @@ func (e *executor) validateGatewayTokens() error {
 // gatewayAPIAuthTokens returns the token entries from gateway.api.auth.tokens.
 // Callers must have already confirmed the gateway and API are enabled.
 func (e *executor) gatewayAPIAuthTokens() []types.APIToken {
-	return e.k.Gateway.API.Auth.Tokens
+	return e.cat.Gateway.API.Auth.Tokens
 }
 
 // validateGatewayTokensCommon checks for duplicate names and that each entry

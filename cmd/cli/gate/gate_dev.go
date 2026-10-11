@@ -69,7 +69,7 @@ Example:
 		if err := m.Merge(); err != nil {
 			return fmt.Errorf("merging Catalog: %w", err)
 		}
-		kat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 		if err != nil {
 			return fmt.Errorf("parsing Catalog: %w", err)
 		}
@@ -90,8 +90,8 @@ Example:
 		fmt.Println()
 
 		var anyDenied bool
-		for _, name := range kat.CRDNames() {
-			crdEntry, ok := kat.CRDEntry(name)
+		for _, name := range cat.CRDNames() {
+			crdEntry, ok := cat.CRDEntry(name)
 			if !ok {
 				continue
 			}
@@ -99,7 +99,7 @@ Example:
 			if !ok {
 				continue
 			}
-			anyDenied = gateEvalCRD(kat, &crdEntry, in.CR.Object) || anyDenied
+			anyDenied = gateEvalCRD(cat, &crdEntry, in.CR.Object) || anyDenied
 		}
 
 		if anyDenied {
@@ -111,7 +111,7 @@ Example:
 
 // gateEvalCRD evaluates validation rules and previews mutation rules for one
 // CRD+CR pair. Returns true if any deny-action validation rule fired.
-func gateEvalCRD(kat *catalog.Catalog, crd *types.CRDEntry, obj map[string]interface{}) bool {
+func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]interface{}) bool {
 	fmt.Printf("%s  %s  %s\n", cmdutil.Cyan("◆"), cmdutil.Bold(crd.Kind()), cmdutil.Gray(fmt.Sprintf("(%s)", crd.ServeTarget())))
 
 	if !crd.HasValidationRules() && !crd.HasMutationRules() {
@@ -130,7 +130,7 @@ func gateEvalCRD(kat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 		fmt.Printf("  %s external: calls — skipped (no endpoint)\n", cmdutil.Dim("note:"))
 	}
 
-	resolver := template.NewResolverFromMap(obj).WithUserNotes(kat.Notes)
+	resolver := template.NewResolverFromMap(obj).WithUserNotes(cat.Notes)
 	eval := resolver.TemplateEvaluator()
 
 	// When mutateFirst is set the real webhook applies mutations before
@@ -141,7 +141,7 @@ func gateEvalCRD(kat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 		mutResult = EvalAdmissionMutation(obj, crd, resolver, eval)
 		if len(mutResult.Previews) > 0 {
 			validationObj = applyMutationPreviews(obj, mutResult.Previews)
-			validationResolver := template.NewResolverFromMap(validationObj).WithUserNotes(kat.Notes)
+			validationResolver := template.NewResolverFromMap(validationObj).WithUserNotes(cat.Notes)
 			resolver = validationResolver
 			eval = resolver.TemplateEvaluator()
 		}
@@ -265,7 +265,7 @@ Example:
 			return fmt.Errorf("merging catalogs: %w", err)
 		}
 
-		internal.RunGatewayDev(cmdutil.Kfg, m, cmdutil.Ctx)
+		internal.RunGatewayDev(cmdutil.Cfg, m, cmdutil.Ctx)
 		return nil
 	},
 }

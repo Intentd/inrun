@@ -3,7 +3,7 @@ package web
 import "testing"
 
 func TestSummaryFor(t *testing.T) {
-	kat := &CatalogResponse{CRDs: []CRDSummary{
+	cat := &CatalogResponse{CRDs: []CRDSummary{
 		{Name: "AppRequest"},
 		{Name: "platformresource"},
 	}}
@@ -15,14 +15,14 @@ func TestSummaryFor(t *testing.T) {
 	})
 
 	t.Run("case-insensitive match", func(t *testing.T) {
-		got := summaryFor(kat, "apprequest")
+		got := summaryFor(cat, "apprequest")
 		if got == nil || got.Name != "AppRequest" {
 			t.Errorf("got %v, want the AppRequest summary", got)
 		}
 	})
 
 	t.Run("not found returns nil", func(t *testing.T) {
-		if got := summaryFor(kat, "nope"); got != nil {
+		if got := summaryFor(cat, "nope"); got != nil {
 			t.Errorf("got %v, want nil", got)
 		}
 	})
@@ -70,7 +70,7 @@ func TestSynthInfoFromSummary(t *testing.T) {
 }
 
 func TestEndpointInfoFor(t *testing.T) {
-	kat := &CatalogResponse{CRDs: []CRDSummary{
+	cat := &CatalogResponse{CRDs: []CRDSummary{
 		{Name: "AppRequest", Endpoints: EndpointInfo{HealthEnabled: false, InfoEnabled: true}},
 	}}
 
@@ -82,14 +82,14 @@ func TestEndpointInfoFor(t *testing.T) {
 	})
 
 	t.Run("not found defaults to fully enabled", func(t *testing.T) {
-		got := endpointInfoFor(kat, "nope")
+		got := endpointInfoFor(cat, "nope")
 		if !got.HealthEnabled || !got.InfoEnabled {
 			t.Errorf("got %+v, want both enabled by default", got)
 		}
 	})
 
 	t.Run("found returns the declared endpoints, case-insensitive", func(t *testing.T) {
-		got := endpointInfoFor(kat, "apprequest")
+		got := endpointInfoFor(cat, "apprequest")
 		if got.HealthEnabled || !got.InfoEnabled {
 			t.Errorf("got %+v, want HealthEnabled=false InfoEnabled=true", got)
 		}

@@ -10,7 +10,7 @@ import (
 
 // objectFromCache retrieves the live CR from the informer cache for the given
 // key. Returns nil if the entry has no informer or the key is not found.
-func (k *Controller) objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Unstructured {
+func (c *Controller) objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Unstructured {
 	if entry.Informer == nil {
 		return nil
 	}
@@ -29,17 +29,17 @@ func (k *Controller) objectFromCache(entry contract.RegistryEntry, key string) *
 // given CR. Returns (true, reason) when gated — reconciler must not be called.
 // Returns (false, "") when conditions pass.
 //
-// Delegates to k.kat.EvaluatePreReconcile which holds the full resolver chain
+// Delegates to c.cat.EvaluatePreReconcile which holds the full resolver chain
 // (profiles, notes, serve intent) — no duplication of eval logic here.
-func (k *Controller) evaluatePreReconcileCheck(
+func (c *Controller) evaluatePreReconcileCheck(
 	ctx context.Context,
 	obj *unstructured.Unstructured,
 	crdName string,
 	sentinels map[string]string,
 ) (gated bool, reason string) {
-	if k.cat == nil || obj == nil {
+	if c.cat == nil || obj == nil {
 		return false, ""
 	}
-	allowed, reason := k.cat.EvaluatePreReconcile(ctx, crdName, obj, k.kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
+	allowed, reason := c.cat.EvaluatePreReconcile(ctx, crdName, obj, c.kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
 	return !allowed, reason
 }

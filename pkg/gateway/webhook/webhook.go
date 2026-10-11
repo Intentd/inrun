@@ -136,35 +136,35 @@ type certSecretBundle struct {
 // NewWebhookServer constructs a WebhookServer and resolves all declarative
 // webhook behavior from the Catalog and Config. No I/O is performed — Start()
 // activates servers, registration, and reconciliation.
-func NewWebhookServer(kubeClient kubernetes.Interface, kat *catalog.Catalog, kfg *config.Config) *WebhookServer {
-	admissionFailurePolicy := admissionv1FailurePolicyType(kat.WebhooksFailurePolicy())
+func NewWebhookServer(kubeClient kubernetes.Interface, cat *catalog.Catalog, cfg *config.Config) *WebhookServer {
+	admissionFailurePolicy := admissionv1FailurePolicyType(cat.WebhooksFailurePolicy())
 
 	hookReg := WebhookRegistrationOptions{
 		FailurePolicy:       admissionFailurePolicy,
-		Port:                kfg.HTTPSPortInt32(),
-		ServiceName:         kat.WebhooksServiceName(),
-		ServiceNamespace:    kfg.Cluster().Namespace(),
-		TLSCertFile:         kfg.Security().Webhooks.TLSCert,
+		Port:                cfg.HTTPSPortInt32(),
+		ServiceName:         cat.WebhooksServiceName(),
+		ServiceNamespace:    cfg.Cluster().Namespace(),
+		TLSCertFile:         cfg.Security().Webhooks.TLSCert,
 		InrunResourceLabels: labels.InrunResourceLabels(),
 	}
 
-	convWindow := kat.ConversionWindow()
+	convWindow := cat.ConversionWindow()
 
 	ws := &WebhookServer{
 		name:               "webhook server",
 		kubeClient:         kubeClient,
-		catalog:            kat,
-		config:             kfg,
-		httpsPort:          kfg.HTTPSPort(),
-		tlsCert:            kfg.Security().Webhooks.TLSCert,
-		tlsKey:             kfg.Security().Webhooks.TLSKey,
+		catalog:            cat,
+		config:             cfg,
+		httpsPort:          cfg.HTTPSPort(),
+		tlsCert:            cfg.Security().Webhooks.TLSCert,
+		tlsKey:             cfg.Security().Webhooks.TLSKey,
 		hookReg:            hookReg,
-		webhooksEnabled:    kat.IsAdmissionEnabled(),
-		convEnabled:        kat.IsConversionEnabled(),
+		webhooksEnabled:    cat.IsAdmissionEnabled(),
+		convEnabled:        cat.IsConversionEnabled(),
 		conversionWindow:   convWindow,
 		mux:                http.NewServeMux(),
-		conversionRegistry: kat.ConversionRegistry(),
-		admissionRegistry:  kat.AdmissionRegistry(),
+		conversionRegistry: cat.ConversionRegistry(),
+		admissionRegistry:  cat.AdmissionRegistry(),
 		admissionStats:     make(map[string]*health.AdmissionStats),
 		conversionStats:    make(map[string]*health.ConversionStats),
 		protectionStats:    make(map[string]*health.DeletionProtectionStats),
@@ -180,7 +180,7 @@ func NewWebhookServer(kubeClient kubernetes.Interface, kat *catalog.Catalog, kfg
 	// Every CRD gets its own counters so the gateway /catalog can return accurate
 	// per-CRD breakdowns without mixing traffic across resources.
 	// Must use Enabled() — raw Spec.CRDs entries have GroupVersionResource unset.
-	for _, crd := range kat.Enabled() {
+	for _, crd := range cat.Enabled() {
 		gvr := crd.GVR()
 		gvrKey := crdGVRKey(gvr.Group, gvr.Version, gvr.Resource)
 		ws.admissionStats[gvrKey] = health.NewAdmissionStats(convWindow)
@@ -195,13 +195,13 @@ func NewWebhookServer(kubeClient kubernetes.Interface, kat *catalog.Catalog, kfg
 	}
 
 	// Precompute deletion-protection CRD name set.
-	if kat.IsDeletionProtectionEnabled() {
-		ws.protectedCRDNames = kat.DeletionProtectedCRDNames()
+	if cat.IsDeletionProtectionEnabled() {
+		ws.protectedCRDNames = cat.DeletionProtectedCRDNames()
 	}
 
 	// Precompute namespace rule map.
-	if kat.IsNamespaceProtectionEnabled() {
-		rawRules := kat.NamespaceProtectionRuleMap()
+	if cat.IsNamespaceProtectionEnabled() {
+		rawRules := cat.NamespaceProtectionRuleMap()
 		if len(rawRules) > 0 {
 			ws.namespaceRuleMap = make(map[string]*NamespaceRules, len(rawRules))
 			for key, entry := range rawRules {
@@ -320,16 +320,16 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 	ws.ctx, ws.cancel = context.WithCancel(ctx)
 	ws.started.Store(true)
 
-	kat := ws.catalog
+	cat := ws.catalog
 
 	// Resolve protection state from the Catalog.
-	if kat.IsDeletionProtectionEnabled() && kat.DeletionProtectionGVRs() != nil {
+	if cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionGVRs() != nil {
 		ws.deletionProtection.Store(true)
 	}
-	if kat.IsNamespaceProtectionEnabled() && len(kat.NamespaceProtectionGVRs()) > 0 {
+	if cat.IsNamespaceProtectionEnabled() && len(cat.NamespaceProtectionGVRs()) > 0 {
 		ws.namespaceProtection.Store(true)
 	}
-	if kat.IsStrictModeEnabled() && utils.IsRunningInPod() {
+	if cat.IsStrictModeEnabled() && utils.IsRunningInPod() {
 		ws.strictMode.Store(true)
 	}
 
@@ -364,18 +364,18 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 		startHTTPS = true
 		logger.Info().Str("endpoint", "/strict-mode-protection").Msg("strict mode protection endpoint registered")
 	}
-	if kat.HasConversionPaths() {
+	if cat.HasConversionPaths() {
 		ws.mux.HandleFunc("/convert", ws.conversionHandler)
 		startHTTPS = true
 		logger.Info().Str("endpoint", "/convert").Msg("conversion webhook endpoint registered")
 	}
-	if kat.HasValidationRules() {
+	if cat.HasValidationRules() {
 		ws.mux.HandleFunc("/validate", ws.validationHandler)
 		admissionRuleExists = true
 		startHTTPS = true
 		logger.Info().Str("endpoint", "/validate").Msg("validation endpoint registered")
 	}
-	if kat.HasMutationRules() {
+	if cat.HasMutationRules() {
 		ws.mux.HandleFunc("/mutate", ws.mutationHandler)
 		admissionRuleExists = true
 		startHTTPS = true
@@ -384,7 +384,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 
 	// Start the housekeeper before the HTTPS gate — it manages token secrets and cert
 	// rotation regardless of whether any webhook endpoints are active.
-	if kat.IsHousekeeperEnabled() {
+	if cat.IsHousekeeperEnabled() {
 		if err := ws.housekeeper(ws.ctx); err != nil {
 			logger.Error().Err(err).Msg("housekeeper failed to start")
 		}
@@ -440,7 +440,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 			wctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			dpGVRs := kat.DeletionProtectionGVRs()
+			dpGVRs := cat.DeletionProtectionGVRs()
 			if len(dpGVRs) == 0 {
 				logger.Info().Msg("deletion protection: no GVRs — webhook not registered")
 				return
@@ -470,7 +470,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 			wctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			npGVRs := kat.NamespaceProtectionGVRs()
+			npGVRs := cat.NamespaceProtectionGVRs()
 			if len(npGVRs) == 0 {
 				logger.Info().Msg("namespace protection: no GVRs — webhook not registered")
 				return
@@ -482,8 +482,8 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 				return
 			}
 
-			svcName := kat.NamespaceProtectionServiceName()
-			failurePolicy := kat.NamespaceProtectionFailurePolicy()
+			svcName := cat.NamespaceProtectionServiceName()
+			failurePolicy := cat.NamespaceProtectionFailurePolicy()
 			if err := registerNamespaceProtectionWebhook(wctx, ws.kubeClient, npGVRs, caBundle, ws.hookReg, svcName, failurePolicy); err != nil {
 				logger.Error().Err(err).Msg("namespace protection webhook registration failed")
 			} else {
@@ -535,22 +535,22 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 		logger.Error().Err(err).Msg("webhook HTTPS server shutdown error")
 	}
 
-	kat := ws.catalog
+	cat := ws.catalog
 
 	// Cleanup admission webhook.
 	cleanupOpts := WebhookCleanupOptions{}
-	if kat.HasMutationRules() {
-		cleanupOpts.mutating = kat.WebhookCleanupOnShutdown()
+	if cat.HasMutationRules() {
+		cleanupOpts.mutating = cat.WebhookCleanupOnShutdown()
 	}
-	if kat.HasValidationRules() {
-		cleanupOpts.validating = kat.WebhookCleanupOnShutdown()
+	if cat.HasValidationRules() {
+		cleanupOpts.validating = cat.WebhookCleanupOnShutdown()
 	}
 	if err := UnregisterAdmissionWebhooks(ctx, ws.kubeClient, cleanupOpts); err != nil {
 		logger.Error().Err(err).Msg("webhook cleanup error")
 	}
 
 	// Cleanup deletion-protection webhook.
-	if kat.IsDeletionProtectionEnabled() && kat.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
+	if cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
 		if err := cleanupValidatingWebhook(ctx, ws.kubeClient, deletionProtectionWebhookConfigName); err != nil {
 			logger.Error().Err(err).Msg("deletion protection webhook cleanup error")
 		} else {
@@ -559,7 +559,7 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 	}
 
 	// Cleanup namespace-protection webhook.
-	if kat.IsNamespaceProtectionEnabled() && kat.NamespaceProtectionCleanupOnShutdown() && ws.kubeClient != nil {
+	if cat.IsNamespaceProtectionEnabled() && cat.NamespaceProtectionCleanupOnShutdown() && ws.kubeClient != nil {
 		if err := cleanupValidatingWebhook(ctx, ws.kubeClient, namespaceProtectionWebhookConfigName); err != nil {
 			logger.Error().Err(err).Msg("namespace protection webhook cleanup error")
 		} else {
@@ -571,7 +571,7 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 	// Strict mode cleanup mirrors deletion protection: only clean up when the
 	// parent deletionProtection.cleanupOnShutdown is set, since strict mode is
 	// a sub-feature of deletion protection.
-	if kat.IsStrictModeEnabled() && kat.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
+	if cat.IsStrictModeEnabled() && cat.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
 		if err := cleanupValidatingWebhook(ctx, ws.kubeClient, strictModeProtectionWebhookConfigName); err != nil {
 			logger.Error().Err(err).Msg("strict mode protection webhook cleanup error")
 		} else {
@@ -581,9 +581,9 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 
 	// Cleanup the TLS secret when auto-generated certs and cleanup is enabled.
 	shouldCleanupTLS :=
-		kat.WebhookCleanupOnShutdown() ||
-			kat.NamespaceProtectionCleanupOnShutdown() ||
-			kat.DeletionProtectionCleanupOnShutdown()
+		cat.WebhookCleanupOnShutdown() ||
+			cat.NamespaceProtectionCleanupOnShutdown() ||
+			cat.DeletionProtectionCleanupOnShutdown()
 
 	if ws.certMgr != nil && shouldCleanupTLS && ws.config != nil {
 		ns := ws.config.Cluster().Namespace()

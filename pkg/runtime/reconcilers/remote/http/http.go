@@ -15,8 +15,8 @@ import (
 
 const defaultRemoteTimeout = 30 * time.Second
 
-// Reconciler implements domain.Reconciler by POSTing a PreparedRequest
-// to a remote HTTP endpoint. The remote service owns the reconcile logic;
+// Reconciler implements domain.Reconciler by POSTing the request body
+// (see remoteRequest) to a remote HTTP endpoint. The remote service owns the reconcile logic;
 // Inrun owns the queue, backoff, informer, health, and metrics.
 type Reconciler struct {
 	decl             *types.RemoteReconcilerDeclaration

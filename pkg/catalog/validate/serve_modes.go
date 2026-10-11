@@ -13,7 +13,7 @@ import "fmt"
 // existing Catalogs. This validation ensures the API surface is coherent and
 // that the platform team's intent is reflected in the configuration.
 func (e *executor) validateServeModes() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.ServeEnabled() {
 			continue
 		}

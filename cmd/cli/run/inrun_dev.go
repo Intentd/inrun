@@ -79,8 +79,8 @@ func runDev(cmd *cobra.Command, args []string) error {
 
 	// Run the runtime. Once its Catalog is built, start the console, and the
 	// gateway when the Catalog serves.
-	internal.RunRuntime(cmdutil.Kfg, m, cmdutil.Ctx, func(kat *catalog.Catalog) {
-		companions.Start(cmdutil.Ctx, cmdutil.Kfg, paths, kat)
+	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx, func(cat *catalog.Catalog) {
+		companions.Start(cmdutil.Ctx, cmdutil.Cfg, paths, cat)
 	})
 	return nil
 }

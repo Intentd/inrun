@@ -33,15 +33,15 @@ func printVersion() {
 }
 
 func main() {
-	kfg := web.NewConsoleConfig()
+	cfg := web.NewConsoleConfig()
 
 	// Parse flags
 	var (
-		inrunURLs     = flag.String("u", strings.Join(kfg.URLs, ","), "Comma-separated URLs of Inrun runtime instances")
-		ignoreDefault = flag.Bool("ignore-default", kfg.IgnoreDefault, "Do not add the default localhost:8080 URL; start with no instances")
-		port          = flag.String("p", kfg.Port, "Port to serve the console on")
-		refresh       = flag.Duration("refresh", kfg.RefreshInterval, "Refresh interval for fetching Catalogs")
-		logLevel      = flag.String("log-level", kfg.LogLevel, "Log level (debug, info, warn, error)")
+		inrunURLs     = flag.String("u", strings.Join(cfg.URLs, ","), "Comma-separated URLs of Inrun runtime instances")
+		ignoreDefault = flag.Bool("ignore-default", cfg.IgnoreDefault, "Do not add the default localhost:8080 URL; start with no instances")
+		port          = flag.String("p", cfg.Port, "Port to serve the console on")
+		refresh       = flag.Duration("refresh", cfg.RefreshInterval, "Refresh interval for fetching Catalogs")
+		logLevel      = flag.String("log-level", cfg.LogLevel, "Log level (debug, info, warn, error)")
 		showVersion   = flag.Bool("version", false, "Show version information")
 	)
 
@@ -68,9 +68,9 @@ func main() {
 		RefreshInterval:      *refresh,
 		LogLevel:             *logLevel,
 		Version:              version,
-		EnableRuntimeManager: kfg.EnableRuntimeManager,
-		NoLogin:              kfg.NoLogin,
-		GatewayToken:         kfg.GatewayToken,
+		EnableRuntimeManager: cfg.EnableRuntimeManager,
+		NoLogin:              cfg.NoLogin,
+		GatewayToken:         cfg.GatewayToken,
 	})
 
 	// Setup routes

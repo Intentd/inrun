@@ -105,8 +105,8 @@ func noopNotes() types.NoteRegistry { return types.NoteRegistry{} }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestSchemaHandler(t *testing.T) {
-	kat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	handler := ExportedSchemaHandler(kat)
+	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	handler := ExportedSchemaHandler(cat)
 
 	t.Run("method not allowed", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/api/v1/schema/", nil)
@@ -156,8 +156,8 @@ func TestSchemaHandler(t *testing.T) {
 	})
 
 	t.Run("permission denied on restricted CRD", func(t *testing.T) {
-		kat2 := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
-		h2 := ExportedSchemaHandler(kat2)
+		cat2 := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
+		h2 := ExportedSchemaHandler(cat2)
 
 		// ci-pipeline has schema:get — allowed
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/schema/?target=app", nil)
@@ -188,10 +188,10 @@ func TestSchemaHandler(t *testing.T) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestResourcesHandler_Routing(t *testing.T) {
-	kat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
 
 	t.Run("method not allowed", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, kat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
 		r := httptest.NewRequest(http.MethodPut, "/api/v1/resources/app/default/x", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -200,7 +200,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("bad path — only one segment", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, kat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/resources/onlyone", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -209,7 +209,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("unknown kind returns 404", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, kat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/resources/unknown/default", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -218,7 +218,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("DELETE without name returns 400", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, kat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
 		r := httptest.NewRequest(http.MethodDelete, "/api/v1/resources/app/default", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -228,7 +228,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 }
 
 func TestResourcesHandler_Permissions(t *testing.T) {
-	kat := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
+	cat := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
 
 	// The fake dynamic client needs its List kind registered for any GVR it
 	// will List() — "coding error" panic otherwise, not a graceful error.
@@ -238,7 +238,7 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 	scheme.AddKnownTypeWithName(appGVK.GroupVersion().WithKind("AppList"), &unstructured.UnstructuredList{})
 
 	kube := simulate.NewFakeKubeclient(scheme)
-	h := ExportedResourcesHandler(kube, kat, types.NoteRegistry{})
+	h := ExportedResourcesHandler(kube, cat, types.NoteRegistry{})
 
 	cases := []struct {
 		name     string
@@ -283,8 +283,8 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestApplyHandler_Format(t *testing.T) {
-	kat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	h := ExportedApplyHandler(nil, kat, types.NoteRegistry{})
+	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	h := ExportedApplyHandler(nil, cat, types.NoteRegistry{})
 
 	t.Run("method not allowed", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/apply", nil)
@@ -387,13 +387,13 @@ func TestApplyHandler_Format(t *testing.T) {
 }
 
 func TestApplyHandler_Permissions(t *testing.T) {
-	kat := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
+	cat := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
 	// Real fake client, not nil — the permission check probes
 	// kube.DynamicClient() to distinguish create vs update before deciding
 	// whether the token is allowed, even for a token that will be denied
 	// outright regardless of operation.
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
-	h := ExportedApplyHandler(kube, kat, types.NoteRegistry{})
+	h := ExportedApplyHandler(kube, cat, types.NoteRegistry{})
 
 	t.Run("unknown token denied before SSA", func(t *testing.T) {
 		r := postJSON(t, "/api/v1/apply", map[string]interface{}{

@@ -27,22 +27,22 @@ func depEntry(name string, deps ...string) types.CRDEntry {
 }
 
 func TestDetectCycles_TwoNodeCycle(t *testing.T) {
-	k := catalog.NewCatalogForTest(crdMapForCycle(depEntry("a", "b"), depEntry("b", "a")))
-	if err := DetectCycles(k); err == nil {
+	cat := catalog.NewCatalogForTest(crdMapForCycle(depEntry("a", "b"), depEntry("b", "a")))
+	if err := DetectCycles(cat); err == nil {
 		t.Error("expected cycle detection error for a ↔ b cycle")
 	}
 }
 
 func TestDetectCycles_ThreeNodeCycle(t *testing.T) {
-	k := catalog.NewCatalogForTest(crdMapForCycle(depEntry("a", "c"), depEntry("b", "a"), depEntry("c", "b")))
-	if err := DetectCycles(k); err == nil {
+	cat := catalog.NewCatalogForTest(crdMapForCycle(depEntry("a", "c"), depEntry("b", "a"), depEntry("c", "b")))
+	if err := DetectCycles(cat); err == nil {
 		t.Error("expected cycle detection error for a → c → b → a cycle")
 	}
 }
 
 func TestDetectCycles_NoCycle(t *testing.T) {
-	k := catalog.NewCatalogForTest(crdMapForCycle(depEntry("a"), depEntry("b", "a"), depEntry("c", "b")))
-	if err := DetectCycles(k); err != nil {
+	cat := catalog.NewCatalogForTest(crdMapForCycle(depEntry("a"), depEntry("b", "a"), depEntry("c", "b")))
+	if err := DetectCycles(cat); err != nil {
 		t.Errorf("expected no error for acyclic graph, got %v", err)
 	}
 }

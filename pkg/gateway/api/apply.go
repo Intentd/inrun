@@ -150,11 +150,11 @@ func scopedDynamic(kube kubeclient.Interface, capture *warningCapture) dynamic.I
 func applyHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 ) http.HandlerFunc {
 	var notes types.NoteRegistry
-	if !kat.Empty() {
-		notes = kat.UserNotes()
+	if !cat.Empty() {
+		notes = cat.UserNotes()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -205,13 +205,13 @@ func applyHandler(
 				return
 			}
 
-			resolution := kat.LookupByTargetOrAlias(target)
+			resolution := cat.LookupByTargetOrAlias(target)
 			if resolution == nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: fmt.Sprintf(
 						"unknown target %q — available: %s",
 						target,
-						strings.Join(kat.AvailableTargets(), ", "),
+						strings.Join(cat.AvailableTargets(), ", "),
 					),
 				})
 				return
@@ -259,7 +259,7 @@ func applyHandler(
 				return
 			}
 
-			crd = kat.LookupByKind(full.GetKind()).Entry()
+			crd = cat.LookupByKind(full.GetKind()).Entry()
 			if crd == nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: fmt.Sprintf("unknown kind %q", full.GetKind()),

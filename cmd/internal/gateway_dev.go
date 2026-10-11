@@ -32,39 +32,39 @@ import (
 // omitted. The Gateway API (POST /api/v1/apply, GET /api/v1/resources/, etc.)
 // and intake webhooks run on the plain HTTP health port — identical to the
 // in-cluster API surface, with no certificate setup required.
-func RunGatewayDev(kfg *config.Config, m *merger.Merger, ctx context.Context) {
+func RunGatewayDev(cfg *config.Config, m *merger.Merger, ctx context.Context) {
 
 	// ── 1. Instance + Catalog ─────────────────────────────────────────────────
-	kfg.SetInstance(config.Gateway())
+	cfg.SetInstance(config.Gateway())
 
-	kat := pipeline.NewCatalog(kfg, m)
+	cat := pipeline.NewCatalog(cfg, m)
 
-	if registryURL := kfg.RegistryConfig().RegistryURL; registryURL != "" {
+	if registryURL := cfg.RegistryConfig().RegistryURL; registryURL != "" {
 		m.SetRegistryURL(registryURL)
 		logger.Info().Str("registry", registryURL).Msg("registry URL configured from INRUN_REGISTRY")
 	}
 
 	// ── 2. Scheme + Kubeclient ────────────────────────────────────────────────
-	scheme, err := catalog.NewSchemeRegistry(kat)
+	scheme, err := catalog.NewSchemeRegistry(cat)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to build scheme registry")
 	}
 
-	kube := kubeclient.NewKubeclient(kfg, scheme)
+	kube := kubeclient.NewKubeclient(cfg, scheme)
 	if err := kube.Start(ctx); err != nil {
 		logger.Fatal().Err(err).Msg("failed to start kubeclient")
 	}
 
 	// ── 3. HealthServer — HTTP ────────────────────────────────────────────────
-	hs := health.NewHealthServer(kfg)
+	hs := health.NewHealthServer(cfg)
 
 	// ── 4. Gateway API ────────────────────────────────────────────────────────
-	clusters, clustersErr := apigateway.BuildClusterRegistry(ctx, kat, kube, kfg.Cluster().Namespace())
+	clusters, clustersErr := apigateway.BuildClusterRegistry(ctx, cat, kube, cfg.Cluster().Namespace())
 	if clustersErr != nil {
 		logger.Fatal().Err(clustersErr).Msg("gateway cluster registry setup failed")
 	}
 
-	api, apiErr := apigateway.NewAPIServer(ctx, kat, kube, clusters, kfg.Cluster().Namespace())
+	api, apiErr := apigateway.NewAPIServer(ctx, cat, kube, clusters, cfg.Cluster().Namespace())
 	if apiErr != nil {
 		logger.Fatal().Err(apiErr).Msg("gateway API setup failed")
 	}
@@ -77,9 +77,9 @@ func RunGatewayDev(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 	components := []domain.Component{hs, kube}
 
 	o := process.New(
-		kfg.RunningInstance(),
-		kfg.Catalog().ShutdownGracePeriod(),
-		kfg.Inrun().LogLevel(),
+		cfg.RunningInstance(),
+		cfg.Catalog().ShutdownGracePeriod(),
+		cfg.Inrun().LogLevel(),
 	)
 	o.Register(components)
 

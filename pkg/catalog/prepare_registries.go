@@ -9,8 +9,8 @@ import (
 
 // ---------------------------------------------------------------------------------
 // Add consstructors
-func (k *Catalog) AddConstructors() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddConstructors() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.IsDynamic() {
 			if crd.DefaultReconcile() {
 				// Per-target constructors (reconcile.default: false on a target)
@@ -20,7 +20,7 @@ func (k *Catalog) AddConstructors() error {
 
 			// Remote reconciler: no compiled constructor — dispatched by coordinator at runtime.
 			if crd.WithRemoteDecl() {
-				k.enabledCRDs[name] = crd
+				c.enabledCRDs[name] = crd
 				continue
 			}
 
@@ -39,15 +39,15 @@ func (k *Catalog) AddConstructors() error {
 			crd.Box().Reconcile.Constructor = constructorFn
 		}
 
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
 
 // ---------------------------------------------------------------------------------
 // Add hooks
-func (k *Catalog) AddHooks() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddHooks() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.DefaultReconcile() {
 			continue
 		}
@@ -60,7 +60,7 @@ func (k *Catalog) AddHooks() error {
 		}
 
 		if !crd.HasServeTargetEntries() {
-			k.enabledCRDs[name] = crd
+			c.enabledCRDs[name] = crd
 			continue
 		}
 
@@ -94,7 +94,7 @@ func (k *Catalog) AddHooks() error {
 			}
 		}
 
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
@@ -105,8 +105,8 @@ func (k *Catalog) AddHooks() error {
 // (different location from the CRD-level hooks) need an entry here — targets that
 // share the CRD-level binary and only override args are handled at reconcile time
 // by mergeReconcilerConfig inside EffectiveOperatorBox.
-func (k *Catalog) AddTargetHooks() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddTargetHooks() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.HasServeTargetEntries() {
 			continue
 		}
@@ -144,15 +144,15 @@ func (k *Catalog) AddTargetHooks() error {
 			}
 			crd.TargetHookFactories[targetName] = fn
 		}
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }
 
 // AddTargetConstructors wires per-target constructor factories from
 // TargetReconcilerRegistry onto CRDEntry.TargetReconcilerFactories.
-func (k *Catalog) AddTargetConstructors() error {
-	for name, crd := range k.enabledCRDs {
+func (c *Catalog) AddTargetConstructors() error {
+	for name, crd := range c.enabledCRDs {
 		if !crd.HasServeTargetEntries() {
 			continue
 		}
@@ -186,7 +186,7 @@ func (k *Catalog) AddTargetConstructors() error {
 			}
 			crd.TargetReconcilerFactories[targetName] = fn
 		}
-		k.enabledCRDs[name] = crd
+		c.enabledCRDs[name] = crd
 	}
 	return nil
 }

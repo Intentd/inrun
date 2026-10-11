@@ -46,7 +46,7 @@ func (e *executor) validateUniqueness() error {
 func (e *executor) validateGVKUniqueness() error {
 	seen := make(map[string]string) // key -> name
 
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		key := fmt.Sprintf("%s/%s/%s", crd.APITypes.Group, crd.APITypes.Version, crd.APITypes.Kind)
 
 		if existing, ok := seen[key]; ok {
@@ -67,12 +67,12 @@ func (e *executor) validateGVKUniqueness() error {
 // -----------------------------------------------------------------------------
 
 func (e *executor) validateDependsOn() error {
-	exists := make(map[string]bool, e.k.Len())
-	for name := range e.k.EnabledCRDs() {
+	exists := make(map[string]bool, e.cat.Len())
+	for name := range e.cat.EnabledCRDs() {
 		exists[name] = true
 	}
 
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		for dep := range crd.DependsOn {
 			if dep == name {
 				return fmt.Errorf("CRD '%s' cannot depend on itself", name)
@@ -91,8 +91,8 @@ func (e *executor) validateDependsOn() error {
 // -----------------------------------------------------------------------------
 
 func (e *executor) detectDependencyCycles() error {
-	graph := make(map[string][]string, e.k.Len())
-	for name, crd := range e.k.EnabledCRDs() {
+	graph := make(map[string][]string, e.cat.Len())
+	for name, crd := range e.cat.EnabledCRDs() {
 		graph[name] = crd.DependsOn.Names()
 	}
 
@@ -136,7 +136,7 @@ func (e *executor) detectDependencyCycles() error {
 // Called once during Catalog loading — flags are set once, checked cheaply
 // in the hot reconcile path.
 func (e *executor) validateStatus() {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		// Look up by Kind directly — avoids GVK string format mismatch.
 		// children.BuiltInMeta returns zero value for unknown kinds (safe).
 		meta := children.BuiltInMeta(crd.APITypes.Kind)
@@ -153,14 +153,14 @@ func (e *executor) validateStatus() {
 			}
 		}
 
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 }
 
 // validateAutoscalerMetrics ensures only supported metrics.* fields are used.
 // This is a fail-fast mechanism to avoid runtime errors.
 func (e *executor) validateAutoscalerMetrics() error {
-	for _, crd := range e.k.EnabledCRDs() {
+	for _, crd := range e.cat.EnabledCRDs() {
 		if !crd.AutoscaleEnabled() {
 			continue
 		}
@@ -191,7 +191,7 @@ func (e *executor) validateAutoscalerMetrics() error {
 // validateNamespaceProtection enforces that each CRD declares either
 // allowedNamespaces or restrictedNamespaces, but not both.
 func (e *executor) validateNamespaceProtection() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		if !crd.IsNamespaced() || !crd.HasNamespaceRules() {
 			continue
 		}
@@ -211,7 +211,7 @@ func (e *executor) validateNamespaceProtection() error {
 // validateTimeDuration validates all rotation-related duration fields
 // across all enabled CRDs.
 func (e *executor) validateTimeDuration() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasAnyHookTemplates() {
 			continue
 		}
@@ -276,7 +276,7 @@ func durationError(crdName, secretName, field, value string, err error) error {
 
 // validateHPAReference ensures that every HPA declaration has a valid ScaleTargetRef.
 func (e *executor) validateHPAReference() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasAnyHookTemplates() || !crd.HasAnyHPA() {
 			continue
 		}

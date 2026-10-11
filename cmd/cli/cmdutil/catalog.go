@@ -74,12 +74,12 @@ func GenerateCatalog(cmd *cobra.Command) (*MergerOut, error) {
 		return nil, err
 	}
 
-	var kat catalog.Catalog
-	kat.Spec = m.ToSpec()
+	var cat catalog.Catalog
+	cat.Spec = m.ToSpec()
 
 	// Fill apiTypes from crdFile, as the pipeline does, so generators see a
 	// fully specified CRD. The merger has already made crdFile absolute.
-	crdMap := kat.Spec.CRDs
+	crdMap := cat.Spec.CRDs
 	if err := resolveCRDFiles(crdMap); err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func GenerateCatalog(cmd *cobra.Command) (*MergerOut, error) {
 	return &MergerOut{
 		Merger:  m,
 		CRDs:    crds,
-		Catalog: &kat,
+		Catalog: &cat,
 		Paths:   catalogPaths,
 		Enabled: enabled,
 	}, nil
@@ -125,5 +125,5 @@ func BuildCatalog(cmd *cobra.Command) (*catalog.Catalog, error) {
 	if err != nil {
 		return nil, fmt.Errorf("generating Catalog: %w", err)
 	}
-	return pipeline.BuildExpanded(Kfg, m.Merger)
+	return pipeline.BuildExpanded(Cfg, m.Merger)
 }

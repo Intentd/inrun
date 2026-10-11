@@ -47,14 +47,14 @@ type Result struct {
 // When k is non-nil, ClusterRole rules are derived from the catalog's serve-enabled CRDs.
 // When k is nil, rules are taken from entry.Rules. If both are absent, ClusterRole and
 // ClusterRoleBinding are skipped — only the SA and token Secret are provisioned.
-func Cluster(ctx context.Context, k *catalog.Catalog, entry ClusterEntry, opts RunOptions, log func(string)) (*Result, error) {
+func Cluster(ctx context.Context, cat *catalog.Catalog, entry ClusterEntry, opts RunOptions, log func(string)) (*Result, error) {
 	if opts.Namespace == "" {
 		opts.Namespace = "default"
 	}
 
 	var rules []rbacv1.PolicyRule
-	if k != nil {
-		rules = buildClusterRoleRules(k)
+	if cat != nil {
+		rules = buildClusterRoleRules(cat)
 	} else {
 		rules = entry.Rules
 	}
@@ -149,12 +149,12 @@ func connectGateway() (kubernetes.Interface, error) {
 	return cs, nil
 }
 
-func buildClusterRoleRules(k *catalog.Catalog) []rbacv1.PolicyRule {
+func buildClusterRoleRules(cat *catalog.Catalog) []rbacv1.PolicyRule {
 	type groupEntry struct{ resources []string }
 	groups := map[string]*groupEntry{}
 	verbs := []string{"get", "list", "watch", "create", "update", "patch", "delete"}
 
-	for _, crd := range k.ServeEnabledCRDs() {
+	for _, crd := range cat.ServeEnabledCRDs() {
 		gvr := crd.GVR()
 		if groups[gvr.Group] == nil {
 			groups[gvr.Group] = &groupEntry{}

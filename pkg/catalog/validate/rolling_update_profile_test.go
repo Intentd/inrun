@@ -23,83 +23,83 @@ func catalogWithDeployment(crdName string, deps ...types.DeploymentTemplateSourc
 }
 
 func TestValidateRollingUpdateProfiles_NoCRDs(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	e := newCatalogExec(map[string]types.CRDEntry{})
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }
 
 func TestValidateRollingUpdateProfiles_NoProfile(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{Name: "deploy"})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{Name: "deploy"})
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }
 
 func TestValidateRollingUpdateProfiles_ValidProfile_Safe(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		Name:          "deploy",
 		RollingUpdate: &types.RollingUpdateBehavior{Profile: "safe"},
 	})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }
 
 func TestValidateRollingUpdateProfiles_ValidProfile_Fast(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		RollingUpdate: &types.RollingUpdateBehavior{Profile: "fast"},
 	})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }
 
 func TestValidateRollingUpdateProfiles_ValidProfile_BlueGreen(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		RollingUpdate: &types.RollingUpdateBehavior{Profile: "blue-green"},
 	})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }
 
 func TestValidateRollingUpdateProfiles_UnknownProfile(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		Name:          "deploy",
 		RollingUpdate: &types.RollingUpdateBehavior{Profile: "canary"},
 	})
-	err := k.validateRollingUpdateProfiles()
+	err := e.validateRollingUpdateProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown")
 	assert.Contains(t, err.Error(), "canary")
 }
 
 func TestValidateRollingUpdateProfiles_MixedWithMaxSurge(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		Name: "deploy",
 		RollingUpdate: &types.RollingUpdateBehavior{
 			Profile:  "safe",
 			MaxSurge: "1",
 		},
 	})
-	err := k.validateRollingUpdateProfiles()
+	err := e.validateRollingUpdateProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "maxSurge/maxUnavailable")
 }
 
 func TestValidateRollingUpdateProfiles_MixedWithMaxUnavailable(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		Name: "deploy",
 		RollingUpdate: &types.RollingUpdateBehavior{
 			Profile:        "fast",
 			MaxUnavailable: "0",
 		},
 	})
-	err := k.validateRollingUpdateProfiles()
+	err := e.validateRollingUpdateProfiles()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "maxSurge/maxUnavailable")
 }
 
 func TestValidateRollingUpdateProfiles_TemplateExprSkipped(t *testing.T) {
-	k := catalogWithDeployment("app", types.DeploymentTemplateSource{
+	e := catalogWithDeployment("app", types.DeploymentTemplateSource{
 		RollingUpdate: &types.RollingUpdateBehavior{Profile: "{{ .Spec.RollingProfile }}"},
 	})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }
 
 func TestValidateRollingUpdateProfiles_StatefulSet(t *testing.T) {
-	k := newCatalogExec(map[string]types.CRDEntry{
+	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {
 			OperatorBox: &types.OperatorBoxConfig{
 				Reconcile: &types.ReconcileConfig{
@@ -112,5 +112,5 @@ func TestValidateRollingUpdateProfiles_StatefulSet(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateRollingUpdateProfiles())
+	assert.NoError(t, e.validateRollingUpdateProfiles())
 }

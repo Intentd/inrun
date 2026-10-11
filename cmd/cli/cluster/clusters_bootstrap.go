@@ -68,12 +68,12 @@ Examples:
 			SANamespace: saNamespace,
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
 
-		return runBootstrapSingle(cmd.Context(), k, entry, opts)
+		return runBootstrapSingle(cmd.Context(), cat, entry, opts)
 	},
 }
 
@@ -128,7 +128,7 @@ func runBootstrapConfig(cmd *cobra.Command, path, outPath string, opts bootstrap
 }
 
 // runBootstrapSingleResult is the result-returning variant used by runBootstrapConfig.
-func runBootstrapSingleResult(ctx context.Context, k *catalog.Catalog, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) (*bootstrap.Result, error) {
+func runBootstrapSingleResult(ctx context.Context, cat *catalog.Catalog, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) (*bootstrap.Result, error) {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters bootstrap\n", cmdutil.Bold("⎈"))
 	fmt.Printf("  %s cluster name:   %s\n", cmdutil.Gray("→"), cmdutil.Bold(entry.Name))
@@ -140,7 +140,7 @@ func runBootstrapSingleResult(ctx context.Context, k *catalog.Catalog, entry boo
 	}
 	fmt.Println()
 
-	result, err := bootstrap.Cluster(ctx, k, entry, opts, func(msg string) {
+	result, err := bootstrap.Cluster(ctx, cat, entry, opts, func(msg string) {
 		fmt.Printf("   %s %s\n", cmdutil.SuccessMark(), msg)
 	})
 	if err != nil {
@@ -163,7 +163,7 @@ func runBootstrapSingleResult(ctx context.Context, k *catalog.Catalog, entry boo
 }
 
 // runBootstrapSingle bootstraps one cluster entry and prints the appropriate output.
-func runBootstrapSingle(ctx context.Context, k *catalog.Catalog, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) error {
+func runBootstrapSingle(ctx context.Context, cat *catalog.Catalog, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters bootstrap\n", cmdutil.Bold("⎈"))
 	fmt.Printf("  %s cluster name:   %s\n", cmdutil.Gray("→"), cmdutil.Bold(entry.Name))
@@ -175,7 +175,7 @@ func runBootstrapSingle(ctx context.Context, k *catalog.Catalog, entry bootstrap
 	}
 	fmt.Println()
 
-	result, err := bootstrap.Cluster(ctx, k, entry, opts, func(msg string) {
+	result, err := bootstrap.Cluster(ctx, cat, entry, opts, func(msg string) {
 		fmt.Printf("   %s %s\n", cmdutil.SuccessMark(), msg)
 	})
 	if err != nil {

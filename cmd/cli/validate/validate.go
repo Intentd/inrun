@@ -98,7 +98,7 @@ Examples:
 		}
 		spin.Stop()
 
-		k, err := pipeline.BuildExpanded(cmdutil.Kfg, m.Merger)
+		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m.Merger)
 		if err != nil {
 			var typedErr *catalog.TypedOperatorError
 			if errors.As(err, &typedErr) {
@@ -106,14 +106,14 @@ Examples:
 			}
 			return err
 		}
-		entries := k.EnabledCRDs()
+		entries := cat.EnabledCRDs()
 
 		kindLabel := "Catalog"
 		if config.IsStackKind(docKind) {
 			kindLabel = "Stack"
 		}
 
-		if k.IsStandaloneGateway() {
+		if cat.IsStandaloneGateway() {
 			kindLabel = "Gateway Standalone"
 		}
 
@@ -124,17 +124,17 @@ Examples:
 		// --notes / --profiles: quiet mode — skip full validate output, print only that registry.
 		if showNotes || showProfiles {
 			if showNotes {
-				printValidateNotes(k.Notes)
+				printValidateNotes(cat.Notes)
 			}
 			if showProfiles {
-				printValidateProfiles(k.Profiles)
+				printValidateProfiles(cat.Profiles)
 			}
 			return nil
 		}
 
 		var perCRDPerms map[string][]rbacv1.PolicyRule
 		if full {
-			perCRDPerms = k.GeneratePerCRDRBACRules()
+			perCRDPerms = cat.GeneratePerCRDRBACRules()
 		}
 
 		// Sort entries by name for stable output across runs.
@@ -157,11 +157,11 @@ Examples:
 		if config.IsStackKind(docKind) {
 			deprecationHint = "To acknowledge this import, add it to lifecycle.accept.patterns in your Stack."
 		}
-		cmdutil.PrintCatalogDeprecationWithHint(k.Deprecation(), deprecationHint)
+		cmdutil.PrintCatalogDeprecationWithHint(cat.Deprecation(), deprecationHint)
 
 		// Print each CRD entry with enrichment info
 		for _, entry := range sortedEntries {
-			printCRDValidationLine(k, entry)
+			printCRDValidationLine(cat, entry)
 			if full {
 				printCRDPermissions(perCRDPerms[entry.Name])
 				printCRDProfiles(entry)
@@ -184,23 +184,23 @@ Examples:
 		fmt.Println(strings.Repeat("─", 60))
 		fmt.Printf("%d %s valid (%d built-in, %d custom)\n", len(entries), crdText, builtIn, custom)
 
-		for _, w := range k.CronConditionWarnings() {
+		for _, w := range cat.CronConditionWarnings() {
 			fmt.Printf("\n%s  %s\n", cmdutil.Yellow("⚠"), w)
 		}
 
 		if full {
-			if dd := k.DependencyDisplayData(); dd != nil {
+			if dd := cat.DependencyDisplayData(); dd != nil {
 				printValidateDependencyGraph(dd)
 			}
-			printRuntimePermissionsSection(k.GenerateRuntimeRBACRules())
-			printGatewayPermissionsSection(k.GenerateGatewayRBACRules())
+			printRuntimePermissionsSection(cat.GenerateRuntimeRBACRules())
+			printGatewayPermissionsSection(cat.GenerateGatewayRBACRules())
 			printRuntimeContext()
 			fmt.Println()
 		}
 
 		// Always print non-empty registries inline.
-		printValidateNotes(k.Notes)
-		printValidateProfiles(k.Profiles)
+		printValidateNotes(cat.Notes)
+		printValidateProfiles(cat.Profiles)
 
 		return nil
 	},

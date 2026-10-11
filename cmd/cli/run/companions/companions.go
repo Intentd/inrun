@@ -22,24 +22,24 @@ import (
 // companion that cannot start is logged and skipped. A signal that stops inrun
 // is passed on, so the children stop with it.
 //
-// paths are the Catalogs the gateway loads; kfg is the runtime's config, which
+// paths are the Catalogs the gateway loads; cfg is the runtime's config, which
 // advertises the gateway to the console.
-func Start(ctx context.Context, kfg *config.Config, paths []string, kat *catalog.Catalog) {
+func Start(ctx context.Context, cfg *config.Config, paths []string, cat *catalog.Catalog) {
 	var children []*exec.Cmd
 
-	if kat.HasServeEnabled() {
+	if cat.HasServeEnabled() {
 		cmd, url, err := startGateway(ctx, paths)
 		if err != nil {
 			logger.Warn().Err(err).Msg("gateway not started")
 		} else {
 			children = append(children, cmd)
 			// The runtime's /catalog advertises it, so the console finds it.
-			kfg.SetGatewayEndpoint(url)
+			cfg.SetGatewayEndpoint(url)
 		}
 	}
 
 	// The console finds the gateway through the runtime's /catalog.
-	cmd, err := startConsole(ctx, "http://localhost:"+kfg.Health().Port())
+	cmd, err := startConsole(ctx, "http://localhost:"+cfg.Health().Port())
 	if err != nil {
 		logger.Warn().Err(err).Msg("console not started")
 	} else {

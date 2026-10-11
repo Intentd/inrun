@@ -128,8 +128,8 @@ func ShadowGlobalCommandFlags(cmd *cobra.Command, flags ...string) {
 
 // PrintTemplateSummary prints the human-readable default output of `inrun template`.
 // CRDs are listed in startup order so the user sees the dependency sequence.
-func PrintTemplateSummary(k *catalog.Catalog, crds map[string]types.CRDEntry, startupOrder []string) {
-	meta := k.Metadata()
+func PrintTemplateSummary(cat *catalog.Catalog, crds map[string]types.CRDEntry, startupOrder []string) {
+	meta := cat.Metadata()
 
 	fmt.Printf("\n%s", Cyan(Bold("Catalog")))
 	if meta.Name != "" {
@@ -138,8 +138,8 @@ func PrintTemplateSummary(k *catalog.Catalog, crds map[string]types.CRDEntry, st
 	if meta.Version != "" {
 		fmt.Printf(" %s", Dim("("+meta.Version+")"))
 	}
-	if k.APIVersion != "" {
-		fmt.Printf("  %s", Dim(k.APIVersion))
+	if cat.APIVersion != "" {
+		fmt.Printf("  %s", Dim(cat.APIVersion))
 	}
 	fmt.Println()
 

@@ -24,7 +24,7 @@ import (
 )
 
 func (e *executor) validatePDBBehaviorProfiles() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, entry := range crd.CollectPDBProfileEntries() {
 			if types.IsTemplate(entry.Profile) {
 				continue

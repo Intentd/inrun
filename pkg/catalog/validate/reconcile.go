@@ -28,7 +28,7 @@ func (e *executor) validateReconciler() error {
 // CRD and performs consistency checks for hooks, constructors, and managed
 // resources. Delegates to helper functions for clarity.
 func (e *executor) validateReconcilerMode() error {
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 
 		// Mode defaulting + basic validation
 		if err := e.validateMode(name, &crd); err != nil {
@@ -61,7 +61,7 @@ func (e *executor) validateReconcilerMode() error {
 		}
 
 		// Save updated CRD entry
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 
 	return nil
@@ -216,7 +216,7 @@ func (e *executor) validateRemote(name string, crd *types.CRDEntry) error {
 		return fmt.Errorf("%s CRD %q: reconcile.remote.endpoint is required", failureMark(), name)
 	}
 
-	funcMap := buildFuncMapForValidation(e.k.Notes)
+	funcMap := buildFuncMapForValidation(e.cat.Notes)
 	// If the endpoint contains template expressions, validate them.
 	if isTemplate(remote.Endpoint) {
 		if err := validateTemplate("reconcile.remote", name, name, "endpoint", remote.Endpoint, funcMap); err != nil {
@@ -342,7 +342,7 @@ func (e *executor) validateManagedResources(name string, crd *types.CRDEntry) er
 	// Template syntax in args values. The mapping itself is free: it is not
 	// checked against the CR schema.
 	if rec != nil {
-		funcMap := buildFuncMapForValidation(e.k.Notes)
+		funcMap := buildFuncMapForValidation(e.cat.Notes)
 		for k, v := range rec.Args {
 			str, ok := v.(string)
 			if !ok || !isTemplate(str) {
@@ -457,10 +457,10 @@ func validateOnDeleteGroupNames(crdName string, crd *types.CRDEntry) error {
 //   - onThreshold.value must be between 1 and 100
 //   - Warn if onThreshold is declared and drop is false (always true)
 func (e *executor) validateQueue() error {
-	if e.k.Empty() {
+	if e.cat.Empty() {
 		return nil
 	}
-	for name, crd := range e.k.EnabledCRDs() {
+	for name, crd := range e.cat.EnabledCRDs() {
 		q := crd.QueueConfig()
 		if q.Empty() {
 			continue
@@ -492,7 +492,7 @@ func (e *executor) validateQueue() error {
 			}
 		}
 
-		e.k.EnabledCRDs()[name] = crd
+		e.cat.EnabledCRDs()[name] = crd
 	}
 
 	return nil

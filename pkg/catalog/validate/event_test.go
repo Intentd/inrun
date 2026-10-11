@@ -20,17 +20,17 @@ func catalogWithObserve(crdName string, observe *types.Observe) *executor {
 }
 
 func TestValidateEventEntries_ObserveNil(t *testing.T) {
-	k := catalogWithObserve("myapp", nil)
-	assert.NoError(t, k.validateEventEntries())
+	e := catalogWithObserve("myapp", nil)
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_Empty(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{})
-	assert.NoError(t, k.validateEventEntries())
+	e := catalogWithObserve("myapp", &types.Observe{})
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_Valid(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason: "DatabaseReady",
@@ -63,22 +63,22 @@ func TestValidateEventEntries_Valid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEventEntries())
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_NoMatcher(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"empty": {},
 		},
 	})
-	err := k.validateEventEntries()
+	err := e.validateEventEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "event entry must declare at least one matching or routing field")
 }
 
 func TestValidateEventEntries_DifferentMatchers(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"ready":  {Reason: "DatabaseReady"},
 			"failed": {Reason: "DatabaseFailed"},
@@ -86,11 +86,11 @@ func TestValidateEventEntries_DifferentMatchers(t *testing.T) {
 			"warn":   {Type: "Warning"},
 		},
 	})
-	assert.NoError(t, k.validateEventEntries())
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_Regarding(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"database": {
 				Regarding: &domain.ManagedResource{
@@ -102,11 +102,11 @@ func TestValidateEventEntries_Regarding(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEventEntries())
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_Related(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"config": {
 				Related: &domain.ManagedResource{
@@ -117,11 +117,11 @@ func TestValidateEventEntries_Related(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEventEntries())
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_KeyFromValidLabel(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason:  "DatabaseReady",
@@ -129,11 +129,11 @@ func TestValidateEventEntries_KeyFromValidLabel(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, k.validateEventEntries())
+	require.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_KeyFromValidName(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason:  "DatabaseReady",
@@ -141,11 +141,11 @@ func TestValidateEventEntries_KeyFromValidName(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, k.validateEventEntries())
+	require.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_KeyFromBothLabelAndName(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason: "DatabaseReady",
@@ -156,13 +156,13 @@ func TestValidateEventEntries_KeyFromBothLabelAndName(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEventEntries()
+	err := e.validateEventEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "exactly one of label or name")
 }
 
 func TestValidateEventEntries_KeyFromNeitherLabelNorName(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason:  "DatabaseReady",
@@ -170,13 +170,13 @@ func TestValidateEventEntries_KeyFromNeitherLabelNorName(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEventEntries()
+	err := e.validateEventEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "neither label nor name")
 }
 
 func TestValidateEventEntries_KeyFromNamespaceWithLabelRejected(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason: "DatabaseReady",
@@ -187,13 +187,13 @@ func TestValidateEventEntries_KeyFromNamespaceWithLabelRejected(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEventEntries()
+	err := e.validateEventEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "namespace has no effect")
 }
 
 func TestValidateEventEntries_OnValid(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason: "DatabaseReady",
@@ -201,11 +201,11 @@ func TestValidateEventEntries_OnValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEventEntries())
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_OnInvalid(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason: "DatabaseReady",
@@ -213,13 +213,13 @@ func TestValidateEventEntries_OnInvalid(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEventEntries()
+	err := e.validateEventEntries()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown on: value(s) [modify]")
 }
 
 func TestValidateEventEntries_OnAllValid(t *testing.T) {
-	k := catalogWithObserve("myapp", &types.Observe{
+	e := catalogWithObserve("myapp", &types.Observe{
 		Events: map[string]*types.EventEntry{
 			"dbReady": {
 				Reason: "DatabaseReady",
@@ -227,7 +227,7 @@ func TestValidateEventEntries_OnAllValid(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEventEntries())
+	assert.NoError(t, e.validateEventEntries())
 }
 
 func TestValidateEventEntries_EventNameCamelCase(t *testing.T) {

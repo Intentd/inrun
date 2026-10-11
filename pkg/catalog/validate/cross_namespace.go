@@ -19,7 +19,7 @@ import (
 // fromNamespace / toNamespaces must add its slice to checkCrossNamespaceItems
 // below so the check is inherited automatically.
 func (e *executor) validateCrossNamespaceOps() error {
-	for crdName, crd := range e.k.EnabledCRDs() {
+	for crdName, crd := range e.cat.EnabledCRDs() {
 		for _, phase := range []struct {
 			name string
 			ht   *types.HookTemplates

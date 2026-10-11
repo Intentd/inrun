@@ -16,7 +16,7 @@ import (
 // runMaintain applies labels, annotations, and finalizers before reconcile.
 // ForCleanup=true strips deletion-protection so the subsequent Delete call
 // bypasses the webhook selector.
-func (k *Controller) runMaintain(
+func (c *Controller) runMaintain(
 	ctx context.Context,
 	entry contract.RegistryEntry,
 	obj domain.Object,
@@ -26,16 +26,16 @@ func (k *Controller) runMaintain(
 ) error {
 	return maintain.Apply(ctx, maintain.Input{
 		CRD:        entry.CRD,
-		Cat:        k.cat,
-		Kube:       k.kube,
-		Recorder:   k.event,
+		Cat:        c.cat,
+		Kube:       c.kube,
+		Recorder:   c.event,
 		ForCleanup: forCleanup,
 	}, obj, box, resolver)
 }
 
 // resolveRequeueAfter returns the post-reconcile requeue delay.
 // 0 means re-enqueue immediately; -1 means wait for an informer event.
-func (k *Controller) resolveRequeueAfter(
+func (c *Controller) resolveRequeueAfter(
 	ctx context.Context,
 	gvk string,
 	entry contract.RegistryEntry,
@@ -56,20 +56,20 @@ func (k *Controller) resolveRequeueAfter(
 		}
 		return d
 	}
-	obj := k.objectFromCache(entry, key)
+	obj := c.objectFromCache(entry, key)
 	var resolver *template.Resolver
 	if prepared != nil {
 		resolver = prepared.Context.(*template.Resolver)
 	} else if obj != nil {
 		if r, err := template.NewResolver(ctx, obj); err == nil {
-			health := k.crdHealthMap[gvk]
-			resolver = r.WithUserNotes(k.cat.UserNotes()).
-				WithProfiles(k.cat.UserProfiles()).
+			health := c.crdHealthMap[gvk]
+			resolver = r.WithUserNotes(c.cat.UserNotes()).
+				WithProfiles(c.cat.UserProfiles()).
 				WithHealth(health.HealthAsMap()).
 				WithMetrics(health.GetAutoMetrics())
 		}
 	}
-	if d := k.cat.EvaluateRequeue(ctx, entry.CRD.Name, obj, resolver); d > 0 {
+	if d := c.cat.EvaluateRequeue(ctx, entry.CRD.Name, obj, resolver); d > 0 {
 		return d
 	}
 	if prepared != nil {

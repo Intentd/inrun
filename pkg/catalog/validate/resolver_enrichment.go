@@ -11,7 +11,7 @@ import (
 //   - both enrichAll and enrich are set on the same CRD (mutually exclusive)
 //   - an unrecognised target appears in enrich
 func (e *executor) validateEnrich() error {
-	for name, crd := range e.k.Enabled() {
+	for name, crd := range e.cat.Enabled() {
 		if crd.EnrichAll && len(crd.Enrich) > 0 {
 			return fmt.Errorf(
 				"%s crd %q: enrichAll and enrich are mutually exclusive — use enrichAll: true OR enrich: [...]",

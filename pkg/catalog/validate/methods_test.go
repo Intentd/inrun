@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var kfg = config.NewDefaultConfig()
+var cfg = config.NewDefaultConfig()
 
 func catalogWithMetadata(m types.CatalogMeta) *executor {
 	return newExec(catalog.NewCatalogWithMetadataForTest(m, map[string]types.CRDEntry{
@@ -36,76 +36,76 @@ func catalogWithOperatorBox(box *types.OperatorBoxConfig) *executor {
 // setDefaults
 
 func TestSetDefaults_MetadataNoData(t *testing.T) {
-	k := catalogWithMetadata(types.CatalogMeta{})
-	err := k.k.SetDefaults(kfg)
+	e := catalogWithMetadata(types.CatalogMeta{})
+	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	assert.Equal(t, entry.CatalogName, "inrun-runtime-app")
 	assert.Equal(t, entry.CatalogNamespace, "default")
 }
 
 func TestSetDefaults_MetadataInvalidName(t *testing.T) {
-	k := catalogWithMetadata(types.CatalogMeta{
+	e := catalogWithMetadata(types.CatalogMeta{
 		Name:        "test:m,",
 		Namespace:   "test-tea",
 		ClusterName: "test-cluster",
 	})
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "invalid metadata.Name")
 }
 
 func TestSetDefaults_MetadataInvalidNameSpace(t *testing.T) {
-	k := catalogWithMetadata(types.CatalogMeta{
+	e := catalogWithMetadata(types.CatalogMeta{
 		Name:        "test",
 		Namespace:   "test-tea/m",
 		ClusterName: "test-cluster",
 	})
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "invalid metadata.Namespace")
 }
 
 func TestSetDefaults_MetadataWithData(t *testing.T) {
-	k := catalogWithMetadata(types.CatalogMeta{
+	e := catalogWithMetadata(types.CatalogMeta{
 		Namespace:   "test-team2",
 		ClusterName: "test-cluster",
 	})
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	assert.Equal(t, entry.CatalogName, "test-cluster-app")
 	assert.Equal(t, entry.CatalogNamespace, "test-team2")
 }
 
 func TestSetDefaults_MetadataCatalogNameDefaultToClusterName(t *testing.T) {
-	k := catalogWithMetadata(types.CatalogMeta{
+	e := catalogWithMetadata(types.CatalogMeta{
 		Name:        "test",
 		Namespace:   "test-team",
 		ClusterName: "test-cluster",
 	})
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	assert.Equal(t, entry.CatalogName, "test")
 	assert.Equal(t, entry.CatalogNamespace, "test-team")
 }
 
 func TestSetDefaults_APITypes(t *testing.T) {
-	k := catalogWithAPITypes(types.APITypes{
+	e := catalogWithAPITypes(types.APITypes{
 		Kind:    "Website",
 		Group:   "test.inrun.catalog",
 		Version: "v1",
 	})
 
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
 	// Assert APITypes default
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	apiPath := entry.APITypes.APIPath
 	plural := entry.APITypes.Plural
 
@@ -115,31 +115,31 @@ func TestSetDefaults_APITypes(t *testing.T) {
 }
 
 func TestSetDefaults_OperatorBoxFinalizersDefault(t *testing.T) {
-	k := catalogWithOperatorBox(&types.OperatorBoxConfig{})
-	k.k.Spec.Finalizers = []string{"spec-finalizer"}
+	e := catalogWithOperatorBox(&types.OperatorBoxConfig{})
+	e.cat.Spec.Finalizers = []string{"spec-finalizer"}
 
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	boxFinalizers := entry.OperatorBox.EffectiveFinalizers()
-	if !reflect.DeepEqual(boxFinalizers, k.k.Spec.Finalizers) {
+	if !reflect.DeepEqual(boxFinalizers, e.cat.Spec.Finalizers) {
 		t.Fatalf("unexpected error. want true, got false")
 	}
 }
 
 func TestSetDefaults_SpecFinalizerAddToOperatorBoxFinalizer(t *testing.T) {
-	k := catalogWithOperatorBox(&types.OperatorBoxConfig{})
-	k.k.Spec.Finalizers = []string{"spec-finalizer"}
+	e := catalogWithOperatorBox(&types.OperatorBoxConfig{})
+	e.cat.Spec.Finalizers = []string{"spec-finalizer"}
 
-	err := k.k.SetDefaults(kfg)
+	err := e.cat.SetDefaults(cfg)
 	assert.NoError(t, err)
 
-	entry := k.k.EnabledCRDs()["app"]
+	entry := e.cat.EnabledCRDs()["app"]
 	boxFinalizers := entry.OperatorBox.EffectiveFinalizers()
 	boxFinalizers = append(boxFinalizers, "box-finalizer")
 
-	if reflect.DeepEqual(boxFinalizers, k.k.Spec.Finalizers) {
+	if reflect.DeepEqual(boxFinalizers, e.cat.Spec.Finalizers) {
 		t.Fatalf("unexpected error. want false, got true")
 	}
 
@@ -162,7 +162,7 @@ func TestSetDefaults_TargetOperatorBoxFinalizersDefault(t *testing.T) {
 		},
 	}
 
-	k := newExec(catalog.NewCatalogForTestWithSpec(
+	e := newExec(catalog.NewCatalogForTestWithSpec(
 		map[string]types.CRDEntry{
 			"myresource": {
 				APITypes: types.APITypes{
@@ -177,9 +177,9 @@ func TestSetDefaults_TargetOperatorBoxFinalizersDefault(t *testing.T) {
 		types.CatalogSpec{Finalizers: []string{"spec-finalizer"}},
 	))
 
-	entry := k.k.EnabledCRDs()["myresource"]
+	entry := e.cat.EnabledCRDs()["myresource"]
 	boxFinalizers := entry.OperatorBox.EffectiveFinalizers()
-	if reflect.DeepEqual(boxFinalizers, k.k.Spec.Finalizers) {
+	if reflect.DeepEqual(boxFinalizers, e.cat.Spec.Finalizers) {
 		t.Fatalf("unexpected error. want true, got false")
 	}
 

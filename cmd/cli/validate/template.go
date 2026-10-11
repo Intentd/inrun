@@ -65,22 +65,22 @@ Examples:
 		}
 		spin.Stop()
 
-		var k *catalog.Catalog
+		var cat *catalog.Catalog
 		if noValidate {
 			var raw catalog.Catalog
-			if _, err = raw.BuildRuntimeCatalog(cmdutil.Kfg, merged.Merger); err != nil {
+			if _, err = raw.BuildRuntimeCatalog(cmdutil.Cfg, merged.Merger); err != nil {
 				return err
 			}
-			k = &raw
+			cat = &raw
 		} else {
-			k, err = pipeline.BuildExpanded(cmdutil.Kfg, merged.Merger)
+			cat, err = pipeline.BuildExpanded(cmdutil.Cfg, merged.Merger)
 			if err != nil {
 				return fmt.Errorf("validation: %w", err)
 			}
 		}
 
-		crds := k.Enabled()
-		depGraph := catalog.NewDependencyGraph(k)
+		crds := cat.Enabled()
+		depGraph := catalog.NewDependencyGraph(cat)
 		startupOrder := depGraph.StartupOrder()
 
 		// ── Route to output mode ────────────────────────────────────────────────
@@ -119,7 +119,7 @@ Examples:
 
 		// ── --yaml / --json: full runtime Catalog ───────────────────────────────
 		case yamlOut || jsonOut || defaultOut:
-			view := buildRuntimeView(k)
+			view := buildRuntimeView(cat)
 			if jsonOut {
 				out, err = json.MarshalIndent(view, "", "  ")
 			} else {
@@ -132,7 +132,7 @@ Examples:
 
 		// ── default: human-readable summary ────────────────────────────────────
 		default:
-			cmdutil.PrintTemplateSummary(k, crds, startupOrder)
+			cmdutil.PrintTemplateSummary(cat, crds, startupOrder)
 			return nil
 		}
 
@@ -159,8 +159,8 @@ Examples:
 }
 
 // buildRuntimeView constructs the serializable runtime view from the expanded Catalog.
-func buildRuntimeView(k *catalog.Catalog) templateRuntimeOutput {
-	meta := k.Metadata()
+func buildRuntimeView(cat *catalog.Catalog) templateRuntimeOutput {
+	meta := cat.Metadata()
 	metaFields := map[string]string{}
 	if meta.Name != "" {
 		metaFields["name"] = meta.Name
@@ -179,11 +179,11 @@ func buildRuntimeView(k *catalog.Catalog) templateRuntimeOutput {
 	}
 
 	return templateRuntimeOutput{
-		APIVersion: k.APIVersion,
-		Kind:       k.Kind,
+		APIVersion: cat.APIVersion,
+		Kind:       cat.Kind,
 		Metadata:   metaFields,
 		Spec: templateSpecOutput{
-			CRDs: k.Enabled(),
+			CRDs: cat.Enabled(),
 		},
 	}
 }

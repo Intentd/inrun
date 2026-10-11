@@ -83,7 +83,7 @@ var _ domain.Component = (*Kubeclient)(nil)
 // Entry point
 // -----------------------------------------------------------------------------
 // NewKubeclient returns a new Kubeclient with the correct scheme
-func NewKubeclient(kfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
+func NewKubeclient(cfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 	if scheme == nil {
 		utils.Exit(errors.New("scheme cannot be nil"))
 	}
@@ -91,7 +91,7 @@ func NewKubeclient(kfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 	return &Kubeclient{
 		name:    "kubeclient",
 		scheme:  scheme,
-		config:  kfg,
+		config:  cfg,
 		started: new(atomic.Bool),
 	}
 }

@@ -208,7 +208,7 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 	if len(crdPaths) == 0 {
 		crdPaths = testsuite.CatalogCRDPaths(m)
 	}
-	kat, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
 		return fmt.Errorf("parsing Catalog: %w", err)
 	}
@@ -223,14 +223,14 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 	}
 
 	var failed []string
-	for _, name := range kat.CRDNames() {
-		crdEntry, ok := kat.CRDEntry(name)
+	for _, name := range cat.CRDNames() {
+		crdEntry, ok := cat.CRDEntry(name)
 		if !ok {
 			continue
 		}
 		in, ok := cmdutil.ResolveCRInputs(crs, crdEntry.APITypes.Kind)
 		if !ok {
-			if len(kat.CRDNames()) > 1 {
+			if len(cat.CRDNames()) > 1 {
 				fmt.Printf("  %s no CR found for %s — skipped\n\n", cmdutil.Dim("note:"), crdEntry.APITypes.Kind)
 				continue
 			}
@@ -240,7 +240,7 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
 		expect := simulate.ExpectForCRD(doc.Spec.Expect, name)
-		if err := testsuite.SimulateOne(ctx, kat, name, in.CR, cycles, crdOpts, simOpts, crdPaths, expect); err != nil {
+		if err := testsuite.SimulateOne(ctx, cat, name, in.CR, cycles, crdOpts, simOpts, crdPaths, expect); err != nil {
 			failed = append(failed, name)
 		}
 	}
@@ -258,7 +258,7 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 	if err := m.Merge(); err != nil {
 		return "", fmt.Errorf("merging catalog: %w", err)
 	}
-	c, err := pipeline.BuildExpanded(cmdutil.Kfg, m)
+	c, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
 		return "", fmt.Errorf("building catalog: %w", err)
 	}

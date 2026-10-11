@@ -149,7 +149,7 @@ func (c *Console) fetchAllCatalogs() {
 		}
 
 		now := time.Now()
-		kat, err := inst.Client.FetchCatalog()
+		cat, err := inst.Client.FetchCatalog()
 
 		// Update only this instance under a brief write lock
 		c.mu.Lock()
@@ -162,10 +162,10 @@ func (c *Console) fetchAllCatalogs() {
 				inst.LastError = err.Error()
 				Warnf("fetch catalog from %s: %v", u, err)
 			} else {
-				inst.GatewayEndpoint = kat.GatewayEndpoint
-				if kat.IsLeader {
+				inst.GatewayEndpoint = cat.GatewayEndpoint
+				if cat.IsLeader {
 					// Leader pod — data is authoritative, always update.
-					inst.Catalog = kat
+					inst.Catalog = cat
 					inst.Status = "online"
 					inst.Healthy = true
 					inst.LastError = ""
@@ -174,7 +174,7 @@ func (c *Console) fetchAllCatalogs() {
 					// catalog appears immediately rather than waiting for a lucky
 					// tick that hits the leader. It may show CRDs as pending until
 					// the next leader response overwrites it.
-					inst.Catalog = kat
+					inst.Catalog = cat
 					inst.Status = "starting"
 					inst.Healthy = false
 					inst.LastError = ""
@@ -182,7 +182,7 @@ func (c *Console) fetchAllCatalogs() {
 				// Follower + already have good data → keep last known-good snapshot,
 				// discard this response so the display does not flip.
 				Debugf("fetched catalog %q from %s (%d CRDs, gateway=%q)",
-					kat.Name, u, len(kat.CRDs), kat.GatewayEndpoint)
+					cat.Name, u, len(cat.CRDs), cat.GatewayEndpoint)
 			}
 		}
 		c.mu.Unlock()
@@ -510,27 +510,27 @@ func (c *Console) handleAPISnapshot(w http.ResponseWriter, _ *http.Request) {
 	var catalogs []CatalogSnap
 
 	for _, inst := range insts {
-		kat := inst.Catalog
+		cat := inst.Catalog
 		healthyCRDs := 0
-		for _, crd := range kat.CRDs {
+		for _, crd := range cat.CRDs {
 			if crd.Healthy {
 				healthyCRDs++
 			}
 		}
 		stats.TotalCatalogs++
-		stats.TotalCRDs += len(kat.CRDs)
-		stats.TotalWorkers += sumWorkers(kat.CRDs)
-		stats.TotalResources += sumResources(kat.CRDs)
-		if kat.Healthy {
+		stats.TotalCRDs += len(cat.CRDs)
+		stats.TotalWorkers += sumWorkers(cat.CRDs)
+		stats.TotalResources += sumResources(cat.CRDs)
+		if cat.Healthy {
 			stats.HealthyCatalogs++
 		}
 		catalogs = append(catalogs, CatalogSnap{
-			Name:           kat.Name,
-			Healthy:        kat.Healthy,
-			TotalCRDs:      len(kat.CRDs),
+			Name:           cat.Name,
+			Healthy:        cat.Healthy,
+			TotalCRDs:      len(cat.CRDs),
 			HealthyCRDs:    healthyCRDs,
-			TotalWorkers:   sumWorkers(kat.CRDs),
-			TotalResources: sumResources(kat.CRDs),
+			TotalWorkers:   sumWorkers(cat.CRDs),
+			TotalResources: sumResources(cat.CRDs),
 		})
 	}
 
@@ -568,9 +568,9 @@ func (c *Console) handleIndex(w http.ResponseWriter, _ *http.Request) {
 	nsSeen := map[string]struct{}{}
 
 	for _, inst := range insts {
-		kat := inst.Catalog
+		cat := inst.Catalog
 		healthyCRDs := 0
-		for _, crd := range kat.CRDs {
+		for _, crd := range cat.CRDs {
 			if crd.Healthy {
 				healthyCRDs++
 			}
@@ -578,35 +578,35 @@ func (c *Console) handleIndex(w http.ResponseWriter, _ *http.Request) {
 
 		// Collect distinct namespaces from this catalog's namespace grouping.
 		var nsKeys []string
-		for ns := range kat.Namespaces {
+		for ns := range cat.Namespaces {
 			nsKeys = append(nsKeys, ns)
 			nsSeen[ns] = struct{}{}
 		}
 		sort.Strings(nsKeys)
 
-		if kat.ClusterName != "" {
-			clusterSeen[kat.ClusterName] = struct{}{}
+		if cat.ClusterName != "" {
+			clusterSeen[cat.ClusterName] = struct{}{}
 		}
 
 		summary := CatalogSummary{
-			Name:             kat.Name,
-			Description:      kat.Description,
-			Version:          kat.Version,
-			Healthy:          kat.Healthy,
-			TotalCRDs:        len(kat.CRDs),
+			Name:             cat.Name,
+			Description:      cat.Description,
+			Version:          cat.Version,
+			Healthy:          cat.Healthy,
+			TotalCRDs:        len(cat.CRDs),
 			HealthyCRDs:      healthyCRDs,
-			TotalWorkers:     sumWorkers(kat.CRDs),
-			TotalResources:   sumResources(kat.CRDs),
-			ClusterName:      kat.ClusterName,
+			TotalWorkers:     sumWorkers(cat.CRDs),
+			TotalResources:   sumResources(cat.CRDs),
+			ClusterName:      cat.ClusterName,
 			Namespaces:       nsKeys,
-			NamespaceDetails: kat.Namespaces,
+			NamespaceDetails: cat.Namespaces,
 		}
 		summaries = append(summaries, summary)
 		hasOperatorCatalogs = true
-		totalCRDs += len(kat.CRDs)
-		totalWorkers += sumWorkers(kat.CRDs)
-		totalResources += sumResources(kat.CRDs)
-		if kat.Healthy {
+		totalCRDs += len(cat.CRDs)
+		totalWorkers += sumWorkers(cat.CRDs)
+		totalResources += sumResources(cat.CRDs)
+		if cat.Healthy {
 			healthyCatalogs++
 		}
 	}
@@ -652,13 +652,13 @@ func (c *Console) handleCatalogPanel(w http.ResponseWriter, r *http.Request, cat
 		}
 	}
 
-	kat := inst.Catalog
+	cat := inst.Catalog
 
 	ns := r.URL.Query().Get("ns")
 
 	// Sort CRDs by name for consistent display
-	sortedCRDs := make([]CRDSummary, len(kat.CRDs))
-	copy(sortedCRDs, kat.CRDs)
+	sortedCRDs := make([]CRDSummary, len(cat.CRDs))
+	copy(sortedCRDs, cat.CRDs)
 	sort.Slice(sortedCRDs, func(i, j int) bool {
 		return sortedCRDs[i].Name < sortedCRDs[j].Name
 	})
@@ -666,8 +666,8 @@ func (c *Console) handleCatalogPanel(w http.ResponseWriter, r *http.Request, cat
 	// When viewing a specific namespace, use that namespace's description and
 	// version (set from each CRD's source Catalog metadata) rather than the
 	// top-level Stack description which belongs to the whole bundle.
-	description := kat.Description
-	version := kat.Version
+	description := cat.Description
+	version := cat.Version
 	if ns != "" {
 		var filtered []CRDSummary
 		for _, crd := range sortedCRDs {
@@ -676,7 +676,7 @@ func (c *Console) handleCatalogPanel(w http.ResponseWriter, r *http.Request, cat
 			}
 		}
 		sortedCRDs = filtered
-		if nsSummary, ok := kat.Namespaces[ns]; ok {
+		if nsSummary, ok := cat.Namespaces[ns]; ok {
 			if nsSummary.Description != "" {
 				description = nsSummary.Description
 			}
@@ -688,22 +688,22 @@ func (c *Console) handleCatalogPanel(w http.ResponseWriter, r *http.Request, cat
 
 	c.renderTemplate(w, "catalog.html", CatalogData{
 		CRDs:               sortedCRDs,
-		InrunReady:         kat.InrunReady,
-		DeletionProtection: kat.DeletionProtection,
+		InrunReady:         cat.InrunReady,
+		DeletionProtection: cat.DeletionProtection,
 		TotalCRDs:          len(sortedCRDs),
 		TotalWorkers:       sumWorkers(sortedCRDs),
 		TotalResources:     sumResources(sortedCRDs),
 		HealthyCount:       countHealthyCRDs(sortedCRDs),
-		CatalogName:        kat.Name,
+		CatalogName:        cat.Name,
 		CatalogDescription: description,
-		CatalogHealthy:     kat.Healthy,
+		CatalogHealthy:     cat.Healthy,
 		CatalogVersion:     version,
-		CatalogAuthor:      kat.Author,
-		CatalogLicense:     kat.License,
-		DegradedReason:     kat.DegradedReason,
+		CatalogAuthor:      cat.Author,
+		CatalogLicense:     cat.License,
+		DegradedReason:     cat.DegradedReason,
 		StatusCounts:       computeStatusCounts(sortedCRDs),
-		RuntimeVersion:     kat.RuntimeVersion,
-		ClusterName:        kat.ClusterName,
+		RuntimeVersion:     cat.RuntimeVersion,
+		ClusterName:        cat.ClusterName,
 	})
 }
 

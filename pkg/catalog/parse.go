@@ -12,16 +12,16 @@ import (
 // Uses a default config — suitable for CLI tools (plan, simulate) that do not
 // need the full operator runtime.
 func ParseFile(path string) (*Catalog, error) {
-	kfg := config.NewDefaultConfig()
+	cfg := config.NewDefaultConfig()
 	m := merger.New(path)
 	if err := m.Merge(); err != nil {
 		return nil, fmt.Errorf("merging %q: %w", path, err)
 	}
-	k := &Catalog{}
-	if _, err := k.BuildRuntimeCatalog(kfg, m); err != nil {
+	cat := &Catalog{}
+	if _, err := cat.BuildRuntimeCatalog(cfg, m); err != nil {
 		return nil, err
 	}
-	return k, nil
+	return cat, nil
 }
 
 // ParseBytes loads and enriches a Catalog from raw YAML bytes.

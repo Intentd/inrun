@@ -54,7 +54,7 @@ func NewDependencyCoordinator(
 	factory *informer.Factory,
 	observer *observe.Observer,
 	catalog *ResourceCatalog,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 	events *event.Event,
 	hs domain.Health,
 	queueRegistry *queue.QueueRegistry,
@@ -66,9 +66,9 @@ func NewDependencyCoordinator(
 	drainTimeout time.Duration,
 ) *DependencyCoordinator {
 
-	kord := &DependencyCoordinator{
+	coord := &DependencyCoordinator{
 		Controller: NewController(
-			kube, factory, observer, catalog, kat,
+			kube, factory, observer, catalog, cat,
 			events, hs, crdHealthMap, inrunHealth,
 			queueRegistry, defaultWorkqueue, defaultWorkers,
 		),
@@ -81,8 +81,8 @@ func NewDependencyCoordinator(
 		healthyCh:      make(map[string]chan struct{}),
 	}
 
-	kord.anyOnline.Store(false)
-	return kord
+	coord.anyOnline.Store(false)
+	return coord
 }
 
 // Coordinate starts CRDs in dependency order and blocks until leadership is lost.
@@ -91,20 +91,20 @@ func NewDependencyCoordinator(
 // The startup loop is non‑blocking: if a CRD's dependencies are not yet
 // satisfied (e.g., waiting for "healthy"), the CRD is skipped. The background
 // retry loop will activate it later when dependencies become ready.
-func (k *DependencyCoordinator) Coordinate(ctx context.Context) {
-	logger.Info().Str("component", k.Name()).Msg("starting")
-	k.startedAt = time.Now()
+func (dc *DependencyCoordinator) Coordinate(ctx context.Context) {
+	logger.Info().Str("component", dc.Name()).Msg("starting")
+	dc.startedAt = time.Now()
 
 	// Mark as ready immediately - the coordinator can serve requests
-	k.inrunHealth.SetInrunReady()
-	k.inrunHealth.SetIsLeader(true)
+	dc.inrunHealth.SetInrunReady()
+	dc.inrunHealth.SetIsLeader(true)
 
 	// Track allOnline
-	k.allOnline.Store(false)
+	dc.allOnline.Store(false)
 	var totalCRDs, onlineCRDs int
 
 	// Startup order
-	startupOrder := k.depGraph.StartupOrder()
+	startupOrder := dc.depGraph.StartupOrder()
 	logger.Info().Str("order", strings.Join(startupOrder, " → ")).Msg("startup order")
 
 	totalCRDs = len(startupOrder)
@@ -112,7 +112,7 @@ func (k *DependencyCoordinator) Coordinate(ctx context.Context) {
 	// Build name → GVK mapping
 	nameToGVK := make(map[string]string)
 	for _, name := range startupOrder {
-		node := k.depGraph.GetNode(name)
+		node := dc.depGraph.GetNode(name)
 		if node == nil {
 			continue
 		}
@@ -121,38 +121,38 @@ func (k *DependencyCoordinator) Coordinate(ctx context.Context) {
 
 	// Create started + healthy channels for all CRDs
 	for _, name := range startupOrder {
-		node := k.depGraph.GetNode(name)
+		node := dc.depGraph.GetNode(name)
 		if node == nil {
 			continue
 		}
 		gvk := node.CRD.GroupVersionKind.String()
-		k.startedCh[gvk] = make(chan struct{})
-		k.healthyCh[gvk] = make(chan struct{})
+		dc.startedCh[gvk] = make(chan struct{})
+		dc.healthyCh[gvk] = make(chan struct{})
 	}
 
 	// Collect custom child CRDs and detect which are missing at startup.
 	// These are GVKs declared in onReconcile.custom / onCreate.custom blocks across all CRDs.
-	k.missingChildGVKs = collectCustomChildGVKs(k.catalog)
-	for gvkStr, gvk := range k.missingChildGVKs {
+	dc.missingChildGVKs = collectCustomChildGVKs(dc.catalog)
+	for gvkStr, gvk := range dc.missingChildGVKs {
 		gvkCopy := gvk
-		ok, _ := k.crdExists(&gvkCopy)
+		ok, _ := dc.crdExists(&gvkCopy)
 		if ok {
-			delete(k.missingChildGVKs, gvkStr)
+			delete(dc.missingChildGVKs, gvkStr)
 		} else {
 			logger.Warn().Str("gvk", gvkStr).Msg("custom child CRD not available at startup — will retry")
 		}
 	}
 
 	// START RETRY LOOP ONCE, BEFORE ANY BLOCKING
-	go k.retryMissingCRDs(ctx)
+	go dc.retryMissingCRDs(ctx)
 
 	// Start dependency health checker (runs until ctx is cancelled)
-	go k.dependencyHealthChecker(ctx)
+	go dc.dependencyHealthChecker(ctx)
 
 	// Process CRDs in dependency order — but do NOT block on unsatisfied conditions.
 	// Any CRD that cannot start immediately will be picked up by the retry loop.
 	for _, name := range startupOrder {
-		node := k.depGraph.GetNode(name)
+		node := dc.depGraph.GetNode(name)
 		if node == nil {
 			continue
 		}
@@ -160,81 +160,81 @@ func (k *DependencyCoordinator) Coordinate(ctx context.Context) {
 		gvk := crd.GroupVersionKind.String()
 
 		// Check if dependencies are satisfied RIGHT NOW
-		if !k.dependenciesReady(crd, nameToGVK) {
+		if !dc.dependenciesReady(crd, nameToGVK) {
 			logger.Info().Str("crd", name).Msg("dependencies not ready — deferring activation")
 			continue // do NOT block; let retry loop handle it
 		}
 
 		// Check if CRD exists in cluster
-		if k.informerFactory.IsMissing(gvk) {
+		if dc.informerFactory.IsMissing(gvk) {
 			logger.Debug().Str("crd", name).Str("gvk", gvk).Msg("CRD missing — workers not started, waiting for retry")
 			// DO NOT close startedCh or healthyCh — dependents must block
 			continue
 		}
 
 		// CRD exists — start workers
-		workers := k.catalog.GetWorkers(gvk, k.defaultWorkers)
+		workers := dc.catalog.GetWorkers(gvk, dc.defaultWorkers)
 		logger.Info().Str("gvk", gvk).Int("workers", workers).Msg("starting workers")
-		k.startCRDWorkers(ctx, gvk, workers)
+		dc.startCRDWorkers(ctx, gvk, workers)
 
 		// Update health
-		if h, ok := k.crdHealthMap[gvk]; ok {
-			h.SetQueueReg(k.queueReg)
+		if h, ok := dc.crdHealthMap[gvk]; ok {
+			h.SetQueueReg(dc.queueReg)
 		}
 
 		// Signal dependents: STARTED ONLY
-		close(k.startedCh[gvk])
+		close(dc.startedCh[gvk])
 		logger.Info().Str("crd", name).Str("gvk", gvk).Int("workers", workers).Msg("workers started")
 
 		// DO NOT close healthyCh here.
 		// healthyCh will be closed by the health checker when the CRD becomes healthy.
 
-		k.anyOnline.Store(true)
+		dc.anyOnline.Store(true)
 		onlineCRDs++
 	}
 
 	// Mark controller started
-	k.startedKtrl.Store(true)
-	if k.anyOnline.Load() {
-		logger.Info().Str("component", k.Name()).Int("crds_online", onlineCRDs).Msg("started")
+	dc.startedKtrl.Store(true)
+	if dc.anyOnline.Load() {
+		logger.Info().Str("component", dc.Name()).Int("crds_online", onlineCRDs).Msg("started")
 	} else {
-		logger.Warn().Str("component", k.Name()).Msg("started — all CRDs missing, waiting for retry loop")
+		logger.Warn().Str("component", dc.Name()).Msg("started — all CRDs missing, waiting for retry loop")
 	}
 
 	// Compute final catalog health
 	if onlineCRDs == totalCRDs {
-		k.allOnline.Store(true)
-		k.inrunHealth.SetAllOnline()
-		k.inrunHealth.SetCatalogReady()
+		dc.allOnline.Store(true)
+		dc.inrunHealth.SetAllOnline()
+		dc.inrunHealth.SetCatalogReady()
 	} else {
-		k.allOnline.Store(false)
-		k.inrunHealth.SetAllNotOnline()
-		k.inrunHealth.SetCatalogDegraded()
+		dc.allOnline.Store(false)
+		dc.inrunHealth.SetAllNotOnline()
+		dc.inrunHealth.SetCatalogDegraded()
 	}
 
 	// Block until leadership lost
 	<-ctx.Done()
 	logger.Info().Msg("leadership lost — beginning dependency-aware shutdown")
-	k.hs.Unhealthy()
-	k.inrunHealth.SetIsLeader(false)
-	k.inrunHealth.SetInrunDegraded()
+	dc.hs.Unhealthy()
+	dc.inrunHealth.SetIsLeader(false)
+	dc.inrunHealth.SetInrunDegraded()
 
 	// Shut down CRDs in reverse dependency order
-	shutdownOrder := k.depGraph.ShutdownOrder()
+	shutdownOrder := dc.depGraph.ShutdownOrder()
 	logger.Info().Str("order", strings.Join(shutdownOrder, " → ")).Msg("shutdown order")
 	for _, name := range shutdownOrder {
 		logger.Info().Str("crd", name).Msg("shutting down CRD")
-		gvk := k.depGraph.GetNode(name).CRD.GroupVersionKind.String()
-		k.stopCRDWorkers(ctx, gvk)
+		gvk := dc.depGraph.GetNode(name).CRD.GroupVersionKind.String()
+		dc.stopCRDWorkers(ctx, gvk)
 	}
 
-	logger.Info().Str("component", k.Name()).Msg("drained and stopped")
+	logger.Info().Str("component", dc.Name()).Msg("drained and stopped")
 }
 
 // dependenciesReady returns true if all declared dependencies are currently
 // satisfied (i.e., the required channel is already closed).
 // This check is non‑blocking.
-func (k *DependencyCoordinator) dependenciesReady(crd types.CRDEntry, nameToGVK map[string]string) bool {
+func (dc *DependencyCoordinator) dependenciesReady(crd types.CRDEntry, nameToGVK map[string]string) bool {
 	for depName, depCond := range crd.DependsOn {
 		depGVK, ok := nameToGVK[depName]
 		if !ok {
@@ -244,14 +244,14 @@ func (k *DependencyCoordinator) dependenciesReady(crd types.CRDEntry, nameToGVK 
 		switch strings.ToLower(depCond.Condition) {
 		case string(types.DependencyConditionHealthy):
 			select {
-			case <-k.healthyCh[depGVK]:
+			case <-dc.healthyCh[depGVK]:
 				// channel closed → dependency healthy
 			default:
 				return false
 			}
 		default: // started
 			select {
-			case <-k.startedCh[depGVK]:
+			case <-dc.startedCh[depGVK]:
 				// channel closed → dependency started
 			default:
 				return false
@@ -262,23 +262,23 @@ func (k *DependencyCoordinator) dependenciesReady(crd types.CRDEntry, nameToGVK 
 }
 
 // Name returns the name of the dependency coordinator
-func (k *DependencyCoordinator) Name() string {
+func (dc *DependencyCoordinator) Name() string {
 	return "inrun dependency coordinator"
 }
 
 // NameToCRD returns the CRD for a given name
-func (k *DependencyCoordinator) NameToCRD(name string) types.CRDEntry {
-	return k.depGraph.GetNode(name).CRD
+func (dc *DependencyCoordinator) NameToCRD(name string) types.CRDEntry {
+	return dc.depGraph.GetNode(name).CRD
 }
 
 // NameToGVK returns the GVK for a given name
-func (k *DependencyCoordinator) NameToGVK(name string) schema.GroupVersionKind {
-	return k.depGraph.GetNode(name).CRD.GroupVersionKind
+func (dc *DependencyCoordinator) NameToGVK(name string) schema.GroupVersionKind {
+	return dc.depGraph.GetNode(name).CRD.GroupVersionKind
 }
 
 // GVKToCRD returns the CRD entry for a given gvk
-func (k *DependencyCoordinator) GVKToCRD(gvk schema.GroupVersionKind) types.CRDEntry {
-	entry, ok := k.catalog.Get(gvk.String())
+func (dc *DependencyCoordinator) GVKToCRD(gvk schema.GroupVersionKind) types.CRDEntry {
+	entry, ok := dc.catalog.Get(gvk.String())
 	if !ok {
 		return types.CRDEntry{}
 	}
@@ -286,10 +286,10 @@ func (k *DependencyCoordinator) GVKToCRD(gvk schema.GroupVersionKind) types.CRDE
 }
 
 // NameToGVKMap returns a map of names to gvk string
-func (k *DependencyCoordinator) NameToGVKMap() map[string]string {
+func (dc *DependencyCoordinator) NameToGVKMap() map[string]string {
 	nameToGVK := make(map[string]string)
-	for _, name := range k.depGraph.StartupOrder() {
-		node := k.depGraph.GetNode(name)
+	for _, name := range dc.depGraph.StartupOrder() {
+		node := dc.depGraph.GetNode(name)
 		if node != nil {
 			nameToGVK[name] = node.CRD.GroupVersionKind.String()
 		}

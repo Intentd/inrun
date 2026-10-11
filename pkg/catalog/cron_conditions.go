@@ -7,9 +7,9 @@ import (
 )
 
 // CronConditionWarnings returns warnings for any cron: condition declared without duration:.
-func (k *Catalog) CronConditionWarnings() []string {
+func (c *Catalog) CronConditionWarnings() []string {
 	var warnings []string
-	for crdName, crd := range k.EnabledCRDs() {
+	for crdName, crd := range c.EnabledCRDs() {
 		box := crd.OperatorBox
 		for _, ht := range []*types.HookTemplates{box.EffectiveOnCreate(), box.EffectiveOnReconcile(), box.EffectiveOnDelete()} {
 			if ht == nil {

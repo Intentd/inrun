@@ -116,52 +116,52 @@ func TestPayloadKeys_SortsAlphabetically(t *testing.T) {
 }
 
 func TestPlayRead_UnknownTarget(t *testing.T) {
-	k := chainTestCatalog("", nil)
-	if err := playRead(k, "does-not-exist", "dev", types.ServeOpGet, "default", "x"); err == nil {
+	cat := chainTestCatalog("", nil)
+	if err := playRead(cat, "does-not-exist", "dev", types.ServeOpGet, "default", "x"); err == nil {
 		t.Fatal("expected an error for an unknown target")
 	}
 }
 
 func TestPlayRead_MissingTargetFlag(t *testing.T) {
-	k := chainTestCatalog("", nil)
-	if err := playRead(k, "", "dev", types.ServeOpGet, "default", "x"); err == nil {
+	cat := chainTestCatalog("", nil)
+	if err := playRead(cat, "", "dev", types.ServeOpGet, "default", "x"); err == nil {
 		t.Fatal("expected an error when --target is empty")
 	}
 }
 
 func TestPlayRead_MissingNameForGet(t *testing.T) {
-	k := chainTestCatalog("", nil)
-	if err := playRead(k, "servicerequest", "dev", types.ServeOpGet, "default", ""); err == nil {
+	cat := chainTestCatalog("", nil)
+	if err := playRead(cat, "servicerequest", "dev", types.ServeOpGet, "default", ""); err == nil {
 		t.Fatal("expected an error when --name is empty for get")
 	}
 }
 
 func TestPlayRead_ListDoesNotRequireName(t *testing.T) {
-	k := chainTestCatalog("", nil)
-	if err := playRead(k, "servicerequest", "dev", types.ServeOpList, "default", ""); err != nil {
+	cat := chainTestCatalog("", nil)
+	if err := playRead(cat, "servicerequest", "dev", types.ServeOpList, "default", ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestPlayRead_TokenDenied(t *testing.T) {
-	k := chainTestCatalog("", map[string]types.ServeTokenPermissions{
+	cat := chainTestCatalog("", map[string]types.ServeTokenPermissions{
 		"dev": {Permissions: types.ServePermissionSet{Global: []string{"create"}}}, // no get
 	})
-	if err := playRead(k, "servicerequest", "dev", types.ServeOpGet, "default", "x"); err == nil {
+	if err := playRead(cat, "servicerequest", "dev", types.ServeOpGet, "default", "x"); err == nil {
 		t.Fatal("expected the token to be denied get")
 	}
 }
 
 func TestPlayRead_AllowedGet(t *testing.T) {
-	k := chainTestCatalog("", nil) // no token restrictions -> allow all
-	if err := playRead(k, "servicerequest", "dev", types.ServeOpGet, "default", "x"); err != nil {
+	cat := chainTestCatalog("", nil) // no token restrictions -> allow all
+	if err := playRead(cat, "servicerequest", "dev", types.ServeOpGet, "default", "x"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestPlayRead_Delete(t *testing.T) {
-	k := chainTestCatalog("", nil)
-	if err := playRead(k, "servicerequest", "dev", types.ServeOpDelete, "default", "x"); err != nil {
+	cat := chainTestCatalog("", nil)
+	if err := playRead(cat, "servicerequest", "dev", types.ServeOpDelete, "default", "x"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

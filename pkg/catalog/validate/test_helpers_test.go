@@ -6,8 +6,8 @@ import (
 )
 
 // newExec wraps a *catalog.Catalog in an executor for use in white-box tests.
-func newExec(k *catalog.Catalog) *executor {
-	return &executor{k: k}
+func newExec(cat *catalog.Catalog) *executor {
+	return &executor{cat: cat}
 }
 
 // newCatalogExec builds an executor with pre-set CRDs for tests.
@@ -17,7 +17,7 @@ func newCatalogExec(crds map[string]types.CRDEntry) *executor {
 
 // crd returns a test CRDEntry by name.
 func (e *executor) crd(name string) *types.CRDEntry {
-	crd, ok := e.k.Enabled()[name]
+	crd, ok := e.cat.Enabled()[name]
 	if !ok {
 		return nil
 	}

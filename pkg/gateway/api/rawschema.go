@@ -74,11 +74,11 @@ type RawSchemaSection struct {
 func rawSchemaHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 ) http.HandlerFunc {
 	var notes types.NoteRegistry
-	if !kat.Empty() {
-		notes = kat.UserNotes()
+	if !cat.Empty() {
+		notes = cat.UserNotes()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -96,10 +96,10 @@ func rawSchemaHandler(
 
 		var crd *types.CRDEntry
 		if apiVersion != "" && kind != "" {
-			crd = kat.LookupByAPIVersionAndKind(apiVersion, kind).Entry()
+			crd = cat.LookupByAPIVersionAndKind(apiVersion, kind).Entry()
 			if crd == nil {
 				// Try kind-only as fallback, but note the mismatch
-				crd = kat.LookupByKind(kind).Entry()
+				crd = cat.LookupByKind(kind).Entry()
 				if crd != nil {
 					// ─── Return the warning as the response ──────────────
 					writeJSON(w, http.StatusBadRequest, utils.H{
@@ -112,7 +112,7 @@ func rawSchemaHandler(
 				}
 			}
 		} else {
-			crd = kat.LookupByKind(kind).Entry()
+			crd = cat.LookupByKind(kind).Entry()
 		}
 
 		if crd == nil {

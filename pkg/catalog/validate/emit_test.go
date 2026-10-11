@@ -17,17 +17,17 @@ func catalogWithEmit(crdName string, emit *types.EmitConfig) *executor {
 }
 
 func TestValidateEmit_NilEmit(t *testing.T) {
-	k := catalogWithEmit("myapp", nil)
-	assert.NoError(t, k.validateEmit())
+	e := catalogWithEmit("myapp", nil)
+	assert.NoError(t, e.validateEmit())
 }
 
 func TestValidateEmit_NoEvents(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{})
-	assert.NoError(t, k.validateEmit())
+	e := catalogWithEmit("myapp", &types.EmitConfig{})
+	assert.NoError(t, e.validateEmit())
 }
 
 func TestValidateEmit_ValidNormal(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"DatabaseReady": {
 				Type:    types.EmitEventTypeNormal,
@@ -36,11 +36,11 @@ func TestValidateEmit_ValidNormal(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEmit())
+	assert.NoError(t, e.validateEmit())
 }
 
 func TestValidateEmit_ValidWarning(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"DatabaseFailed": {
 				Type:    types.EmitEventTypeWarning,
@@ -49,11 +49,11 @@ func TestValidateEmit_ValidWarning(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEmit())
+	assert.NoError(t, e.validateEmit())
 }
 
 func TestValidateEmit_InvalidType(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"BadEvent": {
 				Type:    "Critical",
@@ -62,7 +62,7 @@ func TestValidateEmit_InvalidType(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "type")
 	assert.Contains(t, err.Error(), "Critical")
@@ -70,7 +70,7 @@ func TestValidateEmit_InvalidType(t *testing.T) {
 }
 
 func TestValidateEmit_EmptyType(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"NoType": {
 				Reason:  "SomeReason",
@@ -78,13 +78,13 @@ func TestValidateEmit_EmptyType(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "type")
 }
 
 func TestValidateEmit_EmptyReason(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"NoReason": {
 				Type:    types.EmitEventTypeNormal,
@@ -92,13 +92,13 @@ func TestValidateEmit_EmptyReason(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reason must not be empty")
 }
 
 func TestValidateEmit_EmptyMessage(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"NoMessage": {
 				Type:   types.EmitEventTypeWarning,
@@ -106,7 +106,7 @@ func TestValidateEmit_EmptyMessage(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "message must not be empty")
 }
@@ -121,7 +121,7 @@ func TestValidateEmitEventEntry_DirectCall(t *testing.T) {
 }
 
 func TestValidateEmit_InvalidMessageTemplate(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"BadTemplate": {
 				Type:    types.EmitEventTypeNormal,
@@ -130,13 +130,13 @@ func TestValidateEmit_InvalidMessageTemplate(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid template")
 }
 
 func TestValidateEmit_InvalidWhenFieldTemplate(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"BadWhen": {
 				Type:    types.EmitEventTypeWarning,
@@ -148,13 +148,13 @@ func TestValidateEmit_InvalidWhenFieldTemplate(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid template")
 }
 
 func TestValidateEmit_MultipleEntries_OneInvalid(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"GoodEvent": {
 				Type:    types.EmitEventTypeNormal,
@@ -168,13 +168,13 @@ func TestValidateEmit_MultipleEntries_OneInvalid(t *testing.T) {
 			},
 		},
 	})
-	err := k.validateEmit()
+	err := e.validateEmit()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "message must not be empty")
 }
 
 func TestValidateEmit_WithWhenCondition(t *testing.T) {
-	k := catalogWithEmit("myapp", &types.EmitConfig{
+	e := catalogWithEmit("myapp", &types.EmitConfig{
 		Events: map[string]*types.EmitEventEntry{
 			"PhaseReady": {
 				Type:    types.EmitEventTypeNormal,
@@ -186,5 +186,5 @@ func TestValidateEmit_WithWhenCondition(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, k.validateEmit())
+	assert.NoError(t, e.validateEmit())
 }

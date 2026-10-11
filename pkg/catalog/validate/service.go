@@ -25,7 +25,7 @@ func (e *executor) validateService() error {
 
 // validateServiceType validates the Service.Type field for all CRDs.
 func validateServiceType(e *executor) error {
-	for _, crd := range e.k.EnabledCRDs() {
+	for _, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasAnyServices() {
 			continue
 		}
@@ -54,7 +54,7 @@ func validateServiceType(e *executor) error {
 
 // validateServiceProtocol validates the Service.Protocol field for all CRDs.
 func validateServiceProtocol(e *executor) error {
-	for _, crd := range e.k.EnabledCRDs() {
+	for _, crd := range e.cat.EnabledCRDs() {
 		if !crd.HasAnyServices() {
 			continue
 		}

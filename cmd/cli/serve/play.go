@@ -91,7 +91,7 @@ Example intent.json:
 			return fmt.Errorf("%s --token is required", cmdutil.FailureMark())
 		}
 
-		k, err := cmdutil.BuildCatalog(cmd)
+		cat, err := cmdutil.BuildCatalog(cmd)
 		if err != nil {
 			return err
 		}
@@ -114,15 +114,15 @@ Example intent.json:
 			}
 			catalogFile = paths[0]
 
-			return playWrite(cmd.Context(), k, catalogFile, intentFile, targetOverride, tokenName, op, simulateFlag, simulateConfig, simOpts)
+			return playWrite(cmd.Context(), cat, catalogFile, intentFile, targetOverride, tokenName, op, simulateFlag, simulateConfig, simOpts)
 		}
-		return playRead(k, targetOverride, tokenName, op, namespace, name)
+		return playRead(cat, targetOverride, tokenName, op, namespace, name)
 	},
 }
 
 // ── create / update path ─────────────────────────────────────────────────────
 
-func playWrite(ctx context.Context, k *catalog.Catalog, catalogFile, intentFile, targetOverride, tokenName string, op types.ServeOperation, doSimulate bool, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
+func playWrite(ctx context.Context, cat *catalog.Catalog, catalogFile, intentFile, targetOverride, tokenName string, op types.ServeOperation, doSimulate bool, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
 	if intentFile == "" {
 		intentFile = resolveDefaultIntentFile()
 		if intentFile == "" {
@@ -145,7 +145,7 @@ func playWrite(ctx context.Context, k *catalog.Catalog, catalogFile, intentFile,
 
 	printPlayHeader(intentFile, target, tokenName, op)
 
-	obj, crd, alias, err := planChain(k, raw, tokenName, op, stageNarrator{})
+	obj, crd, alias, err := planChain(cat, raw, tokenName, op, stageNarrator{})
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func playWrite(ctx context.Context, k *catalog.Catalog, catalogFile, intentFile,
 
 // ── get / list / delete path ─────────────────────────────────────────────────
 
-func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperation, namespace, name string) error {
+func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOperation, namespace, name string) error {
 	if strings.TrimSpace(target) == "" {
 		return fmt.Errorf("%s --target is required for %s", cmdutil.FailureMark(), op)
 	}
@@ -178,9 +178,9 @@ func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperat
 
 	// Stage 1: Target resolution
 	printStage(1, "Target resolution")
-	resolution := k.LookupByTargetOrAlias(target)
+	resolution := cat.LookupByTargetOrAlias(target)
 	if resolution == nil {
-		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(k.AvailableTargets(), ", ")))
+		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(cat.AvailableTargets(), ", ")))
 		return fmt.Errorf("target %q not found", target)
 	}
 	crd, alias := resolution.CRD, resolution.Alias
@@ -188,7 +188,7 @@ func playRead(k *catalog.Catalog, target, tokenName string, op types.ServeOperat
 
 	// Stage 2: Token check
 	printStage(2, "Token check")
-	if err := checkToken(k, crd, alias, tokenName, op, namespace); err != nil {
+	if err := checkToken(cat, crd, alias, tokenName, op, namespace); err != nil {
 		printStageError(err.Error())
 		return err
 	}

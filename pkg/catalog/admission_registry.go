@@ -83,8 +83,8 @@ func NewInMemoryAdmissionRegistry() *InMemoryAdmissionRegistry {
 	}
 }
 
-func (k *Catalog) AdmissionRegistry() AdmissionRegistry {
-	return k.admissionRegistry
+func (c *Catalog) AdmissionRegistry() AdmissionRegistry {
+	return c.admissionRegistry
 }
 
 func (r *InMemoryAdmissionRegistry) GetValidationRules(gvrKey string) *types.ValidationConfig {

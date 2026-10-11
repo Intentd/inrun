@@ -52,11 +52,11 @@ import (
 // and the TLS bundle (for housekeeper Secret reconciliation).
 func ensureSecurity(
 	ctx context.Context,
-	kfg *config.Config,
-	kat *catalog.Catalog,
+	cfg *config.Config,
+	cat *catalog.Catalog,
 	kube *kubeclient.Kubeclient,
 ) (tlsCertFile, tlsKeyFile string, certMgr certmanager.Manager, bundle *certmanager.TLSBundle, err error) {
-	namespace := kfg.Cluster().Namespace()
+	namespace := cfg.Cluster().Namespace()
 
 	// ── Namespace labeling ────────────────────────────────────────────────
 	// The deletion-protection webhook uses ObjectSelector to narrow to labeled
@@ -66,9 +66,9 @@ func ensureSecurity(
 	// inrun.dev/deletion-protection) so the webhook intercepts any attempt to
 	// delete this namespace.
 	// This only makes sense when security.deletionProtection.enabled is true
-	// Gating it silences the permissions errors because kat.GenerateRBACRules()
+	// Gating it silences the permissions errors because cat.GenerateRBACRules()
 	// does not create namespace permissions if deletionProtection.enabled is false.
-	if kat.IsDeletionProtectionEnabled() {
+	if cat.IsDeletionProtectionEnabled() {
 		if err := ensureNamespaceLabeled(ctx, kube, namespace, labels.InrunResourceLabels()); err != nil {
 			logger.Warn().Err(err).
 				Str("namespace", namespace).
@@ -81,13 +81,13 @@ func ensureSecurity(
 	// conversion webhooks are enabled. If the user has provided TLS_CERT and
 	// TLS_KEY those are used as-is. Otherwise Inrun generates self-signed
 	// certs and stores them in the inrun-tls Secret.
-	needsTLS := kat.NeedsCertificates()
+	needsTLS := cat.NeedsCertificates()
 	if !needsTLS {
 		return "", "", nil, nil, nil
 	}
 
-	configuredCert := kfg.Security().Webhooks.TLSCert
-	configuredKey := kfg.Security().Webhooks.TLSKey
+	configuredCert := cfg.Security().Webhooks.TLSCert
+	configuredKey := cfg.Security().Webhooks.TLSKey
 
 	if configuredCert != "" && configuredKey != "" {
 		// User provided certs — use them as-is; no CRD patch (user manages caBundle)
@@ -100,14 +100,14 @@ func ensureSecurity(
 	// No explicit cert configured — generate self-signed via certmanager.
 	logger.Info().Msg("security: generating TLS certificates")
 
-	serviceName := kat.GatewayServiceName()
+	serviceName := cat.GatewayServiceName()
 	mgr := certmanager.New(kube.Clientset())
 
 	tlsBundle, bundleErr := mgr.EnsureCertificate(ctx, certmanager.CertificateSpec{
 		ServiceName: serviceName,
 		Namespace:   namespace,
 		SecretName:  certmanager.DefaultTLSSecretName,
-		ValidFor:    kat.CertValidForStr(),
+		ValidFor:    cat.CertValidForStr(),
 		BaseLabels:  labels.InrunResourceLabels(),
 	})
 	if bundleErr != nil {
@@ -127,7 +127,7 @@ func ensureSecurity(
 	// ── 2. CRD conversion webhook patch ──────────────────────────────────────
 	// For each enabled CRD that declares conversion.updateCRD: true, patch the
 	// CRD's spec.conversion.webhook.clientConfig.caBundle with the generated CA.
-	if err := patchConversionCRDs(ctx, kube, kat, tlsBundle.CACertPEM, serviceName, namespace); err != nil {
+	if err := patchConversionCRDs(ctx, kube, cat, tlsBundle.CACertPEM, serviceName, namespace); err != nil {
 		logger.Warn().Err(err).Msg("security: some CRD conversion patches failed")
 	}
 
@@ -140,14 +140,14 @@ func ensureSecurity(
 func patchConversionCRDs(
 	ctx context.Context,
 	kube *kubeclient.Kubeclient,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 	caCertPEM []byte,
 	serviceName, serviceNamespace string,
 ) error {
 	caBundle64 := base64.StdEncoding.EncodeToString(caCertPEM)
 
 	var errs []error
-	for _, crd := range kat.EnabledCRDs() {
+	for _, crd := range cat.EnabledCRDs() {
 		if !crd.UpdateCRDCaBundle() {
 			continue
 		}
@@ -282,11 +282,11 @@ func ensureNamespaceLabeled(ctx context.Context, kube *kubeclient.Kubeclient, na
 func WireWebhookHousekeeperInfra(
 	ws *webhook.WebhookServer,
 	kube *kubeclient.Kubeclient,
-	kat *catalog.Catalog,
-	kfg *config.Config,
+	cat *catalog.Catalog,
+	cfg *config.Config,
 ) {
-	serviceName := kat.GatewayServiceName()
-	namespace := kfg.Cluster().Namespace()
+	serviceName := cat.GatewayServiceName()
+	namespace := cfg.Cluster().Namespace()
 
 	ws.SetConversionCRDPatcher(func(ctx context.Context, crdName, caBundle64, storageVersion string) error {
 		return applyCRDConversionPatch(ctx, kube, crdName, caBundle64, storageVersion, serviceName, namespace)

@@ -12,11 +12,11 @@ import (
 // serverKat returns a *catalog.Catalog with the Gateway API enabled and one
 // serve-enabled CRD, so Register() actually registers routes.
 func serverKat() *catalog.Catalog {
-	kat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	kat.Gateway = &types.GatewayConfig{
+	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	cat.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{Enabled: true},
 	}
-	return kat
+	return cat
 }
 
 type fakeRegistrar struct {
@@ -33,7 +33,7 @@ func (f *fakeRegistrar) Register(path string, h http.HandlerFunc) {
 
 func TestAPIServer_Register_RoutesPresent(t *testing.T) {
 	ts := &TokenSet{entries: []resolvedToken{{name: "ci", value: "tok"}}}
-	s := &APIServer{tokens: ts, kat: serverKat()}
+	s := &APIServer{tokens: ts, cat: serverKat()}
 
 	reg := newFakeRegistrar()
 	s.Register(reg)
@@ -48,7 +48,7 @@ func TestAPIServer_Register_RoutesPresent(t *testing.T) {
 
 func TestAPIServer_AuthWrapsAllRoutes(t *testing.T) {
 	ts := &TokenSet{entries: []resolvedToken{{name: "ci", value: "valid-token"}}}
-	s := &APIServer{tokens: ts, kat: serverKat()}
+	s := &APIServer{tokens: ts, cat: serverKat()}
 
 	reg := newFakeRegistrar()
 	s.Register(reg)

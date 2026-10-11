@@ -97,11 +97,11 @@ func loadUniqueTestCatalog(t *testing.T) *catalog.Catalog {
 	if err := m.Merge(); err != nil {
 		t.Fatalf("merging catalog: %v", err)
 	}
-	kat, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
+	cat, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
 	if err != nil {
 		t.Fatalf("building catalog: %v", err)
 	}
-	return kat
+	return cat
 }
 
 func websiteCR(name, domain string) *unstructured.Unstructured {
@@ -123,10 +123,10 @@ func websiteCR(name, domain string) *unstructured.Unstructured {
 // UniquenessChecker → validation.rules) when no other instance shares the
 // field value.
 func TestRun_OperatorUnique_NoDuplicate(t *testing.T) {
-	kat := loadUniqueTestCatalog(t)
+	cat := loadUniqueTestCatalog(t)
 	cr := websiteCR("site-a", "a.example.com")
 
-	result, err := Run(context.Background(), kat, "website", cr, 1, RunOptions{})
+	result, err := Run(context.Background(), cat, "website", cr, 1, RunOptions{})
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}
@@ -144,11 +144,11 @@ func TestRun_OperatorUnique_NoDuplicate(t *testing.T) {
 // into the fake dynamic client and makes operator: unique correctly deny —
 // not a checker that trivially always passes because nothing was seeded.
 func TestRun_OperatorUnique_Duplicate(t *testing.T) {
-	kat := loadUniqueTestCatalog(t)
+	cat := loadUniqueTestCatalog(t)
 	cr := websiteCR("site-b", "shared.example.com")
 	existing := websiteCR("site-a", "shared.example.com")
 
-	result, err := Run(context.Background(), kat, "website", cr, 1, RunOptions{
+	result, err := Run(context.Background(), cat, "website", cr, 1, RunOptions{
 		ExistingInstances: []*unstructured.Unstructured{existing},
 	})
 	if err != nil {
