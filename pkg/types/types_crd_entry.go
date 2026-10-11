@@ -279,7 +279,7 @@ func (c *CRDEntry) EffectiveOperatorBox(target string) *OperatorBoxConfig {
 // Hook identity fields (location, function, alias) come from CRD-level when the
 // target omits them. A target's onCreate, onReconcile and onDelete replace the
 // CRD-level phase they name. Args are merged key-by-key with target winning; the
-// target's managedResources replace the CRD-level ones when set.
+// target's managedResources and prune replace the CRD-level ones when set.
 func mergeReconcileConfig(base, target *ReconcileConfig) *ReconcileConfig {
 	if target == nil {
 		return base
@@ -322,6 +322,9 @@ func mergeReconcileConfig(base, target *ReconcileConfig) *ReconcileConfig {
 	}
 	if len(target.External) > 0 {
 		merged.External = target.External
+	}
+	if target.Prune != nil {
+		merged.Prune = target.Prune
 	}
 	// Args: merge key-by-key; target overrides CRD-level per key.
 	if len(target.Args) > 0 {

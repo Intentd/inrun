@@ -39,6 +39,10 @@ spec:
           managedResources:
             - kind: deployment
             - kind: service
+          # Delete a child the reconciler stops returning (the Service when
+          # spec.expose is false).
+          prune:
+            enabled: true
           args:
             logLevel: info
             environment: '{{ .metadata.labels.environment | default "development" }}'

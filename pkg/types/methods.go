@@ -273,6 +273,17 @@ func (c *CRDEntry) AllManagedResources() []domain.ManagedResource {
 	return out
 }
 
+// EffectivePrune returns the prune config for a CR on target, from
+// EffectiveOperatorBox: a target's reconcile.prune replaces the CRD's.
+// Nil means pruning is off.
+func (c *CRDEntry) EffectivePrune(target string) *PruneConfig {
+	box := c.EffectiveOperatorBox(target)
+	if box.Empty() || box.Reconcile.Empty() {
+		return nil
+	}
+	return box.Reconcile.Prune
+}
+
 // targetManagedResources returns a per-target operatorBox's
 // reconcile.managedResources, or nil.
 func targetManagedResources(box *OperatorBoxConfig) []domain.ManagedResource {

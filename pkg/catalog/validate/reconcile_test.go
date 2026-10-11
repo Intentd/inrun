@@ -464,3 +464,45 @@ func TestValidateRemoteRequest_Children_PerResourceExclude_InvalidPath(t *testin
 	err := e.validateRemote("app", crdPtr(e, "app"))
 	assert.ErrorContains(t, err, `resources["deployment"].exclude`)
 }
+
+// ── Prune request validation ─────────────────────────────────────────────────
+
+func pruneCRD(prune *types.PruneConfig, managed ...domain.ManagedResource) *types.CRDEntry {
+	return &types.CRDEntry{OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{
+		Remote:           &types.RemoteReconcilerDeclaration{Endpoint: "http://r"},
+		ManagedResources: managed,
+		Prune:            prune,
+	}}}
+}
+
+func TestValidatePrune(t *testing.T) {
+	deploy, pvc := domain.ManagedResource{Kind: "deployment"}, domain.ManagedResource{Kind: "persistentvolumeclaim"}
+
+	assert.NoError(t, validatePrune("app", pruneCRD(nil)))
+	assert.NoError(t, validatePrune("app", pruneCRD(&types.PruneConfig{Enabled: true}, deploy)))
+	assert.NoError(t, validatePrune("app", pruneCRD(&types.PruneConfig{Enabled: true, Keep: []string{"pvc"}}, deploy, pvc)))
+
+	err := validatePrune("app", pruneCRD(&types.PruneConfig{Enabled: true}))
+	assert.ErrorContains(t, err, "managedResources is empty")
+
+	err = validatePrune("app", pruneCRD(&types.PruneConfig{Enabled: true, Keep: []string{"secret"}}, deploy))
+	assert.ErrorContains(t, err, `prune.keep[0]: "secret" is not declared`)
+
+	// A serve target is checked against its own managedResources.
+	crd := pruneCRD(nil, deploy)
+	crd.Serve = &types.ServeConfig{Target: types.ServeTargetValue{Entries: map[string]*types.ServeTargetConfig{
+		"web": {OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{
+			Prune: &types.PruneConfig{Enabled: true, Keep: []string{"persistentvolumeclaim"}},
+		}}},
+	}}}
+	err = validatePrune("app", crd)
+	assert.ErrorContains(t, err, "serve.target[web].reconcile.prune.keep[0]")
+}
+
+func TestValidateManagedResources_PruneOnDeclarative(t *testing.T) {
+	crd := &types.CRDEntry{OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{
+		Prune: &types.PruneConfig{Enabled: true},
+	}}}
+	err := (&executor{}).validateManagedResources("app", crd)
+	assert.ErrorContains(t, err, "reconcile.prune apply only to hooks")
+}

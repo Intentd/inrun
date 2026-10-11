@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
 	corev1 "k8s.io/api/core/v1"
+	"path"
 	"runtime"
 	"time"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
@@ -215,8 +217,16 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 
 	// Apply the resources, labels and annotations the Result returns. Every
 	// reconciler's writes take this one path; a failure is a reconcile failure.
+	// Children it applied before and no longer returns are pruned when the
+	// effective reconcile.prune is enabled.
 	if reconcileErr == nil && hasEntry && prepared != nil {
-		if err := apply.Result(ctx, c.kube, prepared.Object, entry.CRD.AllManagedResources(), result); err != nil {
+		prune := entry.CRD.EffectivePrune(intent.Target(prepared.Object.GetAnnotations()))
+		pruned, err := apply.Result(ctx, c.kube, prepared.Object, entry.CRD.AllManagedResources(), prune, result)
+		for _, p := range pruned {
+			c.event.Eventf(prepared.Object, corev1.EventTypeNormal, "Pruned",
+				"Deleted %s %s: no longer in the result", p.Kind, path.Join(p.Namespace, p.Name))
+		}
+		if err != nil {
 			c.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ApplyFailed",
 				"Applying the result for %s/%s: %v", prepared.Object.GetNamespace(), prepared.Object.GetName(), err)
 			reconcileErr = err

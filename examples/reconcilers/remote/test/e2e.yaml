@@ -131,6 +131,24 @@ spec:
             namespace: default
             outputContains: key=default/my-webapp
 
+    - name: Prune — Service deleted when the reconciler stops returning it
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        patch:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            patch: '{"spec":{"expose":false}}'
+      resources:
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+          count: 0
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+
     - name: Garbage collection on CR delete
       after: cr-deleted
       timeout: 30s

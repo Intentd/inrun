@@ -12,6 +12,7 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/shared"
+	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -27,12 +28,26 @@ type resource struct {
 	forceConflict *bool
 }
 
-// Result applies a Result's resources, then its labels and annotations on owner.
-func Result(ctx context.Context, kube kubeclient.Interface, owner domain.Object, managed []domain.ManagedResource, r domain.Result) error {
-	if err := Resources(ctx, kube, owner, managed, r.Resources); err != nil {
-		return err
+// Result applies a Result's resources, prunes children it no longer returns
+// when prune is enabled, then applies its labels and annotations on owner.
+// It returns the children it pruned.
+func Result(
+	ctx context.Context,
+	kube kubeclient.Interface,
+	owner domain.Object,
+	managed []domain.ManagedResource,
+	prune *types.PruneConfig,
+	r domain.Result,
+) ([]Pruned, error) {
+	applied, err := apply(ctx, kube, owner, managed, r.Resources)
+	if err != nil {
+		return nil, err
 	}
-	return Metadata(ctx, kube, owner, r.Labels, r.Annotations)
+	pruned, err := Prune(ctx, kube.DynamicClient(), owner, managed, prune, applied)
+	if err != nil {
+		return pruned, err
+	}
+	return pruned, Metadata(ctx, kube, owner, r.Labels, r.Annotations)
 }
 
 // Resources expands, checks and applies the resources a Result returns.
@@ -47,30 +62,44 @@ func Resources(
 	managed []domain.ManagedResource,
 	raw []map[string]interface{},
 ) error {
+	_, err := apply(ctx, kube, owner, managed, raw)
+	return err
+}
+
+// apply is Resources, returning the objects it applied for Prune.
+func apply(
+	ctx context.Context,
+	kube kubeclient.Interface,
+	owner domain.Object,
+	managed []domain.ManagedResource,
+	raw []map[string]interface{},
+) ([]*unstructured.Unstructured, error) {
 	if len(raw) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	expanded, err := Expand(raw, owner)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	targets, targetErr := resolveTargets(kube, expanded, managed)
 	if targetErr != nil {
-		return targetErr
+		return nil, targetErr
 	}
 
 	ownerRefs := shared.ResolveOwnerReferences(owner)
 	catalogName := owner.GetAnnotations()[labels.AnnotationManagedBy]
 	since := managedSince(owner)
 
+	applied := make([]*unstructured.Unstructured, 0, len(targets))
 	for i, rr := range targets {
 		if err := applyOne(ctx, kube, rr, owner, ownerRefs, catalogName, since); err != nil {
-			return fmt.Errorf("resources[%d] %q: apply failed: %w", i, rr.obj.GetName(), err)
+			return nil, fmt.Errorf("resources[%d] %q: apply failed: %w", i, rr.obj.GetName(), err)
 		}
+		applied = append(applied, rr.obj)
 	}
-	return nil
+	return applied, nil
 }
 
 // Expand turns intent-form entries ({"type", "fields"}) into full Kubernetes
@@ -161,7 +190,12 @@ func applyOne(
 	}
 	// The same ownership labels as declarative children: the console finds a
 	// CR's children by them, and the surface sweep uses them on target changes.
-	u.SetLabels(labels.StampInrunLabels(u.GetLabels(), owner.GetName(), owner.GetAnnotations()))
+	// The owner UID label lets Prune find exactly this CR's children.
+	lbls := labels.StampInrunLabels(u.GetLabels(), owner.GetName(), owner.GetAnnotations())
+	if uid := owner.GetUID(); uid != "" {
+		lbls[labels.OwnerUID] = string(uid)
+	}
+	u.SetLabels(lbls)
 	labels.NewManager(labels.Config{}).EnsureManagedAnnotations(u, catalogName)
 
 	// Owner reference: same namespace only.

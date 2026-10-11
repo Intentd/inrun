@@ -44,6 +44,19 @@ kubectl get deployment my-webapp
 kubectl get service my-webapp-svc
 ```
 
+### 4a. Prune
+
+The Catalog sets `prune.enabled`, so a child the reconciler stops returning is
+deleted. Turn off `expose` and the reconcilers leave the Service out:
+
+```bash
+kubectl patch webapp my-webapp --type merge -p '{"spec":{"expose":false}}'
+```
+
+```bash
+kubectl get service my-webapp-svc   # NotFound after the next reconcile
+```
+
 ### 4b. Another language
 
 Stop the bash reconciler and start one of these instead. The Catalog does not
@@ -72,7 +85,8 @@ Inrun POSTs the CR's identity, the CR itself (with `managedFields` stripped) and
 
 The reconciler returns status, labels and annotations for the WebApp, and
 resources in intent form: a built-in `type` and flat `fields`. Inrun builds the
-objects, sets owner references and applies them.
+objects, sets owner references and applies them. With `reconcile.prune.enabled`,
+a child it applied before and no longer finds in `resources` is deleted.
 
 ```json
 { "result": "ok",

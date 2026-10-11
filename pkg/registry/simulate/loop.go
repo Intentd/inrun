@@ -7,6 +7,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
@@ -59,7 +60,8 @@ func runLoop(ctx context.Context, r domain.Reconciler, kube loopKube, key string
 		res, err := r.Reconcile(ctx, req)
 		// Apply the Result's writes the way the coordinator worker does.
 		if err == nil {
-			err = apply.Result(ctx, kube, prepared.Object, prepInput.Entry.CRD.AllManagedResources(), res)
+			prune := prepInput.Entry.CRD.EffectivePrune(intent.Target(prepared.Object.GetAnnotations()))
+			_, err = apply.Result(ctx, kube, prepared.Object, prepInput.Entry.CRD.AllManagedResources(), prune, res)
 		}
 		cycleResult.Error = err
 

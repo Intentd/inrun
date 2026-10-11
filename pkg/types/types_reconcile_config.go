@@ -197,6 +197,11 @@ type ReconcileConfig struct {
 	// declarative-only CRDs (their RBAC comes from their templates).
 	ManagedResources []domain.ManagedResource `yaml:"managedResources,omitempty" json:"managedResources,omitempty"`
 
+	// Prune deletes children the reconciler applied on an earlier reconcile
+	// but no longer returns. Off unless prune.enabled is true. Used by hooks,
+	// constructor and remote reconcilers; rejected on declarative-only CRDs.
+	Prune *PruneConfig `yaml:"prune,omitempty" json:"prune,omitempty"`
+
 	OnCreate    *HookTemplates `yaml:"onCreate,omitempty" json:"onCreate,omitempty" validate:"omitempty"`
 	OnReconcile *HookTemplates `yaml:"onReconcile,omitempty" json:"onReconcile,omitempty" validate:"omitempty"`
 	OnDelete    *HookTemplates `yaml:"onDelete,omitempty" json:"onDelete,omitempty" validate:"omitempty"`
@@ -212,6 +217,27 @@ type ReconcileConfig struct {
 }
 
 func (r *ReconcileConfig) Empty() bool { return r == nil }
+
+// PruneConfig controls deletion of children a Result no longer returns.
+//
+// Only children Inrun applied for this CR are candidates: they carry the
+// owner-uid label and the inrun-reconciler field manager. Nothing is pruned
+// when the reconcile or any apply fails.
+type PruneConfig struct {
+	// Enabled turns pruning on. Default false.
+	Enabled bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+
+	// AllowEmpty lets a Result with no resources prune every child. Without
+	// it, an empty Result prunes nothing: it is more often a bug than intent.
+	AllowEmpty bool `yaml:"allowEmpty,omitempty" json:"allowEmpty,omitempty"`
+
+	// Keep lists managedResources kinds that are never pruned, such as
+	// persistentvolumeclaim for data that must outlive a mistake.
+	Keep []string `yaml:"keep,omitempty" json:"keep,omitempty"`
+}
+
+// IsEnabled reports whether pruning is on. Safe on a nil config.
+func (p *PruneConfig) IsEnabled() bool { return p != nil && p.Enabled }
 
 // IsDefault reports whether the generic.Reconciler should be used.
 func (r *ReconcileConfig) IsDefault() bool {

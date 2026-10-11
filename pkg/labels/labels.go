@@ -114,6 +114,11 @@ const (
 	// reconcile loops to determine whether a resource should be updated or deleted.
 	InrunOwner = "inrun-owner"
 
+	// OwnerUID holds the UID of the CR a reconciler's Result applied a child
+	// for. Unlike InrunOwner it is unique across kinds and namespaces, so
+	// pruning can tell this CR's children from another's with the same name.
+	OwnerUID = "inrun.dev/owner-uid"
+
 	// InrunServeTarget records the effective serve surface (alias → target)
 	// that was active when a child resource was created. Used to detect orphaned
 	// resources after a surface switch and clean them up on the next reconcile.

@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/intentd/inrun/pkg/children"
@@ -52,6 +53,11 @@ func (e *executor) validateReconcilerMode() error {
 
 		// Managed resources validation
 		if err := e.validateManagedResources(name, &crd); err != nil {
+			return err
+		}
+
+		// Prune: keep names managed kinds; enabled needs something to prune
+		if err := validatePrune(name, &crd); err != nil {
 			return err
 		}
 
@@ -329,9 +335,9 @@ func (e *executor) validateManagedResources(name string, crd *types.CRDEntry) er
 	// args and managedResources belong to a reconciler written in code. On a
 	// declarative-only CRD they would do nothing, which almost always means a
 	// forgotten hooks, constructor or remote block.
-	if !hasCode && rec != nil && (len(rec.Args) > 0 || len(rec.ManagedResources) > 0 || len(rec.External) > 0) {
+	if !hasCode && rec != nil && (len(rec.Args) > 0 || len(rec.ManagedResources) > 0 || len(rec.External) > 0 || rec.Prune != nil) {
 		return fmt.Errorf(
-			"%s CRD %q: reconcile.args, reconcile.external and reconcile.managedResources apply only to hooks,\n"+
+			"%s CRD %q: reconcile.args, reconcile.external, reconcile.managedResources and reconcile.prune apply only to hooks,\n"+
 				"constructor or remote reconcilers. This CRD is declarative: its resources come\n"+
 				"from its templates, and Inrun derives their RBAC from them.\n\n"+
 				"Remove them, or declare the reconciler they are for (hooks, constructor or remote).",
@@ -419,6 +425,58 @@ func (e *executor) validateManagedResources(name string, crd *types.CRDEntry) er
 		}
 	}
 
+	return nil
+}
+
+// validatePrune checks reconcile.prune on the CRD and on each serve target,
+// against the managedResources in effect for the same block: prune.enabled
+// needs at least one managed resource, and every prune.keep entry must name a
+// managed kind.
+func validatePrune(name string, crd *types.CRDEntry) error {
+	check := func(where string, target string) error {
+		box := crd.EffectiveOperatorBox(target)
+		if box.Empty() || box.Reconcile.Empty() || box.Reconcile.Prune == nil {
+			return nil
+		}
+		p, managed := box.Reconcile.Prune, box.Reconcile.ManagedResources
+		if p.Enabled && len(managed) == 0 {
+			return fmt.Errorf(
+				"%s CRD %q: %sreconcile.prune.enabled is true but reconcile.managedResources is empty — there is nothing Inrun applied that it could prune",
+				failureMark(), name, where,
+			)
+		}
+		kinds := make(map[string]bool, len(managed))
+		for _, mr := range managed {
+			kinds[children.KindName(mr.Kind)] = true
+			if mr.Plural != "" {
+				kinds[strings.ToLower(mr.Plural)] = true
+			}
+		}
+		for i, k := range p.Keep {
+			if !kinds[children.KindName(k)] {
+				return fmt.Errorf(
+					"%s CRD %q: %sreconcile.prune.keep[%d]: %q is not declared in reconcile.managedResources",
+					failureMark(), name, where, i, k,
+				)
+			}
+		}
+		return nil
+	}
+	if err := check("", ""); err != nil {
+		return err
+	}
+	if crd.Serve != nil {
+		targets := make([]string, 0, len(crd.Serve.Target.Entries))
+		for target := range crd.Serve.Target.Entries {
+			targets = append(targets, target)
+		}
+		sort.Strings(targets)
+		for _, target := range targets {
+			if err := check(fmt.Sprintf("serve.target[%s].", target), target); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

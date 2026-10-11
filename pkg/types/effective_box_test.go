@@ -35,3 +35,27 @@ func TestEffectiveOperatorBox_TargetTemplates(t *testing.T) {
 		})
 	}
 }
+
+func TestEffectivePrune(t *testing.T) {
+	crdPrune := &PruneConfig{Enabled: true}
+	targetPrune := &PruneConfig{Enabled: true, Keep: []string{"persistentvolumeclaim"}}
+	c := CRDEntry{
+		OperatorBox: &OperatorBoxConfig{Reconcile: &ReconcileConfig{Prune: crdPrune}},
+		Serve: &ServeConfig{Target: ServeTargetValue{Entries: map[string]*ServeTargetConfig{
+			"inherits":  {OperatorBox: &OperatorBoxConfig{Reconcile: &ReconcileConfig{Workers: 1}}},
+			"overrides": {OperatorBox: &OperatorBoxConfig{Reconcile: &ReconcileConfig{Prune: targetPrune}}},
+		}}},
+	}
+	if got := c.EffectivePrune(""); got != crdPrune {
+		t.Error("no target: want the CRD-level prune")
+	}
+	if got := c.EffectivePrune("inherits"); got != crdPrune {
+		t.Error("target without prune: want the CRD-level prune")
+	}
+	if got := c.EffectivePrune("overrides"); got != targetPrune {
+		t.Error("target with prune: want the target's prune")
+	}
+	if (&CRDEntry{}).EffectivePrune("").IsEnabled() {
+		t.Error("no reconcile block: want pruning off")
+	}
+}

@@ -47,6 +47,16 @@ func LookupBuiltIn(kind string) EnrichmentResult {
 	}
 }
 
+// KindName normalises a kind as written in managedResources or prune.keep:
+// built-in names and shorthands resolve to the built-in kind, lowercased;
+// anything else is lowercased as is.
+func KindName(kind string) string {
+	if res := LookupBuiltIn(kind); res.Found() {
+		return strings.ToLower(res.Kind())
+	}
+	return strings.ToLower(strings.TrimSpace(kind))
+}
+
 // Found reports whether the lookup matched a known built-in.
 func (r EnrichmentResult) Found() bool { return r.found }
 
