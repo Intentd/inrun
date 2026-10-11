@@ -2,6 +2,7 @@ package vitals
 
 import (
 	"encoding/json"
+	"github.com/inrundev/inrun/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -109,5 +110,33 @@ func TestBuildCRListHandler_FieldParamMissingOnCR(t *testing.T) {
 	}
 	if len(resp.Items) != 1 || resp.Items[0].Value != "" {
 		t.Errorf("got %+v, want a single item with empty Value", resp.Items)
+	}
+}
+
+func TestRelevantGVRsFromConfig_ManagedResources(t *testing.T) {
+	keys := func(es []childGVREntry) map[string]bool {
+		out := map[string]bool{}
+		for _, e := range es {
+			out[e.Key] = true
+		}
+		return out
+	}
+
+	byKind := &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{
+		ManagedResources: []domain.ManagedResource{{Kind: "Deployment"}, {Kind: "service"}},
+	}}
+	if got := keys(relevantGVRsFromConfig(byKind)); len(got) != 2 || !got["deployment"] || !got["service"] {
+		t.Errorf("by kind: got %v, want deployment and service", got)
+	}
+
+	byPlural := &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{
+		ManagedResources: []domain.ManagedResource{{Group: "apps", Plural: "deployments"}},
+	}}
+	if got := keys(relevantGVRsFromConfig(byPlural)); len(got) != 1 || !got["deployment"] {
+		t.Errorf("by group and plural: got %v, want deployment", got)
+	}
+
+	if got := relevantGVRsFromConfig(&types.OperatorBoxConfig{}); len(got) != len(knownChildGVRs) {
+		t.Errorf("nothing declared: got %d kinds, want all %d", len(got), len(knownChildGVRs))
 	}
 }

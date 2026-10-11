@@ -1,6 +1,6 @@
-baseURL = "https://orkestra.sh/"
+baseURL = "https://inrun.dev/"
 languageCode = "en-us"
-title = "Orkestra"
+title = "Inrun"
 enableGitInfo = true
 
 [markup]
@@ -16,8 +16,8 @@ enableGitInfo = true
 
 [params]
   description = "Kubernetes operators without the infrastructure."
-  github = "https://github.com/orkspace/orkestra"
-  controlcenter = "https://cc.orkestra.sh"
+  github = "https://github.com/inrundev/inrun"
+  controlcenter = "https://cc.inrun.dev"
   version = "v1"
   docsBase = "/docs/"
 
