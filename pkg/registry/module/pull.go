@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // PullImport fetches a module artifact into the registry cache

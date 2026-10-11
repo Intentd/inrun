@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
 	"k8s.io/client-go/util/workqueue"
 )
 

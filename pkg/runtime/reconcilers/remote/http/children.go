@@ -3,10 +3,10 @@ package http
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8stypes "k8s.io/apimachinery/pkg/types"

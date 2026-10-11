@@ -4,7 +4,7 @@ package statefulsets
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ResolvedVolumeClaimTemplate is one resolved PVC template for a StatefulSet.

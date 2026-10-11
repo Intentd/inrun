@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils/common/query"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils/common/query"
 )
 
 // ── Validation evaluation ─────────────────────────────────────────────────────

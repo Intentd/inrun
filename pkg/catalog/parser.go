@@ -4,9 +4,9 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // -----------------------------------------------------------------------------

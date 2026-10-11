@@ -3,9 +3,9 @@ package prepare
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 

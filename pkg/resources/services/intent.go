@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/resources/shared"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/resources/shared"
 )
 
 // Build converts a flat intent fields map into a full Service object map

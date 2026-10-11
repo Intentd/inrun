@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── RegistryRef ───────────────────────────────────────────────────────────────
@@ -57,9 +57,9 @@ func TestRegistryRef_IsDefault(t *testing.T) {
 // ── RegistrySource.ResolvedURL ────────────────────────────────────────────────
 
 func TestResolvedURL_AtShorthand(t *testing.T) {
-	src := types.RegistrySource{URL: "ghcr.io/inrundev/registry/postgres@v14"}
+	src := types.RegistrySource{URL: "ghcr.io/intentd/registry/postgres@v14"}
 	u, version := src.ResolvedURL()
-	if u != "ghcr.io/inrundev/registry/postgres" {
+	if u != "ghcr.io/intentd/registry/postgres" {
 		t.Errorf("url: expected stripped @, got %q", u)
 	}
 	if version != "v14" {
@@ -79,9 +79,9 @@ func TestResolvedURL_AtShorthand_GitURL(t *testing.T) {
 }
 
 func TestResolvedURL_ExplicitVersion(t *testing.T) {
-	src := types.RegistrySource{URL: "ghcr.io/inrundev/registry/postgres", Version: "v14.2.0"}
+	src := types.RegistrySource{URL: "ghcr.io/intentd/registry/postgres", Version: "v14.2.0"}
 	u, version := src.ResolvedURL()
-	if u != "ghcr.io/inrundev/registry/postgres" {
+	if u != "ghcr.io/intentd/registry/postgres" {
 		t.Errorf("url: expected unchanged, got %q", u)
 	}
 	if version != "v14.2.0" {
@@ -90,7 +90,7 @@ func TestResolvedURL_ExplicitVersion(t *testing.T) {
 }
 
 func TestResolvedURL_AtShorthand_Takes_Priority(t *testing.T) {
-	src := types.RegistrySource{URL: "ghcr.io/inrundev/registry/postgres@v14", Version: "v15"}
+	src := types.RegistrySource{URL: "ghcr.io/intentd/registry/postgres@v14", Version: "v15"}
 	_, version := src.ResolvedURL()
 	if version != "v14" {
 		t.Errorf("@ shorthand should take priority, got version %q", version)
@@ -98,7 +98,7 @@ func TestResolvedURL_AtShorthand_Takes_Priority(t *testing.T) {
 }
 
 func TestResolvedURL_DefaultVersion_OCI(t *testing.T) {
-	src := types.RegistrySource{URL: "ghcr.io/inrundev/registry/postgres", OCI: true}
+	src := types.RegistrySource{URL: "ghcr.io/intentd/registry/postgres", OCI: true}
 	_, version := src.ResolvedURL()
 	if version != "latest" {
 		t.Errorf("OCI default version should be 'latest', got %q", version)

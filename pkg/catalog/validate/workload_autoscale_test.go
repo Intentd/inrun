@@ -1,7 +1,7 @@
 package validate
 
 import (
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"testing"
 )
 

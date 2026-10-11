@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── Merge rules ───────────────────────────────────────────────────────────────

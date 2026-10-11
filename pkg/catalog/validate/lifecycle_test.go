@@ -3,9 +3,9 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

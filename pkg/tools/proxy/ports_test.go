@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/tools/proxy"
+	"github.com/intentd/inrun/pkg/tools/proxy"
 )
 
 func freePort(t *testing.T) int {

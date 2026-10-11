@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // SchemaResponse is returned by GET /api/v1/schema?target=<t>.

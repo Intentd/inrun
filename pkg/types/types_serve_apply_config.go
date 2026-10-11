@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

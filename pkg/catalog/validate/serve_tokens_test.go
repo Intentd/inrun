@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Helper to create a Catalog with gateway tokens

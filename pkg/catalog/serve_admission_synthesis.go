@@ -1,6 +1,6 @@
 package catalog
 
-import "github.com/inrundev/inrun/pkg/types"
+import "github.com/intentd/inrun/pkg/types"
 
 // applyServeAdmissionSynthesis synthesizes implicit admission rules from serve field declarations.
 // Fields marked required: true get an exists validation rule; type: enum fields get an in rule.

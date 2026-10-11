@@ -3,7 +3,7 @@ package catalog
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

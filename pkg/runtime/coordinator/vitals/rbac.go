@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 type RBACInfo struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/jackc/pgx/v5"
 )
 

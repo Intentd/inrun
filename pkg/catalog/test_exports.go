@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // NewCatalogWithLifecycleForTest builds a minimal Catalog with the lifecycle

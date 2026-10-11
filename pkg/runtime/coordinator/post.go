@@ -3,14 +3,14 @@ package coordinator
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/post"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // PostInput holds everything runPost needs from the worker.

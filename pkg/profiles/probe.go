@@ -1,6 +1,6 @@
 package profiles
 
-import "github.com/inrundev/inrun/pkg/types"
+import "github.com/intentd/inrun/pkg/types"
 
 // ProbeProfile is a named set of Kubernetes probe timing parameters.
 //

@@ -6,10 +6,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/health"
-	"github.com/inrundev/inrun/pkg/utils"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/health"
+	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/version"
 )
 
 // GatewayStatsProvider is the subset of webhook.WebhookServer the handlers

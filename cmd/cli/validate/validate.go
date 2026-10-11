@@ -8,16 +8,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"path/filepath"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/registry/e2e"
-	modulepkg "github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/registry/e2e"
+	modulepkg "github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	rbacv1 "k8s.io/api/rbac/v1"

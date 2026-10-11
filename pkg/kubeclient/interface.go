@@ -3,7 +3,7 @@ package kubeclient
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

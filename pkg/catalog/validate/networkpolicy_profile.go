@@ -21,9 +21,9 @@ package validate
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 
-	"github.com/inrundev/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/profiles"
 )
 
 func (e *executor) validateNetworkPolicyProfiles() error {

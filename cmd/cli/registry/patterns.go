@@ -9,9 +9,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry"
 	"github.com/spf13/cobra"
 )
 

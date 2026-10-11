@@ -3,8 +3,8 @@ package intent
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/utils/common"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )

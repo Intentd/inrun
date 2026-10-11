@@ -1,8 +1,8 @@
 package children
 
 import (
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // resolvedChildName holds a resolved (non-template) name and namespace

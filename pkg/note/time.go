@@ -6,7 +6,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/robfig/cron/v3"
 )
 

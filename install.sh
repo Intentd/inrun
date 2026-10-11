@@ -20,7 +20,7 @@ set -euo pipefail
 
 # Config
 
-REPO="inrundev/inrun"
+REPO="intentd/inrun"
 INSTALL_DIR="${INRUN_INSTALL_DIR:-${HOME}/.inrun/bin}"
 VERSION="${INRUN_VERSION:-}"
 SKIP_CC="${INRUN_SKIP_CONSOLE:-false}"

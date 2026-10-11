@@ -26,15 +26,15 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils/common"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils/common"
 )
 
 // ApplyResponse is returned for every POST /api/v1/apply request.

@@ -1,9 +1,9 @@
-module github.com/inrundev/inrun-constructor-demo
+module github.com/intentd/inrun-constructor-demo
 
 go 1.26.3
 
 require (
-	github.com/inrundev/inrun {{ .InrunVersion }}
+	github.com/intentd/inrun {{ .InrunVersion }}
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
 	k8s.io/client-go v0.36.1

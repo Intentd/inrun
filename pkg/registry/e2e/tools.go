@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/inrundev/inrun/pkg/tools/cluster"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ensureTools checks which external tools are required by the E2E spec and

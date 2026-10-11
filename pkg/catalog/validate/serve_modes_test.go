@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

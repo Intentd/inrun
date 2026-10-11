@@ -317,13 +317,13 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Inrun imports must be injected (not just TODO comments).
-	if !strings.Contains(out, `"github.com/inrundev/inrun/domain"`) {
+	if !strings.Contains(out, `"github.com/intentd/inrun/domain"`) {
 		t.Error("expected domain import to be injected")
 	}
-	if !strings.Contains(out, `"github.com/inrundev/inrun/pkg/kubeclient"`) {
+	if !strings.Contains(out, `"github.com/intentd/inrun/pkg/kubeclient"`) {
 		t.Error("expected kubeclient import to be injected")
 	}
-	if !strings.Contains(out, `"github.com/inrundev/inrun/pkg/kubeclient/adapter"`) {
+	if !strings.Contains(out, `"github.com/intentd/inrun/pkg/kubeclient/adapter"`) {
 		t.Error("expected adapter import to be injected")
 	}
 

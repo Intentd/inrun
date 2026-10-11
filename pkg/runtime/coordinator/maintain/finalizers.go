@@ -7,10 +7,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // applyFinalizers adds or removes finalizers depending on CRDEntry.RemoveFinalizers.

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // The generated Catalog must decode strictly: an unknown or misplaced key

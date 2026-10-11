@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/note"
 )
 
 // validateUserNotes checks the notes: block declared on the Catalog.

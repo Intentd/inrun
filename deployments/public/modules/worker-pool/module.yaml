@@ -6,7 +6,7 @@ metadata:
   description: >
     A pool of identical worker pods managed as a ReplicaSet.
     No Service — workers pull work, they don't accept connections.
-  author: inrundev
+  author: intentd
   tags:
     - replicaset
     - workers

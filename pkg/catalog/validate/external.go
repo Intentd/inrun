@@ -1,7 +1,7 @@
 package validate
 
 import (
-	"github.com/inrundev/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/external"
 )
 
 func (e *executor) validateExternalCalls() error {

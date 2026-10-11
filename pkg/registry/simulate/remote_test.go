@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

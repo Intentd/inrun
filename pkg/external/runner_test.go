@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // stubTransport returns a fixed response for every request.

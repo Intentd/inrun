@@ -230,8 +230,8 @@ func rewriteImports(src []byte, addStrings bool) []byte {
 	// Inject Inrun import hints as a block comment so the user knows exactly what to add.
 	result = injectImport(result,
 		"// TODO(inrun migrate): add these imports:\n"+
-			"//   \"github.com/inrundev/inrun/domain\"\n"+
-			"//   \"github.com/inrundev/inrun/pkg/kubeclient\"")
+			"//   \"github.com/intentd/inrun/domain\"\n"+
+			"//   \"github.com/intentd/inrun/pkg/kubeclient\"")
 
 	return result
 }

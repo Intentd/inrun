@@ -3,8 +3,8 @@ package types
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -149,7 +149,7 @@ type APITypes struct {
 	// Required for typed mode. Used by inrun generate for import statements
 	// and scheme registration in RegisterScheme().
 	// Not needed for dynamic mode — omit entirely.
-	// e.g. "github.com/inrundev/inrun/api/types/project/v1alpha1"
+	// e.g. "github.com/intentd/inrun/api/types/project/v1alpha1"
 	Location string `yaml:"location,omitempty" json:"location,omitempty" validate:"omitempty"`
 }
 

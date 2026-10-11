@@ -61,7 +61,7 @@ jobs:
         if: steps.cache-binaries.outputs.cache-hit != 'true'
         run: |
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          LDFLAGS="-X github.com/inrundev/inrun/pkg/version.Version=${{ github.ref_name }} -X github.com/inrundev/inrun/pkg/version.Commit=${{ github.sha }} -X github.com/inrundev/inrun/pkg/version.Date=$DATE"
+          LDFLAGS="-X github.com/intentd/inrun/pkg/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/pkg/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/pkg/version.Date=$DATE"
           for arch in amd64 arm64; do
             echo "Building inrun-$arch"
             GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \
@@ -139,7 +139,7 @@ jobs:
         if: steps.cache-binaries.outputs.cache-hit != 'true'
         run: |
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          LDFLAGS="-X github.com/inrundev/inrun/pkg/version.Version=${{ github.ref_name }} -X github.com/inrundev/inrun/pkg/version.Commit=${{ github.sha }} -X github.com/inrundev/inrun/pkg/version.Date=$DATE"
+          LDFLAGS="-X github.com/intentd/inrun/pkg/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/pkg/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/pkg/version.Date=$DATE"
           for arch in amd64 arm64; do
             echo "Building inrun-gateway-$arch"
             GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \
@@ -217,7 +217,7 @@ jobs:
         if: steps.cache-binaries.outputs.cache-hit != 'true'
         run: |
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          LDFLAGS="-X github.com/inrundev/inrun/console/version.Version=${{ github.ref_name }} -X github.com/inrundev/inrun/console/version.Commit=${{ github.sha }} -X github.com/inrundev/inrun/console/version.Date=$DATE"
+          LDFLAGS="-X github.com/intentd/inrun/console/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/console/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/console/version.Date=$DATE"
           cd ./cmd/console
           for arch in amd64 arm64; do
             echo "Building inrun-console-$arch"
@@ -293,7 +293,7 @@ jobs:
         if: steps.cache-binaries.outputs.cache-hit != 'true'
         run: |
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          LDFLAGS="-X github.com/inrundev/inrun/pkg/version.Version=${{ github.ref_name }} -X github.com/inrundev/inrun/pkg/version.Commit=${{ github.sha }} -X github.com/inrundev/inrun/pkg/version.Date=$DATE"
+          LDFLAGS="-X github.com/intentd/inrun/pkg/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/pkg/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/pkg/version.Date=$DATE"
           for arch in amd64 arm64; do
             echo "Building inrun-devserver-$arch"
             GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \

@@ -11,11 +11,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/note"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
 

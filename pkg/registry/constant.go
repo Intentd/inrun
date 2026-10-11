@@ -52,10 +52,10 @@ const (
 	FileMakefile = "Makefile"
 
 	// DefaultCatalogRegistry is the official OCI path for Catalog patterns.
-	DefaultCatalogRegistry = "ghcr.io/inrundev/registry/patterns/catalogs"
+	DefaultCatalogRegistry = "ghcr.io/intentd/registry/patterns/catalogs"
 
 	// DefaultModuleRegistry is the official OCI path for Module patterns.
-	DefaultModuleRegistry = "ghcr.io/inrundev/registry/patterns/modules"
+	DefaultModuleRegistry = "ghcr.io/intentd/registry/patterns/modules"
 
 	// DefaultPatternRegistry is an alias for DefaultCatalogRegistry.
 	DefaultPatternRegistry = DefaultCatalogRegistry

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestReadIntentFile_YAML(t *testing.T) {

@@ -1,7 +1,7 @@
 package catalog
 
 import (
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // Debug catalog information from merger

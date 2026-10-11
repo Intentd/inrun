@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateEventEntries validates operatorBox.observe.events across all enabled CRDs.

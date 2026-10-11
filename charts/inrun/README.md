@@ -32,7 +32,7 @@ before it reaches the cluster.
 This uses the Website CRD from the hello-website example:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/inrundev/inrun/main/examples/reconcilers/declarative/01-hello-website/manifests/crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/intentd/inrun/main/examples/reconcilers/declarative/01-hello-website/manifests/crd.yaml
 ```
 
 ### 2. Write a Catalog
@@ -94,7 +94,7 @@ ClusterRole with only the permissions the Catalog needs, its binding, and the
 ### 5. Install the chart
 
 ```bash
-helm repo add inrun https://inrundev.github.io/inrun
+helm repo add inrun https://intentd.github.io/inrun
 ```
 
 ```bash
@@ -131,7 +131,7 @@ with `inrun generate bundle --for gateway`.
 | Parameter | Description | Default |
 | --- | --- | --- |
 | `runtime.enabled` | Deploy the runtime | `true` |
-| `runtime.image.repository` | Image | `ghcr.io/inrundev/inrun` |
+| `runtime.image.repository` | Image | `ghcr.io/intentd/inrun` |
 | `runtime.image.tag` | Tag | Chart `appVersion` |
 | `runtime.replicaCount` | Replicas; one leader reconciles | `2` |
 | `runtime.serviceAccount` | ServiceAccount from the bundle | `inrun` |
@@ -152,7 +152,7 @@ with `inrun generate bundle --for gateway`.
 | Parameter | Description | Default |
 | --- | --- | --- |
 | `gateway.enabled` | Deploy the gateway | `false` |
-| `gateway.image.repository` | Image | `ghcr.io/inrundev/inrun-gateway` |
+| `gateway.image.repository` | Image | `ghcr.io/intentd/inrun-gateway` |
 | `gateway.replicaCount` | Replicas; stateless | `2` |
 | `gateway.serviceAccount` | ServiceAccount from the bundle | `inrun-gateway` |
 | `gateway.server.httpPort` | Gateway API, health and metrics | `8080` |
@@ -167,7 +167,7 @@ with `inrun generate bundle --for gateway`.
 | Parameter | Description | Default |
 | --- | --- | --- |
 | `console.enabled` | Deploy the console | `true` |
-| `console.image.repository` | Image | `ghcr.io/inrundev/inrun-console` |
+| `console.image.repository` | Image | `ghcr.io/intentd/inrun-console` |
 | `console.config.inrunURLs` | Runtimes to watch | this release's runtime |
 | `console.config.refreshInterval` | Refresh interval | `10s` |
 | `console.gatewayToken.secretRef.name` | Gateway token Secret for serving intents | `""` |

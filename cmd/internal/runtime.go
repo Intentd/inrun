@@ -3,15 +3,15 @@ package internal
 import (
 	"context"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/runtime/leader"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/utils"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/runtime/leader"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/version"
 )
 
 // RunRuntime builds and runs the runtime until ctx ends. Each onCatalog func is

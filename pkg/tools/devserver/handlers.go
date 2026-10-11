@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 func registerHandlers(mux *http.ServeMux) {

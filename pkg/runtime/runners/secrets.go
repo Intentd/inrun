@@ -22,14 +22,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/gateway/certmanager"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/resources/secrets"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/gateway/certmanager"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/resources/secrets"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func RunSecrets(

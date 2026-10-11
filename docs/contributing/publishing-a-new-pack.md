@@ -36,7 +36,7 @@ examples/new-pack/
     README.md
 ```
 
-### 2. Update [examples/embed.go](https://github.com/inrundev/inrun/blob/main/examples/embed.go)
+### 2. Update [examples/embed.go](https://github.com/intentd/inrun/blob/main/examples/embed.go)
 
 Add the new pack name to the `//go:embed` directive. The current line is:
 
@@ -54,7 +54,7 @@ var FS embed.FS
 
 The CLI uses this embedded filesystem to serve examples for `inrun init --pack`.
 
-### 3. Update [cmd/cli/init_packs.go](https://github.com/inrundev/inrun/blob/main/cmd/cli/init_packs.go)
+### 3. Update [cmd/cli/init_packs.go](https://github.com/intentd/inrun/blob/main/cmd/cli/init_packs.go)
 
 Add the pack to the `Packs` map. The `Pack` struct requires `Name`, `Description`, and `Path`:
 
@@ -83,7 +83,7 @@ case p.isNewPackPack():
     return "my-first-example"
 ```
 
-### 4. Update [.github/workflows/package-examples.yml](https://github.com/inrundev/inrun/blob/main/.github/workflows/package-examples.yml)
+### 4. Update [.github/workflows/package-examples.yml](https://github.com/intentd/inrun/blob/main/.github/workflows/package-examples.yml)
 
 Add a `tar` command for the new pack in the packaging step:
 
@@ -98,7 +98,7 @@ Also add a line to the summary `echo` block so the pack appears in the CI build 
 echo "| New Pack | Description of the pack | \`examples_new-pack_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
 ```
 
-### 5. Update [.github/workflows/sign-and-release.yml](https://github.com/inrundev/inrun/blob/main/.github/workflows/sign-and-release.yml)
+### 5. Update [.github/workflows/sign-and-release.yml](https://github.com/intentd/inrun/blob/main/.github/workflows/sign-and-release.yml)
 
 Add the artifact to the release upload list alongside the existing pack entries:
 
@@ -106,7 +106,7 @@ Add the artifact to the release upload list alongside the existing pack entries:
 dist/examples_new-pack_${{ github.ref_name }}.tar.gz
 ```
 
-### 6. Update [examples/README.md](https://github.com/inrundev/inrun/blob/main/examples/README.md)
+### 6. Update [examples/README.md](https://github.com/intentd/inrun/blob/main/examples/README.md)
 
 Add the pack to the `--pack` list and add a new section in the learning path:
 

@@ -3,8 +3,8 @@ package coordinator
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

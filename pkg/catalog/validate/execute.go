@@ -1,8 +1,8 @@
 package validate
 
 import (
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
 )
 
 type executor struct {

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/tools/proxy"
+	"github.com/intentd/inrun/pkg/tools/proxy"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

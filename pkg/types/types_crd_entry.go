@@ -4,7 +4,7 @@ package types
 import (
 	"sort"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

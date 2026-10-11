@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/profiles"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestReconcilerProfiles(t *testing.T) {

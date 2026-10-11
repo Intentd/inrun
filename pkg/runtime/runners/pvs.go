@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/resources/pvs"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/resources/pvs"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // RunPVs resolves and applies PersistentVolume template declarations.

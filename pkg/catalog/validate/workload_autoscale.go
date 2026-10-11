@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateWorkloadAutoscale checks autoscale: blocks on all Deployment declarations.

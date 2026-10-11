@@ -1,7 +1,7 @@
 package apply
 
 import (
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"

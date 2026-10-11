@@ -1,9 +1,9 @@
-module github.com/inrundev/inrun-ctrlruntime-constructor
+module github.com/intentd/inrun-ctrlruntime-constructor
 
 go 1.26.6
 
 require (
-	github.com/inrundev/inrun v0.0.0
+	github.com/intentd/inrun v0.0.0
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
 	sigs.k8s.io/controller-runtime v0.24.1
@@ -165,4 +165,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/inrundev/inrun => ../../../..
+replace github.com/intentd/inrun => ../../../..

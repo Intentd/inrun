@@ -2,4 +2,4 @@
 
 package cli
 
-import _ "github.com/inrundev/inrun/cmd/cli/run"
+import _ "github.com/intentd/inrun/cmd/cli/run"

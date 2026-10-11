@@ -3,7 +3,7 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // NamespaceRuleEntry holds the raw allowed/restricted namespace lists for one CRD.

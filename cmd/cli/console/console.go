@@ -14,9 +14,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -189,7 +189,7 @@ func installConsoleBinary() error {
 	goos := runtime.GOOS
 	platform := goos + "_" + runtime.GOARCH
 	archive := fmt.Sprintf("inrun-console_%s.tar.gz", platform)
-	url := fmt.Sprintf("https://github.com/inrundev/inrun/releases/download/%s/%s", ver, archive)
+	url := fmt.Sprintf("https://github.com/intentd/inrun/releases/download/%s/%s", ver, archive)
 	dest := binDir + "/inrun-console"
 	if goos == "windows" {
 		dest += ".exe"

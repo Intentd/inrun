@@ -30,12 +30,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/note"
 	"github.com/robfig/cron/v3"
 )
 

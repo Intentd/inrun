@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 type Config struct {

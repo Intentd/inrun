@@ -4,7 +4,7 @@ package catalog
 import (
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ConversionRegistry is the interface used by the health server's /convert handler.

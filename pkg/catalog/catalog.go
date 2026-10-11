@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/typeregistry"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/typeregistry"
+	"github.com/intentd/inrun/pkg/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

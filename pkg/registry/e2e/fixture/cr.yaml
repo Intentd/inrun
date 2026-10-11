@@ -4,7 +4,7 @@ metadata:
   name: my-probe-server
   namespace: default
 spec:
-  image: ghcr.io/inrundev/inrun-dev-server:latest
+  image: ghcr.io/intentd/inrun-dev-server:latest
   replicas: 1
   port: 9999
   message: "e2e-ready"

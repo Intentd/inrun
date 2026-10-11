@@ -3,10 +3,10 @@ package generic
 import (
 	"context"
 
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/runners"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/runners"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

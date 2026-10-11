@@ -28,7 +28,7 @@ story with the two typed operator patterns:
 | [`02-constructor/`](02-constructor/README.md) | `BlockchainNode` | constructor | constructor checks clock using window from args | constructor calls flag service when in business hours |
 | [`03-hooks-targets/`](03-hooks-targets/README.md) | `BlockchainAppWithTargets` | hooks + per-target operatorBox | same hook binary; `featureEnabled` and gate vary by target surface | no HTTP call — flag value resolved from target args |
 
-**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/inrundev/inrun#getting-started)
+**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/intentd/inrun#getting-started)
 
 ---
 

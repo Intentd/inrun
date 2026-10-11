@@ -20,8 +20,8 @@ redeploy.
 
 | Orkestra | Inrun |
 | --- | --- |
-| Go module, CLI, console | `github.com/inrundev/inrun`, `inrun`, `inrun-console` |
-| Images | `ghcr.io/inrundev/inrun`, `inrun-gateway`, `inrun-console` |
+| Go module, CLI, console | `github.com/intentd/inrun`, `inrun`, `inrun-console` |
+| Images | `ghcr.io/intentd/inrun`, `inrun-gateway`, `inrun-console` |
 | Helm chart | `inrun`, starting at `0.1.0` |
 | API group, labels, annotations, finalizers | `inrun.dev` |
 | Environment variables | `INRUN_*` |

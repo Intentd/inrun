@@ -56,7 +56,7 @@ jobs:
           yq eval ".console.image.repository = \"ghcr.io/${REPO}-console\"" -i charts/${INRUN}/values.yaml
 
       - name: Run chart e2e
-        uses: inrundev/inrun-action@v1
+        uses: intentd/inrun-action@v1
         with:
           working-directory: charts/inrun
           e2e: "true"

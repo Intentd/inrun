@@ -5,7 +5,7 @@ package contract
 import (
 	"encoding/json"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 )
 
 // Result is the response a remote reconciler returns after each reconcile

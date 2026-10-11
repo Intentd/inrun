@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	ccversion "github.com/inrundev/inrun/console/version"
+	ccversion "github.com/intentd/inrun/console/version"
 )
 
 //go:embed assets/templates/*.html assets/static/* assets/static/css/* assets/static/js/*

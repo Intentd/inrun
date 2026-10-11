@@ -1,9 +1,9 @@
-module github.com/inrundev/inrun-hooks-demo
+module github.com/intentd/inrun-hooks-demo
 
 go 1.26.3
 
 require (
-	github.com/inrundev/inrun {{ .InrunVersion }}
+	github.com/intentd/inrun {{ .InrunVersion }}
 	k8s.io/apimachinery v0.36.1
 )
 

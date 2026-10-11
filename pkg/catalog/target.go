@@ -3,7 +3,7 @@ package catalog
 import (
 	"sort"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // CRDLookupResult carries the resolved CRD entry and the alias name that was

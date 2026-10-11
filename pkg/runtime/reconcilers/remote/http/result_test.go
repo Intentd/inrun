@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/remote/contract"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/contract"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestToResult(t *testing.T) {

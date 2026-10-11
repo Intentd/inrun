@@ -4,7 +4,7 @@ package kubeclient
 import (
 	"context"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/version"
 	"k8s.io/client-go/tools/cache"
 )
 

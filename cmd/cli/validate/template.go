@@ -8,11 +8,11 @@ import (
 	"os"
 	"sort"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )

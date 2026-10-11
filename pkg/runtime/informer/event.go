@@ -4,8 +4,8 @@ package informer
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // handleEvent resolves the GVK from the informer event and routes the object

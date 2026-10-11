@@ -1,4 +1,4 @@
 runtime:
   image:
-    repository: ghcr.io/inrundev/inrun/pkg/resources/fixture
+    repository: ghcr.io/intentd/inrun/pkg/resources/fixture
     tag: latest

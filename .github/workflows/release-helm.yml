@@ -21,7 +21,7 @@ on:
         description: 'URL of the Helm repository (GitHub Pages)'
         required: false
         type: string
-        default: 'https://inrundev.github.io/inrun'
+        default: 'https://intentd.github.io/inrun'
       helm_chart:
         description: 'Helm chart reference (repo/chart) – used in summary'
         required: false

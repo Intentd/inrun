@@ -3,8 +3,8 @@ package external
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ValidateCalls checks a list of ExternalCallSpecs for name uniqueness and semantic correctness.

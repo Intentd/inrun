@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: {{ .Release.Name }}-catalog
   version: 0.1.0
-  author: inrundev
+  author: intentd
   description: >
     catalog.yaml Helm template — renders an Inrun Catalog from Helm values.
     Inrun's merger reads this template's output and extracts CRD definitions.

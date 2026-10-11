@@ -3,7 +3,7 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // CronConditionWarnings returns warnings for any cron: condition declared without duration:.

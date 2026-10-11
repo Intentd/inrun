@@ -12,7 +12,7 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	josejwt "github.com/go-jose/go-jose/v4/jwt"
 
-	oidcpkg "github.com/inrundev/inrun/pkg/gateway/oidc"
+	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
 )
 
 // testKey generates an RSA key pair and returns the private key + a single-key JWKS.

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
 )
 
 // ParseFile loads and enriches a Catalog from a single YAML file path.

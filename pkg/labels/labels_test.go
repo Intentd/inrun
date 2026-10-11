@@ -3,7 +3,7 @@ package labels_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

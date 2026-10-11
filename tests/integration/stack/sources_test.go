@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/merger"
 )
 
 // writeCatalogFile creates a minimal Catalog YAML temp file with the given CRD names.

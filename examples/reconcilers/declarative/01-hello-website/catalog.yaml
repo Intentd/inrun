@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: hello-website
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: The canonical Inrun operator. One CRD, one Deployment, one Service.
   tags:

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/merger"
 )
 
 const catalogYAML = `apiVersion: inrun.dev/v1

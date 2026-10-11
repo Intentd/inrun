@@ -45,4 +45,4 @@ Once oriented, pick the area you want to work in:
 4. Run `make test-race` to confirm nothing is broken.
 5. Open a pull request with a short description of what and why.
 
-Questions? Open a [GitHub Discussion](https://github.com/inrundev/inrun/discussions).
+Questions? Open a [GitHub Discussion](https://github.com/intentd/inrun/discussions).

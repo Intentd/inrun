@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/rs/zerolog/log"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

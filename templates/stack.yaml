@@ -16,11 +16,11 @@ imports:
     - ./catalog.yaml               # local Catalog
 
   # registry:                      # OCI registry (versioned, immutable)
-  #   - url: ghcr.io/inrundev/registry/patterns/postgres@v1.0.0
+  #   - url: ghcr.io/intentd/registry/patterns/postgres@v1.0.0
   #     oci: true
 
   # helm:                          # Helm chart source
-  #   - repo: https://github.com/inrundev/inrun.git
+  #   - repo: https://github.com/intentd/inrun.git
   #     path: charts/examples/platform-catalog
   #     chart: platform-catalog
   #     version: main

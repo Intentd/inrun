@@ -15,13 +15,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/runtime/runners"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/runtime/runners"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // runTemplateReconcile interprets the Catalog's onCreate and onReconcile blocks.

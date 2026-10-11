@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestEnrichCRDEntry_KindOnly_Deployment(t *testing.T) {

@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/remote/contract"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/contract"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

@@ -4,7 +4,7 @@ package merger
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func boolPtr(b bool) *bool { return &b }

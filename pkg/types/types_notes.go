@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/pkg/runtime/sentinel"
 )
 
 // UserDefinedNote is a named template expression declared in a Catalog or Module.

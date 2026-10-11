@@ -3,8 +3,8 @@ package cli
 import (
 	"context"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
-	"github.com/inrundev/inrun/pkg/config"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/pkg/config"
 )
 
 // Execute runs the root command. Which commands exist depends on the build:

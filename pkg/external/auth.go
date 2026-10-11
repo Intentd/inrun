@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/inrundev/inrun/pkg/secrets"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/secrets"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 

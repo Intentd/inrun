@@ -3,7 +3,7 @@ package profiles
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ApplyLimitRangeProfile expands a named LimitRange profile into a list of LimitRangeItems.

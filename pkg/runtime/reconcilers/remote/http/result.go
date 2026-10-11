@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/reconcilers/remote/contract"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/contract"
 )
 
 // toResult converts a contract.Result into a domain.Result.

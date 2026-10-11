@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog"
 	"gopkg.in/yaml.v3"
 )
 

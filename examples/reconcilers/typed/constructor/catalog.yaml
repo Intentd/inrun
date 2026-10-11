@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: pipeline-operator
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     Custom constructor for the Pipeline CRD. The Generic Reconciler is
@@ -20,7 +20,7 @@ spec:
         objectList: PipelineList
         # location enables typed mode — the informer delivers *apiv1.Pipeline
         # instead of *unstructured.Unstructured.
-        location: github.com/inrundev/inrun-constructor-demo/api/v1alpha1
+        location: github.com/intentd/inrun-constructor-demo/api/v1alpha1
       operatorBox:
         reconcile:
           # default: false tells Inrun NOT to use the Generic Reconciler.
@@ -38,7 +38,7 @@ spec:
               version: v1
               plural: jobs
           constructor:
-            location: github.com/inrundev/inrun-constructor-demo/reconciler
+            location: github.com/intentd/inrun-constructor-demo/reconciler
             function: NewPipelineReconciler
             #
             # (Required for RBAC)

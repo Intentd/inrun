@@ -5,7 +5,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

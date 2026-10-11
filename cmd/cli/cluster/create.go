@@ -5,9 +5,9 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/cluster"
 	"github.com/spf13/cobra"
 )
 

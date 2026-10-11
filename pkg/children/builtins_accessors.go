@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 // validateCRDEntryMetadata validates the labels: and annotations: blocks

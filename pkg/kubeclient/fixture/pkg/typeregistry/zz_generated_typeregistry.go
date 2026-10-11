@@ -8,23 +8,23 @@
 package typeregistry
 
 import (
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	bcnodev1 "github.com/inrundev/inrun-args-constructor/api/v1alpha1"
-	bnconstructor "github.com/inrundev/inrun-args-constructor/constructor"
-	bcappwithtargetsv1 "github.com/inrundev/inrun-args-hooks-targets/api/v1alpha1"
-	bcctor "github.com/inrundev/inrun-args-hooks-targets/constructor"
-	bctargethooks "github.com/inrundev/inrun-args-hooks-targets/hooks"
-	bcappv1 "github.com/inrundev/inrun-args-hooks/api/v1alpha1"
-	bchooks "github.com/inrundev/inrun-args-hooks/hooks"
-	webappv1 "github.com/inrundev/inrun-ctrlruntime-constructor/api/v1alpha1"
-	webappconstructor "github.com/inrundev/inrun-ctrlruntime-constructor/constructor"
+	bcnodev1 "github.com/intentd/inrun-args-constructor/api/v1alpha1"
+	bnconstructor "github.com/intentd/inrun-args-constructor/constructor"
+	bcappwithtargetsv1 "github.com/intentd/inrun-args-hooks-targets/api/v1alpha1"
+	bcctor "github.com/intentd/inrun-args-hooks-targets/constructor"
+	bctargethooks "github.com/intentd/inrun-args-hooks-targets/hooks"
+	bcappv1 "github.com/intentd/inrun-args-hooks/api/v1alpha1"
+	bchooks "github.com/intentd/inrun-args-hooks/hooks"
+	webappv1 "github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1"
+	webappconstructor "github.com/intentd/inrun-ctrlruntime-constructor/constructor"
 )
 
 // init runs before main(). It calls RegisterRuntimeObjects to populate the

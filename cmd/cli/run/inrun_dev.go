@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
-	"github.com/inrundev/inrun/cmd/cli/run/companions"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/run/companions"
 
-	"github.com/inrundev/inrun/cmd/internal"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/tools/devserver"
+	"github.com/intentd/inrun/cmd/internal"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/tools/devserver"
 	"github.com/spf13/cobra"
 )
 

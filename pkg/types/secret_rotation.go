@@ -86,7 +86,7 @@ package types
 import (
 	"time"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 const (

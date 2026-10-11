@@ -1,7 +1,7 @@
 package vitals
 
 import (
-	"github.com/inrundev/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/config"
 )
 
 // NewCRDHealth initializes a CRDHealth tracker for a given CRD name.

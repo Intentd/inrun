@@ -3,9 +3,9 @@ package constructor
 import (
 	"context"
 	"fmt"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/kubeclient/adapter"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient/adapter"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	webappv1 "github.com/inrundev/inrun-ctrlruntime-constructor/api/v1alpha1"
+	webappv1 "github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1"
 )
 
 // WebAppReconciler is written in pure controller-runtime style.

@@ -10,11 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
-	"github.com/inrundev/inrun/cmd/cli/validate"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/validate"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/registry/e2e"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/registry/e2e"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/cobra"

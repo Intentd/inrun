@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ModuleValidationError represents a single validation failure for a Module.

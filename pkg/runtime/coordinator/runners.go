@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/maintain"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/maintain"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // runMaintain applies labels, annotations, and finalizers before reconcile.

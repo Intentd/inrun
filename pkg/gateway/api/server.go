@@ -23,10 +23,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	oidcpkg "github.com/inrundev/inrun/pkg/gateway/oidc"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/catalog"
+	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // Registrar is the subset of health.HealthServer used here.

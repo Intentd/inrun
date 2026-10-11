@@ -3,7 +3,7 @@ package vitals
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/children"
 )
 
 // extractParentReady determines whether a parent object should be considered "ready".

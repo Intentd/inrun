@@ -4,7 +4,7 @@ The Inrun documentation website is a Hugo site. All content lives in the `docume
 
 ```bash
 # Clone and enter the repo
-git clone https://github.com/inrundev/inrun
+git clone https://github.com/intentd/inrun
 cd inrun
 ```
 

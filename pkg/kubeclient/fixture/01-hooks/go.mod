@@ -1,9 +1,9 @@
-module github.com/inrundev/inrun-args-hooks
+module github.com/intentd/inrun-args-hooks
 
 go 1.26.6
 
 require (
-	github.com/inrundev/inrun v0.0.0
+	github.com/intentd/inrun v0.0.0
 	k8s.io/apimachinery v0.36.1
 )
 
@@ -118,6 +118,7 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -125,7 +126,6 @@ require (
 	github.com/xlab/treeprint v1.2.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.mongodb.org/mongo-driver v1.17.9 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.43.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
@@ -165,4 +165,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/inrundev/inrun => ../../../..
+replace github.com/intentd/inrun => ../../../..

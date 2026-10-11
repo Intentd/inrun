@@ -6,10 +6,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/template"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template"
 )
 
 // applyLabels applies the three system label invariants plus any user-defined

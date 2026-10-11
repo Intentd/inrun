@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // validateLifecycle checks the lifecycle: block when present.

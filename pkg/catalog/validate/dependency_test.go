@@ -3,8 +3,8 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func crdMapForCycle(crds ...types.CRDEntry) map[string]types.CRDEntry {

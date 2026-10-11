@@ -3,7 +3,7 @@ package module
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func expandIncludes(m *types.Module, dir string) error {

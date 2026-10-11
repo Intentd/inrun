@@ -8,18 +8,18 @@ import (
 
 	"errors"
 
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/event"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/event"
+	"github.com/intentd/inrun/pkg/types"
 
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/runtime/informer"
-	"github.com/inrundev/inrun/pkg/runtime/informer/observe"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/inrun/pkg/runtime/informer/observe"
+	"github.com/intentd/inrun/pkg/runtime/queue"
 )
 
 var _ domain.Component = (*Controller)(nil)

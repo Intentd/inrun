@@ -2,12 +2,12 @@ package apply
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/kubeclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"

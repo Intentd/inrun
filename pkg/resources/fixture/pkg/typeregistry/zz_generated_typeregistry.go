@@ -8,15 +8,15 @@
 package typeregistry
 
 import (
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	rpv1alpha1 "github.com/inrundev/inrun-resource-probe/api/v1alpha1"
-	rphooks "github.com/inrundev/inrun-resource-probe/hooks"
+	rpv1alpha1 "github.com/intentd/inrun-resource-probe/api/v1alpha1"
+	rphooks "github.com/intentd/inrun-resource-probe/hooks"
 )
 
 // init runs before main(). It calls RegisterRuntimeObjects to populate the

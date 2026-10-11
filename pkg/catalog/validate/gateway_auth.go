@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateGatewayTokens is the dispatcher for gateway.api.auth.tokens validation.

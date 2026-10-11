@@ -3,8 +3,8 @@ package children
 import (
 	"context"
 
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // enrichGroupWithHPAData embeds current metrics and scale target info for each

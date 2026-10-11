@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 var (

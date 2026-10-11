@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OWNER="inrundev"
+OWNER="intentd"
 REPO="inrun"
 OLDER_THAN_HOURS="${1:-2}"   # optional first argument, default 2 hours
 

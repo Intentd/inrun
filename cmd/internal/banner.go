@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/utils"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/version"
 )
 
 func printBanner(cfg *runtimeConfig, leader string) {

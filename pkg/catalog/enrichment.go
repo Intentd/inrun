@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // EnrichCRDEntry checks whether a CRD entry uses kind-only declaration

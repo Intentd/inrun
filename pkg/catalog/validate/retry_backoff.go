@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateRetryBackoff checks that declared retryBackoff configurations are

@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/spf13/cobra"
 )
 

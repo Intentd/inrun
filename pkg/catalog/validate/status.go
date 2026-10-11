@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateStatusConfig checks that all fields in a StatusConfig declare a valid type.

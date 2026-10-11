@@ -6,7 +6,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: simulate-fixture-unique-operator
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: "Fixture for operator: unique in validation.rules and when/or."
 

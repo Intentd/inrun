@@ -3,9 +3,9 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

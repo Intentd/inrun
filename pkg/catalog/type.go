@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

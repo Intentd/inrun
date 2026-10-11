@@ -1,9 +1,9 @@
 package prepare
 
 import (
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // Args renders the effective operatorBox.reconcile.args (per-target overrides

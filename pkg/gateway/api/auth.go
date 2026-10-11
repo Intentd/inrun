@@ -27,12 +27,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	oidcpkg "github.com/inrundev/inrun/pkg/gateway/oidc"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/labels"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/secrets"
-	"github.com/inrundev/inrun/pkg/types"
+	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/secrets"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // TokenSet holds resolved static bearer tokens and OIDC token configurations.

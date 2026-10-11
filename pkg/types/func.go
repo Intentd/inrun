@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
 )
 
 // NewReconcilerFunc is the constructor signature every custom reconciler must match.

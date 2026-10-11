@@ -7,9 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // startCRDWorkers activates a CRD: builds runtime state, wires health

@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: health-probe
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     Living fixture for the health server. A minimal declarative operator

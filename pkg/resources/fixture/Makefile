@@ -4,7 +4,7 @@ DEV_OUTPUT_DIR  ?= $(HOME)/.inrun/bin
 PROD_OUTPUT_DIR ?= $(HOME)/.inrun/bin/runtime
 CATALOG     ?= catalog.yaml
 
-IMAGE_REPO  ?= ghcr.io/inrundev/resource-probe
+IMAGE_REPO  ?= ghcr.io/intentd/resource-probe
 IMAGE_TAG   ?= latest
 IMAGE       ?= $(IMAGE_REPO):$(IMAGE_TAG)
 
@@ -12,9 +12,9 @@ GOOS        ?= linux
 GOARCH      ?= amd64
 CGO_ENABLED  = 0
 
-INRUN_LDFLAGS := -X github.com/inrundev/inrun/pkg/version.Version=$(GIT_VERSION) \
-               -X github.com/inrundev/inrun/pkg/version.Commit=$(GIT_COMMIT) \
-               -X github.com/inrundev/inrun/pkg/version.Date=$(GIT_DATE)
+INRUN_LDFLAGS := -X github.com/intentd/inrun/pkg/version.Version=$(GIT_VERSION) \
+               -X github.com/intentd/inrun/pkg/version.Commit=$(GIT_COMMIT) \
+               -X github.com/intentd/inrun/pkg/version.Date=$(GIT_DATE)
 
 # ── registry ──────────────────────────────────────────────────────────────────
 .PHONY: registry

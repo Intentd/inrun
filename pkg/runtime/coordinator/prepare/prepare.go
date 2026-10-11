@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/intent"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/external"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Input holds everything Prepare needs from the Controller.

@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
-	"github.com/inrundev/inrun/cmd/cli/serve"
-	"github.com/inrundev/inrun/cmd/cli/testsuite"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/serve"
+	"github.com/intentd/inrun/cmd/cli/testsuite"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/registry/e2e"
-	"github.com/inrundev/inrun/pkg/version"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry/e2e"
+	"github.com/intentd/inrun/pkg/version"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -382,15 +382,15 @@ func extractRuntimeVersionFromGoMod(dir string) string {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		// inline form:  require github.com/inrundev/inrun vX.Y.Z
-		if strings.HasPrefix(line, "require github.com/inrundev/inrun ") {
+		// inline form:  require github.com/intentd/inrun vX.Y.Z
+		if strings.HasPrefix(line, "require github.com/intentd/inrun ") {
 			parts := strings.Fields(line)
 			if len(parts) >= 3 {
 				return parts[2]
 			}
 		}
-		// block form (inside require (...)):  github.com/inrundev/inrun vX.Y.Z
-		if strings.HasPrefix(line, "github.com/inrundev/inrun ") {
+		// block form (inside require (...)):  github.com/intentd/inrun vX.Y.Z
+		if strings.HasPrefix(line, "github.com/intentd/inrun ") {
 			parts := strings.Fields(line)
 			if len(parts) >= 2 {
 				return parts[1]

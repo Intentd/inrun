@@ -6,8 +6,8 @@ package dependency_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func mkCRD(name string, dependsOn ...string) types.CRDEntry {

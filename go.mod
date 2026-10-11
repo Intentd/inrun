@@ -1,4 +1,4 @@
-module github.com/inrundev/inrun
+module github.com/intentd/inrun
 
 go 1.26.6
 
@@ -20,13 +20,9 @@ require (
 	k8s.io/apimachinery v0.36.1
 	k8s.io/client-go v0.36.1
 	oras.land/oras-go/v2 v2.6.2
-	// controller-runtime is used in three places:
-	//   - tests/integration/ (envtest)
-	//   - pkg/registry/simulate/harness_envtest.go (inrun simulate --envtest: real
-	//     kube-apiserver + etcd via envtest.Environment, auto-download support)
-	//   - pkg/kubeclient for compatibility so Reconcile() from controller-runtime.
-	// 	   works without modification.
-	// The generic reconciler and all other runtime paths use raw client-go only.
+	// controller-runtime powers envtest (simulate --envtest, tests/integration)
+	// and lets existing controller-runtime Reconcilers run unchanged.
+	// Inrun's own runtime is built on client-go.
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 

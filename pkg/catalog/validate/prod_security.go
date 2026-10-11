@@ -21,10 +21,10 @@ package validate
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/profiles"
 )
 
 // validateSecurityProfiles ensures that security profiles are used correctly

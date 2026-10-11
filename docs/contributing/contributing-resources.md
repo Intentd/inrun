@@ -119,9 +119,9 @@ Use `r.Resolve(expr)` for any field that may contain a `{{ .spec.something }}` e
 
 ### 4. Write the runner in `pkg/runtime/runners/`
 
-Create `pkg/runtime/runners/myresources.go` — see [pkg/runners/docs/01-runner-contract.md](https://github.com/inrundev/inrun/blob/main/pkg/runtime/runners/docs/01-runner-contract.md) for the canonical shape. Then wire it into `pkg/runtime/reconciler/run_template_reconcile.go` via `runners.RunMyResources(...)` and add `expandForEachMyResources` to `run_foreach.go`.
+Create `pkg/runtime/runners/myresources.go` — see [pkg/runners/docs/01-runner-contract.md](https://github.com/intentd/inrun/blob/main/pkg/runtime/runners/docs/01-runner-contract.md) for the canonical shape. Then wire it into `pkg/runtime/reconciler/run_template_reconcile.go` via `runners.RunMyResources(...)` and add `expandForEachMyResources` to `run_foreach.go`.
 
-The full end-to-end walkthrough is in [pkg/reconciler/docs/07-adding-a-resource.md](https://github.com/inrundev/inrun/blob/main/pkg/runtime/reconciler/docs/07-adding-a-resource.md).
+The full end-to-end walkthrough is in [pkg/reconciler/docs/07-adding-a-resource.md](https://github.com/intentd/inrun/blob/main/pkg/runtime/reconciler/docs/07-adding-a-resource.md).
 
 ### 5. Write tests
 

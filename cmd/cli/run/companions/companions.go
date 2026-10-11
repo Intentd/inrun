@@ -10,10 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/inrundev/inrun/cmd/cli/console"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/cmd/cli/console"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // Start starts the console next to the runtime, and the gateway too when the

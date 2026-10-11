@@ -6,13 +6,13 @@ package pipeline
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/validate"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/typeregistry"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/typeregistry"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // NewCatalog returns a fully built and validated Catalog.

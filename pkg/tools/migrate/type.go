@@ -1,9 +1,9 @@
 package migrate
 
 const (
-	domain     = "github.com/inrundev/inrun/domain"
-	kubeclient = "github.com/inrundev/inrun/pkg/kubeclient"
-	ctrlclient = "github.com/inrundev/inrun/pkg/kubeclient/adapter"
+	domain     = "github.com/intentd/inrun/domain"
+	kubeclient = "github.com/intentd/inrun/pkg/kubeclient"
+	ctrlclient = "github.com/intentd/inrun/pkg/kubeclient/adapter"
 )
 
 // Mode controls how much of the source file migrate rewrites.

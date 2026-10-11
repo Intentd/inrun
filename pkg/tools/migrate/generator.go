@@ -278,7 +278,7 @@ func generateGoMod(opts Options) string {
 go 1.22
 
 require (
-	github.com/inrundev/inrun %s
+	github.com/intentd/inrun %s
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
@@ -304,9 +304,9 @@ GOOS        ?= linux
 GOARCH      ?= amd64
 CGO_ENABLED  = 0
 
-INRUN_LDFLAGS := -X github.com/inrundev/inrun/pkg/version.Version=$(GIT_VERSION) \
-               -X github.com/inrundev/inrun/pkg/version.Commit=$(GIT_COMMIT) \
-               -X github.com/inrundev/inrun/pkg/version.Date=$(GIT_DATE)
+INRUN_LDFLAGS := -X github.com/intentd/inrun/pkg/version.Version=$(GIT_VERSION) \
+               -X github.com/intentd/inrun/pkg/version.Commit=$(GIT_COMMIT) \
+               -X github.com/intentd/inrun/pkg/version.Date=$(GIT_DATE)
 
 .PHONY: registry
 registry:

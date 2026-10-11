@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // HTTPTransport is the http.RoundTripper used for all external: HTTP calls.

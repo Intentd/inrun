@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // serveFieldRef is one serve.fields, serve.labels or serve.annotations entry

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/inrundev/inrun/pkg/runtime/informer"
+	"github.com/intentd/inrun/pkg/runtime/informer"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/validate"
-	apigateway "github.com/inrundev/inrun/pkg/gateway/api"
-	"github.com/inrundev/inrun/pkg/tools/cluster"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate"
+	apigateway "github.com/intentd/inrun/pkg/gateway/api"
+	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
 

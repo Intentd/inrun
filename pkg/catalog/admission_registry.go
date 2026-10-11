@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── AdmissionRegistry interface ───────────────────────────────────────────

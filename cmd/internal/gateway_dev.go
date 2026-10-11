@@ -13,17 +13,17 @@ package internal
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/pipeline"
-	"github.com/inrundev/inrun/pkg/config"
-	apigateway "github.com/inrundev/inrun/pkg/gateway/api"
-	"github.com/inrundev/inrun/pkg/health"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/process"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/config"
+	apigateway "github.com/intentd/inrun/pkg/gateway/api"
+	"github.com/intentd/inrun/pkg/health"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/process"
+	"github.com/intentd/inrun/pkg/utils"
 )
 
 // RunGatewayDev starts a local HTTP-only gateway.

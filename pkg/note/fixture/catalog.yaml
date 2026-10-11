@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: note-probe
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     NoteProbe — living integration test for kubernetes, replica, container,

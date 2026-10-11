@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: blockchainapp-hooks
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     BlockchainApp operator — the runtime makes the feature-flag HTTP call before
@@ -26,7 +26,7 @@ spec:
         plural: blockchainapps
         object: BlockchainApp
         objectList: BlockchainAppList
-        location: github.com/inrundev/inrun-args-hooks/api/v1alpha1
+        location: github.com/intentd/inrun-args-hooks/api/v1alpha1
         alias: bcappv1
       operatorBox:
         reconcile:
@@ -46,7 +46,7 @@ spec:
                 - field: '{{ inBusinessHours }}'
                   equals: "true"
           hooks:
-            location: github.com/inrundev/inrun-args-hooks/hooks
+            location: github.com/intentd/inrun-args-hooks/hooks
             function: BlockchainAppHooks
             alias: bchooks
           workers: 2

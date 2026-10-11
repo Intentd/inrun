@@ -13,8 +13,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/metrics"
 )
 
 func (ws *WebhookServer) namespaceProtectionHandler(w http.ResponseWriter, r *http.Request) {

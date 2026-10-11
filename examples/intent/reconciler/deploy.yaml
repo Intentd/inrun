@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: reconciler
-          image: ghcr.io/inrundev/examples/intent/website-reconciler:latest
+          image: ghcr.io/intentd/examples/intent/website-reconciler:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8025

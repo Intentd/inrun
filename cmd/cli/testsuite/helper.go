@@ -6,11 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry/simulate"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry/simulate"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

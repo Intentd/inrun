@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/inrundev/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry"
 )
 
 // ResolveOCIRunPath resolves an OCI pattern reference to a local catalog or

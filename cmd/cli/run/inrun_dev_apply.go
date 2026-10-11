@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/merger"
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/tools/cluster"
 )
 
 // applyPreRuntimeResources applies all pre-runtime resources declared in the

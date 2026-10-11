@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	apiv1 "github.com/inrundev/inrun-args-hooks/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/deployments"
+	apiv1 "github.com/intentd/inrun-args-hooks/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/deployments"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

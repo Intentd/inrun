@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: database-operator
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     Typed Go hooks for the Database CRD. Demonstrates apiTypes.location,
@@ -21,7 +21,7 @@ spec:
         # responses into *apiv1.Database rather than *unstructured.Unstructured.
         # Required when hooks need type-safe struct access.
         # After setting this, run: inrun generate registry --file catalog.yaml
-        location: github.com/inrundev/inrun-hooks-demo/api/v1alpha1
+        location: github.com/intentd/inrun-hooks-demo/api/v1alpha1
         alias: demov1alpha1
       operatorBox:
         reconcile:
@@ -31,7 +31,7 @@ spec:
             - kind: Service
             - kind: CronJob
           hooks:
-            location: github.com/inrundev/inrun-hooks-demo/hooks
+            location: github.com/intentd/inrun-hooks-demo/hooks
             function: DatabaseHooks
             alias: dbhooks
           workers: 3

@@ -12,12 +12,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/utils"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/logger"
 )
 
 // TemplateResolver resolves a Go-template expression string against CR data

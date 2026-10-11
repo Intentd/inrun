@@ -90,9 +90,9 @@ jobs:
           go build \
             -trimpath \
             -ldflags="-s -w \
-              -X github.com/inrundev/inrun/pkg/version.Version=${{ github.ref_name }} \
-              -X github.com/inrundev/inrun/pkg/version.Commit=${{ github.sha }} \
-              -X github.com/inrundev/inrun/pkg/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              -X github.com/intentd/inrun/pkg/version.Version=${{ github.ref_name }} \
+              -X github.com/intentd/inrun/pkg/version.Commit=${{ github.sha }} \
+              -X github.com/intentd/inrun/pkg/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -o dist/${{ env.RUNTIME }} \
             ./cmd/inrun/
           echo "✅ Runtime built: dist/${{ env.RUNTIME }}"
@@ -109,9 +109,9 @@ jobs:
           go build \
             -trimpath \
             -ldflags="-s -w \
-              -X github.com/inrundev/inrun/console/version.Version=${{ github.ref_name }} \
-              -X github.com/inrundev/inrun/console/version.Commit=${{ github.sha }} \
-              -X github.com/inrundev/inrun/console/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              -X github.com/intentd/inrun/console/version.Version=${{ github.ref_name }} \
+              -X github.com/intentd/inrun/console/version.Commit=${{ github.sha }} \
+              -X github.com/intentd/inrun/console/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -o ../../dist/${{ env.CONTROL }} .
           echo "✅ Console built: dist/${{ env.CONTROL }}"
 
@@ -120,7 +120,7 @@ jobs:
           RUNTIME: ${{ env.RUNTIME }}
         run: |
           ARCHIVE="inrun_${{ matrix.os }}_${{ matrix.arch }}.tar.gz"
-          tar -czf "dist/${ARCHIVE}" -C dist "${{ env.RUNTIME }}" -C "${{ github.winrundev }}" README.md LICENSE
+          tar -czf "dist/${ARCHIVE}" -C dist "${{ env.RUNTIME }}" -C "${{ github.workspace }}" README.md LICENSE
           echo "✅ Archive: dist/${ARCHIVE}"
 
       - name: Package console tarball
@@ -128,7 +128,7 @@ jobs:
           CONTROL: ${{ env.CONTROL }}
         run: |
           ARCHIVE="inrun-console_${{ matrix.os }}_${{ matrix.arch }}.tar.gz"
-          tar -czf "dist/${ARCHIVE}" -C dist "${{ env.CONTROL }}" -C "${{ github.winrundev }}" README.md LICENSE
+          tar -czf "dist/${ARCHIVE}" -C dist "${{ env.CONTROL }}" -C "${{ github.workspace }}" README.md LICENSE
           echo "✅ Archive: dist/${ARCHIVE}"
 
       - name: Package Windows ZIP (optional)

@@ -2,12 +2,12 @@ package vitals
 
 import (
 	"encoding/json"
-	"github.com/inrundev/inrun/domain"
+	"github.com/intentd/inrun/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 )

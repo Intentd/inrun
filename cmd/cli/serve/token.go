@@ -13,10 +13,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	oidcpkg "github.com/inrundev/inrun/pkg/gateway/oidc"
-	"github.com/inrundev/inrun/pkg/types"
+	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
 

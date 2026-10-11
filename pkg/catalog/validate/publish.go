@@ -3,8 +3,8 @@ package validate
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validatePublish checks the publish: block for structural correctness.

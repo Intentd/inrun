@@ -13,7 +13,7 @@ package merger
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // loadHelmSource is unavailable in this build — Helm-chart Catalog imports

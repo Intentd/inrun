@@ -3,7 +3,7 @@ package e2e
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestAssertKubectlGetOutput(t *testing.T) {

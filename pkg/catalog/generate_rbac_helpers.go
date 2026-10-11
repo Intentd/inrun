@@ -1,9 +1,9 @@
 package catalog
 
 import (
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // HasConversionPaths returns true only if conversion is enabled and at least

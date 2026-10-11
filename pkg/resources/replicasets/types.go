@@ -4,7 +4,7 @@ package replicasets
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ResolvedReplicaSetSpec is the fully resolved ReplicaSet specification.

@@ -3,8 +3,8 @@ package api
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // EvaluatePayload applies serve.config.response to a CR object and returns the

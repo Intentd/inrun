@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"gopkg.in/yaml.v3"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -14,8 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/tools/cluster/bootstrap"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/tools/cluster/bootstrap"
 )
 
 var clustersBootstrapCmd = &cobra.Command{

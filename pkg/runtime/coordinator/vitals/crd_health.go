@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/runtime/autoscaler"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/queue"
 )
 
 // CRDHealth tracks the runtime health of a single CRD's reconciler.

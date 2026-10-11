@@ -1,7 +1,7 @@
 // pkg/types/types_reconcile_config.go
 package types
 
-import "github.com/inrundev/inrun/domain"
+import "github.com/intentd/inrun/domain"
 
 // RemoteReconcileProtocol is the wire protocol used for a remote reconciler call.
 type RemoteReconcileProtocol string

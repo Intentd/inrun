@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // crd builds a map entry for use in test Catalog construction.

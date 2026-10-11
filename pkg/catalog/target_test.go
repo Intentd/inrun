@@ -3,7 +3,7 @@ package catalog
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // serveEntry builds a minimal serve-enabled CRDEntry for tests.

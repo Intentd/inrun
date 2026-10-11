@@ -3,8 +3,8 @@ package jobs
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/resources/shared"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/resources/shared"
 )
 
 // BuildFromIntent converts a flat intent fields map into a full Job object map

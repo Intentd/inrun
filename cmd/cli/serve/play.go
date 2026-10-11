@@ -5,14 +5,14 @@ package serve
 import (
 	"context"
 	"fmt"
-	"github.com/inrundev/inrun/cmd/cli/testsuite"
-	"github.com/inrundev/inrun/pkg/registry/simulate"
+	"github.com/intentd/inrun/cmd/cli/testsuite"
+	"github.com/intentd/inrun/pkg/registry/simulate"
 	"strings"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
 

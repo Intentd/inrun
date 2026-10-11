@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 
-	apiv1 "github.com/inrundev/inrun-hooks-demo/api/v1alpha1"
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/resources/cronjobs"
-	"github.com/inrundev/inrun/pkg/resources/services"
-	"github.com/inrundev/inrun/pkg/resources/statefulsets"
-	"github.com/inrundev/inrun/pkg/types"
+	apiv1 "github.com/intentd/inrun-hooks-demo/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/cronjobs"
+	"github.com/intentd/inrun/pkg/resources/services"
+	"github.com/intentd/inrun/pkg/resources/statefulsets"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 const (

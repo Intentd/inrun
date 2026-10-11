@@ -10,7 +10,7 @@ This fixture uses a typed Go hook to call every resource package in a single rec
 
 ## What this is
 
-This directory is a **standalone Go module** (`go.mod`) — a minimal typed Inrun operator that imports `github.com/inrundev/inrun-resource-probe` for its CRD types and hook implementation. The hook exercises all 23 resource packages in one reconcile loop.
+This directory is a **standalone Go module** (`go.mod`) — a minimal typed Inrun operator that imports `github.com/intentd/inrun-resource-probe` for its CRD types and hook implementation. The hook exercises all 23 resource packages in one reconcile loop.
 
 The standard `inrun` CLI does not know about `ResourceProbe`. You must build a custom binary first.
 
@@ -64,7 +64,7 @@ Fast — no cluster needed. Exercises the reconciler logic against a fake API se
 
 ### Step 3 — Full cluster verification
 
-`e2e.yaml` references `values.yaml` which sets the runtime image to `ghcr.io/inrundev/inrun/pkg/resources/fixture:latest`. To use a locally built image instead:
+`e2e.yaml` references `values.yaml` which sets the runtime image to `ghcr.io/intentd/inrun/pkg/resources/fixture:latest`. To use a locally built image instead:
 
 ```bash
 make docker push IMAGE_REPO=yourregistry/resource-probe IMAGE_TAG=latest

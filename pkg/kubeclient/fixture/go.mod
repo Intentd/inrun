@@ -1,23 +1,23 @@
-module github.com/inrundev/inrun-args-demo
+module github.com/intentd/inrun-args-demo
 
 go 1.26.6
 
-replace github.com/inrundev/inrun => ../../..
+replace github.com/intentd/inrun => ../../..
 
-replace github.com/inrundev/inrun-args-hooks => ./01-hooks
+replace github.com/intentd/inrun-args-hooks => ./01-hooks
 
-replace github.com/inrundev/inrun-args-constructor => ./02-constructor
+replace github.com/intentd/inrun-args-constructor => ./02-constructor
 
-replace github.com/inrundev/inrun-args-hooks-targets => ./03-hooks-targets
+replace github.com/intentd/inrun-args-hooks-targets => ./03-hooks-targets
 
-replace github.com/inrundev/inrun-ctrlruntime-constructor => ./04-ctrlruntime
+replace github.com/intentd/inrun-ctrlruntime-constructor => ./04-ctrlruntime
 
 require (
-	github.com/inrundev/inrun v0.0.0
-	github.com/inrundev/inrun-args-constructor v0.0.0
-	github.com/inrundev/inrun-args-hooks v0.0.0
-	github.com/inrundev/inrun-args-hooks-targets v0.0.0
-	github.com/inrundev/inrun-ctrlruntime-constructor v0.0.0-00010101000000-000000000000
+	github.com/intentd/inrun v0.0.0
+	github.com/intentd/inrun-args-constructor v0.0.0
+	github.com/intentd/inrun-args-hooks v0.0.0
+	github.com/intentd/inrun-args-hooks-targets v0.0.0
+	github.com/intentd/inrun-ctrlruntime-constructor v0.0.0-00010101000000-000000000000
 	k8s.io/apimachinery v0.36.1
 )
 

@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"gopkg.in/yaml.v3"
 
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // detectCacheType resolves the artifact kind by checking for sentinel files on

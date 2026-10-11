@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // PDBProfile is a named PodDisruptionBudget disruption limit preset.

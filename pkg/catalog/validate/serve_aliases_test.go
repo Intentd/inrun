@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func aliasEntry(kind, target string, aliases map[string]*types.ServeTargetConfig) types.CRDEntry {

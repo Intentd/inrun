@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ValidateServe runs all Serve-related validations.

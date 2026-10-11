@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateAdmissionRules checks all admission rules present in the catalog

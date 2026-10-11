@@ -1,6 +1,6 @@
 package note
 
-import "github.com/inrundev/inrun/pkg/utils"
+import "github.com/intentd/inrun/pkg/utils"
 
 var (
 	expandCronMacro   = utils.ExpandCronMacro

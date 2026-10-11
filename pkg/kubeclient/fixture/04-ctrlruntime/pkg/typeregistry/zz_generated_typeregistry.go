@@ -8,16 +8,16 @@
 package typeregistry
 
 import (
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	webappv1 "github.com/inrundev/inrun-ctrlruntime-constructor/api/v1alpha1"
-	webappconstructor "github.com/inrundev/inrun-ctrlruntime-constructor/constructor"
+	webappv1 "github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1"
+	webappconstructor "github.com/intentd/inrun-ctrlruntime-constructor/constructor"
 )
 
 // init runs before main(). It calls RegisterRuntimeObjects to populate the

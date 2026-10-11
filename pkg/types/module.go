@@ -99,7 +99,7 @@ type ModuleInput struct {
 // OCI registry (the Inrun registry houses both patterns and modules):
 //
 //	imports:
-//	  - module: ghcr.io/inrundev/registry/postgres@v16
+//	  - module: ghcr.io/intentd/registry/postgres@v16
 //	    oci: true
 //	    with:
 //	      image: "{{ .spec.postgresImage }}"
@@ -114,7 +114,7 @@ type ModuleImport struct {
 	// Module is the registry URL, file path, or short name.
 	// Same formats as RegistrySource.URL:
 	//   File:  ./postgres/module.yaml
-	//   OCI:   ghcr.io/inrundev/registry/postgres@v16
+	//   OCI:   ghcr.io/intentd/registry/postgres@v16
 	//   Git:   https://github.com/myorg/postgres-module@main
 	// @ shorthand encodes the version inline: url@version
 	Module string `yaml:"module" json:"module,omitempty"`

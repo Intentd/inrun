@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

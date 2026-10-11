@@ -3,7 +3,7 @@ package simulate
 import (
 	"fmt"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // AssertionError is one failed expectation from Assert.

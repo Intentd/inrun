@@ -5,12 +5,12 @@ package main
 import (
 	"context"
 
-	"github.com/inrundev/inrun/cmd/cli"
-	"github.com/inrundev/inrun/pkg/config"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/cmd/cli"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/utils"
 
-	_ "github.com/inrundev/inrun-args-hooks/pkg/typeregistry"
+	_ "github.com/intentd/inrun-args-hooks/pkg/typeregistry"
 )
 
 func main() {

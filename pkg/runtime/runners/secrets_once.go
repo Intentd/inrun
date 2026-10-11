@@ -36,9 +36,9 @@ package runners
 import (
 	"context"
 
-	"github.com/inrundev/inrun/pkg/kubeclient"
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/secrets"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/secrets"
 )
 
 // SecretExists delegates to pkg/secrets.

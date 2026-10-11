@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/config"
-	informerpkg "github.com/inrundev/inrun/pkg/runtime/informer"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/config"
+	informerpkg "github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/inrun/pkg/runtime/queue"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	ccversion "github.com/inrundev/inrun/console/version"
+	ccversion "github.com/intentd/inrun/console/version"
 )
 
 // ChildResourceEntry describes one Kubernetes resource kind managed by the operator.

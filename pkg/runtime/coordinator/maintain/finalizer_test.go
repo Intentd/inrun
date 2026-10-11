@@ -3,7 +3,7 @@ package maintain_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

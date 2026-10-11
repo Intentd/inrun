@@ -3,9 +3,9 @@ package catalog
 import (
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/children"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/types"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

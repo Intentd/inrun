@@ -3,8 +3,8 @@ package validate
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

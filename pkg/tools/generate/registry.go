@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // TypeRegistry generates zz_generated_typeregistry.go from the merged Catalog.

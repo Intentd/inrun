@@ -57,13 +57,13 @@ var registryTemplate = template.Must(template.New("registry").Parse(`// pkg/type
 package typeregistry
 
 import (
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	{{ if .NeedsSchemeImports }}metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	{{ end }}{{ if or .NeedsHookImports .NeedsRecImports }}"github.com/inrundev/inrun/domain"
-	{{ end }}{{ if .NeedsRecImports }}"github.com/inrundev/inrun/pkg/kubeclient"
+	{{ end }}{{ if or .NeedsHookImports .NeedsRecImports }}"github.com/intentd/inrun/domain"
+	{{ end }}{{ if .NeedsRecImports }}"github.com/intentd/inrun/pkg/kubeclient"
 	{{ end }}
 {{ range .Imports }}	{{ .Alias }} "{{ .Location }}"
 {{ end }})

@@ -1,7 +1,7 @@
 // pkg/template/resolver_normalize.go
 package template
 
-import "github.com/inrundev/inrun/pkg/types"
+import "github.com/intentd/inrun/pkg/types"
 
 // WithNormalizeChanges returns a new Resolver that includes normalize audit
 // data under the "_normalizeChanges" key. Status field templates can reference

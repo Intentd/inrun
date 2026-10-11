@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // dependencyHealthChecker runs continuously during the lifetime of the controller.

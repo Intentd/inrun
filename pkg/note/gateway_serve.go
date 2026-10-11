@@ -3,7 +3,7 @@ package note
 import (
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 // serveNotes registers notes that read the gateway serve-provenance annotations

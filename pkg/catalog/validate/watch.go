@@ -5,9 +5,9 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/inrundev/inrun/pkg/runtime/sentinel"
-	"github.com/inrundev/inrun/pkg/template"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateWatchEntries validates operatorBox.observe.watch and preReconcile.sentinels

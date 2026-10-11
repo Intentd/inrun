@@ -4,8 +4,8 @@ package informer
 import (
 	"context"
 
-	"github.com/inrundev/inrun/domain"
-	"github.com/inrundev/inrun/pkg/logger"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/logger"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"

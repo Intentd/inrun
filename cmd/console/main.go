@@ -17,8 +17,8 @@ import (
 	"syscall"
 	"time"
 
-	v "github.com/inrundev/inrun/console/version"
-	"github.com/inrundev/inrun/console/web"
+	v "github.com/intentd/inrun/console/version"
+	"github.com/intentd/inrun/console/web"
 )
 
 var (

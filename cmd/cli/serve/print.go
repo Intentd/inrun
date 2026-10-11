@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/cmd/cli/cmdutil"
 )
 
 // narrator reports the play chain's stages. stageNarrator prints them;

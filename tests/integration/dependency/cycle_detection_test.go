@@ -6,9 +6,9 @@ package dependency_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
-	"github.com/inrundev/inrun/pkg/catalog/validate"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog/validate"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestCycleDetection_TwoNodeCycle(t *testing.T) {

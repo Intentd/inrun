@@ -14,7 +14,7 @@ Security fixes will be applied to the latest minor release.
 
 If you discover a security vulnerability, please report it privately.
 
-Use [GitHub private security advisories](https://github.com/inrundev/inrun/security/advisories/new) to report privately.
+Use [GitHub private security advisories](https://github.com/intentd/inrun/security/advisories/new) to report privately.
 
 Please include:
 

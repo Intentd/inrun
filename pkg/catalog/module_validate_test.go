@@ -3,7 +3,7 @@ package catalog_test
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/catalog"
 )
 
 const validModulePath = "../registry/module/testdata/valid.yaml"

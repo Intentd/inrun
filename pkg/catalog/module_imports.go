@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/inrundev/inrun/pkg/registry"
-	"github.com/inrundev/inrun/pkg/registry/module"
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/registry"
+	"github.com/intentd/inrun/pkg/registry/module"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // expandCatalogImports resolves spec.imports entries on the Catalog.

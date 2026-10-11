@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inrundev/inrun/pkg/logger"
-	"github.com/inrundev/inrun/pkg/runtime/informer"
-	"github.com/inrundev/inrun/pkg/runtime/queue"
-	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

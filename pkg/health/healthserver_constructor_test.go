@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/config"
 )
 
 func TestNewHealthServer_ConstructorWiresAllFields(t *testing.T) {

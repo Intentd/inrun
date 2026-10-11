@@ -47,7 +47,7 @@ dispatch time:
         reconcile:
           default: false
           constructor:
-            location: github.com/inrundev/inrun-args-hooks-targets/constructor
+            location: github.com/intentd/inrun-args-hooks-targets/constructor
             function: NewBlockchainAppWithTargetsReconciler
             alias: bcctor
             args:
@@ -56,7 +56,7 @@ dispatch time:
 
 The caller just picks a target:
 
-**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/inrundev/inrun#getting-started)
+**Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/intentd/inrun#getting-started)
 
 ---
 

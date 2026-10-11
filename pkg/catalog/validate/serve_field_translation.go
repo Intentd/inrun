@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/inrundev/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateServeFieldTranslation validates the value and values blocks on

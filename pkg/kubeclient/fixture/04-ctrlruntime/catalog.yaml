@@ -2,7 +2,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: webapp-ctrlruntime
-  author: inrundev
+  author: intentd
   version: 0.1.0
   description: >
     WebApp operator — reconciler written in controller-runtime style.
@@ -22,7 +22,7 @@ spec:
         plural: webapps
         object: WebApp
         objectList: WebAppList
-        location: github.com/inrundev/inrun-ctrlruntime-constructor/api/v1alpha1
+        location: github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1
         alias: webappv1
       operatorBox:
         reconcile:
@@ -30,7 +30,7 @@ spec:
           managedResources:
             - kind: Deployment
           constructor:
-            location: github.com/inrundev/inrun-ctrlruntime-constructor/constructor
+            location: github.com/intentd/inrun-ctrlruntime-constructor/constructor
             function: NewWebAppReconciler
             alias: webappconstructor
           workers: 2

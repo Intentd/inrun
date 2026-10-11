@@ -3,7 +3,7 @@ package note
 import (
 	"testing"
 
-	"github.com/inrundev/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 // cr builds a minimal CR map with the given annotations set.
