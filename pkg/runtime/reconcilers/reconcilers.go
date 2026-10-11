@@ -34,9 +34,9 @@ type Deps struct {
 }
 
 // Factory returns the factory for crd's reconciler; each call builds a fresh
-// one for one worker. The kind follows the Catalog: hooks or declarative
-// templates (reconcile.default) use the generic reconciler, reconcile.remote a
-// remote one, anything else its constructor. CRDs whose serve targets declare
+// one for one worker. The kind is crd.ReconcilerKind(): declarative and hooks
+// use the generic reconciler, remote a remote one, constructor its compiled
+// constructor. CRDs whose serve targets declare
 // their own constructor or remote reconciler are wrapped in the mux.
 func Factory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 	base, err := baseFactory(crd, d)
@@ -72,8 +72,8 @@ func Factory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 // baseFactory is the factory for CRs on no serve target, or one without its
 // own reconciler.
 func baseFactory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
-	switch {
-	case crd.DefaultReconcile():
+	switch crd.ReconcilerKind() {
+	case types.KindDeclarative, types.KindHooks:
 		var hooks domain.AnyReconcileHooks
 		if factory, ok := crd.HookFactory(); ok {
 			hooks = factory()
@@ -90,7 +90,7 @@ func baseFactory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 				d.Catalog)
 		}, nil
 
-	case crd.WithRemoteDecl():
+	case types.KindRemote:
 		decl := crd.Box().Reconcile.Remote
 		// remote.New fails only on an unsupported protocol; check it once here.
 		if _, err := remote.New(decl, crd.GVK(), d.Kube, d.Event, crd.ManagedResources(), d.OwnNamespace); err != nil {

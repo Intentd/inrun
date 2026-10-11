@@ -146,27 +146,42 @@
         <!-- ── Reconcile Mode ────────────────────────────────── -->
         <h2 id="reconcile-mode">Reconcile Mode</h2>
 
+        {{ if or (eq .CRD.Mode "typed") (eq .CRD.Mode "dynamic") }}
+        {{ $kind := mapGet .CRD.OperatorBox "type" | asString }}
         {{ if eq .CRD.Mode "typed" }}
         <p>
-          This CRD runs in <strong>typed mode</strong>. Inrun decodes each custom resource into a concrete Go type before reconciliation.
-          Type-safe field access is available to reconcile hooks, enabling precise validation, defaults, and business logic without stringly-typed map lookups.
+          This CRD runs in <strong>typed mode</strong>: Inrun decodes each custom resource into its Go type, so Go reconcilers get type-safe field access.
         </p>
-        {{ if .HasAutoscaler }}
+        {{ else if eq .CRD.Mode "dynamic" }}
         <p>
-          This operator uses the <strong>Generic Reconciler</strong> with reconcile hooks (<code>ReconcileHooks</code>). The hooks receive a fully typed object and can read or modify fields directly. The Generic Reconciler handles the full CR lifecycle — finalizers, managed labels, events, metrics, and health reporting — while hooks provide the business logic for each lifecycle phase.
-        </p>
-        {{ else }}
-        <p>
-          The reconcile implementation is provided by a <strong>custom constructor</strong>. The constructor returns a fully custom reconciler that owns the entire CR lifecycle. Finalizers, events, and metrics are the constructor's responsibility.
+          This CRD runs in <strong>dynamic mode</strong>: Inrun works with the unstructured object, and no Go types are compiled in.
         </p>
         {{ end }}
 
-        {{ else if eq .CRD.Mode "dynamic" }}
+        {{ if eq $kind "declarative" }}
         <p>
-          This CRD runs in <strong>dynamic mode</strong>. Inrun works directly with the raw unstructured Kubernetes object — no Go code is required. Reconcile logic is expressed declaratively in the Catalog YAML using template expressions like <code>{{ "{{ .spec.field }}" }}</code>.
+          It is reconciled <strong>declaratively</strong>: the Catalog's <code>onCreate</code> and <code>onReconcile</code> templates, with expressions like <code>{{ "{{ .spec.field }}" }}</code>, become the CR's children and status.
         </p>
+        {{ else if eq $kind "hooks" }}
         <p>
-          The <strong>Generic Reconciler</strong> manages the full CR lifecycle: it ensures managed labels are set on every reconcile, adds and removes finalizers, runs <code>onCreate</code> and <code>onReconcile</code> template blocks, emits events, increments metrics, and reports health status.
+          It is reconciled by <strong>Go hooks</strong>: compiled functions that receive the typed object and return what to apply, alongside the Catalog's templates.
+        </p>
+        {{ else if eq $kind "constructor" }}
+        <p>
+          It is reconciled by a <strong>Go constructor</strong>: a compiled reconciler that returns the CR's children and status as a Result.
+        </p>
+        {{ else if eq $kind "remote" }}
+        <p>
+          It is reconciled by a <strong>remote reconciler</strong>: Inrun calls an HTTP endpoint once per reconcile with the CR and its <code>reconcile.args</code>, and applies the Result it returns.
+        </p>
+        {{ end }}
+        {{ with mapGet .CRD.OperatorBox "targets" }}
+        <p>
+          Some serve targets are reconciled differently:{{ range $t, $k := . }} <code>{{ $t }}</code> ({{ $k }}){{ end }}.
+        </p>
+        {{ end }}
+        <p>
+          Whatever the reconciler, the runtime owns the lifecycle: Inrun's finalizer, managed labels, applying and pruning children, events, metrics, health, and holding a deleted CR until its finalizing reconcile is done.
         </p>
 
         {{ else }}
@@ -300,12 +315,12 @@
             <tr>
               <td>Constructor</td>
               <td>{{ if $ctorConf }}✓{{ else }}—{{ end }}</td>
-              <td>{{ if $ctorConf }}<code>{{ mapGet $ctor "source" | asString }}</code>{{ else }}Generic reconciler{{ end }}</td>
+              <td>{{ if $ctorConf }}<code>{{ mapGet $ctor "source" | asString }}</code>{{ else }}None{{ end }}</td>
             </tr>
             <tr>
               <td>Finalizers</td>
               <td>{{ if $finVals }}{{ len $finVals }}{{ else }}—{{ end }}</td>
-              <td>{{ if $finVals }}{{ range $finVals }}<code>{{ . }}</code> {{ end }}{{ else }}None declared{{ end }}</td>
+              <td>{{ if $finVals }}{{ range $finVals }}<code>{{ . }}</code> {{ end }}{{ else }}Removed (<code>runtime.finalizers.remove</code>){{ end }}</td>
             </tr>
           </tbody>
         </table>

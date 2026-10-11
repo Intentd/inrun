@@ -16,7 +16,7 @@ import (
 // Keyed by schema.GroupVersionKind.
 //
 // User code never reads or writes these directly. Inrun looks entries up
-// through the CRDEntry methods in registrations.go.
+// through the CRDEntry methods in reconciler.go.
 
 var ObjectRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
 var ListRegistry = map[schema.GroupVersionKind]func() runtime.Object{}

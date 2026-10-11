@@ -772,15 +772,22 @@
 
           <!-- Reconciler type + resync -->
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-            {{ if eq $obType "custom" }}
-            <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(96,165,250,.1);color:var(--color-started);border:1px solid rgba(96,165,250,.25);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-              Custom Reconciler
-            </span>
-            {{ else }}
+            {{ $kindLabel := "Declarative" }}
+            {{ if eq $obType "hooks" }}{{ $kindLabel = "Go hooks" }}{{ else if eq $obType "constructor" }}{{ $kindLabel = "Go constructor" }}{{ else if eq $obType "remote" }}{{ $kindLabel = "Remote" }}{{ end }}
+            {{ if eq $obType "declarative" }}
             <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.1);color:var(--color-healthy);border:1px solid rgba(52,211,153,.25);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
-              Generic Reconciler
+              {{ $kindLabel }} reconciler
+            </span>
+            {{ else }}
+            <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(96,165,250,.1);color:var(--color-started);border:1px solid rgba(96,165,250,.25);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              {{ $kindLabel }} reconciler
+            </span>
+            {{ end }}
+            {{ with mapGet $ob "targets" }}
+            <span style="font-size:12px;color:var(--text-muted)">
+              Targets:{{ range $t, $k := . }} <span class="console-code" style="font-size:11px">{{ $t }}: {{ $k }}</span>{{ end }}
             </span>
             {{ end }}
             <span style="font-size:12px;color:var(--text-muted)">
@@ -826,7 +833,7 @@
             {{ else }}
             <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              No finalizers
+              Finalizers removed <span style="color:var(--text-muted)">(runtime.finalizers.remove)</span>
             </div>
             {{ end }}
           </div>

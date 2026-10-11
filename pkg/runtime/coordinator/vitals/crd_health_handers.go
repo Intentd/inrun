@@ -159,7 +159,10 @@ type CRDInfoResponse struct {
 }
 
 type OperatorBoxInfo struct {
-	Type        string                 `json:"type"`
+	// Type is the reconciler kind: declarative, hooks, constructor or remote.
+	Type string `json:"type"`
+	// Targets lists serve targets reconciled by another kind than Type.
+	Targets     map[string]string      `json:"targets,omitempty"`
 	Finalizers  FinalizersInfo         `json:"finalizers"`
 	Hooks       HooksInfo              `json:"hooks"`
 	Constructor ConstructorInfo        `json:"constructor"`
@@ -610,18 +613,22 @@ func isCRDProtected(protected map[string]struct{}, plural, group string) bool {
 func operatorBoxInfoStruct(crd types.CRDEntry) OperatorBoxInfo {
 	box := crd.OperatorBox
 
-	reconcilerType := "generic"
-	if !crd.DefaultReconcile() {
-		reconcilerType = "custom"
+	var targets map[string]string
+	for name, kind := range crd.TargetReconcilerKinds() {
+		if targets == nil {
+			targets = make(map[string]string)
+		}
+		targets[name] = string(kind)
 	}
 
-	finalizersInfo := FinalizersInfo{
-		Source: "default",
-		Values: []string{},
+	// What the runtime applies to every CR: inrun.dev/cleanup plus
+	// runtime.finalizers.names, or nothing with runtime.finalizers.remove.
+	finalizersInfo := FinalizersInfo{Source: "runtime", Values: box.EffectiveFinalizers()}
+	if box.EffectiveRemoveFinalizers() {
+		finalizersInfo = FinalizersInfo{Source: "remove", Values: []string{}}
 	}
-	if finalizers := box.EffectiveFinalizers(); len(finalizers) > 0 {
-		finalizersInfo.Source = "configured"
-		finalizersInfo.Values = finalizers
+	if finalizersInfo.Values == nil {
+		finalizersInfo.Values = []string{}
 	}
 
 	hooksInfo := HooksInfo{Configured: false}
@@ -655,7 +662,8 @@ func operatorBoxInfoStruct(crd types.CRDEntry) OperatorBoxInfo {
 	}
 
 	result := OperatorBoxInfo{
-		Type:        reconcilerType,
+		Type:        string(crd.ReconcilerKind()),
+		Targets:     targets,
 		Finalizers:  finalizersInfo,
 		Hooks:       hooksInfo,
 		Constructor: constructorInfo,

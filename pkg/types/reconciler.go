@@ -4,10 +4,87 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+// NewReconcilerFunc is the constructor signature every custom reconciler must match.
+// It lives in pkg/types (not domain) to avoid an import cycle: domain must not
+// import kubeclient, but the constructor function takes kubeclient.Interface.
+//
+// The runtime injects the primary CRD's informer and event recorder into kube
+// before calling the constructor — access them via kube.GetInformer() and
+// kube.GetEventRecorder(). Args arrive on each request: req.Args().
+type NewReconcilerFunc func(kube kubeclient.Interface) domain.Reconciler
+
+// ReconcilerKind names how a CRD's CRs are reconciled. The runtime builds the
+// reconciler from it (reconcilers.Factory) and /catalog and the console show
+// it, so what is shown is what runs.
+type ReconcilerKind string
+
+const (
+	// KindDeclarative: the generic reconciler running the Catalog's templates.
+	KindDeclarative ReconcilerKind = "declarative"
+	// KindHooks: the generic reconciler with compiled Go hooks.
+	KindHooks ReconcilerKind = "hooks"
+	// KindConstructor: a compiled reconciler (reconcile.default: false).
+	KindConstructor ReconcilerKind = "constructor"
+	// KindRemote: an HTTP reconciler (reconcile.remote).
+	KindRemote ReconcilerKind = "remote"
+)
+
+// ReconcilerKind returns how CRs on no serve target, or on a target without
+// a reconciler of its own, are reconciled.
+func (c *CRDEntry) ReconcilerKind() ReconcilerKind {
+	switch {
+	case c.DefaultReconcile():
+		if c.HasHooks() {
+			return KindHooks
+		}
+		return KindDeclarative
+	case c.WithRemoteDecl():
+		return KindRemote
+	default:
+		return KindConstructor
+	}
+}
+
+// TargetReconcilerKinds returns the serve targets reconciled differently from
+// the CRD, keyed by target: a remote or constructor of their own, or hooks.
+// Targets that only override args are absent.
+func (c *CRDEntry) TargetReconcilerKinds() map[string]ReconcilerKind {
+	if !c.HasServeTargetEntries() {
+		return nil
+	}
+	base := c.ReconcilerKind()
+	crdLevel := c.crdLevelHookLocation()
+	var out map[string]ReconcilerKind
+	for target, cfg := range c.Serve.Target.Entries {
+		if cfg.OperatorBox == nil || cfg.Box().Reconcile == nil {
+			continue
+		}
+		r := cfg.Box().Reconcile
+		kind := base
+		switch {
+		case r.HasRemoteDecl():
+			kind = KindRemote
+		case !r.IsDefault() && r.HasConstructorDecl():
+			kind = KindConstructor
+		case r.Hooks != nil && r.Hooks.Location != "" && r.Hooks.Location != crdLevel:
+			kind = KindHooks
+		}
+		if kind == base {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]ReconcilerKind)
+		}
+		out[target] = kind
+	}
+	return out
+}
 
 // ── Registrations ─────────────────────────────────────────────────────────────
 // The compiled Go a CRD runs, looked up in the registries `inrun generate
