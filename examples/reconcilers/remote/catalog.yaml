@@ -17,7 +17,7 @@ metadata:
 notes:
   functions:
     - name: reconcilerEndpoint
-      description: Remote reconciler HTTP endpoint — in-cluster Service or local dev server
+      description: Remote reconciler HTTP endpoint — its in-cluster Service, or localhost when inrun runs outside the cluster
       expression: >
         {{ if .inrun.inPod }}
           http://webapp-reconciler.default.svc.cluster.local:8025/reconcile
@@ -36,27 +36,25 @@ spec:
       operatorBox:
         reconcile:
           default: false
+          managedResources:
+            - kind: deployment
+            - kind: service
+          args:
+            logLevel: info
+            environment: '{{ .metadata.labels.environment | default "development" }}'
+            appName: "{{ .metadata.name }}"
           remote:
             endpoint: "{{ reconcilerEndpoint }}"
             timeout: 15s
-            args:
-              logLevel: info
-              environment: '{{ .metadata.labels.environment | default "development" }}'
-              appName: "{{ .metadata.name }}"
             auth:
               secretRef:
                 name: webapp-reconciler-token
                 namespace: default
                 key: token
-            payload:
+            request:
               object:
                 exclude:
                   - metadata.managedFields
-            managedResources:
-              - group: apps
-                plural: deployments
-              - group: ""
-                plural: services
         runtime:
           allowedNamespaces:
             - default

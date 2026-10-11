@@ -37,6 +37,7 @@
 package children
 
 import (
+	"github.com/inrundev/inrun/pkg/utils"
 	"sort"
 
 	"github.com/inrundev/inrun/pkg/template"
@@ -615,17 +616,9 @@ func itemResolver(base *template.Resolver, fi forEachItem, as string, index int)
 	return base.WithItem(fi.key, as, index)
 }
 
-// splitFieldPath splits a dot-notation path into segments.
+// splitFieldPath splits a dot-notation path into keys (see utils.SplitField).
 func splitFieldPath(path string) []string {
-	var parts []string
-	start := 0
-	for i := 0; i < len(path); i++ {
-		if path[i] == '.' {
-			parts = append(parts, path[start:i])
-			start = i + 1
-		}
-	}
-	return append(parts, path[start:])
+	return utils.SplitField(path)
 }
 
 // anyHasForEach returns true if any element has a non-nil ForEach.

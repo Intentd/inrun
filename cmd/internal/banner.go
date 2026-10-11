@@ -8,15 +8,15 @@ import (
 	"github.com/inrundev/inrun/pkg/version"
 )
 
-func printBanner(kfg *runtimeKfg, leader string) {
+func printBanner(cfg *runtimeConfig, leader string) {
 	fmt.Println("====================================================")
 	fmt.Printf("%s Inrun Runtime%s (%s)\n",
 		utils.Magenta(""), utils.Reset(""), version.Version)
 
-	fmt.Printf("        Namespace: %s\n", utils.Cyan(kfg.config.Cluster().Namespace()))
-	fmt.Printf("        Environment: %s\n", utils.Blue(kfg.config.Inrun().Environment()))
+	fmt.Printf("        Namespace: %s\n", utils.Cyan(cfg.config.Cluster().Namespace()))
+	fmt.Printf("        Environment: %s\n", utils.Blue(cfg.config.Inrun().Environment()))
 	fmt.Printf("        Listening on: %s:%s\n",
-		utils.Green(kfg.config.Health().Port()), utils.Reset(""))
+		utils.Green(cfg.config.Health().Port()), utils.Reset(""))
 
 	if leader != "" {
 		fmt.Printf("        Leader: %s\n", utils.Yellow(leader))
@@ -35,44 +35,44 @@ func printBanner(kfg *runtimeKfg, leader string) {
 	fmt.Println()
 
 	// Webhooks
-	if kfg.catalog.HasMutationRules() ||
-		kfg.catalog.HasValidationRules() ||
-		kfg.catalog.IsDeletionProtectionEnabled() {
+	if cfg.catalog.HasMutationRules() ||
+		cfg.catalog.HasValidationRules() ||
+		cfg.catalog.IsDeletionProtectionEnabled() {
 
 		fmt.Println("Webhook Endpoints:")
 
-		if kfg.catalog.HasMutationRules() {
+		if cfg.catalog.HasMutationRules() {
 			fmt.Printf("- Mutation:  %s\n", utils.Green("/mutate"))
 		}
-		if kfg.catalog.HasValidationRules() {
+		if cfg.catalog.HasValidationRules() {
 			fmt.Printf("- Validation: %s\n", utils.Green("/validate"))
 		}
-		if kfg.catalog.IsDeletionProtectionEnabled() {
+		if cfg.catalog.IsDeletionProtectionEnabled() {
 			fmt.Printf("- Deletion Protection: %s\n", utils.Green("/deletion-protection"))
 			fmt.Printf("- Failure Policy: %s\n",
-				utils.Cyan(kfg.catalog.DeletionProtectionFailurePolicy()))
+				utils.Cyan(cfg.catalog.DeletionProtectionFailurePolicy()))
 		}
-		if kfg.catalog.IsNamespaceProtectionEnabled() {
+		if cfg.catalog.IsNamespaceProtectionEnabled() {
 			fmt.Printf("- Namespace Protection: %s\n", utils.Green("/namespace-protection"))
 			fmt.Printf("- Failure Policy: %s\n",
-				utils.Cyan(kfg.catalog.NamespaceProtectionFailurePolicy()))
+				utils.Cyan(cfg.catalog.NamespaceProtectionFailurePolicy()))
 		}
-		if kfg.catalog.HasConversionPaths() {
+		if cfg.catalog.HasConversionPaths() {
 			fmt.Printf("- Conversion: %s\n", utils.Green("/convert"))
 		}
 
 		fmt.Println("Webhook Configuration:")
-		fmt.Printf("- Service Name: %s\n", utils.Cyan(kfg.catalog.WebhooksServiceName()))
-		fmt.Printf("- Service Namespace: %s\n", utils.Cyan(kfg.config.Cluster().Namespace()))
+		fmt.Printf("- Service Name: %s\n", utils.Cyan(cfg.catalog.WebhooksServiceName()))
+		fmt.Printf("- Service Namespace: %s\n", utils.Cyan(cfg.config.Cluster().Namespace()))
 		fmt.Printf("- General Failure Policy: %s\n",
-			utils.Cyan(kfg.catalog.WebhooksFailurePolicy()))
+			utils.Cyan(cfg.catalog.WebhooksFailurePolicy()))
 		fmt.Println()
 	}
 
 	fmt.Println("Catalog Endpoints:")
 	fmt.Printf("- Catalog:  %s\n", utils.Green("/catalog"))
 
-	for _, crd := range kfg.catalog.Enabled() {
+	for _, crd := range cfg.catalog.Enabled() {
 		if !crd.IsEnabledAllEndpoints() {
 			continue
 		}
@@ -90,7 +90,7 @@ func printBanner(kfg *runtimeKfg, leader string) {
 
 	// Components
 	fmt.Println("Components:")
-	for _, c := range *kfg.komp {
+	for _, c := range *cfg.komp {
 		name := fmt.Sprintf("- %-20s", c.Name())
 		switch {
 		case c.Started():
@@ -105,7 +105,7 @@ func printBanner(kfg *runtimeKfg, leader string) {
 
 	// CRDs
 	fmt.Println("CRDs:")
-	for _, crd := range kfg.catalog.Enabled() {
+	for _, crd := range cfg.catalog.Enabled() {
 		fmt.Printf("- %s\n", utils.Cyan(crd.APITypes.Kind))
 
 		fmt.Printf("  Name:          %s\n", utils.Yellow(crd.Name))
@@ -124,21 +124,21 @@ func printBanner(kfg *runtimeKfg, leader string) {
 		if w := crd.SetWorkers(0); w > 0 {
 			fmt.Printf("  Workers:       %d\n", w)
 		} else {
-			fmt.Printf("  Workers:       %d (default)\n", kfg.config.Catalog().DefaultWorkers())
+			fmt.Printf("  Workers:       %d (default)\n", cfg.config.Catalog().DefaultWorkers())
 		}
 
 		if d := crd.SetQueueDepth(0); d > 0 {
 			fmt.Printf("  MaxDepth: %d\n", d)
 		} else {
 			fmt.Printf("  MaxDepth: %d (default)\n",
-				kfg.config.Catalog().DefaultQueueDepth())
+				cfg.config.Catalog().DefaultQueueDepth())
 		}
 
 		if r := crd.SetResync(0); r != 0 {
 			fmt.Printf("  Resync:        %s\n", r.String())
 		} else {
 			fmt.Printf("  Resync:        %s (default)\n",
-				kfg.config.Catalog().DefaultResync().String())
+				cfg.config.Catalog().DefaultResync().String())
 		}
 
 		if len(crd.DependsOn) > 0 {

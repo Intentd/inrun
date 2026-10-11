@@ -13,7 +13,6 @@ import (
 	"github.com/inrundev/inrun/pkg/logger"
 	"github.com/inrundev/inrun/pkg/resources/shared"
 	"github.com/inrundev/inrun/pkg/types"
-	"github.com/inrundev/inrun/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -186,18 +185,7 @@ func buildPV(owner domain.Object, spec ResolvedPVSpec) *corev1.PersistentVolume 
 		}
 	}
 
-	if owner.GetNamespace() == "" {
-		pv.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion:         owner.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-				Kind:               owner.GetObjectKind().GroupVersionKind().Kind,
-				Name:               owner.GetName(),
-				UID:                owner.GetUID(),
-				Controller:         utils.BoolPtr(true),
-				BlockOwnerDeletion: utils.BoolPtr(true),
-			},
-		}
-	}
+	pv.OwnerReferences = shared.ResolveOwnerReferences(owner)
 
 	return pv
 }

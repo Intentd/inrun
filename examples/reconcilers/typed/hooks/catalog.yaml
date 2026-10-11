@@ -26,14 +26,14 @@ spec:
       operatorBox:
         reconcile:
           default: true   # Generic Reconciler is still used — hooks are additive
+          managedResources:            # A list of resources managed by this hook (required for RBAC)
+            - kind: StatefulSet
+            - kind: Service
+            - kind: CronJob
           hooks:
             location: github.com/inrundev/inrun-hooks-demo/hooks
             function: DatabaseHooks
             alias: dbhooks
-            managedResources:          # A list of resources managed by this hook (required for RBAC)
-              - kind: StatefulSet
-              - kind: Service
-              - kind: CronJob
           workers: 3
           resync: 30s
 

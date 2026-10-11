@@ -30,15 +30,15 @@ spec:
       operatorBox:
         reconcile:
           default: false
+          managedResources:
+            - kind: Deployment
+          args:
+            flagUrl: '{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled'
+            businessHoursStart: "09:00"
+            businessHoursEnd: "18:00"
           constructor:
             location: github.com/inrundev/inrun-args-constructor/constructor
             function: NewBlockchainNodeReconciler
             alias: bnconstructor
-            managedResources:
-              - kind: Deployment
-            args:
-              flagUrl: '{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled'
-              businessHoursStart: "09:00"
-              businessHoursEnd: "18:00"
           workers: 2
           resync: 30s

@@ -17,7 +17,7 @@ import (
 type Input struct {
 	Entry    contract.RegistryEntry
 	Key      string
-	Kat      *catalog.Catalog
+	Cat      *catalog.Catalog
 	Kube     kubeclient.Interface
 	Registry CatalogRegistry
 }
@@ -84,12 +84,12 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 	}
 
 	// Step 6: enrichment chain
-	if in.Kat != nil {
-		if !in.Kat.Profiles.Empty() {
-			resolver = resolver.WithProfiles(&in.Kat.Profiles)
+	if in.Cat != nil {
+		if !in.Cat.Profiles.Empty() {
+			resolver = resolver.WithProfiles(&in.Cat.Profiles)
 		}
-		if !in.Kat.Notes.Empty() {
-			resolver = resolver.WithUserNotes(in.Kat.UserNotes())
+		if !in.Cat.Notes.Empty() {
+			resolver = resolver.WithUserNotes(in.Cat.UserNotes())
 		}
 	}
 	if req := intent.FromObject(resolver.Data()); req != nil {
@@ -101,13 +101,14 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 		)
 	}
 
-	// Hooks-declared external calls — runs before ScopedFor so results are
-	// available as .external.<name>.* when hook args templates are evaluated.
-	if crd.HasHooksExternal() {
+	// reconcile.external calls — run here, before any reconciler, so results
+	// are available as .external.<name>.* when reconcile.args are rendered
+	// (see Args). The effective box carries per-target overrides.
+	if box.Reconcile != nil && len(box.Reconcile.External) > 0 {
 		var extErr error
-		resolver, extErr = external.Run(ctx, crd.GVKString(), resolver, crd.HooksExternal(), in.Kube.Clientset())
+		resolver, extErr = external.Run(ctx, crd.GVKString(), resolver, box.Reconcile.External, in.Kube.Clientset())
 		if extErr != nil {
-			return nil, nil, fmt.Errorf("prepare: hooks external: %w", extErr)
+			return nil, nil, fmt.Errorf("prepare: reconcile.external: %w", extErr)
 		}
 	}
 

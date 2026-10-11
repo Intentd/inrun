@@ -59,20 +59,26 @@ RECONCILER_TOKEN=inrun-demo-token go run reconciler/main.go
 
 ## The contract
 
-Inrun POSTs the CR (with `managedFields` stripped) and the evaluated `args`:
+Inrun POSTs the CR's identity, the CR itself (with `managedFields` stripped) and the evaluated `args`:
 
 ```json
-{ "key": "default/my-webapp", "gvk": {...}, "object": {...},
+{ "key": "default/my-webapp",
+  "apiVersion": "migration.demo.inrun.dev/v1alpha1", "kind": "WebApp",
+  "object": {...},
   "args": { "logLevel": "info", "environment": "development", "appName": "my-webapp" } }
 ```
 
-The reconciler returns status and resources in intent form: a built-in `type`
-and flat `fields`. Inrun builds the objects, sets owner references and
-applies them.
+`target` is added when the CR came through a serve target, and `children` when `request.children` is set. `request.object.exclude` removes paths from `object`; nothing else in the body carries the CR.
+
+The reconciler returns status, labels and annotations for the WebApp, and
+resources in intent form: a built-in `type` and flat `fields`. Inrun builds the
+objects, sets owner references and applies them.
 
 ```json
 { "result": "ok",
   "status": { "phase": "Running" },
+  "labels": { "environment": "development" },
+  "annotations": { "webapp.example.com/image": "nginx:latest" },
   "resources": [
     { "type": "deployment", "fields": { "name": "my-webapp", "image": "nginx:latest", "replicas": 1, "port": 80 } },
     { "type": "service",    "fields": { "name": "my-webapp-svc", "port": 80, "targetPort": 80 } } ] }

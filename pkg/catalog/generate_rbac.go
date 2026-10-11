@@ -150,45 +150,10 @@ func (k *Catalog) GenerateRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	for _, crd := range k.Enabled() {
 
-		// Hooks-managed resources
-		if crd.WithHookManagedResources() {
-			for _, r := range crd.HookManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					// optional: skip or log
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Constructor-managed resources
-		if crd.WithConstructorManagedResources() {
-			for _, r := range crd.ConstructorManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					// optional: skip or log
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Remote-managed resources
-		if crd.WithRemoteManagedResources() {
-			for _, r := range crd.RemoteManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
+		// Resources hooks, constructor and remote reconcilers may create,
+		// including per-target declarations.
+		for _, r := range crd.AllManagedResources() {
+			if gvr, ok := k.ResolveGVR(r); ok {
 				rules = append(rules, rbacv1.PolicyRule{
 					APIGroups: []string{gvr.Group},
 					Resources: []string{gvr.Resource},
@@ -303,7 +268,7 @@ func (k *Catalog) collectExternalSecretRefs() []*types.APISecretRef {
 		if crd.Box().EffectiveOnCreate() != nil {
 			calls = append(calls, crd.Box().EffectiveOnCreate().External...)
 		}
-		calls = append(calls, crd.HooksExternal()...)
+		calls = append(calls, crd.ReconcileExternal()...)
 		if crd.EffectiveValidation() != nil {
 			calls = append(calls, crd.EffectiveValidation().External...)
 		}
@@ -427,43 +392,10 @@ func (k *Catalog) GenerateRuntimeRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	for _, crd := range k.Enabled() {
 
-		// Hooks-managed resources
-		if crd.WithHookManagedResources() {
-			for _, r := range crd.HookManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Constructor-managed resources
-		if crd.WithConstructorManagedResources() {
-			for _, r := range crd.ConstructorManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
-				rules = append(rules, rbacv1.PolicyRule{
-					APIGroups: []string{gvr.Group},
-					Resources: []string{gvr.Resource},
-					Verbs:     defaultVerbs,
-				})
-			}
-		}
-
-		// Remote-managed resources
-		if crd.WithRemoteManagedResources() {
-			for _, r := range crd.RemoteManagedResources() {
-				gvr, ok := k.ResolveGVR(r)
-				if !ok {
-					continue
-				}
+		// Resources hooks, constructor and remote reconcilers may create,
+		// including per-target declarations.
+		for _, r := range crd.AllManagedResources() {
+			if gvr, ok := k.ResolveGVR(r); ok {
 				rules = append(rules, rbacv1.PolicyRule{
 					APIGroups: []string{gvr.Group},
 					Resources: []string{gvr.Resource},
@@ -557,14 +489,20 @@ func (k *Catalog) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	// ───────────────────────────────────────────────
 	// get: read existing token; create: self-bootstrap when Secret is absent.
 	// Uses the same annotation-based rotation as pkg/runners secrets_once.go.
-	// Scoped to ResourceNames when all names are static.
+	// get is scoped to ResourceNames when all names are static; create cannot
+	// be (Kubernetes never authorizes create by resource name), so it gets its
+	// own rule.
 	gatewayNames, gatewayTemplate := secretNamesFrom(k.collectGatewayAPISecretRefs())
 	if len(gatewayNames) > 0 {
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups:     []string{""},
 			Resources:     []string{"secrets"},
 			ResourceNames: gatewayNames,
-			Verbs:         []string{"get", "create"},
+			Verbs:         []string{"get"},
+		}, rbacv1.PolicyRule{
+			APIGroups: []string{""},
+			Resources: []string{"secrets"},
+			Verbs:     []string{"create"},
 		})
 	}
 	if gatewayTemplate {
@@ -759,39 +697,15 @@ func (k *Catalog) GeneratePerCRDRBACRules() map[string][]rbacv1.PolicyRule {
 			}
 		}
 
-		if crd.WithHookManagedResources() {
-			for _, r := range crd.HookManagedResources() {
-				if gvr, ok := k.ResolveGVR(r); ok {
-					rules = append(rules, rbacv1.PolicyRule{
-						APIGroups: []string{gvr.Group},
-						Resources: []string{gvr.Resource},
-						Verbs:     defaultVerbs,
-					})
-				}
-			}
-		}
-
-		if crd.WithConstructorManagedResources() {
-			for _, r := range crd.ConstructorManagedResources() {
-				if gvr, ok := k.ResolveGVR(r); ok {
-					rules = append(rules, rbacv1.PolicyRule{
-						APIGroups: []string{gvr.Group},
-						Resources: []string{gvr.Resource},
-						Verbs:     defaultVerbs,
-					})
-				}
-			}
-		}
-
-		if crd.WithRemoteManagedResources() {
-			for _, r := range crd.RemoteManagedResources() {
-				if gvr, ok := k.ResolveGVR(r); ok {
-					rules = append(rules, rbacv1.PolicyRule{
-						APIGroups: []string{gvr.Group},
-						Resources: []string{gvr.Resource},
-						Verbs:     defaultVerbs,
-					})
-				}
+		// Resources hooks, constructor and remote reconcilers may create,
+		// including per-target declarations.
+		for _, r := range crd.AllManagedResources() {
+			if gvr, ok := k.ResolveGVR(r); ok {
+				rules = append(rules, rbacv1.PolicyRule{
+					APIGroups: []string{gvr.Group},
+					Resources: []string{gvr.Resource},
+					Verbs:     defaultVerbs,
+				})
 			}
 		}
 

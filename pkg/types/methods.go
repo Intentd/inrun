@@ -239,16 +239,14 @@ func (c *CRDEntry) WithConstructorDecl() bool {
 	return c.Box().Reconcile.HasConstructorDecl()
 }
 
-// WithHookManagedResources reports whether this CRD has hooks that declare managed resources.
-func (c *CRDEntry) WithHookManagedResources() bool {
+// ManagedResources returns operatorBox.reconcile.managedResources: the types a
+// hooks, constructor or remote reconciler may create. Nil-safe.
+func (c *CRDEntry) ManagedResources() []domain.ManagedResource {
 	r := c.Box().Reconcile
-	return c.WithHooksDecl() && r != nil && r.Hooks != nil && len(r.Hooks.ManagedResources) > 0
-}
-
-// WithConstructorManagedResources reports whether this CRD has a constructor with managed resources.
-func (c *CRDEntry) WithConstructorManagedResources() bool {
-	r := c.Box().Reconcile
-	return c.WithConstructorDecl() && r != nil && r.ConstructorDecl != nil && len(r.ConstructorDecl.ManagedResources) > 0
+	if r == nil {
+		return nil
+	}
+	return r.ManagedResources
 }
 
 // WithRemoteDecl returns true if the CRD has a remote reconciler declaration.
@@ -256,68 +254,17 @@ func (c *CRDEntry) WithRemoteDecl() bool {
 	return c.Box().Reconcile.HasRemoteDecl()
 }
 
-// WithRemoteManagedResources reports whether this CRD has a remote reconciler with managed resources.
-func (c *CRDEntry) WithRemoteManagedResources() bool {
-	r := c.Box().Reconcile
-	return c.WithRemoteDecl() && r != nil && r.Remote != nil && len(r.Remote.ManagedResources) > 0
-}
-
-// WithAnyManagedResources reports whether hooks, constructor, or remote reconciler declare resources,
-// including per-target operatorBox declarations.
+// WithAnyManagedResources reports whether the CRD or any of its targets
+// declares managed resources.
 func (c *CRDEntry) WithAnyManagedResources() bool {
-	if c.WithHookManagedResources() || c.WithConstructorManagedResources() || c.WithRemoteManagedResources() {
-		return true
-	}
-	if c.Serve == nil || c.Serve.Target.Entries == nil {
-		return false
-	}
-	for _, entry := range c.Serve.Target.Entries {
-		if len(targetManagedResources(entry.OperatorBox)) > 0 {
-			return true
-		}
-	}
-	return false
+	return len(c.AllManagedResources()) > 0
 }
 
-// HookManagedResources returns the list of managed resources declared under
-// the hooks block. Returns nil if hooks are not declared or no resources exist.
-func (c *CRDEntry) HookManagedResources() []domain.ManagedResource {
-	r := c.Box().Reconcile
-	if r == nil || r.Hooks == nil {
-		return nil
-	}
-	return r.Hooks.ManagedResources
-}
-
-// ConstructorManagedResources returns the list of managed resources declared under the constructor block.
-func (c *CRDEntry) ConstructorManagedResources() []domain.ManagedResource {
-	r := c.Box().Reconcile
-	if r == nil || r.ConstructorDecl == nil {
-		return nil
-	}
-	return r.ConstructorDecl.ManagedResources
-}
-
-// RemoteManagedResources returns the list of managed resources declared under the remote reconciler block.
-func (c *CRDEntry) RemoteManagedResources() []domain.ManagedResource {
-	r := c.Box().Reconcile
-	if r == nil || r.Remote == nil {
-		return nil
-	}
-	return r.Remote.ManagedResources
-}
-
-// AllManagedResources returns the combined list of managed resources from hooks,
-// constructor, and per-target operatorBox declarations. Duplicates across targets
-// are fine — startWatchInformers deduplicates by GVR via the covered set.
+// AllManagedResources returns reconcile.managedResources plus every per-target
+// operatorBox declaration. Duplicates across targets are fine —
+// startWatchInformers deduplicates by GVR via the covered set.
 func (c *CRDEntry) AllManagedResources() []domain.ManagedResource {
-	hooks := c.HookManagedResources()
-	ctor := c.ConstructorManagedResources()
-	remote := c.RemoteManagedResources()
-	out := make([]domain.ManagedResource, 0, len(hooks)+len(ctor)+len(remote))
-	out = append(out, hooks...)
-	out = append(out, ctor...)
-	out = append(out, remote...)
+	out := append([]domain.ManagedResource(nil), c.ManagedResources()...)
 	if c.Serve != nil {
 		for _, entry := range c.Serve.Target.Entries {
 			out = append(out, targetManagedResources(entry.OperatorBox)...)
@@ -326,24 +273,13 @@ func (c *CRDEntry) AllManagedResources() []domain.ManagedResource {
 	return out
 }
 
-// targetManagedResources extracts hook + constructor resources from a per-target
-// operatorBox pointer. Returns nil when the box is nil or has no resources.
+// targetManagedResources returns a per-target operatorBox's
+// reconcile.managedResources, or nil.
 func targetManagedResources(box *OperatorBoxConfig) []domain.ManagedResource {
-	if box.Empty() {
+	if box.Empty() || box.Reconcile.Empty() {
 		return nil
 	}
-	var out []domain.ManagedResource
-	rec := box.Reconcile
-	if rec.Empty() {
-		return nil
-	}
-	if rec.HasHooksDecl() {
-		out = append(out, rec.Hooks.ManagedResources...)
-	}
-	if rec.HasConstructorDecl() {
-		out = append(out, rec.ConstructorDecl.ManagedResources...)
-	}
-	return out
+	return box.Reconcile.ManagedResources
 }
 
 // WithWatchEntries reports whether this CRD or any per-target
@@ -590,66 +526,19 @@ func (c *CRDEntry) HasConstructor() bool {
 	return r != nil && r.Constructor != nil
 }
 
-// HooksArgs returns the args declared under reconcile.hooks.args in the Catalog.
-// Returns nil when no hooks declaration or no args are present.
-func (c *CRDEntry) HooksArgs() map[string]interface{} {
-	r := c.Box().Reconcile
-	if r == nil || r.Hooks == nil {
-		return nil
-	}
-	return r.Hooks.Args
-}
-
-// HooksArgs returns the args map from this reconciler config's hooks declaration.
-// Returns nil when no hooks are declared or no args are set.
-func (r *ReconcilerConfig) HooksArgs() map[string]interface{} {
-	if r == nil || r.Hooks == nil {
-		return nil
-	}
-	return r.Hooks.Args
-}
-
-// HooksExternal returns the external call specs declared under reconcile.hooks.external.
+// ReconcileExternal returns the external call specs declared under reconcile.external.
 // Returns nil when no hooks declaration or no external calls are declared.
-func (c *CRDEntry) HooksExternal() []ExternalCallSpec {
+func (c *CRDEntry) ReconcileExternal() []ExternalCallSpec {
 	r := c.Box().Reconcile
-	if r == nil || r.Hooks == nil {
+	if r == nil {
 		return nil
 	}
-	return r.Hooks.External
+	return r.External
 }
 
-// HasHooksExternal reports whether the CRD declares any external calls under reconcile.hooks.external.
-func (c *CRDEntry) HasHooksExternal() bool {
-	return len(c.HooksExternal()) > 0
-}
-
-// ConstructorArgs returns the args declared under reconcile.constructor.args in the Catalog.
-// Returns nil when no constructor declaration or no args are present.
-func (c *CRDEntry) ConstructorArgs() map[string]interface{} {
-	r := c.Box().Reconcile
-	if r == nil || r.ConstructorDecl == nil {
-		return nil
-	}
-	return r.ConstructorDecl.Args
-}
-
-// TargetConstructorArgs returns the constructor args declared under
-// serve.target.entries[targetName].operatorBox.reconcile.constructor.args (or reconciler.constructor.args).
-// Returns nil when the target entry, its operatorBox, or its constructor declaration is absent.
-func (c *CRDEntry) TargetConstructorArgs(targetName string) map[string]interface{} {
-	if c.Serve == nil || c.Serve.Target.Entries == nil {
-		return nil
-	}
-	entry, ok := c.Serve.Target.Entries[targetName]
-	if !ok || entry.OperatorBox == nil {
-		return nil
-	}
-	r := entry.OperatorBox.Reconcile
-	if r == nil || r.ConstructorDecl == nil {
-		return nil
-	}
-	return r.ConstructorDecl.Args
+// HasReconcileExternal reports whether the CRD declares any external calls under reconcile.external.
+func (c *CRDEntry) HasReconcileExternal() bool {
+	return len(c.ReconcileExternal()) > 0
 }
 
 // HasTargetConstructorFactories reports whether any serve target declares a

@@ -77,11 +77,11 @@ spec:
                 name: remote-token
                 namespace: default
                 key: token
-            managedResources:
-              - group: apps
-                plural: deployments
-              - group: ""
-                plural: services
+          managedResources:
+            - group: apps
+              plural: deployments
+            - group: ""
+              plural: services
 `
 
 // TestRun_RemoteReconciler proves a remote reconciler runs in simulation: the

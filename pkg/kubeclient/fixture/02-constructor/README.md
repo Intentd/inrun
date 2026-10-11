@@ -13,9 +13,9 @@ constructor:
 ```
 
 ```go
-flagUrl := kube.Args().String("flagUrl")
-start   := kube.Args().String("businessHoursStart")
-end     := kube.Args().String("businessHoursEnd")
+flagUrl := req.Args.String("flagUrl")
+start   := req.Args.String("businessHoursStart")
+end     := req.Args.String("businessHoursEnd")
 
 featureEnabled := r.inBusinessHours(start, end) && r.checkFlag(ctx, flagUrl)
 ```

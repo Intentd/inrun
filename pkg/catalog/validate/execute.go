@@ -64,14 +64,22 @@ func (e *executor) run() error {
 		return err
 	}
 
+	// The gateway never reconciles, so it wires no constructors or hooks and
+	// needs none compiled in (steps 7, 8, 10, 11).
+	wire := !e.kfg.IsGatewayInstance()
+
 	// 7. Reconcilers
-	if err := e.k.AddReconcilers(); err != nil {
-		return err
+	if wire {
+		if err := e.k.AddConstructors(); err != nil {
+			return err
+		}
 	}
 
 	// 8. Target constructors
-	if err := e.k.AddTargetConstructors(); err != nil {
-		return err
+	if wire {
+		if err := e.k.AddTargetConstructors(); err != nil {
+			return err
+		}
 	}
 
 	// 9. Runtime objects
@@ -80,13 +88,17 @@ func (e *executor) run() error {
 	}
 
 	// 10. Hooks
-	if err := e.k.AddHooks(); err != nil {
-		return err
+	if wire {
+		if err := e.k.AddHooks(); err != nil {
+			return err
+		}
 	}
 
 	// 11. Target hooks
-	if err := e.k.AddTargetHooks(); err != nil {
-		return err
+	if wire {
+		if err := e.k.AddTargetHooks(); err != nil {
+			return err
+		}
 	}
 
 	// 12. Status

@@ -89,7 +89,7 @@ func LookupBuiltInByGVK(group, version, kind string) (BuiltInKind, bool) {
 }
 
 // GVRForBuiltIn returns the GroupVersionResource for a built-in kind.
-func GVRForBuiltIn(kind string) (schema.GroupVersionResource, bool) {
+func GVRForBuiltInByKind(kind string) (schema.GroupVersionResource, bool) {
 	res := LookupBuiltIn(kind)
 	if !res.found {
 		return schema.GroupVersionResource{}, false
@@ -99,7 +99,7 @@ func GVRForBuiltIn(kind string) (schema.GroupVersionResource, bool) {
 }
 
 // GVKForBuiltIn returns the GroupVersionKind for a built-in kind.
-func GVKForBuiltIn(kind string) (schema.GroupVersionKind, bool) {
+func GVKForBuiltInByKind(kind string) (schema.GroupVersionKind, bool) {
 	res := LookupBuiltIn(kind)
 	if !res.found {
 		return schema.GroupVersionKind{}, false
@@ -147,6 +147,26 @@ func LookupBuiltInByResource(resource string) (BuiltInKind, bool) {
 		}
 	}
 	return BuiltInKind{}, false
+}
+
+// GVRForBuiltInByResource returns the GroupVersionResource for a built-in
+// resource string (singular, plural, or shorthand).
+func GVRForBuiltInByResource(resource string) (schema.GroupVersionResource, bool) {
+	b, ok := LookupBuiltInByResource(resource)
+	if !ok {
+		return schema.GroupVersionResource{}, false
+	}
+	return schema.GroupVersionResource{Group: b.Group, Version: b.Version, Resource: b.Plural}, true
+}
+
+// GVKForBuiltInByResource returns the GroupVersionKind for a built-in
+// resource string (singular, plural, or shorthand).
+func GVKForBuiltInByResource(resource string) (schema.GroupVersionKind, bool) {
+	b, ok := LookupBuiltInByResource(resource)
+	if !ok {
+		return schema.GroupVersionKind{}, false
+	}
+	return schema.GroupVersionKind{Group: b.Group, Version: b.Version, Kind: b.Kind}, true
 }
 
 // ToManagedResourceByKind converts a builtin resource to a domain.ManagedResource
@@ -282,6 +302,27 @@ func IsValidEnrichmentTarget(name string) bool {
 	}
 	_, ok := enrichmentIndex[name]
 	return ok
+}
+
+// ListKindsForFakeDynamic returns a GVR→list-kind map for every registered
+// built-in, suitable for fakedynamic.NewSimpleDynamicClientWithCustomListKinds.
+//
+// The fake dynamic client refuses to List a GVR whose list kind was not
+// registered at construction. Registering the whole registry up front lets a
+// reconciler List any built-in it might read, whether or not the fixture
+// seeded one — which is the case for reads like "list ConfigMaps to decide
+// whether to create one".
+func ListKindsForFakeDynamic() map[schema.GroupVersionResource]string {
+	out := make(map[schema.GroupVersionResource]string, len(builtInRegistry))
+	for _, b := range builtInRegistry {
+		gvr := schema.GroupVersionResource{
+			Group:    b.Group,
+			Version:  b.Version,
+			Resource: b.Plural,
+		}
+		out[gvr] = b.Kind + "List"
+	}
+	return out
 }
 
 // ── Readiness / deletion-protection queries ───────────────────────────────────

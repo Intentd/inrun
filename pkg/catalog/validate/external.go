@@ -16,8 +16,8 @@ func (e *executor) validateExternalCalls() error {
 				return err
 			}
 		}
-		if r := entry.OperatorBox.Reconcile; r != nil && r.Hooks != nil {
-			if err := external.ValidateCalls(crdName, "hooks.external", r.Hooks.External); err != nil {
+		if r := entry.OperatorBox.Reconcile; r != nil {
+			if err := external.ValidateCalls(crdName, "reconcile.external", r.External); err != nil {
 				return err
 			}
 		}

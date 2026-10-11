@@ -11,7 +11,7 @@ stamps on the CR.
 | `v2-ctor` | Per-target constructor | Distinct `domain.Reconciler` implementation; reads `featureEnabled` from args, owns the full reconcile loop |
 
 **Hooks targets** share one binary. The Catalog's `args` determine what each
-surface means — the hook reads `kube.Args()` and never knows which surface it came from:
+surface means — the hook reads `req.Args` and never knows which surface it came from:
 
 ```yaml
 serve:
@@ -22,21 +22,19 @@ serve:
         preReconcile:
           enqueueGate:           # blocks outside business hours on this surface
             when:
-              - field: '{{ inBusinessHours }}'
+              - field: '{{ inBlockchainBusinessHours }}'
                 equals: "true"
         reconcile:
-          hooks:
-            args:
-              featureEnabled: "true"
-              inBusinessHours: '{{ inBusinessHours }}'
+          args:
+            featureEnabled: "true"
+            inBusinessHours: '{{ inBlockchainBusinessHours }}'
 
     v2-disabled:
       operatorBox:
         reconcile:
-          hooks:
-            args:
-              featureEnabled: "false"
-              inBusinessHours: '{{ inBusinessHours }}'
+          args:
+            featureEnabled: "false"
+            inBusinessHours: '{{ inBlockchainBusinessHours }}'
 ```
 
 **Constructor target** brings its own `domain.Reconciler`. The runtime wraps

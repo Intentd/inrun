@@ -29,7 +29,7 @@ func stubRecFn() types.NewReconcilerFunc {
 
 // crdWithGVK builds a typed (non-dynamic) CRDEntry for tests.
 // Setting APITypes.Location makes IsDynamic() return false so the constructor
-// and per-target reconciler paths inside addReconcilers() are exercised.
+// and per-target reconciler paths inside AddConstructors() are exercised.
 func crdWithGVK(gvk schema.GroupVersionKind) types.CRDEntry {
 	return types.CRDEntry{
 		GroupVersionKind: gvk,
@@ -152,21 +152,21 @@ func TestAddHooks_SkipsNonDefaultReconcilers(t *testing.T) {
 	}
 }
 
-// ── addReconcilers ────────────────────────────────────────────────────────────
+// ── AddConstructors ────────────────────────────────────────────────────────────
 
-func TestAddReconcilers_DefaultReconcileSkipsConstructor(t *testing.T) {
+func TestAddConstructors_DefaultReconcileSkipsConstructor(t *testing.T) {
 	crd := crdWithGVK(testGVK)
 	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddReconcilers(); err != nil {
-		t.Fatalf("addReconcilers returned error: %v", err)
+	if err := k.k.AddConstructors(); err != nil {
+		t.Fatalf("AddConstructors returned error: %v", err)
 	}
 	if k.k.EnabledCRDs()["myapp"].OperatorBox.Reconcile.Constructor != nil {
 		t.Error("Constructor should not be set for default reconciler")
 	}
 }
 
-func TestAddReconcilers_WiresConstructorWhenRegistered(t *testing.T) {
+func TestAddConstructors_WiresConstructorWhenRegistered(t *testing.T) {
 	fn := stubRecFn()
 	types.ReconcilerRegistry[testGVK] = fn
 	t.Cleanup(func() { delete(types.ReconcilerRegistry, testGVK) })
@@ -175,51 +175,23 @@ func TestAddReconcilers_WiresConstructorWhenRegistered(t *testing.T) {
 	crd.OperatorBox.Reconcile.Default = boolPtr(false)
 	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddReconcilers(); err != nil {
-		t.Fatalf("addReconcilers returned error: %v", err)
+	if err := k.k.AddConstructors(); err != nil {
+		t.Fatalf("AddConstructors returned error: %v", err)
 	}
 	if k.k.EnabledCRDs()["myapp"].OperatorBox.Reconcile.Constructor == nil {
 		t.Error("expected Constructor to be set, got nil")
 	}
 }
 
-func TestAddReconcilers_ErrorWhenDefaultFalseAndNotRegistered(t *testing.T) {
+func TestAddConstructors_ErrorWhenDefaultFalseAndNotRegistered(t *testing.T) {
 	delete(types.ReconcilerRegistry, testGVK)
 
 	crd := crdWithGVK(testGVK)
 	crd.OperatorBox.Reconcile.Default = boolPtr(false)
 	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
-	if err := k.k.AddReconcilers(); err == nil {
+	if err := k.k.AddConstructors(); err == nil {
 		t.Fatal("expected error for missing constructor registration, got nil")
-	}
-}
-
-func TestAddReconcilers_PerTargetDefaultFalseWiresConstructor(t *testing.T) {
-	fn := stubRecFn()
-	types.ReconcilerRegistry[testGVK] = fn
-	t.Cleanup(func() { delete(types.ReconcilerRegistry, testGVK) })
-
-	crd := withTargetDefaultFalse(crdWithGVK(testGVK), "v2")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
-
-	if err := k.k.AddReconcilers(); err != nil {
-		t.Fatalf("addReconcilers returned error: %v", err)
-	}
-	entry := k.k.EnabledCRDs()["myapp"].Serve.Target.Entries["v2"]
-	if entry.OperatorBox.Reconcile.Constructor == nil {
-		t.Error("expected Constructor to be set on per-target config, got nil")
-	}
-}
-
-func TestAddReconcilers_PerTargetDefaultFalseErrorWhenMissing(t *testing.T) {
-	delete(types.ReconcilerRegistry, testGVK)
-
-	crd := withTargetDefaultFalse(crdWithGVK(testGVK), "v2")
-	k := catalogWith(map[string]types.CRDEntry{"myapp": crd})
-
-	if err := k.k.AddReconcilers(); err == nil {
-		t.Fatal("expected error for missing per-target constructor, got nil")
 	}
 }
 

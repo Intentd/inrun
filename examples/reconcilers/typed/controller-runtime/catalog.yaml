@@ -31,9 +31,9 @@ spec:
           # default: false — the Generic Reconciler is not used.
           # The constructor below owns the full reconcile loop.
           default: false
+          managedResources:
+            - kind: Deployment
+            - kind: Service
           constructor:
             location: github.com/inrundev/from-controller-runtime-demo/reconciler
             function: NewWebAppReconciler
-            managedResources:
-              - kind: Deployment
-              - kind: Service

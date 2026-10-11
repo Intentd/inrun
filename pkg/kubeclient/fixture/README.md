@@ -8,7 +8,7 @@ constructors — run Go code but were isolated from that context.
 the full per-CR context before the hook or constructor runs:
 
 ```yaml
-hooks:
+reconcile:
   external:
     - name: flags
       url: "{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled"
@@ -16,7 +16,7 @@ hooks:
     featureEnabled: '{{ .external.flags.body }}'
 ```
 
-The hook reads `kube.Args().String("featureEnabled")` — no HTTP client,
+The hook reads `req.Args.String("featureEnabled")` — no HTTP client,
 no flag service SDK, no environment wiring. The Catalog handles the IO.
 
 This fixture composes two self-contained examples showing the same access

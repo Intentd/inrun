@@ -224,20 +224,6 @@ func (e *executor) validateRemote(name string, crd *types.CRDEntry) error {
 		}
 	}
 
-	// Args — validate template expressions in values
-	if len(remote.Args) > 0 {
-		for k, v := range remote.Args {
-			s, ok := v.(string)
-			if !ok || !isTemplate(s) {
-				continue
-			}
-			field := fmt.Sprintf("reconcile.remote.args.%s", k)
-			if err := validateTemplate("reconcile.remote.args", name, name, field, s, funcMap); err != nil {
-				return err
-			}
-		}
-	}
-
 	// Auth secretRef — name and key required; namespace warning if empty
 	if remote.Auth != nil && remote.Auth.SecretRef != nil {
 		context := fmt.Sprintf("CRD %q: reconcile.remote.auth", name)
@@ -255,40 +241,40 @@ func (e *executor) validateRemote(name string, crd *types.CRDEntry) error {
 		)
 	}
 
-	if err := e.validateRemotePayload(name, crd, remote); err != nil {
+	if err := e.validateRemoteRequest(name, crd, remote); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateRemotePayload validates payload.object.exclude and payload.children.
-func (e *executor) validateRemotePayload(name string, crd *types.CRDEntry, remote *types.RemoteReconcilerDeclaration) error {
-	if remote.Payload == nil {
+// validateRemoteRequest validates request.object.exclude and request.children.
+func (e *executor) validateRemoteRequest(name string, crd *types.CRDEntry, remote *types.RemoteReconcilerDeclaration) error {
+	if remote.Request == nil {
 		return nil
 	}
 
-	// payload.object.exclude — dot-notation paths
-	if remote.Payload.Object != nil {
-		for i, p := range remote.Payload.Object.Exclude {
+	// request.object.exclude — dot-notation paths
+	if remote.Request.Object != nil {
+		for i, p := range remote.Request.Object.Exclude {
 			if err := validatePathFormat(p); err != nil {
 				return fmt.Errorf(
-					"%s CRD %q: reconcile.remote.payload.object.exclude[%d] %q: %w",
+					"%s CRD %q: reconcile.remote.request.object.exclude[%d] %q: %w",
 					failureMark(), name, i, p, err,
 				)
 			}
 		}
 	}
 
-	ch := remote.Payload.EffectiveChildren()
+	ch := remote.Request.EffectiveChildren()
 	if ch == nil {
 		return nil // children injection explicitly disabled
 	}
 
 	// Build the set of declared managed resource type names for membership checks.
 	// Built-ins are resolved through the registry; custom resources use mr.Kind directly.
-	managedTypes := make(map[string]bool, len(crd.RemoteManagedResources()))
-	for _, mr := range crd.RemoteManagedResources() {
+	managedTypes := make(map[string]bool, len(crd.ManagedResources()))
+	for _, mr := range crd.ManagedResources() {
 		res := children.LookupBuiltIn(mr.Kind)
 		if res.Found() {
 			managedTypes[strings.ToLower(res.Kind())] = true
@@ -297,11 +283,11 @@ func (e *executor) validateRemotePayload(name string, crd *types.CRDEntry, remot
 		}
 	}
 
-	// payload.children.resources — keys must match a declared managed resource type.
+	// request.children.resources — keys must match a declared managed resource type.
 	for typeName, resCfg := range ch.Resources {
 		if len(managedTypes) > 0 && !managedTypes[typeName] {
 			return fmt.Errorf(
-				"%s CRD %q: reconcile.remote.payload.children.resources: %q is not declared in reconcile.remote.resources — declare it there first",
+				"%s CRD %q: reconcile.remote.request.children.resources: %q is not declared in reconcile.managedResources — declare it there first",
 				failureMark(), name, typeName,
 			)
 		}
@@ -312,18 +298,18 @@ func (e *executor) validateRemotePayload(name string, crd *types.CRDEntry, remot
 		for i, p := range resCfg.Exclude {
 			if err := validatePathFormat(p); err != nil {
 				return fmt.Errorf(
-					"%s CRD %q: reconcile.remote.payload.children.resources[%q].exclude[%d] %q: %w",
+					"%s CRD %q: reconcile.remote.request.children.resources[%q].exclude[%d] %q: %w",
 					failureMark(), name, typeName, i, p, err,
 				)
 			}
 		}
 	}
 
-	// payload.children.exclude (root) — dot-notation paths
+	// request.children.exclude (root) — dot-notation paths
 	for i, p := range ch.Exclude {
 		if err := validatePathFormat(p); err != nil {
 			return fmt.Errorf(
-				"%s CRD %q: reconcile.remote.payload.children.exclude[%d] %q: %w",
+				"%s CRD %q: reconcile.remote.request.children.exclude[%d] %q: %w",
 				failureMark(), name, i, p, err,
 			)
 		}
@@ -337,47 +323,81 @@ func (e *executor) validateRemotePayload(name string, crd *types.CRDEntry, remot
 // -----------------------------------------------------------------------------
 
 func (e *executor) validateManagedResources(name string, crd *types.CRDEntry) error {
+	rec := crd.Box().Reconcile
+	hasCode := crd.WithHooksDecl() || crd.WithConstructorDecl() || crd.WithRemoteDecl()
+
+	// args and managedResources belong to a reconciler written in code. On a
+	// declarative-only CRD they would do nothing, which almost always means a
+	// forgotten hooks, constructor or remote block.
+	if !hasCode && rec != nil && (len(rec.Args) > 0 || len(rec.ManagedResources) > 0 || len(rec.External) > 0) {
+		return fmt.Errorf(
+			"%s CRD %q: reconcile.args, reconcile.external and reconcile.managedResources apply only to hooks,\n"+
+				"constructor or remote reconcilers. This CRD is declarative: its resources come\n"+
+				"from its templates, and Inrun derives their RBAC from them.\n\n"+
+				"Remove them, or declare the reconciler they are for (hooks, constructor or remote).",
+			failureMark(), name,
+		)
+	}
+
+	// Template syntax in args values. The mapping itself is free: it is not
+	// checked against the CR schema.
+	if rec != nil {
+		funcMap := buildFuncMapForValidation(e.k.Notes)
+		for k, v := range rec.Args {
+			str, ok := v.(string)
+			if !ok || !isTemplate(str) {
+				continue
+			}
+			field := fmt.Sprintf("reconcile.args.%s", k)
+			if err := validateTemplate("reconcile.args", name, name, field, str, funcMap); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Hooks declared but no resources
-	if crd.WithHooksDecl() && !crd.WithHookManagedResources() {
+	if crd.WithHooksDecl() && len(crd.ManagedResources()) == 0 {
 		return fmt.Errorf(
 			"%s CRD %q: hooks declared but no managed resources defined.\n\n"+
-				"Typed hooks require RBAC permissions, which are generated from the\n"+
-				"'resources' list under the hooks block.\n\n"+
+				"Typed hooks require RBAC permissions, which are generated from\n"+
+				"reconcile.managedResources.\n\n"+
 				"Example:\n"+
-				"  hooks:\n"+
-				"    location: %s\n"+
-				"    function: %s\n"+
-				"    resources:\n"+
+				"  reconcile:\n"+
+				"    hooks:\n"+
+				"      location: %s\n"+
+				"      function: %s\n"+
+				"    managedResources:\n"+
 				"      - kind: Pod\n"+
 				"      - kind: Deployment\n",
 			failureMark(), name,
-			crd.Box().Reconcile.Hooks.Location,
-			crd.Box().Reconcile.Hooks.Function,
+			rec.Hooks.Location,
+			rec.Hooks.Function,
 		)
 	}
 
 	// Constructor declared but no resources
-	if crd.WithConstructorDecl() && !crd.WithConstructorManagedResources() {
+	if crd.WithConstructorDecl() && len(crd.ManagedResources()) == 0 {
 		return fmt.Errorf(
 			"%s CRD %q: constructor declared but no managed resources defined.\n\n"+
 				"Typed constructors take full ownership of reconciliation and must\n"+
 				"declare the Kubernetes resources they manage so RBAC can be generated.\n\n"+
 				"Example:\n"+
-				"  constructor:\n"+
-				"    location: %s\n"+
-				"    function: %s\n"+
-				"    resources:\n"+
+				"  reconcile:\n"+
+				"    constructor:\n"+
+				"      location: %s\n"+
+				"      function: %s\n"+
+				"    managedResources:\n"+
 				"      - kind: StatefulSet\n"+
 				"      - kind: Service\n",
 			failureMark(), name,
-			crd.Box().Reconcile.ConstructorDecl.Location,
-			crd.Box().Reconcile.ConstructorDecl.Function,
+			rec.ConstructorDecl.Location,
+			rec.ConstructorDecl.Function,
 		)
 	}
 
 	// Remote with no managedResources is valid — the service may have no Kubernetes footprint.
 	// Surface as info so inrun validate makes it visible without blocking.
-	if crd.WithRemoteDecl() && !crd.WithRemoteManagedResources() {
+	if crd.WithRemoteDecl() && len(crd.ManagedResources()) == 0 {
 		crd.Info.AddInfo(fmt.Sprintf(
 			"CRD %q: reconcile.remote has no managedResources — RBAC will not be generated for this reconciler",
 			name,

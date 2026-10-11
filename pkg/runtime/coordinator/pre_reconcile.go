@@ -37,9 +37,9 @@ func (k *Controller) evaluatePreReconcileCheck(
 	crdName string,
 	sentinels map[string]string,
 ) (gated bool, reason string) {
-	if k.kat == nil || obj == nil {
+	if k.cat == nil || obj == nil {
 		return false, ""
 	}
-	allowed, reason := k.kat.EvaluatePreReconcile(ctx, crdName, obj, k.kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
+	allowed, reason := k.cat.EvaluatePreReconcile(ctx, crdName, obj, k.kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
 	return !allowed, reason
 }

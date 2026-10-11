@@ -36,7 +36,7 @@ type Result struct {
 	// Mode is the migration mode used to produce this result.
 	Mode Mode
 	// Owns lists types detected in Owns() calls inside SetupWithManager.
-	// Each entry is a resource the operator owns and should appear in constructor.managedResources:.
+	// Each entry is a resource the operator owns and should appear in reconcile.managedResources.
 	Owns []DetectedType
 	// Watches lists types detected in Watches() calls inside SetupWithManager.
 	// Each entry should appear in operatorBox.observe.watch:.

@@ -2,19 +2,42 @@
 // remote reconciler implementations (http, grpc, …).
 package contract
 
-// Result is the response a remote reconciler returns after each reconcile cycle.
-// HTTP reconcilers decode it from JSON; gRPC reconcilers will map from a protobuf message.
+import (
+	"encoding/json"
+
+	"github.com/inrundev/inrun/domain"
+)
+
+// Result is the response a remote reconciler returns after each reconcile
+// cycle. One JSON object holds both the wire envelope below and a
+// domain.Result in its JSON form (requeue, requeueAfter, cleanup, status,
+// resources).
 type Result struct {
-	// Result is one of "ok", "requeue", or "error".
+	// Result is "ok" (or empty) or "error".
 	Result string `json:"result"`
-	// RequeueAfter is the requeue duration string (e.g. "60s"). Required when result is "requeue".
-	RequeueAfter string `json:"requeueAfter,omitempty"`
-	// Error is a human-readable error message. Non-empty triggers backoff retry.
+	// Error is a human-readable error message, used with result "error".
+	// Triggers backoff retry.
 	Error string `json:"error,omitempty"`
-	// Status is an optional map of fields to patch onto the CR's status.
-	// Merged with any catalog emit.status patch; remote fields win on conflict.
-	Status map[string]interface{} `json:"status,omitempty"`
-	// Resources is an optional list of Kubernetes objects to apply via SSA.
-	// Inrun sets the CR as owner for same-namespace resources.
-	Resources []map[string]interface{} `json:"resources,omitempty"`
+	// Directives is the rest of the response: what the reconciler asks the
+	// runtime to do next.
+	Directives domain.Result `json:"-"`
+}
+
+// Decode reads a remote reconciler's JSON response.
+func Decode(data []byte) (Result, error) {
+	var res Result
+	if err := json.Unmarshal(data, &res); err != nil {
+		return Result{}, err
+	}
+	// The same object also holds the directives. They are decoded separately:
+	// domain.Result has its own UnmarshalJSON, which embedding would promote
+	// over the whole object and lose result/error. On an error response the
+	// directives are ignored, so a malformed one cannot hide the error message.
+	if res.Result == "error" {
+		return res, nil
+	}
+	if err := json.Unmarshal(data, &res.Directives); err != nil {
+		return Result{}, err
+	}
+	return res, nil
 }

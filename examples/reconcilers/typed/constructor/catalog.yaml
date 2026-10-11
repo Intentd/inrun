@@ -32,17 +32,17 @@ spec:
           #   func(kube *kubeclient.Kubeclient,
           #        informer cache.SharedIndexInformer,
           #        ev *event.Event) domain.Reconciler
+          managedResources:
+            - kind: Job             # For built-ins, only kind is required
+              group: batch
+              version: v1
+              plural: jobs
           constructor:
             location: github.com/inrundev/inrun-constructor-demo/reconciler
             function: NewPipelineReconciler
             #
             # (Required for RBAC)
             # Define the resources managed by this reconciler
-            managedResources:
-              - kind: Job           # For built-ins, only kind is required
-                group: batch
-                version: v1
-                plural: jobs
           workers: 5       # pipelines can be IO-bound — more workers tolerated
           resync: 10s      # short resync to check Job completion quickly
         # Note: onCreate, onReconcile, onDelete, hooks, and status.fields

@@ -16,7 +16,7 @@ import (
 // Keyed by schema.GroupVersionKind. Set during Catalog validation.
 //
 // User code never reads or writes these directly. Inrun reads them during
-// Catalog validation via addRuntimeObjects(), addHooks(), and addReconcilers().
+// Catalog validation via addRuntimeObjects(), addHooks(), and AddConstructors().
 
 var ObjectRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
 var ListRegistry = map[schema.GroupVersionKind]func() runtime.Object{}
@@ -29,7 +29,7 @@ var ReconcilerRegistry = map[schema.GroupVersionKind]NewReconcilerFunc{}
 // Populated by the generator alongside HookRegistry / ReconcilerRegistry and
 // consumed by addTargetHooks() / addTargetConstructors() during Catalog validation.
 //
-// Targets that share the CRD-level binary (only overriding hooks.args) do NOT
+// Targets that share the CRD-level binary (only overriding reconcile.args) do NOT
 // appear here — mergeReconcilerConfig in EffectiveOperatorBox handles them at
 // reconcile time without any separate registration.
 var TargetHookRegistry = map[schema.GroupVersionKind]map[string]func() domain.AnyReconcileHooks{}

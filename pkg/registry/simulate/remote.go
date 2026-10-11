@@ -28,7 +28,7 @@ func newRemoteReconciler(crd *types.CRDEntry, kube kubeclient.Interface, ownName
 		crd.GVK(),
 		kube,
 		event.Discard(),
-		crd.RemoteManagedResources(),
+		crd.ManagedResources(),
 		ownNamespace,
 	)
 }

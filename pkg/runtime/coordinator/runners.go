@@ -5,25 +5,13 @@ import (
 	"time"
 
 	"github.com/inrundev/inrun/domain"
+	"github.com/inrundev/inrun/pkg/logger"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator/contract"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator/maintain"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/inrundev/inrun/pkg/template"
 	"github.com/inrundev/inrun/pkg/types"
 )
-
-// runCleanupGate evaluates operatorBox.runtime.cleanup.
-// triggered=true  → delete this cycle.
-// waitFor>0       → grace period running; re-enqueue after waitFor.
-// both zero       → conditions not yet met; reconcile runs normally.
-func (k *Controller) runCleanupGate(
-	ctx context.Context,
-	obj domain.Object,
-	box types.OperatorBoxConfig,
-	resolver *template.Resolver,
-) (triggered bool, waitFor time.Duration, err error) {
-	return k.evaluateCleanup(ctx, obj, box, resolver)
-}
 
 // runMaintain applies labels, annotations, and finalizers before reconcile.
 // ForCleanup=true strips deletion-protection so the subsequent Delete call
@@ -38,7 +26,7 @@ func (k *Controller) runMaintain(
 ) error {
 	return maintain.Apply(ctx, maintain.Input{
 		CRD:        entry.CRD,
-		Kat:        k.kat,
+		Cat:        k.cat,
 		Kube:       k.kube,
 		Recorder:   k.event,
 		ForCleanup: forCleanup,
@@ -55,8 +43,18 @@ func (k *Controller) resolveRequeueAfter(
 	result domain.Result,
 	prepared *domain.PreparedRequest,
 ) time.Duration {
-	if result.RequeueAfter > 0 {
-		return result.RequeueAfter
+	if d, reason := result.EffectiveRequeue(); d > 0 {
+		if result.Requeue != nil && result.RequeueAfter > 0 {
+			logger.FromContext(ctx).
+				Warn().Str("key", key).
+				Msg("result sets both Requeue and RequeueAfter; using Requeue")
+		}
+		if reason != "" {
+			logger.FromContext(ctx).
+				Info().Str("key", key).
+				Str("after", d.String()).Str("reason", reason).Msg("requeue requested")
+		}
+		return d
 	}
 	obj := k.objectFromCache(entry, key)
 	var resolver *template.Resolver
@@ -65,13 +63,13 @@ func (k *Controller) resolveRequeueAfter(
 	} else if obj != nil {
 		if r, err := template.NewResolver(ctx, obj); err == nil {
 			health := k.crdHealthMap[gvk]
-			resolver = r.WithUserNotes(k.kat.UserNotes()).
-				WithProfiles(k.kat.UserProfiles()).
+			resolver = r.WithUserNotes(k.cat.UserNotes()).
+				WithProfiles(k.cat.UserProfiles()).
 				WithHealth(health.HealthAsMap()).
 				WithMetrics(health.GetAutoMetrics())
 		}
 	}
-	if d := k.kat.EvaluateRequeue(ctx, entry.CRD.Name, obj, resolver); d > 0 {
+	if d := k.cat.EvaluateRequeue(ctx, entry.CRD.Name, obj, resolver); d > 0 {
 		return d
 	}
 	if prepared != nil {

@@ -11,10 +11,7 @@ metadata:
     across environments and schedules.
 
 notes:
-  functions:
-    - name: inBusinessHours
-      description: True on weekdays between 09:00–18:00 UTC
-      expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+  include: ../include/functions.yaml
 
 spec:
   crds:
@@ -34,24 +31,24 @@ spec:
       operatorBox:
         reconcile:
           default: true
+          managedResources:
+            - kind: Deployment
+          args:
+            featureEnabled: '{{ .external.flags.body }}'
+            inBusinessHours: '{{ inBusinessHours }}'
+          external:
+            - name: flags
+              url: "{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled"
+              method: GET
+              continueOnError: true
+              timeout: 5s
+              when:
+                - field: '{{ inBusinessHours }}'
+                  equals: "true"
           hooks:
             location: github.com/inrundev/inrun-args-hooks/hooks
             function: BlockchainAppHooks
             alias: bchooks
-            managedResources:
-              - kind: Deployment
-            external:
-              - name: flags
-                url: "{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled"
-                method: GET
-                continueOnError: true
-                timeout: 5s
-                when:
-                  - field: '{{ inBusinessHours }}'
-                    equals: "true"
-            args:
-              featureEnabled: '{{ .external.flags.body }}'
-              inBusinessHours: '{{ inBusinessHours }}'
           workers: 2
           resync: 30s
         emit:

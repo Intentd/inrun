@@ -25,6 +25,9 @@ const (
 	// label can be removed even if strictMode is enabled.
 	StrictModeExemptKey   = "inrun.dev/strict-mode-exempt"
 	StrictModeExemptValue = "true"
+
+	// ReservedDomain is the label and annotation domain kept for the runtime.
+	ReservedDomain = "inrun.dev"
 )
 
 // WithDeletionProtection returns a copy of m with the deletion‑protection label
@@ -157,7 +160,7 @@ const (
 	//
 	// Written by the gateway on every CR it produces. Callers never set these —
 	// the gateway owns them. All three are read by the provenance notes
-	// (getServeTarget, getServeAlias, getServeSource) exposed via the FuncMap.
+	// (getServeTarget, getServeAlias) exposed via the FuncMap.
 
 	// AnnotationServeTarget records the serve target used by the caller.
 	// Example: "smartapp"
@@ -168,11 +171,6 @@ const (
 	// Empty when the primary target was used directly.
 	// Example: "public", "internal", "v2"
 	AnnotationServeAlias = "inrun.dev/serve-alias"
-
-	// AnnotationServeSource identifies the delivery mechanism.
-	// Empty for direct Gateway API calls. Set by webhook handlers.
-	// Values: "github", "gitlab", "slack", "pagerduty", "generic"
-	AnnotationServeSource = "inrun.dev/serve-source"
 
 	// AnnotationServeIntent stores the raw intent payload submitted by the caller
 	// as a JSON-encoded string. Injected by the Gateway API in target mode so the

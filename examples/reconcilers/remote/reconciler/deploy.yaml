@@ -16,6 +16,7 @@ spec:
       containers:
         - name: reconciler
           image: ghcr.io/inrundev/examples/remote/webapp-reconciler:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8025
           env:

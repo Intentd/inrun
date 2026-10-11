@@ -51,7 +51,7 @@ func (r *WebAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	// List ConfigMaps by field index — served from cache when the watch informer
 	// has synced; falls back to live API during the first reconcile cycle.
 	cmList := &corev1.ConfigMapList{}
-	if err := r.List(ctx, cmList, client.MatchingFields{"metadata.labels.app": webapp.Name}); err != nil {
+	if err := r.List(ctx, cmList, client.MatchingFields{"app": webapp.Name}); err != nil {
 		log.Error(err, "list ConfigMaps by index failed")
 	} else {
 		log.Info("configmaps found via index", "count", len(cmList.Items))

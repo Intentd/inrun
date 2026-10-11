@@ -40,43 +40,34 @@ type RemoteReconcilerDeclaration struct {
 	// e.g. "http://{{ .metadata.namespace }}-svc.svc.cluster.local/reconcile"
 	Endpoint string `yaml:"endpoint" json:"endpoint" validate:"required"`
 
-	// ManagedResources is used for RBAC generation — same as constructor.
-	ManagedResources []domain.ManagedResource `yaml:"managedResources,omitempty" json:"managedResources,omitempty"`
-
-	// Args is a map of values forwarded to the remote reconciler in the PreparedRequest payload.
-	// Values may contain Go template expressions evaluated per-reconcile against the CR's resolver context,
-	// e.g. replicas: "{{ .spec.replicas }}". Resolved booleans, integers, and JSON values are coerced
-	// to their native types before serialisation.
-	Args map[string]interface{} `yaml:"args,omitempty" json:"args,omitempty"`
-
 	// Auth declares the credential for the outbound request. Uses the same shape as ExternalCallSpec.
 	Auth *ExternalAuth `yaml:"auth,omitempty" json:"auth,omitempty"`
 
 	// Timeout caps the round-trip. Defaults to 30s when omitted.
 	Timeout Duration `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
-	// Payload controls what is serialised into the outbound request body.
-	Payload *RemotePayloadConfig `yaml:"payload,omitempty" json:"payload,omitempty"`
+	// Request controls what the outbound request body carries.
+	Request *RemoteRequestConfig `yaml:"request,omitempty" json:"request,omitempty"`
 }
 
-// RemotePayloadConfig controls what is included in the outbound PreparedRequest body.
-type RemotePayloadConfig struct {
+// RemoteRequestConfig controls what is included in the outbound PreparedRequest body.
+type RemoteRequestConfig struct {
 	// Object controls which paths are stripped from the CR object before serialisation.
-	Object *RemotePayloadObjectConfig `yaml:"object,omitempty" json:"object,omitempty"`
+	Object *RemoteRequestObjectConfig `yaml:"object,omitempty" json:"object,omitempty"`
 
-	// Children controls which previously-created child resources are injected into the payload.
-	Children *RemotePayloadChildrenConfig `yaml:"children,omitempty" json:"children,omitempty"`
+	// Children controls which previously-created child resources are injected into the request.
+	Children *RemoteRequestChildrenConfig `yaml:"children,omitempty" json:"children,omitempty"`
 }
 
-// RemotePayloadObjectConfig strips paths from the CR object before it is sent to the reconciler.
-type RemotePayloadObjectConfig struct {
+// RemoteRequestObjectConfig strips paths from the CR object before it is sent to the reconciler.
+type RemoteRequestObjectConfig struct {
 	// Exclude is a list of dot-notation paths to remove from the object.
 	// Example: ["metadata.managedFields", "metadata.annotations"]
 	Exclude []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
 }
 
-// RemotePayloadChildrenConfig controls which child resources are injected into prepared.children.
-type RemotePayloadChildrenConfig struct {
+// RemoteRequestChildrenConfig controls which child resources are injected into prepared.children.
+type RemoteRequestChildrenConfig struct {
 	// Enabled controls whether children are injected at all.
 	// Default when omitted: true. Set to false to disable children injection entirely,
 	// useful for reconcilers that never create Kubernetes resources.
@@ -90,7 +81,7 @@ type RemotePayloadChildrenConfig struct {
 	//     deployment:
 	//       exclude: ["spec.template.metadata.annotations"]
 	//     service: {}
-	Resources map[string]*RemotePayloadChildrenResourceConfig `yaml:"resources,omitempty" json:"resources,omitempty"`
+	Resources map[string]*RemoteRequestChildrenResourceConfig `yaml:"resources,omitempty" json:"resources,omitempty"`
 
 	// Exclude is a list of dot-notation paths to strip from every injected child object.
 	// Per-resource exclude (in resources.<type>.exclude) takes precedence for that type.
@@ -98,26 +89,26 @@ type RemotePayloadChildrenConfig struct {
 	Exclude []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
 }
 
-// RemotePayloadChildrenResourceConfig is the per-resource-type config inside payload.children.resources.
-type RemotePayloadChildrenResourceConfig struct {
+// RemoteRequestChildrenResourceConfig is the per-resource-type config inside request.children.resources.
+type RemoteRequestChildrenResourceConfig struct {
 	// Exclude overrides the root exclude list for this resource type.
 	// When nil: the root Exclude applies. When empty slice: no paths are stripped for this type.
 	Exclude []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
 }
 
 // HasResources reports whether an explicit resources allow-list is declared.
-func (c *RemotePayloadChildrenConfig) HasResources() bool {
+func (c *RemoteRequestChildrenConfig) HasResources() bool {
 	return c != nil && len(c.Resources) > 0
 }
 
 // HasExclude reports whether a root exclude list is declared.
-func (c *RemotePayloadChildrenConfig) HasExclude() bool {
+func (c *RemoteRequestChildrenConfig) HasExclude() bool {
 	return c != nil && len(c.Exclude) > 0
 }
 
 // IsEnabled reports whether children injection is active.
 // Defaults to true when Enabled is nil.
-func (c *RemotePayloadChildrenConfig) IsEnabled() bool {
+func (c *RemoteRequestChildrenConfig) IsEnabled() bool {
 	return c == nil || c.Enabled == nil || *c.Enabled
 }
 
@@ -125,14 +116,20 @@ func (c *RemotePayloadChildrenConfig) IsEnabled() bool {
 // Returns nil only when injection is explicitly disabled (enabled: false).
 // Returns an empty config (inject all, no filtering) when no config is declared.
 // All callers must go through this rather than accessing Children directly.
-func (p *RemotePayloadConfig) EffectiveChildren() *RemotePayloadChildrenConfig {
+func (p *RemoteRequestConfig) EffectiveChildren() *RemoteRequestChildrenConfig {
 	if p == nil || p.Children == nil {
-		return &RemotePayloadChildrenConfig{} // default: inject all
+		return &RemoteRequestChildrenConfig{} // default: inject all
 	}
 	if !p.Children.IsEnabled() {
 		return nil // explicitly disabled
 	}
 	return p.Children
+}
+
+// ChildrenEnabled reports whether the request carries the CR's children: true
+// unless request.children.enabled is false.
+func (p *RemoteRequestConfig) ChildrenEnabled() bool {
+	return p.EffectiveChildren() != nil
 }
 
 // ReconcileConfig declares what runs and how. Default (omitted or default: true) uses the
@@ -181,6 +178,24 @@ type ReconcileConfig struct {
 	// ForceConflict sets Force: true on server-side apply for child resources.
 	ForceConflict *bool `yaml:"forceConflict,omitempty" json:"forceConflict,omitempty"`
 
+	// Args are given to the reconciler on every reconcile as Request.Args.
+	// Template expressions are rendered against the CR, so args express the CR
+	// in the reconciler's own vocabulary; the mapping is free. Used by hooks,
+	// constructor and remote reconcilers; rejected on declarative-only CRDs.
+	Args map[string]interface{} `yaml:"args,omitempty" json:"args,omitempty"`
+
+	// External declares HTTP calls the runtime makes before each reconcile.
+	// Results are available as .external.<name>.* in reconcile.args templates.
+	// Used by hooks, constructor and remote reconcilers; declarative templates
+	// declare their own external calls under onCreate / onReconcile.
+	External []ExternalCallSpec `yaml:"external,omitempty" json:"external,omitempty"`
+
+	// ManagedResources lists the resource types the reconciler may create: what
+	// a Result's resources are checked against, and what Inrun generates RBAC
+	// for. Used by hooks, constructor and remote reconcilers; rejected on
+	// declarative-only CRDs (their RBAC comes from their templates).
+	ManagedResources []domain.ManagedResource `yaml:"managedResources,omitempty" json:"managedResources,omitempty"`
+
 	OnCreate    *HookTemplates `yaml:"onCreate,omitempty" json:"onCreate,omitempty" validate:"omitempty"`
 	OnReconcile *HookTemplates `yaml:"onReconcile,omitempty" json:"onReconcile,omitempty" validate:"omitempty"`
 	OnDelete    *HookTemplates `yaml:"onDelete,omitempty" json:"onDelete,omitempty" validate:"omitempty"`
@@ -218,14 +233,6 @@ func (r *ReconcileConfig) HasConstructorDecl() bool {
 // HasRemoteDecl reports whether a remote reconciler declaration exists.
 func (r *ReconcileConfig) HasRemoteDecl() bool {
 	return r != nil && r.Remote != nil
-}
-
-// HooksArgs returns hook args from the reconcile.hooks.args block. Nil-safe.
-func (r *ReconcileConfig) HooksArgs() map[string]interface{} {
-	if r == nil || r.Hooks == nil {
-		return nil
-	}
-	return r.Hooks.Args
 }
 
 // HasRetryBackoff reports whether a retryBackoff is declared on this reconcile config's queue.

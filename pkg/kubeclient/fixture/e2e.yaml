@@ -9,3 +9,4 @@ imports:
   - 01-hooks/e2e.yaml
   - 02-constructor/e2e.yaml
   - 03-hooks-targets/e2e.yaml
+  - 04-ctrlruntime/e2e.yaml

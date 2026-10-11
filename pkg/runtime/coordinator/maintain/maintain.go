@@ -15,7 +15,7 @@ import (
 // Input holds everything Apply needs from the Controller.
 type Input struct {
 	CRD      types.CRDEntry
-	Kat      *catalog.Catalog
+	Cat      *catalog.Catalog
 	Kube     kubeclient.Interface
 	Recorder event.Recorder
 

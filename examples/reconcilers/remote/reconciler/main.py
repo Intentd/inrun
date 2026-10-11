@@ -46,6 +46,9 @@ def reconcile(body: dict) -> dict:
             "endpoint": f"{name}-svc.{namespace}.svc.cluster.local",
             "replicas": replicas,
         },
+        # Set on the WebApp itself; dropping a key here removes it.
+        "labels":      {"environment": environment},
+        "annotations": {"webapp.example.com/image": image},
         "resources": [
             {
                 "type": "deployment",
@@ -107,7 +110,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def log_message(self, fmt, *args):
-        pass
+        pass  # silence http.server's per-request access log; reconcile() logs each call
+
 
 
 if __name__ == "__main__":

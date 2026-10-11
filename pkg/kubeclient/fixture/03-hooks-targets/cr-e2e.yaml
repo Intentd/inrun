@@ -3,6 +3,10 @@ kind: BlockchainAppWithTargets
 metadata:
   name: 03-hooks-targets-my-chain
   namespace: default
+  # As if created through the gateway's v2-enabled target. Without it the CR is
+  # a direct apply and reconciles with the CRD-level box, which has no hooks.
+  annotations:
+    inrun.dev/serve-target: v2-enabled
 spec:
   image: ethereum/client-go:v1.14.0
   network: testnet

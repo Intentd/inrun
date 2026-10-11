@@ -10,10 +10,7 @@ metadata:
     "v2-enabled" forces featureEnabled=true; "v2-disabled" forces it false.
 
 notes:
-  functions:
-    - name: inBusinessHours
-      description: True on weekdays between 09:00–18:00 UTC
-      expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+  include: ../include/functions.yaml
 
 gateway:
   enabled: true
@@ -70,39 +67,39 @@ spec:
                     - field: '{{ inBusinessHours }}'
                       equals: "true"
               reconcile:
+                managedResources:
+                  - kind: Deployment
+                args:
+                  featureEnabled: "true"
+                  inBusinessHours: '{{ inBusinessHours }}'
+
                 hooks:
                   location: github.com/inrundev/inrun-args-hooks-targets/hooks
                   function: BlockchainAppHooks
-                  alias: bchooks
-                  managedResources:
-                    - kind: Deployment
-                  args:
-                    featureEnabled: "true"
-                    inBusinessHours: '{{ inBusinessHours }}'
-
+                  alias: bctargethooks
           v2-disabled:
             operatorBox:
               reconcile:
+                managedResources:
+                  - kind: Deployment
+                args:
+                  featureEnabled: "false"
+                  inBusinessHours: '{{ inBusinessHours }}'
+
                 hooks:
                   location: github.com/inrundev/inrun-args-hooks-targets/hooks
                   function: BlockchainAppHooks
-                  alias: bchooks
-                  managedResources:
-                    - kind: Deployment
-                  args:
-                    featureEnabled: "false"
-                    inBusinessHours: '{{ inBusinessHours }}'
-
+                  alias: bctargethooks
           v2-ctor:
             operatorBox:
               reconcile:
                 default: false
+                args:
+                  featureEnabled: "true"
                 constructor:
                   location: github.com/inrundev/inrun-args-hooks-targets/constructor
                   function: NewBlockchainAppWithTargetsReconciler
                   alias: bcctor
-                  args:
-                    featureEnabled: "true"
       operatorBox:
         reconcile:
           workers: 2

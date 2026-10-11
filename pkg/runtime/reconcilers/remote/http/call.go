@@ -15,7 +15,6 @@ import (
 	"github.com/inrundev/inrun/pkg/template"
 	"github.com/inrundev/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // httpDoer is satisfied by *http.Client and any test double.
@@ -27,13 +26,18 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{Timeout: timeout}
 }
 
-// remoteRequest is the JSON body POSTed to the remote endpoint.
+// remoteRequest is the JSON body POSTed to the remote endpoint: the CR's
+// identity, the CR itself with request.object.exclude applied, the rendered
+// reconcile.args and, when request.children is set, the CR's children. Nothing
+// else from the runtime's prepared state is sent.
 type remoteRequest struct {
-	Key      string                  `json:"key"`
-	GVK      schema.GroupVersionKind `json:"gvk"`
-	Object   interface{}             `json:"object"`
-	Args     map[string]interface{}  `json:"args,omitempty"`
-	Prepared interface{}             `json:"prepared"`
+	Key        string                 `json:"key"`
+	APIVersion string                 `json:"apiVersion"`
+	Kind       string                 `json:"kind"`
+	Target     string                 `json:"target,omitempty"`
+	Object     interface{}            `json:"object"`
+	Args       map[string]interface{} `json:"args,omitempty"`
+	Children   childrenMap            `json:"children,omitempty"`
 }
 
 // callRemote POSTs the reconcile request to the remote endpoint and returns the decoded result.
@@ -70,8 +74,8 @@ func (r *Reconciler) callRemote(ctx context.Context, req domain.Request) (contra
 		return contract.Result{}, fmt.Errorf("remote reconciler: read response: %w", err)
 	}
 
-	var result contract.Result
-	if err := json.Unmarshal(data, &result); err != nil {
+	result, err := contract.Decode(data)
+	if err != nil {
 		return contract.Result{}, fmt.Errorf("remote reconciler: decode response: %w", err)
 	}
 	return result, nil
@@ -95,27 +99,23 @@ func (r *Reconciler) resolveEndpoint(req domain.Request) string {
 	return resolved
 }
 
-// buildBody serialises the remoteRequest payload.
+// buildBody serialises the request for the remote endpoint.
 func (r *Reconciler) buildBody(req domain.Request) ([]byte, error) {
-	var obj interface{}
-	var prepared interface{}
-	if req.Prepared != nil {
-		obj = req.Prepared.Object
-		if r.decl.Payload != nil && r.decl.Payload.Object != nil && len(r.decl.Payload.Object.Exclude) > 0 {
-			obj = r.applyObjectExclusions(req.Prepared.Object, r.decl.Payload.Object.Exclude)
-		}
-		prepared = &outboundPrepared{
-			PreparedRequest: req.Prepared,
-			Children:        r.listChildren(req.Prepared.Object),
-		}
+	body := remoteRequest{
+		Key:        req.Key,
+		APIVersion: r.gvk.GroupVersion().String(),
+		Kind:       r.gvk.Kind,
+		Args:       req.Args(),
 	}
-	return json.Marshal(remoteRequest{
-		Key:      req.Key,
-		GVK:      r.gvk,
-		Object:   obj,
-		Args:     r.resolveArgs(req),
-		Prepared: prepared,
-	})
+	if prep := req.Prepared; prep != nil {
+		body.Target = prep.Target
+		body.Object = prep.Object
+		if r.decl.Request != nil && r.decl.Request.Object != nil && len(r.decl.Request.Object.Exclude) > 0 {
+			body.Object = r.applyObjectExclusions(prep.Object, r.decl.Request.Object.Exclude)
+		}
+		body.Children = r.listChildren(prep.Object)
+	}
+	return json.Marshal(body)
 }
 
 // applyObjectExclusions returns a deep copy of obj with the given dot-notation paths removed.
@@ -129,22 +129,6 @@ func (r *Reconciler) applyObjectExclusions(obj domain.Object, paths []string) ma
 		utils.DeleteNestedPath(cp, path)
 	}
 	return cp
-}
-
-// resolveArgs evaluates template expressions in decl.Args against the CR's resolver context.
-// Returns nil when no args are declared.
-func (r *Reconciler) resolveArgs(req domain.Request) map[string]interface{} {
-	if len(r.decl.Args) == 0 {
-		return nil
-	}
-	if req.Prepared == nil || req.Prepared.Context == nil {
-		return r.decl.Args
-	}
-	resolver, ok := req.Prepared.Context.(*template.Resolver)
-	if !ok {
-		return r.decl.Args
-	}
-	return utils.ResolveArgsMap(r.decl.Args, resolver.TemplateEvaluator())
 }
 
 // applyAuth injects the credential into the request header when auth is declared.

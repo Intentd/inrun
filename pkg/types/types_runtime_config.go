@@ -29,9 +29,10 @@ type RuntimeConfig struct {
 	Autoscale *AutoscaleSpec `yaml:"autoscale,omitempty" json:"autoscale,omitempty"`
 
 	// Cleanup declares when to delete the CR after it reaches a terminal state.
-	// Evaluated at the pre-reconcile gate — conditions met before the reconciler is
-	// called cause the CR to be deleted immediately (or after deleteAfter elapses).
-	// Works for all reconciler types: remote, generic, and typed.
+	// Conditions are evaluated before each reconcile; once met, the CR is deleted
+	// when after elapses. The reconciler keeps running during the grace period.
+	// Works for all reconciler types: remote, generic, and typed. Reconcilers can
+	// also request cleanup themselves through Result.Cleanup.
 	Cleanup *CleanupConfig `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
 }
 
@@ -47,10 +48,10 @@ type CleanupConfig struct {
 	// When both When and Or are declared, both must pass.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
-	// DeleteAfter is an optional grace period between the condition being met and
-	// the actual deletion. Inrun annotates the CR with the first-met timestamp
-	// and re-evaluates on the next reconcile cycle. Zero means delete immediately.
-	DeleteAfter Duration `yaml:"deleteAfter,omitempty" json:"deleteAfter,omitempty"`
+	// After is an optional grace period between the conditions being met and
+	// the deletion. Inrun annotates the CR with the first-met time, so the clock
+	// survives restarts. Zero means delete immediately.
+	After Duration `yaml:"after,omitempty" json:"after,omitempty"`
 }
 
 // HasCleanup reports whether a cleanup block with at least one condition is declared.

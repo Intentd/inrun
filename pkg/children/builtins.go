@@ -491,7 +491,7 @@ var builtInRegistry = map[string]BuiltInKind{
 }
 
 func (b BuiltInKind) APIVersion() schema.GroupVersion {
-	gvk, _ := GVKForBuiltIn(b.Kind)
+	gvk, _ := GVKForBuiltInByKind(b.Kind)
 	return gvk.GroupVersion()
 }
 

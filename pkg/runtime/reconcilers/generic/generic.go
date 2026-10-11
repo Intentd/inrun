@@ -167,10 +167,9 @@ func (r *Reconciler[PTR]) Reconcile(ctx context.Context, req domain.Request) (do
 	}
 
 	hooks := r.hooksFor(target)
-	ctx = r.withTargetArgs(ctx, box)
 
-	// Scoped kube: hook args template expressions evaluated against this resolver.
-	ctx = kubeclient.WithKubeclient(ctx, r.kube.ScopedFor(resolver.TemplateEvaluator()))
+	// Hooks read the kube client with kubeclient.FromContext(ctx).
+	ctx = kubeclient.WithKubeclient(ctx, r.kube)
 
 	if obj.GetDeletionTimestamp() != nil {
 		logger.FromContext(ctx).Info().
@@ -178,20 +177,25 @@ func (r *Reconciler[PTR]) Reconcile(ctx context.Context, req domain.Request) (do
 			Msgf("deletion handler called for %s", r.crd.GVKString())
 		r.event.Eventf(obj, corev1.EventTypeNormal, "Deleting",
 			fmt.Sprintf("Deleting %s %s/%s", r.crd.GVKString(), obj.GetNamespace(), obj.GetName()))
-		return domain.Result{}, r.handleDeletion(ctx, resolver, obj, box, hooks)
+		return r.handleDeletion(ctx, req, resolver, obj, box, hooks)
 	}
 
-	if err := r.reconcileImpl(ctx, resolver, obj, box, hooks); err != nil {
+	result, err := r.reconcileImpl(ctx, req, resolver, obj, box, hooks)
+	if err != nil {
 		return domain.Result{}, err
 	}
 
-	return domain.Result{}, r.cleanupPreviousSurface(ctx, obj)
+	return result, r.cleanupPreviousSurface(ctx, obj)
 }
 
-// reconcileImpl dispatches to the correct reconcile implementation.
+// reconcileImpl dispatches to the correct reconcile implementation and returns
+// the hook's Result (templates alone produce none).
 // Priority: Go hooks → declarative templates → no-op.
-func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, resolver *template.Resolver, obj PTR, box types.OperatorBoxConfig, hooks domain.ObjectHooks) error {
-	var err error
+func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, req domain.Request, resolver *template.Resolver, obj PTR, box types.OperatorBoxConfig, hooks domain.ObjectHooks) (domain.Result, error) {
+	var (
+		err    error
+		result domain.Result
+	)
 
 	hasTemplates := box.EffectiveOnCreate() != nil || box.EffectiveOnReconcile() != nil
 	switch {
@@ -205,7 +209,7 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, resolver *template.
 			resolver, err = r.runTemplateReconcile(ctx, resolver, obj, box)
 		}
 		if err == nil {
-			err = hooks.OnReconcile(ctx, obj)
+			result, err = hooks.OnReconcile(ctx, req, obj)
 		}
 		if err == nil && r.crd.RunHooksFirst() && hasTemplates {
 			resolver, err = r.runTemplateReconcile(ctx, resolver, obj, box)
@@ -233,7 +237,7 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, resolver *template.
 		r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"ReconcileError",
 			fmt.Sprintf("Failed to reconcile %s %s/%s: %v",
 				r.crd.GVKString(), obj.GetNamespace(), obj.GetName(), err))
-		return err
+		return domain.Result{}, err
 	}
 
 	r.event.Eventf(obj, corev1.EventTypeNormal, r.crd.APITypes.Kind+"Reconciled",
@@ -244,26 +248,37 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, resolver *template.
 		Str("name", obj.GetName()).
 		Msgf("reconciled %s", r.crd.GVKString())
 
-	return nil
+	return result, nil
 }
 
 // handleDeletion runs cleanup then removes our finalizers.
 // Finalizers are never removed on error — object stays protected until
-// cleanup succeeds.
-func (r *Reconciler[PTR]) handleDeletion(ctx context.Context, resolver *template.Resolver, obj PTR, box types.OperatorBoxConfig, hooks domain.ObjectHooks) error {
+// cleanup succeeds. An OnDelete hook that asks for a requeue also keeps them,
+// so it is called again later; only that requeue is returned, since status,
+// resources and cleanup mean nothing for an object being deleted.
+func (r *Reconciler[PTR]) handleDeletion(ctx context.Context, req domain.Request, resolver *template.Resolver, obj PTR, box types.OperatorBoxConfig, hooks domain.ObjectHooks) (domain.Result, error) {
 	switch {
 	case hooks.OnDelete != nil:
-		if err := hooks.OnDelete(ctx, obj); err != nil {
+		res, err := hooks.OnDelete(ctx, req, obj)
+		if err != nil {
 			r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"DeleteError",
 				fmt.Sprintf("Deletion hook failed: %v", err))
-			return fmt.Errorf("deletion hook: %w", err)
+			return domain.Result{}, fmt.Errorf("deletion hook: %w", err)
+		}
+		if d, reason := res.EffectiveRequeue(); d > 0 {
+			logger.FromContext(ctx).Info().
+				Str("name", obj.GetName()).
+				Str("after", d.String()).
+				Str("reason", reason).
+				Msg("deletion hook asked to wait; finalizers kept")
+			return domain.Result{Requeue: &domain.Requeue{After: d, Reason: reason}}, nil
 		}
 
 	case box.EffectiveOnDelete() != nil:
 		if err := r.runTemplateOnDelete(ctx, resolver, obj, box); err != nil {
 			r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"DeleteError",
 				fmt.Sprintf("Template deletion failed: %v", err))
-			return fmt.Errorf("template deletion: %w", err)
+			return domain.Result{}, fmt.Errorf("template deletion: %w", err)
 		}
 	}
 
@@ -274,7 +289,7 @@ func (r *Reconciler[PTR]) handleDeletion(ctx context.Context, resolver *template
 	if box.EffectiveOnDelete() == nil {
 		if kube, ok := kubeclient.FromContext(ctx); ok {
 			if err := runners.DeleteOwnedClusterScopedResources(ctx, kube, resolver, obj, box); err != nil {
-				return fmt.Errorf("namespace cleanup: %w", err)
+				return domain.Result{}, fmt.Errorf("namespace cleanup: %w", err)
 			}
 		}
 	}
@@ -282,12 +297,12 @@ func (r *Reconciler[PTR]) handleDeletion(ctx context.Context, resolver *template
 	if err := r.patchStripFinalizers(ctx, obj, box); err != nil {
 		r.event.Eventf(obj, corev1.EventTypeWarning, r.crd.APITypes.Kind+"FinalizerRemovalError",
 			fmt.Sprintf("Failed to remove finalizers: %v", err))
-		return err
+		return domain.Result{}, err
 	}
 
 	r.event.Eventf(obj, corev1.EventTypeNormal, r.crd.APITypes.Kind+"Deleted",
 		fmt.Sprintf("Successfully deleted %s %s/%s",
 			r.crd.GVKString(), obj.GetNamespace(), obj.GetName()))
 
-	return nil
+	return domain.Result{}, nil
 }

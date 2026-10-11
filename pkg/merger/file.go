@@ -204,7 +204,13 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 	m.gateway = doc.Gateway
 	m.publish = doc.Publish
 	m.profiles = doc.Profiles
-	m.notes = doc.Notes
+	// Expand notes.include against this Catalog's own directory, so a Catalog
+	// imported by a Stack brings its included functions with it.
+	notes := doc.Notes
+	if err := types.ExpandNotesInclude(&notes, catalogDir); err != nil {
+		return nil, fmt.Errorf("%q: notes: %w", path, err)
+	}
+	m.notes = notes
 	// Resolve spec.imports module file paths to absolute, same as CRD-level imports above.
 	specImports := make([]types.ModuleImport, len(doc.Spec.Imports))
 	copy(specImports, doc.Spec.Imports)

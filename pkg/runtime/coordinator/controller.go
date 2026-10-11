@@ -31,7 +31,7 @@ type Controller struct {
 	observer         *observe.Observer
 	event            *event.Event
 	catalog          *ResourceCatalog
-	kat              *catalog.Catalog
+	cat              *catalog.Catalog
 	queueRegistry    *queue.QueueRegistry
 	defaultWorkqueue *queue.Workqueue
 	failureThreshold map[string]int
@@ -64,7 +64,7 @@ func NewController(
 	informerFactory *informer.Factory,
 	observer *observe.Observer,
 	catalog *ResourceCatalog,
-	kat *catalog.Catalog,
+	cat *catalog.Catalog,
 	event *event.Event,
 	hs domain.Health,
 	crdHealthMap map[string]*vitals.CRDHealth,
@@ -78,7 +78,7 @@ func NewController(
 		informerFactory:  informerFactory,
 		observer:         observer,
 		catalog:          catalog,
-		kat:              kat,
+		cat:              cat,
 		event:            event,
 		hs:               hs,
 		defaultWorkqueue: defaultWorkqueue,

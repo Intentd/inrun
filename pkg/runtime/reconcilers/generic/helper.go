@@ -6,7 +6,6 @@ import (
 	"github.com/inrundev/inrun/domain"
 	"github.com/inrundev/inrun/pkg/children"
 	"github.com/inrundev/inrun/pkg/external"
-	"github.com/inrundev/inrun/pkg/kubeclient"
 	"github.com/inrundev/inrun/pkg/labels"
 	"github.com/inrundev/inrun/pkg/logger"
 	"github.com/inrundev/inrun/pkg/runtime/coordinator/prepare"
@@ -64,20 +63,6 @@ func (r *Reconciler[PTR]) hooksFor(target string) domain.ObjectHooks {
 		}
 	}
 	return r.hooks
-}
-
-// withTargetArgs returns a context whose kube client carries the per-target
-// merged hooks.args for this reconcile cycle. When the effective box has no
-// args override, the context is returned unchanged.
-func (r *Reconciler[PTR]) withTargetArgs(ctx context.Context, box types.OperatorBoxConfig) context.Context {
-	var args map[string]interface{}
-	if box.Reconcile != nil {
-		args = box.Reconcile.HooksArgs()
-	}
-	if len(args) == 0 {
-		return ctx
-	}
-	return kubeclient.WithKubeclient(ctx, r.kube.WithArgs(kubeclient.Args(args)))
 }
 
 // namespaceGuardFunc returns a guard closure pre-bound to this CRD's

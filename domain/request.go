@@ -24,3 +24,11 @@ func (r Request) Namespace() string { return r.NamespacedName.Namespace }
 
 // Name returns the name component of the key.
 func (r Request) Name() string { return r.NamespacedName.Name }
+
+// Args returns the prepared args already resolved before reconcile is called
+func (r Request) Args() Args {
+	if r.Prepared == nil {
+		return Args{}
+	}
+	return r.Prepared.Args
+}

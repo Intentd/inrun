@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/inrundev/inrun/domain"
@@ -11,7 +10,6 @@ import (
 	"github.com/inrundev/inrun/pkg/logger"
 
 	"github.com/inrundev/inrun/pkg/types"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -31,9 +29,9 @@ type Reconciler struct {
 }
 
 // New constructs a Reconciler for the given CRD.
-// kube is used for credential resolution and SSA-applying resources returned by the remote reconciler.
+// kube is used for credential resolution and for reading the CR's children.
 // ev is used to emit Kubernetes events on reconcile success or failure.
-// managedResources is the set of types the remote reconciler is permitted to create.
+// managedResources lists the child types sent to the remote reconciler.
 // ownNamespace is the Inrun namespace (used when secretRef.namespace is empty).
 func New(
 	decl *types.RemoteReconcilerDeclaration,
@@ -58,8 +56,9 @@ func New(
 	}
 }
 
-// Reconcile dispatches the request to the remote endpoint, resolves the result,
-// applies returned resources, and emits a Kubernetes event for the outcome.
+// Reconcile dispatches the request to the remote endpoint and returns its
+// Result. The coordinator performs every write the Result asks for, including
+// applying the returned resources.
 func (r *Reconciler) Reconcile(ctx context.Context, req domain.Request) (domain.Result, error) {
 	log := logger.FromContext(ctx).With().
 		Str("reconciler", "remote").
@@ -72,39 +71,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req domain.Request) (domain.
 	if err != nil {
 		return domain.Result{}, err
 	}
-
-	if err := r.applyAndStore(ctx, req, raw.Resources); err != nil {
-		return domain.Result{}, err
-	}
-
 	return r.toResult(ctx, req, raw)
-}
-
-// applyAndStore resolves, applies and caches the resources returned by the remote
-// service, then emits a Kubernetes event for the outcome.
-func (r *Reconciler) applyAndStore(ctx context.Context, req domain.Request, rawResources []map[string]interface{}) error {
-	log := logger.FromContext(ctx).With().
-		Str("reconciler", "remote").
-		Logger()
-
-	var owner domain.Object
-	if req.Prepared != nil {
-		owner = req.Prepared.Object
-	}
-
-	resources, err := r.resolveResources(rawResources, req)
-	if err != nil {
-		return fmt.Errorf("remote reconciler: resolve resources: %w", err)
-	}
-
-	if err := r.apply(ctx, owner, resources); err != nil {
-		r.event.Eventf(owner, corev1.EventTypeWarning, r.gvk.Kind+"ReconcileError",
-			"Remote reconciler failed for %s/%s: %v", owner.GetNamespace(), owner.GetName(), err)
-		return err
-	}
-
-	r.event.Eventf(owner, corev1.EventTypeNormal, r.gvk.Kind+"Reconciled",
-		"Remote reconciler succeeded for %s/%s", owner.GetNamespace(), owner.GetName())
-	log.Info().Str("key", req.Key).Msg("remote reconciler returned ok")
-	return nil
 }

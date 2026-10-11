@@ -54,6 +54,22 @@ spec:
             field: .status.endpoint
             equals: my-webapp-svc.default.svc.cluster.local
 
+    - name: Labels and annotations set on the CR
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.labels.environment
+            equals: development
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.annotations.webapp\.example\.com/image
+            equals: nginx:1.25
+
     - name: Deployment created and ready
       after: cr-applied
       timeout: 120s

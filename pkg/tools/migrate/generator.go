@@ -115,22 +115,24 @@ spec:
         location: %s
         alias: %s
 
-      allowedNamespaces:
-        - default
-
       operatorBox:
-%s        reconciler:
+%s        runtime:
+          allowedNamespaces:
+            - default
+
+        reconcile:
           # default: false — the generic.Reconciler is not used.
           # Your constructor owns the full reconcile loop.
           default: false
 
+          managedResources:
+%s
           constructor:
             location: %s/%s  # TODO(inrun migrate): adjust to your reconciler package
             function: %s
-            managedResources:
-%s`, opts.OperatorName, res.PkgName, crdName,
+`, opts.OperatorName, res.PkgName, crdName,
 		version, kind, object, objectList, location, alias,
-		watchBlock, opts.ModulePath, res.PkgName, constructorFn, resources)
+		watchBlock, resources, opts.ModulePath, res.PkgName, constructorFn)
 }
 
 // todoField returns the value if non-empty, or a TODO placeholder with the given hint.
@@ -141,32 +143,32 @@ func todoField(value, hint string) string {
 	return "TODO  # TODO(inrun migrate): " + hint
 }
 
-// buildResourcesBlock renders the managedResources: list under constructor: from Owns() detections.
+// buildResourcesBlock renders the reconcile.managedResources list from Owns() detections.
 func buildResourcesBlock(owns []DetectedType) string {
 	if len(owns) == 0 {
-		return "              - kind: TODO  # TODO(inrun migrate): list every resource kind your operator manages\n"
+		return "            - kind: TODO  # TODO(inrun migrate): list every resource kind your operator manages\n"
 	}
 	var b strings.Builder
 	for _, o := range owns {
-		fmt.Fprintf(&b, "              - kind: %s\n", o.Kind)
+		fmt.Fprintf(&b, "            - kind: %s\n", o.Kind)
 		if o.APIVersion != "" && !strings.HasPrefix(o.APIVersion, "TODO") {
-			fmt.Fprintf(&b, "                apiVersion: %s\n", o.APIVersion)
+			fmt.Fprintf(&b, "              apiVersion: %s\n", o.APIVersion)
 		} else if strings.HasPrefix(o.APIVersion, "TODO:") {
-			fmt.Fprintf(&b, "                # TODO(inrun migrate): apiVersion for %s (%s)\n",
+			fmt.Fprintf(&b, "              # TODO(inrun migrate): apiVersion for %s (%s)\n",
 				o.Kind, strings.TrimPrefix(o.APIVersion, "TODO: "))
 		}
 	}
 	return b.String()
 }
 
-// buildWatchBlock renders the watch: block under operatorBox: from Watches() detections.
+// buildWatchBlock renders the operatorBox.observe.watch block from Watches() detections.
 // Returns an empty string when no watch entries were detected.
 func buildWatchBlock(watches []DetectedType) string {
 	if len(watches) == 0 {
 		return ""
 	}
 	var b strings.Builder
-	b.WriteString("        watch:\n")
+	b.WriteString("        observe:\n          watch:\n")
 	for _, w := range watches {
 		apiVer := w.APIVersion
 		suffix := ""
@@ -175,9 +177,9 @@ func buildWatchBlock(watches []DetectedType) string {
 			suffix = "  # TODO(inrun migrate): verify apiVersion (" + strings.TrimPrefix(apiVer, "TODO: ") + ")"
 			apiVer = "TODO"
 		}
-		fmt.Fprintf(&b, "          - apiVersion: %s%s\n", apiVer, suffix)
-		fmt.Fprintf(&b, "            kind: %s\n", w.Kind)
-		fmt.Fprintf(&b, "            on: [create, update, delete]\n")
+		fmt.Fprintf(&b, "            - apiVersion: %s%s\n", apiVer, suffix)
+		fmt.Fprintf(&b, "              kind: %s\n", w.Kind)
+		fmt.Fprintf(&b, "              on: [create, update, delete]\n")
 	}
 	return b.String()
 }

@@ -62,26 +62,6 @@ func TestNoteGetServeAlias(t *testing.T) {
 	}
 }
 
-func TestNoteGetServeSource(t *testing.T) {
-	tests := []struct {
-		name string
-		obj  interface{}
-		want string
-	}{
-		{"github", crWithAnnotations(map[string]string{labels.AnnotationServeSource: "github"}), "github"},
-		{"slack", crWithAnnotations(map[string]string{labels.AnnotationServeSource: "slack"}), "slack"},
-		{"absent", crWithAnnotations(map[string]string{}), ""},
-		{"nil", nil, ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := noteGetServeSource(tt.obj); got != tt.want {
-				t.Errorf("noteGetServeSource() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNoteHasServeTarget(t *testing.T) {
 	tests := []struct {
 		name string
@@ -123,26 +103,6 @@ func TestNoteHasServeAlias(t *testing.T) {
 	}
 }
 
-func TestNoteHasServeSource(t *testing.T) {
-	tests := []struct {
-		name string
-		obj  interface{}
-		want bool
-	}{
-		{"source set", crWithAnnotations(map[string]string{labels.AnnotationServeSource: "pagerduty"}), true},
-		{"source empty", crWithAnnotations(map[string]string{labels.AnnotationServeSource: ""}), false},
-		{"absent", crWithAnnotations(map[string]string{}), false},
-		{"nil", nil, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := noteHasServeSource(tt.obj); got != tt.want {
-				t.Errorf("noteHasServeSource() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNoteIsDirectApply(t *testing.T) {
 	tests := []struct {
 		name string
@@ -158,13 +118,10 @@ func TestNoteIsDirectApply(t *testing.T) {
 		{"target set", crWithAnnotations(map[string]string{labels.AnnotationServeTarget: "app"}), false},
 		// serve-alias alone (defensive — shouldn't happen in practice but not a direct apply)
 		{"alias only", crWithAnnotations(map[string]string{labels.AnnotationServeAlias: "preview"}), false},
-		// serve-source alone (webhook integration that stamps source without target)
-		{"source only", crWithAnnotations(map[string]string{labels.AnnotationServeSource: "github"}), false},
 		// full gateway apply — all three present
 		{"all three", crWithAnnotations(map[string]string{
 			labels.AnnotationServeTarget: "app",
 			labels.AnnotationServeAlias:  "preview",
-			labels.AnnotationServeSource: "github",
 		}), false},
 		// primary target apply — alias absent, still not a direct apply
 		{"target without alias", crWithAnnotations(map[string]string{

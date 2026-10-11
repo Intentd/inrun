@@ -75,4 +75,8 @@ type PreparedRequest struct {
 	// Box is the effective OperatorBoxConfig for this reconciliation surface.
 	// Use prepare.BoxFrom(req) to extract it with a type assertion.
 	Box interface{}
+
+	// Args are the Catalog's reconcile.args, rendered against the CR for this
+	// reconcile. Read them with Request.Args().
+	Args Args
 }

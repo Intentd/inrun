@@ -71,10 +71,10 @@ func PopulateExternalCallsFromInclude(entry *CRDEntry, catalogDir string) error 
 			return fmt.Errorf("onCreate.external: %w", err)
 		}
 	}
-	if r := box.Reconcile; r != nil && r.Hooks != nil {
-		r.Hooks.External, err = ExpandExternalCalls(r.Hooks.External, catalogDir)
+	if r := box.Reconcile; r != nil {
+		r.External, err = ExpandExternalCalls(r.External, catalogDir)
 		if err != nil {
-			return fmt.Errorf("hooks.external: %w", err)
+			return fmt.Errorf("reconcile.external: %w", err)
 		}
 	}
 	if entry.Admission != nil && entry.Admission.Validation != nil {

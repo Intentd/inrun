@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 
+	"github.com/inrundev/inrun/pkg/catalog"
 	"github.com/inrundev/inrun/pkg/config"
 	"github.com/inrundev/inrun/pkg/labels"
 	"github.com/inrundev/inrun/pkg/logger"
@@ -13,16 +14,22 @@ import (
 	"github.com/inrundev/inrun/pkg/version"
 )
 
-func RunRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context) {
+// RunRuntime builds and runs the runtime until ctx ends. Each onCatalog func is
+// called with the validated Catalog once it is built, before the runtime
+// starts; the dev CLI uses it to start the console and gateway.
+func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCatalog ...func(*catalog.Catalog)) {
 	// Runtime facts, available to every template expression as .inrun.*. Set on
 	// the context that construction, startup and the coordinator all share.
 	ctx = template.ContextWithInrunContext(ctx, template.NewInrunContext(
-		kfg.Cluster().Namespace(),
+		cfg.Cluster().Namespace(),
 		version.Version,
 	))
 
 	// create domain component and build inrun
-	startup := constructRuntime(kfg, m, ctx)
+	startup := constructRuntime(cfg, m, ctx)
+	for _, f := range onCatalog {
+		f(startup.catalog)
+	}
 
 	// ── Start ─────────────────────────────────────────────────────────────────
 	go func() {
@@ -35,16 +42,16 @@ func RunRuntime(kfg *config.Config, m *merger.Merger, ctx context.Context) {
 	ko := leader.NewLeaderElection(
 		startup.kube,
 		startup.event,
-		func(ctx context.Context) { startup.kord.Coordinate(ctx) },
+		func(ctx context.Context) { startup.cord.Coordinate(ctx) },
 		func(leader string) {
 			// Banner prints here — leader is the actual winner
 			printBanner(startup, leader)
 		},
 		leader.Options{
-			Namespace:     kfg.Leader().Namespace(),
-			LeaseDuration: kfg.Leader().LeaseDuration(),
-			RenewDeadline: kfg.Leader().RenewDeadline(),
-			RetryPeriod:   kfg.Leader().RetryPeriod(),
+			Namespace:     cfg.Leader().Namespace(),
+			LeaseDuration: cfg.Leader().LeaseDuration(),
+			RenewDeadline: cfg.Leader().RenewDeadline(),
+			RetryPeriod:   cfg.Leader().RetryPeriod(),
 			Labels:        labels.WithDeletionProtection(nil),
 		})
 

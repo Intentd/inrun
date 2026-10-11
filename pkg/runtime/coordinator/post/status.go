@@ -79,9 +79,9 @@ func applyStatus(
 		}
 	}
 
-	// Layer 3: reconciler-provided status patch (e.g. from RemoteReconciler).
-	// Applied after emit.status so remote fields win on key conflict.
-	for k, v := range in.StatusPatch {
+	// Layer 3: the reconciler's Result.Status.
+	// Applied after emit.status so the reconciler's fields win on key conflict.
+	for k, v := range in.Status {
 		patch[k] = v
 	}
 

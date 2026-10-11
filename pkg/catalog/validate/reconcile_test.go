@@ -137,10 +137,10 @@ func catalogWithRemote(endpoint string, protocol types.RemoteReconcileProtocol, 
 	return newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
+				ManagedResources: resources,
 				Remote: &types.RemoteReconcilerDeclaration{
-					Protocol:         protocol,
-					Endpoint:         endpoint,
-					ManagedResources: resources,
+					Protocol: protocol,
+					Endpoint: endpoint,
 				},
 			},
 		}},
@@ -175,10 +175,10 @@ func TestValidateRemote_NoManagedResources_Info(t *testing.T) {
 func TestValidateRemote_ConflictsWithHooks(t *testing.T) {
 	crd := types.CRDEntry{OperatorBox: &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{
-			Hooks: &types.HookDeclaration{Location: "github.com/test/rec", Function: "New"},
+			Hooks:            &types.HookDeclaration{Location: "github.com/test/rec", Function: "New"},
+			ManagedResources: remoteResources(),
 			Remote: &types.RemoteReconcilerDeclaration{
-				Endpoint:         "https://svc.internal/reconcile",
-				ManagedResources: remoteResources(),
+				Endpoint: "https://svc.internal/reconcile",
 			},
 		},
 	}}
@@ -190,10 +190,10 @@ func TestValidateRemote_ConflictsWithHooks(t *testing.T) {
 func TestValidateRemote_ConflictsWithConstructor(t *testing.T) {
 	crd := types.CRDEntry{OperatorBox: &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{
-			ConstructorDecl: &types.ConstructorDeclaration{Location: "github.com/test/rec", Function: "New"},
+			ConstructorDecl:  &types.ConstructorDeclaration{Location: "github.com/test/rec", Function: "New"},
+			ManagedResources: remoteResources(),
 			Remote: &types.RemoteReconcilerDeclaration{
-				Endpoint:         "https://svc.internal/reconcile",
-				ManagedResources: remoteResources(),
+				Endpoint: "https://svc.internal/reconcile",
 			},
 		},
 	}}
@@ -218,34 +218,34 @@ func TestValidateRemote_TemplateEndpoint_InvalidTemplate(t *testing.T) {
 	assert.ErrorContains(t, err, "invalid template")
 }
 
-func TestValidateRemote_Args_ValidTemplate(t *testing.T) {
+func TestValidateArgs_ValidTemplate(t *testing.T) {
 	k := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
+				ManagedResources: remoteResources(),
+				Args:             map[string]interface{}{"replicas": "{{ .spec.replicas }}"},
 				Remote: &types.RemoteReconcilerDeclaration{
-					Endpoint:         "https://svc.internal/reconcile",
-					ManagedResources: remoteResources(),
-					Args:             map[string]interface{}{"replicas": "{{ .spec.replicas }}"},
+					Endpoint: "https://svc.internal/reconcile",
 				},
 			},
 		}},
 	})
-	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
+	require.NoError(t, k.validateManagedResources("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemote_Args_InvalidTemplate(t *testing.T) {
+func TestValidateArgs_InvalidTemplate(t *testing.T) {
 	k := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
+				ManagedResources: remoteResources(),
+				Args:             map[string]interface{}{"replicas": "{{ .spec.replicas }"},
 				Remote: &types.RemoteReconcilerDeclaration{
-					Endpoint:         "https://svc.internal/reconcile",
-					ManagedResources: remoteResources(),
-					Args:             map[string]interface{}{"replicas": "{{ .spec.replicas }"},
+					Endpoint: "https://svc.internal/reconcile",
 				},
 			},
 		}},
 	})
-	err := k.validateRemote("app", crdPtr(k, "app"))
+	err := k.validateManagedResources("app", crdPtr(k, "app"))
 	assert.ErrorContains(t, err, "invalid template")
 }
 
@@ -253,10 +253,10 @@ func TestValidateRemote_DefaultFalse_Valid(t *testing.T) {
 	k := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
-				Default: boolPtr(false),
+				Default:          boolPtr(false),
+				ManagedResources: remoteResources(),
 				Remote: &types.RemoteReconcilerDeclaration{
-					Endpoint:         "https://svc.internal/reconcile",
-					ManagedResources: remoteResources(),
+					Endpoint: "https://svc.internal/reconcile",
 				},
 			},
 		}},
@@ -324,7 +324,7 @@ func crdPtr(k *executor, name string) *types.CRDEntry {
 	return &e
 }
 
-// ── Remote payload validation ─────────────────────────────────────────────────
+// ── Remote request validation ─────────────────────────────────────────────────
 
 // remoteResourcesWithKind returns managed resources with Kind set so LookupBuiltIn resolves them.
 func remoteResourcesWithKind() []domain.ManagedResource {
@@ -334,31 +334,31 @@ func remoteResourcesWithKind() []domain.ManagedResource {
 	}
 }
 
-func catalogWithRemotePayload(payload *types.RemotePayloadConfig) *executor {
+func catalogWithRemoteRequest(request *types.RemoteRequestConfig) *executor {
 	return newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
+				ManagedResources: remoteResourcesWithKind(),
 				Remote: &types.RemoteReconcilerDeclaration{
-					Endpoint:         "https://svc.internal/reconcile",
-					ManagedResources: remoteResourcesWithKind(),
-					Payload:          payload,
+					Endpoint: "https://svc.internal/reconcile",
+					Request:  request,
 				},
 			},
 		}},
 	})
 }
 
-func TestValidateRemotePayload_Nil(t *testing.T) {
-	k := catalogWithRemotePayload(nil)
+func TestValidateRemoteRequest_Nil(t *testing.T) {
+	k := catalogWithRemoteRequest(nil)
 	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemotePayload_ChildrenDisabled_SkipsChildrenValidation(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
+func TestValidateRemoteRequest_ChildrenDisabled_SkipsChildrenValidation(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
 			Enabled: boolPtr(false),
 			// invalid paths that would normally error — should be skipped
-			Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"nonexistent": {},
 			},
 		},
@@ -366,60 +366,60 @@ func TestValidateRemotePayload_ChildrenDisabled_SkipsChildrenValidation(t *testi
 	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemotePayload_ObjectExclude_Valid(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Object: &types.RemotePayloadObjectConfig{
+func TestValidateRemoteRequest_ObjectExclude_Valid(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Object: &types.RemoteRequestObjectConfig{
 			Exclude: []string{"metadata.managedFields", "metadata.annotations"},
 		},
 	})
 	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemotePayload_ObjectExclude_InvalidPath(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Object: &types.RemotePayloadObjectConfig{
+func TestValidateRemoteRequest_ObjectExclude_InvalidPath(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Object: &types.RemoteRequestObjectConfig{
 			Exclude: []string{"metadata..managedFields"},
 		},
 	})
 	err := k.validateRemote("app", crdPtr(k, "app"))
-	assert.ErrorContains(t, err, "payload.object.exclude")
+	assert.ErrorContains(t, err, "request.object.exclude")
 	assert.ErrorContains(t, err, "empty segment")
 }
 
-func TestValidateRemotePayload_ObjectExclude_LeadingDot(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Object: &types.RemotePayloadObjectConfig{
+func TestValidateRemoteRequest_ObjectExclude_LeadingDot(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Object: &types.RemoteRequestObjectConfig{
 			Exclude: []string{".metadata.managedFields"},
 		},
 	})
 	err := k.validateRemote("app", crdPtr(k, "app"))
-	assert.ErrorContains(t, err, "payload.object.exclude")
+	assert.ErrorContains(t, err, "request.object.exclude")
 }
 
-func TestValidateRemotePayload_Children_RootExclude_Valid(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
+func TestValidateRemoteRequest_Children_RootExclude_Valid(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
 			Exclude: []string{"metadata.managedFields"},
 		},
 	})
 	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemotePayload_Children_RootExclude_InvalidPath(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
+func TestValidateRemoteRequest_Children_RootExclude_InvalidPath(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
 			Exclude: []string{"spec.template..annotations"},
 		},
 	})
 	err := k.validateRemote("app", crdPtr(k, "app"))
-	assert.ErrorContains(t, err, "payload.children.exclude")
+	assert.ErrorContains(t, err, "request.children.exclude")
 	assert.ErrorContains(t, err, "empty segment")
 }
 
-func TestValidateRemotePayload_Children_ResourcesFilter_Valid(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
-			Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+func TestValidateRemoteRequest_Children_ResourcesFilter_Valid(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
+			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"deployment": {},
 				"service":    nil,
 			},
@@ -428,24 +428,24 @@ func TestValidateRemotePayload_Children_ResourcesFilter_Valid(t *testing.T) {
 	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemotePayload_Children_ResourceNotInManaged(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
-			Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+func TestValidateRemoteRequest_Children_ResourceNotInManaged(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
+			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"configmap": {},
 			},
 		},
 	})
 	err := k.validateRemote("app", crdPtr(k, "app"))
-	assert.ErrorContains(t, err, "payload.children.resources")
+	assert.ErrorContains(t, err, "request.children.resources")
 	assert.ErrorContains(t, err, "configmap")
-	assert.ErrorContains(t, err, "not declared in reconcile.remote.resources")
+	assert.ErrorContains(t, err, "not declared in reconcile.managedResources")
 }
 
-func TestValidateRemotePayload_Children_PerResourceExclude_Valid(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
-			Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+func TestValidateRemoteRequest_Children_PerResourceExclude_Valid(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
+			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"deployment": {Exclude: []string{"spec.template.metadata.annotations"}},
 			},
 		},
@@ -453,10 +453,10 @@ func TestValidateRemotePayload_Children_PerResourceExclude_Valid(t *testing.T) {
 	require.NoError(t, k.validateRemote("app", crdPtr(k, "app")))
 }
 
-func TestValidateRemotePayload_Children_PerResourceExclude_InvalidPath(t *testing.T) {
-	k := catalogWithRemotePayload(&types.RemotePayloadConfig{
-		Children: &types.RemotePayloadChildrenConfig{
-			Resources: map[string]*types.RemotePayloadChildrenResourceConfig{
+func TestValidateRemoteRequest_Children_PerResourceExclude_InvalidPath(t *testing.T) {
+	k := catalogWithRemoteRequest(&types.RemoteRequestConfig{
+		Children: &types.RemoteRequestChildrenConfig{
+			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"deployment": {Exclude: []string{"spec.template."}},
 			},
 		},

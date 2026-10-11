@@ -89,6 +89,15 @@ func TestValidateCRDEntryLabels_MultipleKeys_OneInvalid(t *testing.T) {
 	assert.Contains(t, err.Error(), "not a valid Kubernetes label key")
 }
 
+func TestValidateCRDEntryLabels_ReservedDomain_Rejected(t *testing.T) {
+	k := catalogWithLabels("myapp", types.Labels{
+		"inrun.dev/managed": "true",
+	})
+	err := k.validateCRDEntryLabels()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "inrun.dev domain is reserved")
+}
+
 // ── Annotations ───────────────────────────────────────────────────────────────
 
 func TestValidateCRDEntryAnnotations_NoAnnotations(t *testing.T) {
@@ -137,6 +146,15 @@ func TestValidateCRDEntryAnnotations_InvalidValueTemplate_Rejected(t *testing.T)
 	err := k.validateCRDEntryAnnotations()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid template")
+}
+
+func TestValidateCRDEntryAnnotations_ReservedDomain_Rejected(t *testing.T) {
+	k := catalogWithAnnotations("myapp", types.Labels{
+		"annotation.inrun.dev/mine": "myapp",
+	})
+	err := k.validateCRDEntryAnnotations()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "inrun.dev domain is reserved")
 }
 
 // ── Combined (validateCRDEntryMetadata) ──────────────────────────────────────

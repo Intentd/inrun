@@ -362,10 +362,10 @@ func remoteCRD(endpoint, secretName string, resources []domain.ManagedResource) 
 		APITypes: types.APITypes{Group: "example.io", Version: "v1alpha1", Kind: "Widget", Plural: "widgets"},
 		OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
+				ManagedResources: resources,
 				Remote: &types.RemoteReconcilerDeclaration{
-					Endpoint:         endpoint,
-					ManagedResources: resources,
-					Auth:             auth,
+					Endpoint: endpoint,
+					Auth:     auth,
 				},
 			},
 		},
@@ -457,15 +457,28 @@ func TestGenerateGatewayRBACRules_GatewaySecretRef_Static(t *testing.T) {
 
 	rules := k.GenerateGatewayRBACRules()
 
-	hasScoped := false
+	// get is scoped to the name; create cannot be (Kubernetes never
+	// authorizes create by resource name), so it is a rule of its own.
+	hasScopedGet, hasCreate := false, false
 	for _, r := range rules {
-		if contains(r.Resources, "secrets") && contains(r.Verbs, "create") && contains(r.ResourceNames, "gw-token") {
-			hasScoped = true
-			break
+		if !contains(r.Resources, "secrets") {
+			continue
+		}
+		if contains(r.Verbs, "get") && contains(r.ResourceNames, "gw-token") {
+			hasScopedGet = true
+		}
+		if contains(r.Verbs, "create") {
+			if len(r.ResourceNames) > 0 {
+				t.Errorf("create must not be scoped by resourceNames: %v", r.ResourceNames)
+			}
+			hasCreate = true
 		}
 	}
-	if !hasScoped {
-		t.Error("expected scoped secrets get/create rule for gateway static secretRef")
+	if !hasScopedGet {
+		t.Error("expected secrets get scoped to gw-token")
+	}
+	if !hasCreate {
+		t.Error("expected secrets create for token bootstrap")
 	}
 }
 
@@ -518,13 +531,13 @@ func TestGenerateGatewayRBACRules_GatewaySecretRef_Mixed(t *testing.T) {
 
 	hasScoped, hasUnscoped := false, false
 	for _, r := range rules {
-		if !contains(r.Resources, "secrets") || !contains(r.Verbs, "create") {
+		if !contains(r.Resources, "secrets") {
 			continue
 		}
-		if contains(r.ResourceNames, "static-gw") {
+		if contains(r.Verbs, "get") && contains(r.ResourceNames, "static-gw") {
 			hasScoped = true
 		}
-		if len(r.ResourceNames) == 0 {
+		if contains(r.Verbs, "create") && len(r.ResourceNames) == 0 {
 			hasUnscoped = true
 		}
 	}

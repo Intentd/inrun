@@ -103,7 +103,7 @@ func init() {
 //   startCRDWorkers time to obtain the typed hooks.
 //
 // Reconciler entries — constructor functions for custom reconcilers.
-//   Called by addReconcilers() during Catalog validation to wire Constructor
+//   Called by AddConstructors() during Catalog validation to wire Constructor
 //   onto the CRD entry. DependencyCoordinator calls Constructor() once at
 //   startCRDWorkers time to build the reconciler.
 func RegisterRuntimeObjects() {

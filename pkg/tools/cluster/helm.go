@@ -10,17 +10,23 @@ import (
 // idempotently. It always runs `helm upgrade --install` so the call is
 // safe whether Inrun is already present or not.
 //
-// The repo is added and updated before every call to ensure the index is
-// current. Version may be empty to use the latest chart. Additional Helm
-// flags (e.g. --set, --atomic) are passed through args.
-func InstallOrUpgradeInrun(version string, valueFiles []string, args ...string) error {
-	_ = exec.Command("helm", "repo", "add", Inrun, InrunChartRepo).Run()
-	_ = exec.Command("helm", "repo", "update", Inrun).Run()
+// chart is a local chart directory (e.g. ./charts/inrun) to test unreleased
+// changes; empty installs the published chart, adding and updating the Inrun
+// Helm repo first so the index is current. Version may be empty to use the
+// latest published chart. Additional Helm flags (e.g. --set, --atomic) are
+// passed through args.
+func InstallOrUpgradeInrun(chart, version string, valueFiles []string, args ...string) error {
+	ref := chart
+	if ref == "" {
+		_ = exec.Command("helm", "repo", "add", Inrun, InrunChartRepo).Run()
+		_ = exec.Command("helm", "repo", "update", Inrun).Run()
+		ref = fmt.Sprintf("%s/%s", Inrun, InrunChartName)
+	}
 
 	helmArgs := []string{
 		"upgrade", "--install",
 		Inrun,
-		fmt.Sprintf("%s/%s", Inrun, InrunChartName),
+		ref,
 		"--namespace", InrunNamespace,
 		"--create-namespace",
 	}

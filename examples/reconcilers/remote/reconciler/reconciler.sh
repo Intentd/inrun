@@ -77,6 +77,8 @@ response=$(jq -cn \
     --arg name      "$name" \
     --arg namespace "$namespace" \
     --argjson replicas "$replicas" \
+    --arg environment "$environment" \
+    --arg image     "$image" \
     '{
         result: "ok",
         status: {
@@ -84,6 +86,8 @@ response=$(jq -cn \
             endpoint: (($name + "-svc.") + $namespace + ".svc.cluster.local"),
             replicas: $replicas
         },
+        labels:      { environment: $environment },
+        annotations: { "webapp.example.com/image": $image },
         resources: [$deployment, $service]
     }')
 

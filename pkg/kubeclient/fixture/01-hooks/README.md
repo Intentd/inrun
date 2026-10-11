@@ -13,7 +13,7 @@ notes:
     - name: inBusinessHours
       expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
 
-hooks:
+reconcile:
   external:
     - name: flags
       url: "{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled"
@@ -26,13 +26,13 @@ hooks:
     inBusinessHours: '{{ inBusinessHours }}'
 ```
 
-The hook reads both from `kube.Args()` — no time library, no HTTP client,
+The hook reads both from `req.Args` — no time library, no HTTP client,
 no flag-service SDK. When the business-hours window changes, only the Catalog
 changes. The binary is identical across environments and schedules.
 
 ```go
-inBusinessHours := kube.Args().String("inBusinessHours") == "true"
-featureEnabled  := kube.Args().String("featureEnabled") == "true"
+inBusinessHours := req.Args.String("inBusinessHours") == "true"
+featureEnabled  := req.Args.String("featureEnabled") == "true"
 
 annotation := "false"
 if inBusinessHours && featureEnabled {

@@ -3,6 +3,8 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	"github.com/inrundev/inrun/pkg/runtime/coordinator/apply"
+	corev1 "k8s.io/api/core/v1"
 	"runtime"
 	"time"
 
@@ -156,7 +158,7 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 		prepared, valResult, prepErr = prepare.Prepare(ctx, prepare.Input{
 			Entry:    entry,
 			Key:      item.Key,
-			Kat:      k.kat,
+			Cat:      k.cat,
 			Kube:     k.kube,
 			Registry: k.catalog,
 		})
@@ -173,34 +175,29 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	}
 
 	// Box and resolver are extracted once here and shared by cleanup and maintain.
-	var cleanupTriggered bool
+	// Cleanup never suspends reconciling: a due cleanup deletes the CR here; a
+	// pending one only shapes when the next pass runs.
+	var cleanup cleanupWait
 	if hasEntry && prepared != nil {
 		box, resolver := prepare.BoxFrom(prepared), prepared.Context.(*template.Resolver)
 
-		triggered, waitFor, cleanupErr := k.runCleanupGate(ctx, prepared.Object, box, resolver)
+		check, cleanupErr := checkCleanup(ctx, k.kube, prepared.Object, box, resolver)
 		if cleanupErr != nil {
 			logger.Error().Err(cleanupErr).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup evaluation failed")
 			wq.AddRateLimited(item)
 			k.failedReconcile(gvk)
 			return
 		}
-		if waitFor > 0 {
-			// Grace period running — schedule re-evaluation after the remaining duration.
-			wq.Forget(item)
-			wq.AddAfter(item, waitFor)
-			return
-		}
-		cleanupTriggered = triggered
 
-		if maintErr := k.runMaintain(ctx, entry, prepared.Object, box, resolver, cleanupTriggered); maintErr != nil {
+		if maintErr := k.runMaintain(ctx, entry, prepared.Object, box, resolver, check.due); maintErr != nil {
 			logger.Error().Err(maintErr).Str("gvk", gvk).Str("key", item.Key).Msg("maintain failed")
 			wq.AddRateLimited(item)
 			k.failedReconcile(gvk)
 			return
 		}
 
-		if cleanupTriggered {
-			if delErr := k.deleteCR(ctx, prepared.Object); delErr != nil {
+		if check.due {
+			if delErr := k.deleteCR(ctx, prepared.Object, check.reason); delErr != nil {
 				logger.Error().Err(delErr).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: delete failed")
 				wq.AddRateLimited(item)
 				k.failedReconcile(gvk)
@@ -210,10 +207,21 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 			k.successReconcile(gvk)
 			return
 		}
+		cleanup = check.cleanupWait
 	}
 
 	// safeReconcile catches panics
 	result, reconcileErr := k.safeReconcile(rec, k.crdHealthMap[gvk], ctx, item.Key, gvk, prepared)
+
+	// Apply the resources, labels and annotations the Result returns. Every
+	// reconciler's writes take this one path; a failure is a reconcile failure.
+	if reconcileErr == nil && hasEntry && prepared != nil {
+		if err := apply.Result(ctx, k.kube, prepared.Object, entry.CRD.AllManagedResources(), result); err != nil {
+			k.event.Eventf(prepared.Object, corev1.EventTypeWarning, "ApplyFailed",
+				"Applying the result for %s/%s: %v", prepared.Object.GetNamespace(), prepared.Object.GetName(), err)
+			reconcileErr = err
+		}
+	}
 
 	// Post: status patch + emit — always runs, even on reconcile failure.
 	if hasEntry && prepared != nil {
@@ -231,13 +239,35 @@ func (k *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 	if reconcileErr != nil {
 		logger.Error().Err(reconcileErr).Str("gvk", gvk).Str("key", item.Key).Msg("reconcile failed")
 		wq.AddRateLimited(item)
+		// A failing reconcile never delays a pending cleanup.
+		if cleanup.pending {
+			wq.AddAfter(item, cleanup.wait)
+		}
 		k.failedReconcile(gvk)
 		return
 	}
 
+	// Record or withdraw the cleanup this Result requests. A failed reconcile
+	// (above) changes neither.
+	if hasEntry && prepared != nil {
+		w, err := settleResultCleanup(ctx, k.kube, prepared.Object, result.Cleanup)
+		if err != nil {
+			logger.Warn().Err(err).Str("gvk", gvk).Str("key", item.Key).Msg("cleanup: could not record the result's request")
+		}
+		if w.pending {
+			cleanup.add(w.wait)
+		}
+	}
+
+	// Requeue and cleanup are independent: wake at whichever is due first; the
+	// next pass recomputes both.
 	wq.Forget(item)
-	if requeueAfter := k.resolveRequeueAfter(ctx, gvk, entry, item.Key, result, prepared); requeueAfter >= 0 {
-		wq.AddAfter(item, requeueAfter)
+	next := k.resolveRequeueAfter(ctx, gvk, entry, item.Key, result, prepared)
+	if cleanup.pending && (next < 0 || cleanup.wait < next) {
+		next = cleanup.wait
+	}
+	if next >= 0 {
+		wq.AddAfter(item, next)
 	}
 }
 
@@ -300,6 +330,8 @@ func (k *Controller) safeReconcile(
 	// Execute the operator's reconcile logic.
 	// Any returned error is treated as a reconcile failure.
 	ns, name, _ := cache.SplitMetaNamespaceKey(key)
+
+	prepared.Args = prepare.Args(prepared)
 	result, err = rec.Reconcile(ctx, domain.Request{
 		Key:            key,
 		NamespacedName: apitypes.NamespacedName{Namespace: ns, Name: name},
@@ -315,6 +347,7 @@ func (k *Controller) safeReconcile(
 	// Successful reconcile path.
 	health.RecordSuccess()
 	k.successReconcile(gvk)
+	vitals.InvalidateChildrenCache(ns, name)
 	metrics.RecordReconcile(gvk, "success")
 	return result, nil
 }

@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/inrundev/inrun/domain"
 	"github.com/inrundev/inrun/pkg/runtime/sentinel"
 )
 
@@ -620,19 +619,8 @@ type HookDeclaration struct {
 	Function string `yaml:"function" json:"function" validate:"required"`
 	Alias    string `yaml:"alias,omitempty" json:"alias,omitempty" validate:"omitempty"`
 
-	// ManagedResources is used for RBAC generation.
-	ManagedResources []domain.ManagedResource `json:"managedResources,omitempty" yaml:"managedResources,omitempty"`
-
 	// RunHooksFirst: when true, the hook runs before declarative templates (hybrid pattern).
 	RunHooksFirst bool `yaml:"runHooksFirst,omitempty" json:"runHooksFirst,omitempty"`
-
-	// Args are passed to the hook at reconcile time via kube.Args().
-	// Values support template expressions evaluated against the CR.
-	Args map[string]interface{} `yaml:"args,omitempty" json:"args,omitempty"`
-
-	// External declares HTTP calls made before the hook is invoked.
-	// Results are injected under .external.<name>.* and available in args templates.
-	External []ExternalCallSpec `yaml:"external,omitempty" json:"external,omitempty"`
 }
 
 // ConstructorDeclaration declares where a custom reconciler constructor lives.
@@ -644,10 +632,4 @@ type ConstructorDeclaration struct {
 	Fetch    bool   `yaml:"fetch,omitempty" json:"fetch,omitempty"`
 	Function string `yaml:"function" json:"function" validate:"required"`
 	Alias    string `yaml:"alias,omitempty" json:"alias,omitempty" validate:"omitempty"`
-
-	// ManagedResources is used for RBAC generation.
-	ManagedResources []domain.ManagedResource `json:"managedResources,omitempty" yaml:"managedResources,omitempty"`
-
-	// Args are passed to the constructor at startup via kube.Args().
-	Args map[string]interface{} `yaml:"args,omitempty" json:"args,omitempty"`
 }

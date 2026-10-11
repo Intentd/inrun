@@ -3,6 +3,8 @@ package validate
 import (
 	"fmt"
 	"strings"
+
+	"github.com/inrundev/inrun/pkg/labels"
 )
 
 // validateCRDEntryMetadata validates the labels: and annotations: blocks
@@ -29,7 +31,12 @@ func (e *executor) validateCRDEntryLabels() error {
 		if !crd.HasUserLabels() {
 			continue
 		}
-		for key, value := range crd.Labels {
+
+		lbls := crd.Labels
+		if err := labels.CheckReserved("labels", lbls); err != nil {
+			return err
+		}
+		for key, value := range lbls {
 			if isTemplate(key) {
 				return fmt.Errorf("%s CRD %q: labels: key %q must be a static label key, not a template", failureMark(), crdName, key)
 			}
@@ -64,7 +71,11 @@ func (e *executor) validateCRDEntryAnnotations() error {
 			continue
 		}
 
-		for key, value := range crd.Annotations {
+		ann := crd.Annotations
+		if err := labels.CheckReserved("annotations", ann); err != nil {
+			return err
+		}
+		for key, value := range ann {
 			if isTemplate(key) {
 				return fmt.Errorf("%s CRD %q: annotations: key %q must be a static annotation key, not a template",
 					failureMark(), crdName, key,

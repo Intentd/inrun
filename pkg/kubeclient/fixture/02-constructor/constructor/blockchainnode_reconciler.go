@@ -12,7 +12,6 @@ import (
 	"github.com/inrundev/inrun/domain"
 	"github.com/inrundev/inrun/pkg/kubeclient"
 	"github.com/inrundev/inrun/pkg/resources/deployments"
-	"github.com/inrundev/inrun/pkg/template"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -40,18 +39,12 @@ func (r *BlockchainNodeReconciler) Reconcile(ctx context.Context, req domain.Req
 		return domain.Result{}, nil
 	}
 
-	resolver, err := template.NewResolver(ctx, node)
-	if err != nil {
-		return domain.Result{}, fmt.Errorf("building resolver: %w", err)
-	}
-	kube := r.kube.ScopedFor(resolver.TemplateEvaluator())
-
 	// The Catalog declares the flag URL pattern and the business-hours window.
 	// The constructor owns the time check and the HTTP call — the Catalog owns
 	// the configuration. The binary is identical across environments and schedules.
-	flagUrl := kube.Args().String("flagUrl")
-	start := kube.Args().String("businessHoursStart")
-	end := kube.Args().String("businessHoursEnd")
+	flagUrl := req.Args().String("flagUrl")
+	start := req.Args().String("businessHoursStart")
+	end := req.Args().String("businessHoursEnd")
 
 	bizHours := r.inBusinessHours(start, end)
 	featureEnabled := bizHours && r.checkFlag(ctx, flagUrl)
@@ -75,11 +68,11 @@ func (r *BlockchainNodeReconciler) Reconcile(ctx context.Context, req domain.Req
 			"feature.demo/v2-enabled": annotation,
 		},
 	}
-	if err := deployments.Apply(ctx, kube, node, spec); err != nil {
+	if err := deployments.Apply(ctx, r.kube, node, spec); err != nil {
 		return domain.Result{}, fmt.Errorf("blockchainnode deployment: %w", err)
 	}
 
-	return domain.Result{}, kube.PatchStatus(ctx, node, map[string]any{
+	return domain.Result{}, r.kube.PatchStatus(ctx, node, map[string]any{
 		"phase":           "Running",
 		"network":         node.Spec.Network,
 		"featureEnabled":  annotation,

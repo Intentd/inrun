@@ -106,6 +106,9 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			"endpoint": fmt.Sprintf("%s-svc.%s.svc.cluster.local", name, ns),
 			"replicas": replicas,
 		},
+		// Set on the WebApp itself; dropping a key here removes it.
+		"labels":      map[string]any{"environment": environment},
+		"annotations": map[string]any{"webapp.example.com/image": image},
 		"resources": []any{
 			map[string]any{
 				"type": "deployment",

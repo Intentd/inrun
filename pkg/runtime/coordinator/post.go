@@ -30,12 +30,12 @@ func runPost(ctx context.Context, in PostInput, reconcileErr error) error {
 	box := prepare.BoxFrom(in.Prepared)
 	resolver := in.Prepared.Context.(*template.Resolver)
 	post.Apply(ctx, post.Input{
-		CRD:         in.CRD,
-		Kube:        in.Kube,
-		Recorder:    in.Event,
-		MetricsMap:  in.Health.GetAutoMetrics(),
-		HealthMap:   in.Health.HealthAsMap(),
-		StatusPatch: in.Result.StatusPatch,
+		CRD:        in.CRD,
+		Kube:       in.Kube,
+		Recorder:   in.Event,
+		MetricsMap: in.Health.GetAutoMetrics(),
+		HealthMap:  in.Health.HealthAsMap(),
+		Status:     in.Result.Status,
 	}, in.Prepared.Object, resolver, box, reconcileErr, in.ValResult)
 
 	return reconcileErr
