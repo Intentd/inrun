@@ -1,16 +1,20 @@
 # ── Global ────────────────────────────────────────────────────────────────────
 global:
-  namespace: orkestra-system
+  namespace: inrun-system
   nameOverride: ""
   fullnameOverride: ""
+
 # ── Runtime ────────────────────────────────────────────────────────────────────
 runtime:
   enabled: true
+
   imagePullSecrets: []
+
   image:
-    repository: ghcr.io/orkspace/orkestra
-    tag: "0.7.18"
+    repository: ghcr.io/intentd/inrun
+    tag: ""
     pullPolicy: IfNotPresent
+
   replicaCount: 2
   service:
     type: ClusterIP
@@ -22,13 +26,16 @@ runtime:
     limits:
       cpu: 500m
       memory: 512Mi
-  # Use 'ork generate rbac' to create the ServiceAccount
-  serviceAccount: "orkestra"
+
+  # Created by 'inrun generate bundle'
+  serviceAccount: "inrun"
+
   # Health server (runtime only)
   server:
     readTimeout: 30
     writeTimeout: 60
     httpPort: 8080
+
   # Runtime-specific config
   config:
     logLevel: info
@@ -37,22 +44,26 @@ runtime:
     maxDepth: 500
     failureThreshold: 10
     environment: production
+
   # Probes for runtime
   startupProbe:
     initialDelaySeconds: 5
     periodSeconds: 10
     failureThreshold: 30
     timeoutSeconds: 5
+
   livenessProbe:
     initialDelaySeconds: 5
     periodSeconds: 10
     failureThreshold: 30
     timeoutSeconds: 5
+
   readinessProbe:
     initialDelaySeconds: 3
     periodSeconds: 5
     failureThreshold: 30
     timeoutSeconds: 5
+
   # ── Security ───────────────────────────────────────────────────────────────────
   podSecurityContext:
     runAsNonRoot: true
@@ -61,6 +72,7 @@ runtime:
     fsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
+
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
@@ -69,40 +81,30 @@ runtime:
     capabilities:
       drop:
         - ALL
+
   # Leader election (runtime only)
   leaderElection:
     enabled: true
     leaseDuration: 15
     renewDeadline: 10
     retryPeriod: 5
-  # Katalog (runtime only)
-  katalog:
-    inline: |
-      apiVersion: orkestra.konductor.io/v1Alpha
-      kind: Katalog
-      metadata:
-        name: default-katalog
-      spec:
-        crds: []
-    existingConfigMap: "" # Enter the configmap name created with 'ork generate bundle'
-    configMapKey: katalog.yaml
-    mountPath: /etc/orkestra/katalog
-  # Gateway endpoint advertised in the runtime /katalog response.
+
+  # Catalog (runtime only)
+  catalog:
+    existingConfigMap: ""               # ConfigMap from 'inrun generate bundle'; default <release>-catalog
+    configMapKey: catalog.yaml
+    mountPath: /etc/inrun/catalog
+
+  # Gateway endpoint advertised in the runtime /catalog response.
   # Set to the HTTP base URL of the companion gateway deployment so the
-  # control center can discover and merge gateway stats.
-  # Overrides ORK_GATEWAY_ENDPOINT env. Empty = no gateway configured.
-  gatewayEndpoint: "" # e.g. "http://orkestra-gateway.orkestra-system.svc:8080"
+  # console can discover and merge gateway stats.
+  # Overrides INRUN_GATEWAY_ENDPOINT env. Empty = no gateway configured.
+  gatewayEndpoint: ""   # e.g. "http://inrun-gateway.inrun-system.svc:8080"
+
   # Registry (runtime only)
   registry:
-    enabled: false
-    url: "" # ORK_REGISTRY
-  # HPA
-  hpa:
-    enabled: false
-    minReplicas: 2
-    maxReplicas: 5
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 80
+    url: ""     # INRUN_REGISTRY
+
   # Network Policy
   networkPolicy:
     enabled: false
@@ -113,33 +115,40 @@ runtime:
     #  - podSelector:
     #      matchLabels:
     #        app: prometheus
+
   extraEnv: []
   extraEnvFrom: []
   extraVolumes: []
   extraVolumeMounts: []
   podAnnotations: {}
   podLabels: {}
+
   # PDB
   pdb:
     enabled: true
     minAvailable: 1
     # maxUnavailable: 5
+
   # Scheduling
   nodeSelector: {}
   tolerations: []
   affinity: {}
   topologySpreadConstraints: []
+
 # ── Gateway ───────────────────────────────────────────────────────────────────
 # The gateway handles TLS/cert management and serves admission/conversion
 # webhooks. It is stateless and supports multiple replicas (no leader election).
 # Set enabled: true alongside runtime: enabled to run the full split topology.
 gateway:
   enabled: false
+
   imagePullSecrets: []
+
   image:
-    repository: ghcr.io/orkspace/orkestra-gateway
-    tag: "0.7.18"
+    repository: ghcr.io/intentd/inrun-gateway
+    tag: ""
     pullPolicy: IfNotPresent
+
   replicaCount: 2
   resources:
     requests:
@@ -148,19 +157,22 @@ gateway:
     limits:
       cpu: 200m
       memory: 256Mi
-  # Use 'ork generate rbac' to create the ServiceAccount
-  serviceAccount: "orkestra-gateway"
+
+  # Created by 'inrun generate bundle'
+  serviceAccount: "inrun-gateway"
+
   service:
     type: ClusterIP
     annotations: {}
+
   # Exposes the gateway's Gateway API (POST /api/v1/apply, GET /api/v1/resources/...,
   # GET /api/v1/schema/...) to callers outside the cluster — a CI pipeline, a
-  # Control Center running elsewhere. Routes to the http port (Gateway API +
+  # Console running elsewhere. Routes to the http port (Gateway API +
   # health), never https (the admission/conversion webhook port — that's
   # called by the Kubernetes API server itself, not an external client, and
   # has no business behind a public ingress).
   ingress:
-    enabled: false # Disabled by default – enable and set hosts
+    enabled: false                  # Disabled by default – enable and set hosts
     className: ""
     annotations: {}
     hosts: []
@@ -174,11 +186,13 @@ gateway:
     #   - hosts:
     #       - gateway.mycompany.com
     #     secretName: gateway-tls
+
   # PDB
   pdb:
     enabled: true
     minAvailable: 1
     # maxUnavailable: 5
+
   # HPA
   hpa:
     enabled: false
@@ -186,32 +200,38 @@ gateway:
     maxReplicas: 5
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
+
   # Health server + HTTPS webhook server
   server:
     readTimeout: 30
     writeTimeout: 60
     httpPort: 8080
     httpsPort: 8443
+
   # Gateway config (minimal — no reconciler knobs)
   config:
     logLevel: info
     environment: production
+
   # Probes
   startupProbe:
     initialDelaySeconds: 5
     periodSeconds: 10
     failureThreshold: 30
     timeoutSeconds: 5
+
   livenessProbe:
     initialDelaySeconds: 5
     periodSeconds: 10
     failureThreshold: 30
     timeoutSeconds: 5
+
   readinessProbe:
     initialDelaySeconds: 3
     periodSeconds: 5
     failureThreshold: 30
     timeoutSeconds: 5
+
   # ── Security ───────────────────────────────────────────────────────────────────
   podSecurityContext:
     runAsNonRoot: true
@@ -220,6 +240,7 @@ gateway:
     fsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
+
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
@@ -228,49 +249,50 @@ gateway:
     capabilities:
       drop:
         - ALL
+
   # Webhooks for admission control and CRD conversion
   webhooks:
-    enabled: false # master switch
-    admission: false # ENABLE_ADMISSION_WEBHOOK
-    conversion: false # ENABLE_CONVERSION
-    existingSecret: "" # TLS secret name (required if enabled)
-    certKey: tls.crt # key in secret for certificate
-    keyKey: tls.key # key in secret for private key
-  # Katalog (needed to know which CRDs have webhooks)
-  katalog:
-    inline: |
-      apiVersion: orkestra.konductor.io/v1Alpha
-      kind: Katalog
-      metadata:
-        name: default-katalog
-      spec:
-        crds: []
-    existingConfigMap: ""
-    configMapKey: katalog.yaml
-    mountPath: /etc/orkestra/katalog
+    enabled: false                 # master switch
+    admission: false               # ENABLE_ADMISSION_WEBHOOK
+    conversion: false              # ENABLE_CONVERSION
+    existingSecret: ""             # TLS secret name (required if enabled)
+    certKey: tls.crt              # key in secret for certificate
+    keyKey: tls.key               # key in secret for private key
+
+  # Catalog (needed to know which CRDs have webhooks)
+  catalog:
+    existingConfigMap: ""               # default: runtime.catalog's ConfigMap
+    configMapKey: catalog.yaml
+    mountPath: /etc/inrun/catalog
+
   # Registry
   registry:
-    enabled: false
     url: ""
+
   extraEnv: []
   extraEnvFrom: []
   extraVolumes: []
   extraVolumeMounts: []
   podAnnotations: {}
   podLabels: {}
+
   # Scheduling
   nodeSelector: {}
   tolerations: []
   affinity: {}
   topologySpreadConstraints: []
-# ── Control Center ────────────────────────────────────────────────────────────
-controlCenter:
+
+# ── Console ────────────────────────────────────────────────────────────
+console:
   enabled: true
+
   imagePullSecrets: []
+
   image:
-    repository: ghcr.io/orkspace/orkestra-cc
-    tag: "0.7.18"
+    repository: ghcr.io/intentd/inrun-console
+    tag: ""
     pullPolicy: IfNotPresent
+
   replicaCount: 1
   resources:
     requests:
@@ -279,33 +301,38 @@ controlCenter:
     limits:
       cpu: 200m
       memory: 256Mi
-  # No RBAC needed - control center only reads from runtime API
-  serviceAccount: "orkestra-cc"
-  # Control center config
+
+  # No RBAC needed - console only reads from runtime API
+  serviceAccount: "inrun-console"
+
+  # Console config
   config:
     # Set this to your runtime service URL(s)
-    orkestraURLs: []
+    inrunURLs: []
+
     port: 8081
     refreshInterval: 10s
     logLevel: info
+
   service:
     type: ClusterIP
     port: 8081
     annotations: {}
+
   ingress:
-    enabled: false # Disabled by default – enable and set hosts
+    enabled: false                  # Disabled by default – enable and set hosts
     className: ""
     annotations:
       # Sticky sessions ensure each browser is consistently routed to the same
-      # CC pod. The CC cache is in-memory per-pod, so without affinity a user
+      # console pod. The console cache is in-memory per-pod, so without affinity a user
       # may see different state on each request when replicaCount > 1.
       nginx.ingress.kubernetes.io/affinity: "cookie"
-      nginx.ingress.kubernetes.io/session-cookie-name: "cc-session"
+      nginx.ingress.kubernetes.io/session-cookie-name: "console-session"
       nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
       nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
     hosts: []
     # hosts:
-    #   - host: control-center.mycompany.com
+    #   - host: console.mycompany.com
     #     paths:
     #       - path: /
     #         pathType: Prefix
@@ -314,7 +341,8 @@ controlCenter:
     #   - hosts:
     #       - gateway.mycompany.com
     #     secretName: gateway-tls
-  # Security (control center doesn't need root)
+
+  # Security (console doesn't need root)
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
@@ -323,18 +351,22 @@ controlCenter:
     capabilities:
       drop:
         - ALL
+
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 1001
     runAsGroup: 1001
     fsGroup: 1001
-  # Probes for control center
+
+  # Probes for console
   livenessProbe:
     initialDelaySeconds: 5
     periodSeconds: 10
+
   readinessProbe:
     initialDelaySeconds: 3
     periodSeconds: 5
+
   # HPA
   hpa:
     enabled: false
@@ -342,6 +374,7 @@ controlCenter:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
+
   # Network Policy
   networkPolicy:
     enabled: false
@@ -352,26 +385,30 @@ controlCenter:
     #  - podSelector:
     #      matchLabels:
     #        app: prometheus
-  # Gateway Gateway API token for the Control Center IDP proxy.
+  # Gateway API token the Console uses to serve intents.
   # Point secretRef at the Secret the gateway auto-creates on first start.
   # Leave name empty to disable (no GATEWAY_TOKEN env injected).
   gatewayToken:
     secretRef:
-      name: "" # e.g. "ork-apply-token" (created by the gateway)
+      name: ""      # e.g. "inrun-apply-token" (created by the gateway)
       key: "token"
+
   extraEnv: []
   extraEnvFrom: []
   extraVolumes: []
   extraVolumeMounts: []
   podAnnotations: {}
   podLabels: {}
+
   # PDB
   pdb:
     enabled: true
     minAvailable: 1
     # maxUnavailable: 5
+
   # Scheduling
   nodeSelector: {}
   tolerations: []
   affinity: {}
   topologySpreadConstraints: []
+
