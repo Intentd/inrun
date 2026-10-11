@@ -238,29 +238,15 @@ func AuthMiddleware(ts *TokenSet, next http.Handler) http.Handler {
 
 type contextKey string
 
-const (
-	tokenNameKey contextKey = "api-token-name"
-	oidcSubKey   contextKey = "api-oidc-sub"
-)
+const tokenNameKey contextKey = "api-token-name"
 
 func contextWithTokenName(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, tokenNameKey, name)
-}
-
-func contextWithOIDCSub(ctx context.Context, sub string) context.Context {
-	return context.WithValue(ctx, oidcSubKey, sub)
 }
 
 // TokenNameFromContext returns the authenticated token name from the context.
 // Empty string when the request was not authenticated (should not happen past middleware).
 func TokenNameFromContext(ctx context.Context) string {
 	v, _ := ctx.Value(tokenNameKey).(string)
-	return v
-}
-
-// OIDCSubFromContext returns the verified OIDC sub claim from the context.
-// Empty string when authentication was via a static token (no OIDC sub available).
-func OIDCSubFromContext(ctx context.Context) string {
-	v, _ := ctx.Value(oidcSubKey).(string)
 	return v
 }

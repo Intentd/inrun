@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -161,7 +160,7 @@ func (c *Console) fetchAllCatalogs() {
 				inst.Status = "offline"
 				inst.Healthy = false
 				inst.LastError = err.Error()
-				log.Printf("WARN: fetch catalog from %s: %v", u, err)
+				Warnf("fetch catalog from %s: %v", u, err)
 			} else {
 				inst.GatewayEndpoint = kat.GatewayEndpoint
 				if kat.IsLeader {
@@ -182,7 +181,7 @@ func (c *Console) fetchAllCatalogs() {
 				}
 				// Follower + already have good data → keep last known-good snapshot,
 				// discard this response so the display does not flip.
-				log.Printf("INFO: fetched catalog %q from %s (%d CRDs, gateway=%q)",
+				Debugf("fetched catalog %q from %s (%d CRDs, gateway=%q)",
 					kat.Name, u, len(kat.CRDs), kat.GatewayEndpoint)
 			}
 		}
@@ -301,7 +300,7 @@ func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("DEBUG: %s %s", r.Method, path)
+	Debugf("%s %s", r.Method, path)
 
 	switch {
 	case strings.HasPrefix(path, "/assets/"):
@@ -719,7 +718,7 @@ func (c *Console) handleCRDDetail(w http.ResponseWriter, r *http.Request, catalo
 	summary := summaryFor(inst.Catalog, crdName)
 	crd, err := inst.Client.FetchCRDDetail(crdName, endpoints, summary)
 	if err != nil {
-		log.Printf("WARN: fetch CRD %s: %v", crdName, err)
+		Warnf("fetch CRD %s: %v", crdName, err)
 		// Render a degraded view rather than a hard error
 		crd = &CRDDetail{
 			Name:        crdName,
@@ -734,7 +733,7 @@ func (c *Console) handleCRDDetail(w http.ResponseWriter, r *http.Request, catalo
 	// Merge gateway-owned webhook stats when the runtime advertises a gateway.
 	if inst.GatewayEndpoint != "" && crd.State != "offline" {
 		if gwStats, err := FetchGatewayCRDStats(inst.GatewayEndpoint, crdName); err != nil {
-			log.Printf("WARN: gateway stats for %s: %v", crdName, err)
+			Warnf("gateway stats for %s: %v", crdName, err)
 		} else if gwStats != nil {
 			if gwStats.Admission != nil {
 				crd.Admission = gwStats.Admission

@@ -30,12 +30,20 @@ func NewCatalog(kfg *config.Config, m *merger.Merger) *catalog.Catalog {
 		utils.Exit(err)
 	}
 
+	// The gateway never runs a reconciler, so it needs none of the project's
+	// compiled types: every CR is unstructured there, and the stock gateway
+	// image serves typed Catalogs too.
+	gateway := kfg.IsGatewayInstance()
+	if gateway {
+		k.UseUnstructured()
+	}
+
 	if len(entries) == 0 && !k.IsStandaloneGateway() {
 		utils.Exit(fmt.Errorf("validation error: catalog empty"))
 	}
 
 	for _, crd := range entries {
-		if len(types.ObjectRegistry) == 0 && !crd.IsDynamic() {
+		if !gateway && len(types.ObjectRegistry) == 0 && !crd.IsDynamic() {
 			utils.Exit(fmt.Errorf(
 				"ObjectRegistry is empty — run 'inrun generate registry --file <my-catalog.yaml>' first",
 			))

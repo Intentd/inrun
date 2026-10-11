@@ -78,13 +78,13 @@ var controlVersionCmd = &cobra.Command{
 }
 
 func startConsole() error {
-	consolePath, err := findConsoleBinary()
+	consolePath, err := FindBinary()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "[inrun] inrun-console not found, attempting installation...")
 		if err := installConsoleBinary(); err != nil {
 			return fmt.Errorf("failed to install inrun-console: %w", err)
 		}
-		consolePath, err = findConsoleBinary()
+		consolePath, err = FindBinary()
 		if err != nil {
 			return fmt.Errorf("inrun-console still not found after installation")
 		}
@@ -129,7 +129,7 @@ func startConsole() error {
 }
 
 func showConsoleVersion() error {
-	consolePath, err := findConsoleBinary()
+	consolePath, err := FindBinary()
 	if err != nil {
 		return fmt.Errorf("inrun-console not found: %w", err)
 	}
@@ -141,7 +141,9 @@ func showConsoleVersion() error {
 	return cmd.Run()
 }
 
-func findConsoleBinary() (string, error) {
+// FindBinary locates the inrun-console binary: PATH, next to inrun, then
+// ~/.inrun/bin.
+func FindBinary() (string, error) {
 	// Look in PATH first
 	if path, err := exec.LookPath("inrun-console"); err == nil {
 		return path, nil

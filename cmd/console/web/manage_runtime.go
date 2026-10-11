@@ -2,7 +2,6 @@ package web
 
 import (
 	"fmt"
-	"log"
 )
 
 // AddInstance adds and persists a new runtime.
@@ -26,7 +25,7 @@ func (c *Console) AddInstance(rawURL string) error {
 	// Persist
 	store := &RuntimeStorage{URLs: c.urls}
 	if err := SaveRuntimeStorage(store); err != nil {
-		log.Printf("WARN: failed to save runtime list: %v", err)
+		Warnf("failed to save runtime list: %v", err)
 	}
 	// Fetch its Catalog in background
 	go func() {
@@ -63,7 +62,7 @@ func (c *Console) DeleteInstance(rawURL string) error {
 	c.urls = newURLs
 	store := &RuntimeStorage{URLs: c.urls}
 	if err := SaveRuntimeStorage(store); err != nil {
-		log.Printf("WARN: failed to save runtime list: %v", err)
+		Warnf("failed to save runtime list: %v", err)
 	}
 	return nil
 }

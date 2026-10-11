@@ -294,16 +294,42 @@ func TestApplyHandler_Format(t *testing.T) {
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
 
-	t.Run("invalid JSON returns 400", func(t *testing.T) {
+	t.Run("invalid body returns 400", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/api/v1/apply",
-			bytes.NewBufferString("{not json}"))
+			bytes.NewBufferString("{not json"))
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
 		h.ServeHTTP(rr, r)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		var resp ApplyResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-		assert.Contains(t, resp.Message, "invalid JSON")
+		assert.Contains(t, resp.Message, "invalid JSON or YAML")
+	})
+
+	// A YAML body is read like JSON: these reach the target checks.
+	t.Run("YAML body with unknown target returns 400 with available targets", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/apply",
+			bytes.NewBufferString("target: unknown-target\nname: payments-api\n"))
+		r = requestWithToken(r, "ci-pipeline")
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, r)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		var resp ApplyResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+		assert.Contains(t, resp.Message, "unknown target")
+		assert.Contains(t, resp.Message, "app")
+	})
+
+	t.Run("YAML body without target returns 400", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/apply",
+			bytes.NewBufferString("name: payments-api\n"))
+		r = requestWithToken(r, "ci-pipeline")
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, r)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		var resp ApplyResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+		assert.Contains(t, resp.Message, "target")
 	})
 
 	t.Run("no target or apiVersion returns 400", func(t *testing.T) {

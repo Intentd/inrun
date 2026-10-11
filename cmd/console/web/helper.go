@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -92,14 +91,14 @@ func endpointInfoFor(kat *CatalogResponse, crdName string) EndpointInfo {
 func (c *Console) renderTemplate(w http.ResponseWriter, name string, data interface{}) {
 	tmpl, err := template.New(name).Funcs(templateFuncs).ParseFS(Assets, TemplateDir+"/"+name)
 	if err != nil {
-		log.Printf("ERROR: parse %s: %v", name, err)
+		Errorf("parse %s: %v", name, err)
 		c.renderError(w, nil, fmt.Sprintf("Template error: %v", err))
 		return
 	}
 
 	buf := new(bytes.Buffer)
 	if err := tmpl.Execute(buf, data); err != nil {
-		log.Printf("ERROR: execute %s: %v", name, err)
+		Errorf("execute %s: %v", name, err)
 		c.renderError(w, nil, fmt.Sprintf("Render error: %v", err))
 		return
 	}

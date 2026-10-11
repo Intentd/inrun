@@ -76,17 +76,6 @@ func (s *APIServer) matches(value string) string {
 	return s.tokens.Matches(value)
 }
 
-// matchesOIDC verifies a JWT bearer against OIDC token entries.
-// Snapshots the token pointer under RLock, then verifies outside the lock
-// so JWKS network calls never block token reloads.
-// Returns the token name and the verified sub claim.
-func (s *APIServer) matchesOIDC(ctx context.Context, bearer string) (name, sub string) {
-	s.mu.RLock()
-	ts := s.tokens
-	s.mu.RUnlock()
-	return ts.MatchesOIDC(ctx, bearer)
-}
-
 // ReloadTokens re-resolves all secretRef tokens (recreating any missing secrets)
 // and atomically replaces the in-memory TokenSet. The OIDC cache is reused —
 // cached JWKS keys persist across reloads.
@@ -115,18 +104,11 @@ func (s *APIServer) Register(reg Registrar) {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			bearer := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 			name := s.matches(bearer)
-			var sub string
-			if name == "" {
-				name, sub = s.matchesOIDC(r.Context(), bearer)
-			}
 			if name == "" {
 				writeJSONError(w, http.StatusUnauthorized, "Unauthorized", "invalid token")
 				return
 			}
 			ctx := contextWithTokenName(r.Context(), name)
-			if sub != "" {
-				ctx = contextWithOIDCSub(ctx, sub)
-			}
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

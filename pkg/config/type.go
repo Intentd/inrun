@@ -271,6 +271,15 @@ func (k *Config) GatewayEndpoint() string {
 	return k.catalog.gatewayEndpoint
 }
 
+// SetGatewayEndpoint advertises url as the companion gateway unless
+// INRUN_GATEWAY_ENDPOINT already set one. The CLI calls it when it starts a
+// local gateway next to the runtime.
+func (k *Config) SetGatewayEndpoint(url string) {
+	if k.catalog.gatewayEndpoint == "" {
+		k.catalog.gatewayEndpoint = url
+	}
+}
+
 // HTTPSPort returns the HTTPS port string (e.g. ":8443") used by the webhook server.
 func (k *Config) HTTPSPort() string {
 	return httpsPort

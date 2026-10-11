@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/inrundev/inrun/cmd/cli/cmdutil"
+	"github.com/inrundev/inrun/cmd/cli/run/companions"
 
 	"github.com/inrundev/inrun/cmd/internal"
+	"github.com/inrundev/inrun/pkg/catalog"
 	"github.com/inrundev/inrun/pkg/logger"
 	"github.com/inrundev/inrun/pkg/merger"
 	"github.com/inrundev/inrun/pkg/registry"
@@ -75,8 +77,11 @@ func runDev(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Run the runtime
-	internal.RunRuntime(cmdutil.Kfg, m, cmdutil.Ctx)
+	// Run the runtime. Once its Catalog is built, start the console, and the
+	// gateway when the Catalog serves.
+	internal.RunRuntime(cmdutil.Kfg, m, cmdutil.Ctx, func(kat *catalog.Catalog) {
+		companions.Start(cmdutil.Ctx, cmdutil.Kfg, paths, kat)
+	})
 	return nil
 }
 

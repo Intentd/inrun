@@ -86,6 +86,11 @@ func (e *executor) ValidateServe() error {
 // serve.fields or between the labels/annotations buckets themselves.
 func (e *executor) validateServeLabelAndAnnotationFields() error {
 	for crdName, crd := range e.k.EnabledCRDs() {
+		if crd.Serve != nil {
+			if err := validateServeFieldTypes(crdName, "fields", crd.Serve.Fields); err != nil {
+				return err
+			}
+		}
 		if !crd.HasServeLabelsOrAnnotations() {
 			continue
 		}
@@ -222,6 +227,20 @@ the CRD's namespace scope (allowedNamespaces with more than one entry, or
 drop the legacy namespace: field) so the informer can see everywhere
 serve.namespace might resolve to.
 ──────────────────────────────────────────────`, failureMark(), crd, tmpl, pinned, pinned)
+}
+
+// validateServeFieldTypes checks each field's type (and enum values) in one
+// serve bucket.
+func validateServeFieldTypes(crdName, bucket string, fields map[string]types.ServeFieldConfig) error {
+	for key, cfg := range fields {
+		if !types.IsValidServeFieldType(cfg.Type) {
+			return errInvalidServeType(crdName, bucket, key, cfg.Type)
+		}
+		if cfg.Type == "enum" && len(cfg.Enum) == 0 {
+			return fmt.Errorf("%s CRD %q: serve.%s %q has type enum but no enum values", failureMark(), crdName, bucket, key)
+		}
+	}
+	return nil
 }
 
 func validateServeLabelAndAnnotationBucket(crdName, bucket string, fields map[string]types.ServeFieldConfig, seen map[string]string) error {

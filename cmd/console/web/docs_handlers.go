@@ -1,7 +1,6 @@
 package web
 
 import (
-	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -113,7 +112,7 @@ func (c *Console) handleCRDDocs(w http.ResponseWriter, r *http.Request, catalogN
 
 	crd, err := inst.Client.FetchCRDDetail(crdName, endpointInfoFor(inst.Catalog, crdName), summaryFor(inst.Catalog, crdName))
 	if err != nil {
-		log.Printf("WARN: docs fetch CRD %s: %v", crdName, err)
+		Warnf("docs fetch CRD %s: %v", crdName, err)
 		crd = &CRDDetail{
 			Name:        crdName,
 			State:       "offline",

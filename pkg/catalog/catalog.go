@@ -6,6 +6,7 @@ import (
 
 	"github.com/inrundev/inrun/pkg/logger"
 	"github.com/inrundev/inrun/pkg/typeregistry"
+	"github.com/inrundev/inrun/pkg/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,9 +37,12 @@ func NewSchemeRegistry(k *Catalog) (*runtime.Scheme, error) {
 	if scheme, err = k.registerDynamicScheme(scheme); err != nil {
 		return nil, err
 	}
-	// Register typed scheme
-	if scheme, err = typeregistry.RegisterTypedScheme(scheme); err != nil {
-		return nil, err
+	// Register typed scheme. The gateway handles every CR as unstructured
+	// (UseUnstructured), so a typed registration would clash with it.
+	if k.config == nil || !k.config.IsGatewayInstance() {
+		if scheme, err = typeregistry.RegisterTypedScheme(scheme); err != nil {
+			return nil, err
+		}
 	}
 
 	// 4. Register external GVKs from custom: blocks so the fake dynamic client's
@@ -49,6 +53,27 @@ func NewSchemeRegistry(k *Catalog) (*runtime.Scheme, error) {
 	}
 
 	return scheme, nil
+}
+
+// UseUnstructured switches every CRD to dynamic mode, so each CR is handled
+// as *unstructured.Unstructured and no compiled type is needed. The gateway
+// calls it: it serves, admits and views CRs but never reconciles them.
+func (k *Catalog) UseUnstructured() {
+	for name, crd := range k.enabledCRDs {
+		k.enabledCRDs[name] = unstructuredEntry(crd)
+	}
+	for name, crd := range k.Spec.CRDs {
+		k.Spec.CRDs[name] = unstructuredEntry(crd)
+	}
+}
+
+func unstructuredEntry(crd types.CRDEntry) types.CRDEntry {
+	if crd.IsBuiltInType() {
+		return crd
+	}
+	crd.Mode = types.CRDModeDynamic
+	crd.APITypes.Location = ""
+	return crd
 }
 
 // Helpers

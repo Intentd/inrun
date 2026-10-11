@@ -170,11 +170,12 @@ func applyHandler(
 			return
 		}
 
-		// Decode into a raw map first to detect target vs full CR mode.
-		var raw map[string]interface{}
-		if err := json.Unmarshal(body, &raw); err != nil {
+		// Decode into a raw map first to detect target vs full CR mode. The
+		// body may be JSON or YAML, like an intent file for serve play.
+		raw, err := intent.Decode(body)
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, ApplyResponse{
-				Message: fmt.Sprintf("invalid JSON: %v", err),
+				Message: err.Error(),
 			})
 			return
 		}
@@ -233,7 +234,7 @@ func applyHandler(
 				return
 			}
 			obj = built
-			InjectProvenanceAnnotations(obj, crd.ServeTarget(), alias, OIDCSubFromContext(r.Context()))
+			InjectProvenanceAnnotations(obj, crd.ServeTarget(), alias)
 			InjectServeIntentAnnotation(obj, raw)
 			gvr = crd.GVR()
 
@@ -303,7 +304,7 @@ func applyHandler(
 			obj = &full
 
 			// ─── Inject Provenance Annotations ────────────────────────────────────────
-			InjectProvenanceAnnotations(obj, crd.ServeTarget(), matchedTarget, OIDCSubFromContext(r.Context()))
+			InjectProvenanceAnnotations(obj, crd.ServeTarget(), matchedTarget)
 			if matchedTarget != "" {
 				InjectFieldSelectorAnnotations(obj, matchedTarget, crd.FieldSelectorForTarget(matchedTarget))
 			}
@@ -701,7 +702,7 @@ func boolPtr(b bool) *bool { return &b }
 // InjectProvenanceAnnotations stamps the three serve provenance annotations onto
 // obj before SSA. Empty strings are skipped — callers pass "" for fields that
 // don't apply to the current request path (e.g. alias is "" on primary targets).
-func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias, source string) {
+func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias string) {
 	ann := obj.GetAnnotations()
 	if ann == nil {
 		ann = make(map[string]string, 3)
@@ -711,9 +712,6 @@ func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias, 
 	}
 	if alias != "" {
 		ann[labels.AnnotationServeAlias] = alias
-	}
-	if source != "" {
-		ann[labels.AnnotationServeSource] = source
 	}
 	obj.SetAnnotations(ann)
 }

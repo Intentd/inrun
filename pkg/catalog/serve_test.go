@@ -84,20 +84,18 @@ func TestGenerateGatewayRBACRules_API(t *testing.T) {
 	k := mustParseTestdata(t, "serve/serve-secretref.yaml")
 	rules := k.GenerateGatewayRBACRules()
 
-	// Must contain get+create on secrets for self-bootstrap
-	foundSecrets := false
+	// Must allow get and create on secrets for self-bootstrap (create in a
+	// rule without resourceNames).
+	hasGet, hasCreate := false, false
 	for _, r := range rules {
-		for _, res := range r.Resources {
-			if res == "secrets" {
-				if !contains(r.Verbs, "get") || !contains(r.Verbs, "create") {
-					t.Errorf("secrets rule missing get or create: %v", r.Verbs)
-				}
-				foundSecrets = true
-			}
+		if !contains(r.Resources, "secrets") {
+			continue
 		}
+		hasGet = hasGet || contains(r.Verbs, "get")
+		hasCreate = hasCreate || (contains(r.Verbs, "create") && len(r.ResourceNames) == 0)
 	}
-	if !foundSecrets {
-		t.Error("no secrets rule found in gateway RBAC rules")
+	if !hasGet || !hasCreate {
+		t.Errorf("secrets rules: get=%v create=%v, want both", hasGet, hasCreate)
 	}
 
 	// Must contain CR verbs for the serve-enabled platform CRD

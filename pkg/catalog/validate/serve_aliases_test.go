@@ -174,3 +174,18 @@ func TestValidateServeAliases_NoAliases_NoError(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
+
+func TestValidateServeFieldTypes(t *testing.T) {
+	ok := map[string]types.ServeFieldConfig{"image": {}, "replicas": {Type: "integer"}}
+	if err := validateServeFieldTypes("website", "fields", ok); err != nil {
+		t.Fatalf("valid types rejected: %v", err)
+	}
+	bad := map[string]types.ServeFieldConfig{"replicas": {Type: "int"}}
+	if err := validateServeFieldTypes("website", "fields", bad); err == nil {
+		t.Fatal(`type "int" accepted`)
+	}
+	noEnum := map[string]types.ServeFieldConfig{"tier": {Type: "enum"}}
+	if err := validateServeFieldTypes("website", "fields", noEnum); err == nil {
+		t.Fatal("enum without values accepted")
+	}
+}
