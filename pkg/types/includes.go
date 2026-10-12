@@ -520,8 +520,8 @@ func ExpandServeTargetIncludes(serve *ServeConfig, baseDir string) error {
 		if len(f.Tokens) > 0 && len(entry.Tokens) == 0 {
 			entry.Tokens = f.Tokens
 		}
-		if f.Config != nil && entry.Config == nil {
-			entry.Config = f.Config
+		if f.View != nil && entry.View == nil {
+			entry.View = f.View
 		}
 		entry.Include = ""
 		serve.Target.Entries[name] = entry

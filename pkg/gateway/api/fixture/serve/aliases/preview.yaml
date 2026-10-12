@@ -7,12 +7,11 @@ tokens:
     permissions:
       global: [get, list]
 
-config:
-  response:
-    default: false
-    payload:
-      phase: '{{ .status.phase }}'
-      workloadType: '{{ .spec.workloadType }}'
-      environment: '{{ .spec.environment }}'
-      target: '{{ getServeTarget . }}'
-      alias: '{{ getServeAlias . }}'
+view:
+  fullObject: false
+  payload:
+    phase: '{{ .status.phase }}'
+    workloadType: '{{ .spec.workloadType }}'
+    environment: '{{ .spec.environment }}'
+    target: '{{ getServeTarget . }}'
+    alias: '{{ getServeAlias . }}'

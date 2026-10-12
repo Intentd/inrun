@@ -180,7 +180,7 @@ Keywords: type, convert, json, serialize, format, encode
 
 ### `toList`
 
-Convert a comma-separated string to a list of trimmed strings. Returns an empty list for empty strings. Essential for dynamic exclusion lists in `serve.config.response` and other places where a comma-separated value needs to be treated as a list.
+Convert a comma-separated string to a list of trimmed strings. Returns an empty list for empty strings. Essential for dynamic exclusion lists in `serve.view` and other places where a comma-separated value needs to be treated as a list.
 
 Keywords: type, convert, list, slice, split, parse, csv
 
@@ -192,13 +192,12 @@ Keywords: type, convert, list, slice, split, parse, csv
 # "foo"     → ["foo"]
 ```
 
-**Typical usage with `serve.config.response`:**
+**Typical usage with `serve.view`:**
 
 ```yaml
 serve:
-  config:
-    response:
-      exclude: '{{ toList (getAnnotation . "platform.myorg.io/exclude-fields") }}'
+  view:
+    exclude: '{{ toList (getAnnotation . "platform.myorg.io/exclude-fields") }}'
 ```
 
 **Usage with notes block:**
@@ -214,9 +213,8 @@ notes:
       {{ end }}
 
 serve:
-  config:
-    response:
-      exclude: '{{ toList (excludeForExternal) }}'
+  view:
+    exclude: '{{ toList (excludeForExternal) }}'
 ```
 ---
 

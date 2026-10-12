@@ -42,7 +42,7 @@ func (c *checker) validateServe() error {
 
 	// 6. Validate Serve response config — payload template compilation and
 	//    payload/exclude path conflicts (warnings, not errors)
-	if err := c.validateServeResponseConfig(); err != nil {
+	if err := c.validateServeView(); err != nil {
 		return err
 	}
 
@@ -57,7 +57,7 @@ func (c *checker) validateServe() error {
 	}
 
 	// 9. Validate Serve response config (depends on CRD)
-	if err := c.validateServeResponseConfig(); err != nil {
+	if err := c.validateServeView(); err != nil {
 		return err
 	}
 

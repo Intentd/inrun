@@ -611,32 +611,32 @@ func (c *CRDEntry) AliasNames() []string {
 	return names
 }
 
-// HasServeResponseConfig reports whether the CRD has an serve response configuration.
-func (c *CRDEntry) HasServeResponseConfig() bool {
-	return c.Serve != nil && c.Serve.Config != nil && c.Serve.Config.Response != nil
+// HasServeView reports whether the CRD declares serve.view.
+func (c *CRDEntry) HasServeView() bool {
+	return c.Serve != nil && c.Serve.View != nil
 }
 
-// GetServeResponseConfig returns the serve response configuration, or nil if not set.
-func (c *CRDEntry) GetServeResponseConfig() *ServeResponseConfig {
-	if c.Serve == nil || c.Serve.Config == nil {
+// ServeView returns the CRD's serve.view, or nil if not declared.
+func (c *CRDEntry) ServeView() *ServeView {
+	if c.Serve == nil || c.Serve.View == nil {
 		return nil
 	}
-	return c.Serve.Config.Response
+	return c.Serve.View
 }
 
 // ServeResponseUseDefault reports whether the full CR should be the starting point.
 // Returns true when Default is nil (omitted) or explicitly true.
-func (c *CRDEntry) ServeResponseUseDefault() bool {
-	cfg := c.GetServeResponseConfig()
+func (c *CRDEntry) ServeResponseIncludesFullObject() bool {
+	cfg := c.ServeView()
 	if cfg == nil {
 		return true
 	}
-	return cfg.UseDefault()
+	return cfg.IncludesFullObject()
 }
 
 // ServeResponseHasPayload reports whether any payload expressions are declared.
 func (c *CRDEntry) ServeResponseHasPayload() bool {
-	cfg := c.GetServeResponseConfig()
+	cfg := c.ServeView()
 	if cfg == nil {
 		return false
 	}
@@ -645,7 +645,7 @@ func (c *CRDEntry) ServeResponseHasPayload() bool {
 
 // ServeResponseHasExclude reports whether an exclude expression is declared.
 func (c *CRDEntry) ServeResponseHasExclude() bool {
-	cfg := c.GetServeResponseConfig()
+	cfg := c.ServeView()
 	if cfg == nil {
 		return false
 	}
@@ -654,7 +654,7 @@ func (c *CRDEntry) ServeResponseHasExclude() bool {
 
 // ServeResponseExclude returns the exclude list, or nil if not set.
 func (c *CRDEntry) ServeResponseExclude() []string {
-	cfg := c.GetServeResponseConfig()
+	cfg := c.ServeView()
 	if cfg == nil {
 		return nil
 	}
@@ -663,27 +663,27 @@ func (c *CRDEntry) ServeResponseExclude() []string {
 
 // ServeResponsePayload returns the payload map, or nil if not set.
 func (c *CRDEntry) ServeResponsePayload() map[string]string {
-	cfg := c.GetServeResponseConfig()
+	cfg := c.ServeView()
 	if cfg == nil {
 		return nil
 	}
 	return cfg.Payload
 }
 
-// ServeResponseConfigFor returns the response configuration that applies to a
+// ServeViewFor returns the response configuration that applies to a
 // caller using the given alias. Resolution:
 //  1. Alias declares its own response config → alias config.
-//  2. CRD-level serve.config.response.
+//  2. CRD-level serve.view.
 //  3. nil (no config declared — caller receives full CR unchanged).
-func (c *CRDEntry) ServeResponseConfigFor(alias string) *ServeResponseConfig {
+func (c *CRDEntry) ServeViewFor(alias string) *ServeView {
 	if alias != "" && c.Serve != nil {
 		if entryCfg, ok := c.Serve.Target.Entries[alias]; ok {
-			if cfg := entryCfg.ResponseConfig(); cfg != nil {
+			if cfg := entryCfg.GetView(); cfg != nil {
 				return cfg
 			}
 		}
 	}
-	return c.GetServeResponseConfig()
+	return c.ServeView()
 }
 
 // ServeTokensFor returns the token permissions map that applies to a caller

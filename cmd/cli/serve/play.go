@@ -43,7 +43,7 @@ Stages (create/update):
   3. CR construction      — build the full CR from field declarations
   4. Provenance           — stamp serve-target and serve-alias annotations
   5. Admission validation — evaluate validation.rules (deny/warn) against the built CR
-  6. Response payload     — evaluate serve.config.response.payload expressions
+  6. Response payload     — evaluate serve.view.payload expressions
 
 Stages (get/list/delete):
   1. Target resolution  — resolve target/alias from catalog
@@ -200,14 +200,14 @@ func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOper
 		printStageDetail(cmdutil.Gray(fmt.Sprintf("DELETE %s/%s in %s", crd.Kind(), name, namespaceOrAny(namespace))))
 		printStageOK("would be deleted")
 	} else {
-		cfg := crd.ServeResponseConfigFor(alias)
+		cfg := crd.ServeViewFor(alias)
 		if cfg == nil {
-			printStageDetail(cmdutil.Gray("no serve.config.response declared — full CR returned"))
+			printStageDetail(cmdutil.Gray("no serve.view declared — full CR returned"))
 		} else {
-			if !cfg.UseDefault() {
-				printStageDetail(cmdutil.Gray("default: false — raw CR omitted from response"))
+			if !cfg.IncludesFullObject() {
+				printStageDetail(cmdutil.Gray("fullObject: false — the CR is left out of the view"))
 			} else {
-				printStageDetail(cmdutil.Gray("default: true — full CR included in response"))
+				printStageDetail(cmdutil.Gray("fullObject: true — the full CR is included in the view"))
 			}
 			if cfg.HasPayload() {
 				printStageDetail(cmdutil.Gray(fmt.Sprintf("payload fields: %s", strings.Join(cmdutil.SortedKeys(cfg.Payload), ", "))))
@@ -217,9 +217,9 @@ func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOper
 			}
 		}
 		if op == types.ServeOpGet {
-			printStageOK(fmt.Sprintf("GET %s/%s in %s — response config above applies", crd.Kind(), name, namespaceOrAny(namespace)))
+			printStageOK(fmt.Sprintf("GET %s/%s in %s — the view above applies", crd.Kind(), name, namespaceOrAny(namespace)))
 		} else {
-			printStageOK(fmt.Sprintf("LIST %s in %s — response config applies to all items", crd.Kind(), namespaceOrAny(namespace)))
+			printStageOK(fmt.Sprintf("LIST %s in %s — the view applies to all items", crd.Kind(), namespaceOrAny(namespace)))
 		}
 	}
 

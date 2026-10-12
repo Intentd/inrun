@@ -39,7 +39,7 @@ Subcommands:
   targets     List all Serve targets in a Catalog
   aliases     List serve aliases in a Catalog
   can-i       Check if a token can perform an operation
-  response    Show the Serve response configuration`,
+  view        Show the serve view a target returns`,
 }
 
 // ── serve validate ────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ var serveValidateCmd = &cobra.Command{
 	Long: `Validate Serve configuration in a Catalog.
 
 This runs the same Serve-specific validations as inrun validate, but only for
-Serve concerns: fields, paths, tokens, response config, and namespace rules.
+Serve concerns: fields, paths, tokens, the view, and namespace rules.
 
 It does not check the full Catalog schema — only the Serve portions.
 
@@ -614,17 +614,15 @@ Examples:
 	},
 }
 
-// ── serve response ────────────────────────────────────────────────────────────
+// ── serve view ────────────────────────────────────────────────────────────
 
-var serveResponseCmd = &cobra.Command{
-	Use:   "response",
-	Short: "Show the Serve response configuration",
-	Long: `Show the Serve response configuration for a target.
+var serveViewCmd = &cobra.Command{
+	Use:   "view",
+	Short: "Show the serve view a target returns",
+	Long: `Show the serve view for a target: what callers read back from the
+Gateway API, from serve.view. It shows:
 
-This displays what callers will see in the Gateway API response based on
-serve.config.response. It shows:
-
-  - default: true/false
+  - fullObject: true/false
   - Payload fields (with their template expressions)
   - Excluded paths
   - Poll URL configuration
@@ -632,8 +630,8 @@ serve.config.response. It shows:
 No cluster access is required — this reads the Catalog directly.
 
 Examples:
-  inrun serve response --target smartapp
-  inrun serve response --target app --preview`,
+  inrun serve view --target smartapp
+  inrun serve view --target app --preview`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		preview, _ := cmd.Flags().GetBool("preview")
 		target, _ := cmd.Flags().GetString("target")
@@ -671,27 +669,27 @@ Examples:
 			return fmt.Errorf("%s CRD %q is not Serve-enabled", cmdutil.FailureMark(), crd.Name)
 		}
 
-		cfg := crd.ServeResponseConfigFor(alias)
+		cfg := crd.ServeViewFor(alias)
 		if cfg == nil {
 			if alias != "" {
-				fmt.Printf("\nNo response configuration for alias %q (CRD: %s) — uses default CR response\n\n", alias, crd.Name)
+				fmt.Printf("\nNo view for alias %q (CRD: %s): the full CR is returned\n\n", alias, crd.Name)
 			} else {
-				fmt.Printf("\nNo response configuration for CRD %q — callers receive the full CR as-is.\n", crd.Name)
-				fmt.Println("  Add serve.config.response to customize what callers see.")
+				fmt.Printf("\nNo view for CRD %q: callers receive the full CR as-is.\n", crd.Name)
+				fmt.Println("  Add serve.view to customize what callers see.")
 				fmt.Println()
 			}
 			return nil
 		}
 
 		if alias != "" {
-			fmt.Printf("\nResponse configuration for alias %q (CRD: %s)\n", alias, crd.Name)
+			fmt.Printf("\nView for alias %q (CRD: %s)\n", alias, crd.Name)
 		} else {
-			fmt.Printf("\nResponse configuration for: %s (target: %s)\n", crd.Name, crd.ServeTarget())
+			fmt.Printf("\nView for: %s (target: %s)\n", crd.Name, crd.ServeTarget())
 		}
 		fmt.Printf("%s\n", strings.Repeat("─", 70))
 
-		fmt.Printf("\ndefault: %v\n", cfg.UseDefault())
-		if cfg.UseDefault() && !cfg.HasExclude() {
+		fmt.Printf("\nfullObject: %v\n", cfg.IncludesFullObject())
+		if cfg.IncludesFullObject() && !cfg.HasExclude() {
 			if cfg.HasPayload() {
 				fmt.Println("  Callers receive the full CR object plus the payload fields below.")
 			} else {
@@ -736,7 +734,7 @@ Examples:
 
 		if preview {
 			fmt.Printf("\n%s\n", strings.Repeat("─", 70))
-			fmt.Println("\nResponse preview (templates shown as-is, not resolved):")
+			fmt.Println("\nView preview (templates shown as-is, not resolved):")
 
 			if cfg.HasPayload() {
 				fmt.Println()
@@ -786,7 +784,7 @@ var serveAliasesCmd = &cobra.Command{
 	Long: `List serve aliases across all serve-enabled CRDs, or for a specific CRD.
 
 Aliases are additional named entry points for a CRD. Each alias can independently
-override token permissions and response configuration, falling back to CRD-level
+override token permissions and the view, falling back to CRD-level
 defaults when not set.
 
 With --target, --kind, or --name, shows aliases for that specific CRD only.
@@ -904,13 +902,13 @@ func init() {
 	serveAliasesCmd.Flags().StringP("alias", "a", "", "Alias name — shows all aliases for the same CRD")
 	serveCmd.AddCommand(serveAliasesCmd)
 
-	// Response
-	serveResponseCmd.Flags().StringP("target", "t", "", "Target to show response for")
-	serveResponseCmd.Flags().StringP("kind", "k", "", "Kind to show response for")
-	serveResponseCmd.Flags().StringP("name", "n", "", "CRD name to show response for")
-	serveResponseCmd.Flags().StringP("alias", "a", "", "Alias to show effective response config for (can be used instead of --target)")
-	serveResponseCmd.Flags().BoolP("preview", "p", false, "Show a sample response preview")
-	serveCmd.AddCommand(serveResponseCmd)
+	// View
+	serveViewCmd.Flags().StringP("target", "t", "", "Target to show the view for")
+	serveViewCmd.Flags().StringP("kind", "k", "", "Kind to show the view for")
+	serveViewCmd.Flags().StringP("name", "n", "", "CRD name to show the view for")
+	serveViewCmd.Flags().StringP("alias", "a", "", "Alias to show the effective view for (can be used instead of --target)")
+	serveViewCmd.Flags().BoolP("preview", "p", false, "Show a sample view preview")
+	serveCmd.AddCommand(serveViewCmd)
 
 	cmdutil.RootCmd.AddCommand(serveCmd)
 

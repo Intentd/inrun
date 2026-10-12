@@ -42,16 +42,15 @@ spec:
           port:
             type: integer
         # What the caller reads back: only this view, not the full CR.
-        config:
-          response:
-            default: false
-            payload:
-              name: '{{ .metadata.name }}'
-              image: '{{ .spec.image }}'
-              phase: '{{ .status.phase }}'
-              endpoint: '{{ .status.endpoint }}'
-            poll:
-              field: status.phase
+        view:
+          fullObject: false
+          payload:
+            name: '{{ .metadata.name }}'
+            image: '{{ .spec.image }}'
+            phase: '{{ .status.phase }}'
+            endpoint: '{{ .status.endpoint }}'
+          poll:
+            field: status.phase
       setup:
         - ./manifests/secret.yaml
       operatorBox:

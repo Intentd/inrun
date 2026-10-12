@@ -173,21 +173,21 @@ func TestServeTargetConfig_HasTokenRestrictions(t *testing.T) {
 	}
 }
 
-func TestServeTargetConfig_ResponseConfig(t *testing.T) {
-	rc := &types.ServeResponseConfig{}
+func TestServeTargetConfig_GetView(t *testing.T) {
+	rc := &types.ServeView{}
 	tests := []struct {
 		name string
 		cfg  *types.ServeTargetConfig
-		want *types.ServeResponseConfig
+		want *types.ServeView
 	}{
 		{"nil entry", nil, nil},
-		{"nil config", &types.ServeTargetConfig{}, nil},
-		{"has response", &types.ServeTargetConfig{Config: &types.ServeAliasConfigSettings{Response: rc}}, rc},
+		{"no view", &types.ServeTargetConfig{}, nil},
+		{"has view", &types.ServeTargetConfig{View: rc}, rc},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.cfg.ResponseConfig(); got != tt.want {
-				t.Errorf("ResponseConfig() = %v, want %v", got, tt.want)
+			if got := tt.cfg.GetView(); got != tt.want {
+				t.Errorf("GetView() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -259,47 +259,47 @@ func TestServeTokensFor_NilServe(t *testing.T) {
 	}
 }
 
-// ── CRDEntry.ServeResponseConfigFor ──────────────────────────────────────────
+// ── CRDEntry.ServeViewFor ──────────────────────────────────────────
 
-func TestServeResponseConfigFor_NoAlias(t *testing.T) {
-	rc := &types.ServeResponseConfig{}
+func TestServeViewFor_NoAlias(t *testing.T) {
+	rc := &types.ServeView{}
 	crd := &types.CRDEntry{
 		Serve: &types.ServeConfig{
 			Enabled: true,
-			Config:  &types.ServeConfigSettings{Response: rc},
+			View:    rc,
 		},
 	}
-	if got := crd.ServeResponseConfigFor(""); got != rc {
+	if got := crd.ServeViewFor(""); got != rc {
 		t.Error("expected CRD-level response config when alias is empty")
 	}
 }
 
-func TestServeResponseConfigFor_AliasOverrides(t *testing.T) {
-	crdRC := &types.ServeResponseConfig{}
-	aliasRC := &types.ServeResponseConfig{}
+func TestServeViewFor_AliasOverrides(t *testing.T) {
+	crdRC := &types.ServeView{}
+	aliasRC := &types.ServeView{}
 	crd := &types.CRDEntry{
 		Serve: &types.ServeConfig{
 			Enabled: true,
-			Config:  &types.ServeConfigSettings{Response: crdRC},
+			View:    crdRC,
 			Target: types.ServeTargetValue{
 				Entries: map[string]*types.ServeTargetConfig{
 					"myapp":  {Primary: true},
-					"public": {Config: &types.ServeAliasConfigSettings{Response: aliasRC}},
+					"public": {View: aliasRC},
 				},
 			},
 		},
 	}
-	if got := crd.ServeResponseConfigFor("public"); got != aliasRC {
+	if got := crd.ServeViewFor("public"); got != aliasRC {
 		t.Error("expected alias-specific response config")
 	}
 }
 
-func TestServeResponseConfigFor_AliasNoResponseFallsBack(t *testing.T) {
-	crdRC := &types.ServeResponseConfig{}
+func TestServeViewFor_AliasNoResponseFallsBack(t *testing.T) {
+	crdRC := &types.ServeView{}
 	crd := &types.CRDEntry{
 		Serve: &types.ServeConfig{
 			Enabled: true,
-			Config:  &types.ServeConfigSettings{Response: crdRC},
+			View:    crdRC,
 			Target: types.ServeTargetValue{
 				Entries: map[string]*types.ServeTargetConfig{
 					"myapp":    {Primary: true},
@@ -308,7 +308,7 @@ func TestServeResponseConfigFor_AliasNoResponseFallsBack(t *testing.T) {
 			},
 		},
 	}
-	if got := crd.ServeResponseConfigFor("internal"); got != crdRC {
+	if got := crd.ServeViewFor("internal"); got != crdRC {
 		t.Error("expected fallback to CRD-level response config")
 	}
 }

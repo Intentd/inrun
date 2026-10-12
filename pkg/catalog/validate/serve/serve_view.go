@@ -6,31 +6,31 @@ import (
 	"strings"
 )
 
-// validateServeResponseConfig checks the serve response configuration for:
+// validateServeView checks the serve response configuration for:
 //   - Path conflicts between payload and exclude (exclude wins, surfaced as warning)
 //   - Payload template compilation errors (error)
-func (c *checker) validateServeResponseConfig() error {
+func (c *checker) validateServeView() error {
 	for crdName, crd := range c.Cat.EnabledCRDs() {
-		if !crd.HasServeResponseConfig() {
+		if !crd.HasServeView() {
 			continue
 		}
 
-		config := crd.Serve.Config.Response
-		if !config.HasPayload() && !config.HasExclude() {
+		view := crd.Serve.View
+		if !view.HasPayload() && !view.HasExclude() {
 			continue
 		}
 
 		// Collect payload keys (these will become top-level fields)
 		payloadKeys := make(map[string]bool)
-		for key := range config.Payload {
+		for key := range view.Payload {
 			payloadKeys[key] = true
 		}
 
 		// Resolve exclude paths (best-effort at validation time)
-		if !config.HasExclude() {
+		if !view.HasExclude() {
 			continue
 		}
-		excludePaths := config.Exclude
+		excludePaths := view.Exclude
 
 		// If exclude is a template, we can't validate its contents at load time
 		for _, p := range excludePaths {

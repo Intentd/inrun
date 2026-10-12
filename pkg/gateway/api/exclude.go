@@ -12,7 +12,7 @@ import (
 // Called at the resource GET/list level, not during payload evaluation.
 //
 // This mutates the response map in-place, removing any paths listed in
-// serve.config.response.exclude.
+// serve.view.exclude.
 //
 // Each entry in the exclude list is a template expression that can resolve to:
 //   - A single path: "metadata.managedFields"
@@ -29,7 +29,7 @@ func ApplyExclusions(
 	if crd == nil {
 		return
 	}
-	cfg := crd.ServeResponseConfigFor(alias)
+	cfg := crd.ServeViewFor(alias)
 	if cfg == nil || !cfg.HasExclude() {
 		return
 	}

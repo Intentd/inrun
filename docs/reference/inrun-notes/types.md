@@ -173,9 +173,8 @@ normalize:
 # ""        → []
 # "foo"     → ["foo"]
 serve:
-  config:
-    response:
-      exclude: '{{ toList (getAnnotation . "platform.myorg.io/exclude-fields") }}'
+  view:
+    exclude: '{{ toList (getAnnotation . "platform.myorg.io/exclude-fields") }}'
 notes:
   - name: excludeForExternal
     expression: |
@@ -186,9 +185,8 @@ notes:
       {{ end }}
 
 serve:
-  config:
-    response:
-      exclude: '{{ toList (excludeForExternal) }}'
+  view:
+    exclude: '{{ toList (excludeForExternal) }}'
 when:
   - field: spec.schedule
     operator: typeOf

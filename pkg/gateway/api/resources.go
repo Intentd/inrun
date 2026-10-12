@@ -126,7 +126,7 @@ func resourcesHandler(
 }
 
 // getResource handles GET /api/v1/resources/{kind}/{ns}/{name}.
-// Returns the full stored CR with the serve.config.response payload evaluated
+// Returns the full stored CR with the serve.view payload evaluated
 // against the live CR — status fields written by the runtime are available.
 func getResource(
 	w http.ResponseWriter,
@@ -190,8 +190,8 @@ func getResource(
 
 	// ── Step 4: Return response ──────────────────────────────────────────
 	if payload != nil {
-		cfg := crd.ServeResponseConfigFor(alias)
-		if cfg != nil && !cfg.UseDefault() {
+		cfg := crd.ServeViewFor(alias)
+		if cfg != nil && !cfg.IncludesFullObject() {
 			writeJSON(w, http.StatusOK, payload)
 			return
 		}
@@ -235,7 +235,7 @@ func listResources(
 	}
 
 	field := r.URL.Query().Get("field")
-	cfg := crd.ServeResponseConfigFor(alias)
+	cfg := crd.ServeViewFor(alias)
 
 	// ── Build items ──────────────────────────────────────────────────────
 	type responseItem struct {
@@ -255,7 +255,7 @@ func listResources(
 		}
 
 		entry := responseItem{Object: obj}
-		if cfg != nil && !cfg.UseDefault() {
+		if cfg != nil && !cfg.IncludesFullObject() {
 			entry.Object = nil
 		}
 		if payload != nil {

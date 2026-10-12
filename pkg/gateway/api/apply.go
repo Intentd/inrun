@@ -54,7 +54,7 @@ type ApplyResponse struct {
 	// PollURL is the URL where the caller can GET the full state of this resource.
 	// By default, it points to /api/v1/resources/{kind}/{namespace}/{name}.
 	//
-	// The platform team can override this via serve.config.response.poll:
+	// The platform team can override this via serve.view.poll:
 	//   - poll.field:   appends ?field=<value> for lightweight polling
 	//   - poll.url:     replaces the URL entirely with a custom template
 	//
@@ -71,13 +71,13 @@ type ApplyResponse struct {
 	Violations []ApplyViolation `json:"violations,omitempty"`
 
 	// Payload carries the platform team's curated view of the submitted CR,
-	// evaluated from serve.config.response at apply time.
+	// evaluated from serve.view at apply time.
 	//
 	// At apply time .status is not yet available — payload fields that
 	// reference status resolve to "". The caller should poll
 	// GET /api/v1/resources/{kind}/{ns}/{name} for live status values.
 	//
-	// Omitted when the CRD has no serve.config.response declared.
+	// Omitted when the CRD has no serve.view declared.
 	Payload map[string]interface{} `json:"payload,omitempty"`
 
 	// Clusters carries per-cluster results for fan-out applies.

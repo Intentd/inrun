@@ -139,11 +139,11 @@ type ServeConfig struct {
 	// "developer shouldn't have to pick a namespace" problem.
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 
-	// Config declares optional response shaping applied by the gateway when
-	// returning CR data to callers. Evaluated at request time against the
-	// fetched CR — no additional Kubernetes API calls are made.
-	// Nil config returns the CR unchanged.
-	Config *ServeConfigSettings `yaml:"config,omitempty" json:"config,omitempty"`
+	// View shapes what callers read back from the gateway: a payload, paths
+	// left out, and when polling is done. Evaluated at request time against the
+	// fetched CR; no additional Kubernetes API calls are made. Without a view
+	// the caller gets the CR unchanged. See ServeView.
+	View *ServeView `yaml:"view,omitempty" json:"view,omitempty"`
 
 	// Tokens maps gateway token names to the operations they may perform on this
 	// CRD and, optionally, the namespaces they may access.
@@ -217,14 +217,6 @@ func (s *ServeConfig) FullCRModeEnabled() bool {
 		return true // default
 	}
 	return *s.Modes.CR
-}
-
-// ServeAliasConfigSettings is the config block on a target entry.
-// Mirrors ServeConfigSettings but kept separate so alias-only settings can be
-// added in future without touching the CRD-level type.
-type ServeAliasConfigSettings struct {
-	// Response controls what callers see when the gateway returns CR data via this alias.
-	Response *ServeResponseConfig `yaml:"response,omitempty" json:"response,omitempty"`
 }
 
 // ServeFieldConfig holds display hints for one spec field in the serve form.
@@ -335,15 +327,6 @@ type ServeFieldConfig struct {
 	// Path is ignored when Values is present.
 	// Value and Values are mutually exclusive.
 	Values map[string]string `yaml:"values,omitempty" json:"values,omitempty"`
-}
-
-// ServeConfigSettings is the container for gateway-level CRD configuration.
-// Named with the parent prefix to avoid colliding with the package-level
-// Config types while keeping the YAML key simply "config:".
-type ServeConfigSettings struct {
-	// Response controls what callers see when the gateway returns CR data.
-	// See ServeResponseConfig for full documentation.
-	Response *ServeResponseConfig `yaml:"response,omitempty" json:"response,omitempty"`
 }
 
 // IsValidServeFieldType reports whether t is a valid ServeFieldConfig.Type value.

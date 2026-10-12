@@ -128,16 +128,15 @@ spec:
               schema: [get]
         # CRD-level response: full CR plus provenance fields so port-forwarding
         # on the primary target shows the stamped annotations in the payload.
-        config:
-          response:
-            default: true
-            payload:
-              phase: '{{ .status.phase }}'
-              target: '{{ getServeTarget . }}'
-              alias: '{{ getServeAlias . }}'
-              source: '{{ getServeSource . }}'
-            poll:
-              field: status.phase
+        view:
+          fullObject: true
+          payload:
+            phase: '{{ .status.phase }}'
+            target: '{{ getServeTarget . }}'
+            alias: '{{ getServeAlias . }}'
+            source: '{{ getServeSource . }}'
+          poll:
+            field: status.phase
       admission:
         validation:
           include: ./admission/platformresource.yaml

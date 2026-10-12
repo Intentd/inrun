@@ -231,7 +231,7 @@ func printAliasesForCRD(crd *types.CRDEntry) {
 			hasTokens = "yes"
 		}
 		hasResponse := "no"
-		if cfg != nil && cfg.ResponseConfig() != nil {
+		if cfg != nil && cfg.GetView() != nil {
 			hasResponse = "yes"
 		}
 		fmt.Fprintf(w, "  %s\t%s\t%s\n", name, hasTokens, hasResponse)
@@ -346,23 +346,23 @@ func printServeValidationSummary(cat *catalog.Catalog) {
 				} else {
 					parts = append(parts, "inherits CRD tokens")
 				}
-				if alias != nil && alias.ResponseConfig() != nil {
-					parts = append(parts, "custom response")
+				if alias != nil && alias.GetView() != nil {
+					parts = append(parts, "custom view")
 				}
 				fmt.Printf("    %s %s  %s\n", cmdutil.Gray("·"), cmdutil.Gray(aliasName), cmdutil.Gray("("+strings.Join(parts, ", ")+")"))
 			}
 		}
 
 		// ── Response Config ─────────────────────────────────────────────
-		cfg := crd.GetServeResponseConfig()
+		cfg := crd.ServeView()
 		if cfg != nil {
 			payloadCount := len(cfg.Payload)
 			excludeCount := len(cfg.Exclude)
 			defaultVal := "true"
-			if !cfg.UseDefault() {
+			if !cfg.IncludesFullObject() {
 				defaultVal = "false"
 			}
-			fmt.Printf("  %s\n", cmdutil.Gray(fmt.Sprintf("response:  default: %s, payload: %d, exclude: %d", defaultVal, payloadCount, excludeCount)))
+			fmt.Printf("  %s\n", cmdutil.Gray(fmt.Sprintf("view:  fullObject: %s, payload: %d, exclude: %d", defaultVal, payloadCount, excludeCount)))
 			if cfg.HasPoll() {
 				pollParts := []string{}
 				if cfg.Poll.URL != "" {
@@ -374,7 +374,7 @@ func printServeValidationSummary(cat *catalog.Catalog) {
 				fmt.Printf("  %s\n", cmdutil.Gray(fmt.Sprintf("poll:      %s", strings.Join(pollParts, ", "))))
 			}
 		} else {
-			fmt.Printf("  %s\n", cmdutil.Gray("response:  none (default CR response)"))
+			fmt.Printf("  %s\n", cmdutil.Gray("view:  none (the full CR is returned)"))
 		}
 
 		// ── Warnings ─────────────────────────────────────────────────────

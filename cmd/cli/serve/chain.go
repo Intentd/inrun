@@ -130,7 +130,7 @@ func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string,
 	// Stage 6: Response payload
 	n.stage(6, "Response payload")
 	if payload := api.EvaluatePayload(obj.Object, crd, alias, notes); payload == nil {
-		n.detail(cmdutil.Gray("no serve.config.response declared — default CR response"))
+		n.detail(cmdutil.Gray("no serve.view declared — the full CR is returned"))
 	} else {
 		n.json(payload)
 	}

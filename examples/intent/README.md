@@ -106,7 +106,7 @@ inrun serve apply -f intent.json -a http://localhost:8082 -t $INTENT_TOKEN
 
 ### 5. Read the view
 
-Returns only what `serve.config.response` declares: `name`, `image`, `phase`
+Returns only what `serve.view` declares: `name`, `image`, `phase`
 and `endpoint`. `phase` reads `Running` once the runtime has reconciled.
 
 ```bash

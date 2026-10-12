@@ -18,7 +18,7 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("no response config is a no-op", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = nil
+		crd.Serve.View = nil
 		response := map[string]interface{}{"a": "b"}
 		ApplyExclusions(response, crd, "", noopNotes())
 		assert.Equal(t, "b", response["a"])
@@ -26,9 +26,7 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("no exclude declared is a no-op", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{},
-		}
+		crd.Serve.View = &types.ServeView{}
 		response := map[string]interface{}{"a": "b"}
 		ApplyExclusions(response, crd, "", noopNotes())
 		assert.Equal(t, "b", response["a"])
@@ -36,10 +34,8 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("single static path removed", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{"metadata.managedFields"},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{"metadata.managedFields"},
 		}
 		response := map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -56,10 +52,8 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("multiple entries each remove their own path", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{"metadata.managedFields", "status.observedGeneration"},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{"metadata.managedFields", "status.observedGeneration"},
 		}
 		response := map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -82,10 +76,8 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("comma separated string in a single entry removes multiple paths", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{"metadata.managedFields,status.observedGeneration"},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{"metadata.managedFields,status.observedGeneration"},
 		}
 		response := map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -106,10 +98,8 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("dynamic list from annotation via toList", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{`{{ toList (getAnnotation . "platform.myorg.io/exclude") }}`},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{`{{ toList (getAnnotation . "platform.myorg.io/exclude") }}`},
 		}
 		response := map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -135,10 +125,8 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("path that does not exist is a no-op, not an error", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{"spec.nonexistent.deeply.nested"},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{"spec.nonexistent.deeply.nested"},
 		}
 		response := map[string]interface{}{"a": "b"}
 		assert.NotPanics(t, func() {
@@ -149,10 +137,8 @@ func TestApplyExclusions(t *testing.T) {
 
 	t.Run("empty entry is skipped", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{""},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{""},
 		}
 		response := map[string]interface{}{"a": "b"}
 		ApplyExclusions(response, crd, "", noopNotes())

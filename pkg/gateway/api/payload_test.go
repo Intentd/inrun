@@ -15,27 +15,23 @@ import (
 func TestEvaluatePayload(t *testing.T) {
 	t.Run("nil config returns nil", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = nil
+		crd.Serve.View = nil
 		result := EvaluatePayload(map[string]interface{}{}, crd, "", noopNotes())
 		assert.Nil(t, result)
 	})
 
 	t.Run("no payload declared returns nil", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{},
-		}
+		crd.Serve.View = &types.ServeView{}
 		result := EvaluatePayload(map[string]interface{}{}, crd, "", noopNotes())
 		assert.Nil(t, result)
 	})
 
 	t.Run("plain string passes through", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Payload: map[string]string{
-					"supportChannel": "#platform",
-				},
+		crd.Serve.View = &types.ServeView{
+			Payload: map[string]string{
+				"supportChannel": "#platform",
 			},
 		}
 		result := EvaluatePayload(map[string]interface{}{}, crd, "", noopNotes())
@@ -45,11 +41,9 @@ func TestEvaluatePayload(t *testing.T) {
 
 	t.Run("template expression resolved against CR", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Payload: map[string]string{
-					"phase": `{{ .status.phase }}`,
-				},
+		crd.Serve.View = &types.ServeView{
+			Payload: map[string]string{
+				"phase": `{{ .status.phase }}`,
 			},
 		}
 		obj := map[string]interface{}{
@@ -62,11 +56,9 @@ func TestEvaluatePayload(t *testing.T) {
 
 	t.Run("unresolvable expression returns empty string not error", func(t *testing.T) {
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Payload: map[string]string{
-					"phase": `{{ .status.phase }}`,
-				},
+		crd.Serve.View = &types.ServeView{
+			Payload: map[string]string{
+				"phase": `{{ .status.phase }}`,
 			},
 		}
 		// status not yet present — at apply time
@@ -81,11 +73,9 @@ func TestEvaluatePayload(t *testing.T) {
 		// itself always returns only the declared payload fields.
 		crd := appCRD()
 		tr := true
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Default: &tr,
-				Payload: map[string]string{"extra": "value"},
-			},
+		crd.Serve.View = &types.ServeView{
+			FullObject: &tr,
+			Payload:    map[string]string{"extra": "value"},
 		}
 		obj := map[string]interface{}{
 			"spec": map[string]interface{}{"image": "myimage"},
@@ -101,11 +91,9 @@ func TestEvaluatePayload(t *testing.T) {
 		// Exclude is applied by ApplyExclusions at the resource GET/list
 		// level, before EvaluatePayload runs — not by EvaluatePayload itself.
 		crd := appCRD()
-		crd.Serve.Config = &types.ServeConfigSettings{
-			Response: &types.ServeResponseConfig{
-				Exclude: []string{"metadata.managedFields"},
-				Payload: map[string]string{"name": `{{ .metadata.name }}`},
-			},
+		crd.Serve.View = &types.ServeView{
+			Exclude: []string{"metadata.managedFields"},
+			Payload: map[string]string{"name": `{{ .metadata.name }}`},
 		}
 		obj := map[string]interface{}{
 			"metadata": map[string]interface{}{

@@ -100,7 +100,7 @@ func (c *ServeTargetConfig) isDefaultPrimary() bool {
 	}
 
 	// Check Config
-	if c.HasServeAliasConfigSettings() {
+	if c.HasView() {
 		return false
 	}
 
@@ -235,9 +235,9 @@ type ServeTargetConfig struct {
 	// what permissions. When absent, falls back to serve.tokens (CRD default).
 	Tokens map[string]ServeTokenPermissions `yaml:"tokens,omitempty" json:"tokens,omitempty"`
 
-	// Config controls the shape of apply and GET responses for this surface.
-	// When absent, falls back to serve.config (CRD default).
-	Config *ServeAliasConfigSettings `yaml:"config,omitempty" json:"config,omitempty"`
+	// View shapes what callers of this target read back. When absent, the
+	// CRD's serve.view applies.
+	View *ServeView `yaml:"view,omitempty" json:"view,omitempty"`
 
 	// Clusters scopes the fan-out for this target to a subset of serve.clusters.
 	// Each entry is either a static name or a template expression resolved at apply time.
@@ -264,11 +264,11 @@ func (t *ServeTargetConfig) HasTokenRestrictions() bool {
 }
 
 // ResponseConfig returns the response config for this entry, or nil.
-func (t *ServeTargetConfig) ResponseConfig() *ServeResponseConfig {
-	if t == nil || t.Config == nil {
+func (t *ServeTargetConfig) GetView() *ServeView {
+	if t == nil || t.View == nil {
 		return nil
 	}
-	return t.Config.Response
+	return t.View
 }
 
 // HasApplyConfig returns the apply config for this entry, or nil.
@@ -330,12 +330,12 @@ func (t *ServeTargetConfig) HasFullCRMode() bool {
 	return t.Modes.CR != nil
 }
 
-// HasServeAliasConfigSettings reports whether this target has response config enabled.
-func (t *ServeTargetConfig) HasServeAliasConfigSettings() bool {
-	if t == nil || t.Config == nil {
+// HasView reports whether this target has response config enabled.
+func (t *ServeTargetConfig) HasView() bool {
+	if t == nil || t.View == nil {
 		return false
 	}
-	return t.Config.Response != nil
+	return t.View != nil
 }
 
 // HasClusters reports whether this target entry declares its own cluster routing.

@@ -7,11 +7,10 @@ tokens:
     permissions:
       global: [get, list, create, update, delete]
 
-config:
-  response:
-    default: true
-    payload:
-      phase: '{{ .status.phase }}'
-      target: '{{ getServeTarget . }}'
-      alias: '{{ getServeAlias . }}'
-      source: '{{ getServeSource . }}'
+view:
+  fullObject: true
+  payload:
+    phase: '{{ .status.phase }}'
+    target: '{{ getServeTarget . }}'
+    alias: '{{ getServeAlias . }}'
+    source: '{{ getServeSource . }}'

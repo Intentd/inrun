@@ -114,7 +114,7 @@ func noteToJson(v interface{}) (string, error) {
 
 // toList converts a comma-separated string to a trimmed, de-duplicated slice.
 //
-// Designed for use in serve.config.response.exclude and anywhere else a template
+// Designed for use in serve.view.exclude and anywhere else a template
 // expression needs to produce a list from a single string — annotations,
 // labels, or literal values.
 //
