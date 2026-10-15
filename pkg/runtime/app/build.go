@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/catalog"
@@ -9,7 +10,6 @@ import (
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
@@ -28,13 +28,13 @@ type core struct {
 
 // newCore builds the scheme and the core components, created here and started
 // later by inrun in registration order.
-func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) core {
+func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) (core, error) {
 	// Each CRD type (e.g. *PipelineList) must be registered with the scheme so
 	// the REST client knows how to decode API server responses. For dynamic CRDs
 	// (unstructured mode), this is a no-op — they use the dynamic client.
 	scheme, err := catalog.NewSchemeRegistry(cat)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to build scheme registry")
+		return core{}, fmt.Errorf("failed to build scheme registry: %w", err)
 	}
 
 	kube := kubeclient.NewKubeclient(cfg, scheme)
@@ -42,7 +42,7 @@ func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) core
 	// kubeclient is started immediately — the informer factory's missing-CRD
 	// check needs the REST config during construction, before Process.Start().
 	if err := kube.Start(ctx); err != nil {
-		logger.Fatal().Err(err).Msg("failed to start kubeclient")
+		return core{}, fmt.Errorf("failed to start kubeclient: %w", err)
 	}
 
 	return core{
@@ -60,7 +60,7 @@ func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) core
 		// Maps GVK strings to dedicated work queues, so cross-controller
 		// enqueues are dispatched correctly.
 		queueRegistry: queue.NewQueueRegistry(),
-	}
+	}, nil
 }
 
 // components lists the runtime's components in start order: each starts after

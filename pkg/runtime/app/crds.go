@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
@@ -17,7 +18,7 @@ import (
 // queue, its informer and its reconciler factory. It also builds one CRDHealth
 // per CRD, shared between the coordinator (which updates it on each reconcile)
 // and the HTTP health routes (which read it on each request).
-func wireCRDs(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, c core, infFactory *informer.Factory) (*coordinator.ResourceCatalog, map[string]*vitals.CRDHealth) {
+func wireCRDs(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, c core, infFactory *informer.Factory) (*coordinator.ResourceCatalog, map[string]*vitals.CRDHealth, error) {
 	// The registry maps GVK → (CRDEntry, SharedIndexInformer, ReconcilerFactory).
 	// It also implements reconciler.CatalogRegistry via GetInformerByName,
 	// enabling cross-CRD observation with zero API server calls.
@@ -46,7 +47,7 @@ func wireCRDs(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, c c
 			OwnNamespace: cfg.Cluster().Namespace(),
 		})
 		if err != nil {
-			logger.Fatal().Err(err).Str("gvk", gvk).Msg("failed to build the reconciler")
+			return nil, nil, fmt.Errorf("gvk: "+gvk+" failed to build the reconciler: %w", err)
 		}
 
 		// Register informs the DependencyCoordinator which informer and factory
@@ -54,5 +55,5 @@ func wireCRDs(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, c c
 		registry.Register(gvk, crd, inf, factory)
 		logger.Debug().Str("gvk", gvk).Msg("CRD registered")
 	}
-	return registry, crdHealthMap
+	return registry, crdHealthMap, nil
 }

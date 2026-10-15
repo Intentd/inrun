@@ -12,13 +12,13 @@ import (
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const uniqueTestCRD = `
@@ -256,7 +256,7 @@ func TestExtractMetaName_JSON(t *testing.T) {
 	assert.Equal(t, "logs", extractMetaName([]byte(`{"metadata":{"name":"logs"}}`)))
 }
 
-// Typed clients get protobuf back for built-in kinds; 
+// Typed clients get protobuf back for built-in kinds;
 // a create's name must still be recorded.
 func TestExtractMetaName_Protobuf(t *testing.T) {
 	sa := &corev1.ServiceAccount{

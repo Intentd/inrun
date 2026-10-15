@@ -26,7 +26,15 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 		version.Version,
 	))
 
-	rt := app.New(cfg, m, ctx)
+	rt, err := app.New(cfg, m, ctx)
+	if err != nil {
+		utils.FatalExit("runtime startup failed", err)
+	}
+
+	if rt == nil {
+		utils.FatalExit("app.New returned no runtime", nil)
+	}
+
 	for _, f := range onCatalog {
 		f(rt.Catalog)
 	}
@@ -34,8 +42,7 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 	// ── Start ─────────────────────────────────────────────────────────────────
 	go func() {
 		if err := rt.Process.Start(ctx); err != nil {
-			logger.Fatal().AnErr("inrun startup error", err)
-			utils.Exit(err)
+			utils.FatalExit("inrun startup error", err)
 		}
 	}()
 

@@ -14,13 +14,19 @@ import (
 
 // RunGateway builds and runs the gateway until ctx ends. There is no leader
 // election: the gateway is stateless and runs as several replicas.
-func RunGateway(cfg *config.Config, m *merger.Merger, ctx context.Context) {
-	gw := app.New(cfg, m, ctx)
+func RunGateway(ctx context.Context, cfg *config.Config, m *merger.Merger) {
+	gw, err := app.New(ctx, cfg, m)
+	if err != nil {
+		utils.FatalExit("gateway startup failed", err)
+	}
+
+	if gw == nil {
+		utils.FatalExit("app.New returned no gateway", nil)
+	}
 
 	go func() {
 		if err := gw.Process.Start(ctx); err != nil {
-			logger.Fatal().AnErr("gateway startup error", err)
-			utils.Exit(err)
+			utils.FatalExit("gateway startup error", err)
 		}
 	}()
 

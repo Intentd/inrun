@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/inrun/pkg/logger"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -108,6 +109,12 @@ func Exit(err error) {
 		os.Stderr.WriteString(FailureMark() + " " + err.Error() + "\n")
 	}
 	os.Exit(1)
+}
+
+// FatalExit logs err and its reason, then exits the process. It never returns.
+func FatalExit(reason string, err error) {
+	logger.Error().AnErr(reason, err)
+	Exit(err)
 }
 
 // ValidKubernetesName uses IsDNS1123Subdomain tests for a string that conforms to the

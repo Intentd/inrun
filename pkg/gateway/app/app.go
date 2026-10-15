@@ -8,6 +8,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/catalog"
@@ -32,24 +33,33 @@ type Gateway struct {
 // patch CRDs, so it serves the Gateway API (POST /api/v1/apply,
 // GET /api/v1/resources/, and so on) and intake webhooks on the plain HTTP
 // health port — the same API surface — and leaves the webhooks out.
-func New(cfg *config.Config, m *merger.Merger, ctx context.Context) *Gateway {
-	cat, kube := buildBase(ctx, cfg, m)
+func New(ctx context.Context, cfg *config.Config, m *merger.Merger) (*Gateway, error) {
+	cat, kube, err := buildBase(ctx, cfg, m)
+	if err != nil {
+		return nil, err
+	}
 
 	// HTTP: probes, metrics, the /catalog API and the Gateway API.
 	hs := health.NewHealthServer(cfg)
 
 	if !utils.IsRunningInPod() {
 		logger.Warn().Msg("not in a pod — admission and conversion webhooks are disabled (TLS not available)")
-		if api := newAPI(ctx, cfg, cat, kube); api != nil {
+
+		api, err := newAPI(ctx, cfg, cat, kube)
+		if err != nil {
+			return nil, err
+		}
+
+		if api != nil {
 			api.Register(hs)
 		}
-		return &Gateway{Catalog: cat, Process: process.New(cfg, []domain.Component{hs, kube})}
+		return &Gateway{Catalog: cat, Process: process.New(cfg, []domain.Component{hs, kube})}, nil
 	}
 
 	// Namespace label, TLS and the conversion caBundle.
 	tls, err := ensureSecurity(ctx, cfg, cat, kube)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("security setup failed")
+		return nil, fmt.Errorf("security setup failed: %w", err)
 	}
 	if tls != nil {
 		logger.Debug().
@@ -73,7 +83,12 @@ func New(cfg *config.Config, m *merger.Merger, ctx context.Context) *Gateway {
 
 	registerCatalogRoutes(hs, cat, ws)
 
-	if api := newAPI(ctx, cfg, cat, kube); api != nil {
+	api, err := newAPI(ctx, cfg, cat, kube)
+	if err != nil {
+		return nil, err
+	}
+
+	if api != nil {
 		api.Register(hs)
 		ws.SetTokenReloader(api.ReloadTokens)
 	}
@@ -82,5 +97,5 @@ func New(cfg *config.Config, m *merger.Merger, ctx context.Context) *Gateway {
 		hs,   // 1. HTTP server — /ready, /livez probes
 		ws,   // 2. HTTPS webhook server — /validate, /mutate, /convert
 		kube, // 3. REST clients — already started, managed for Stop()
-	})}
+	})}, nil
 }

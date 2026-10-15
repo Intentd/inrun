@@ -37,11 +37,20 @@ type Runtime struct {
 // registration order, and component.Stop() in reverse order on shutdown.
 // Each step below is its own function; read top to bottom, this is the
 // runtime's dependency graph and startup order.
-func New(cfg *config.Config, m *merger.Merger, ctx context.Context) *Runtime {
+func New(cfg *config.Config, m *merger.Merger, ctx context.Context) (*Runtime, error) {
 	cat := pipeline.NewCatalog(cfg, m, config.Runtime())
-	c := newCore(ctx, cfg, cat)
+	c, err := newCore(ctx, cfg, cat)
+	if err != nil {
+		return nil, err
+	}
+
 	infFactory := crds.NewFactory(cfg, cat, c.kube, c.scheme, c.defaultWq, c.queueRegistry)
-	registry, crdHealthMap := wireCRDs(ctx, cfg, cat, c, infFactory)
+
+	registry, crdHealthMap, crdErr := wireCRDs(ctx, cfg, cat, c, infFactory)
+	if crdErr != nil {
+		return nil, crdErr
+	}
+
 	inrunHealth := vitals.NewRuntimeHealth()
 	registerRoutes(c.hs, cfg, m, cat, c.kube, registry, crdHealthMap, inrunHealth)
 	coord := newCoordinator(cfg, cat, c, infFactory, registry, crdHealthMap, inrunHealth)
@@ -53,5 +62,5 @@ func New(cfg *config.Config, m *merger.Merger, ctx context.Context) *Runtime {
 		Kube:        c.kube,
 		Coordinator: coord,
 		Process:     o,
-	}
+	}, nil
 }

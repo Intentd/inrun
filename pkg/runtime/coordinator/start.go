@@ -17,7 +17,7 @@ import (
 func (dc *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string, workers int) {
 	entry, ok := dc.catalog.Get(gvk)
 	if !ok {
-		logger.Fatal().Str("gvk", gvk).Msg("no catalog entry found")
+		logger.Error().Str("gvk", gvk).Msg("no catalog entry found")
 		return
 	}
 

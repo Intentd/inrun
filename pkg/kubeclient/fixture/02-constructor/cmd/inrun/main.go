@@ -7,7 +7,6 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/utils"
 
 	_ "github.com/intentd/inrun-args-constructor/pkg/typeregistry"
@@ -16,8 +15,7 @@ import (
 func main() {
 	cfg, err := config.Init()
 	if err != nil {
-		logger.Fatal().AnErr("failed to load configurations", err)
-		utils.Exit(err)
+		utils.FatalExit("failed to load configurations", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
