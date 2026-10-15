@@ -8,7 +8,7 @@ import (
 )
 
 func TestAssertPortForwardOutput(t *testing.T) {
-	e := types.E2EKubectlPortForward{Path: "/healthz", OutputContains: "ok"}
+	e := types.E2EKubectlPortForward{Path: "/healthz", E2EAssertions: types.E2EAssertions{Contains: "ok"}}
 	if err := assertPortForwardOutput(context.Background(), "", `{"status":"ok"}`, e, "pod/inrun-runtime-0"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -18,7 +18,7 @@ func TestAssertPortForwardOutput(t *testing.T) {
 }
 
 func TestAssertPortForwardOutput_StatusCode(t *testing.T) {
-	e := types.E2EKubectlPortForward{Path: "/healthz", StatusCode: 200, Equals: "200"}
+	e := types.E2EKubectlPortForward{Path: "/healthz", StatusCode: 200, E2EAssertions: types.E2EAssertions{Equals: "200"}}
 	if err := assertPortForwardOutput(context.Background(), "", "200", e, "pod/inrun-runtime-0"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

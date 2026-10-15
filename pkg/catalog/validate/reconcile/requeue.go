@@ -13,15 +13,24 @@ func (c *checker) validateRequeue() error {
 		if rc == nil || rc.Requeue == nil {
 			continue
 		}
-		after := rc.Requeue.After
-		if after == "" || isTemplate(after) {
-			continue
+		if err := checkRequeueAfter(fmt.Sprintf("crd %q: requeue.after", crdName), rc.Requeue.After); err != nil {
+			return err
 		}
-		if _, err := parseTimeDuration(after); err != nil {
-			return fmt.Errorf("%s crd %q: requeue.after %q is not a valid duration or template expression. "+
-				"Use a Go duration string (e.g. \"30s\", \"5m\") or a template (e.g. '{{ .spec.interval | default \"60s\" }}')",
-				failureMark(), crdName, after)
-		}
+	}
+	return nil
+}
+
+// checkRequeueAfter checks one requeue.after value: empty (no requeue), a
+// template, or a duration utils.ParseTimeDuration accepts. where names it in
+// the error.
+func checkRequeueAfter(where, after string) error {
+	if after == "" || isTemplate(after) {
+		return nil
+	}
+	if _, err := parseTimeDuration(after); err != nil {
+		return fmt.Errorf("%s %s %q is not a valid duration or template expression. "+
+			"Use a Go duration string (e.g. \"30s\", \"5m\") or a template (e.g. '{{ .spec.interval | default \"60s\" }}')",
+			failureMark(), where, after)
 	}
 	return nil
 }

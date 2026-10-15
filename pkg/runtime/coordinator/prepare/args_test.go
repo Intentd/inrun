@@ -38,3 +38,24 @@ func TestArgs_TemplatesRenderedAgainstTheCR(t *testing.T) {
 	assert.Equal(t, float64(5), got["replicas"])
 	assert.Equal(t, true, got["debug"])
 }
+
+func TestRenderArgs_ArgsReachTheResolver(t *testing.T) {
+	prepared := preparedWithArgs(
+		map[string]interface{}{"image": `{{ index . "image" }}`},
+		map[string]interface{}{"image": "nginx:1.27"},
+	)
+	RenderArgs(prepared)
+
+	assert.Equal(t, "nginx:1.27", prepared.Args["image"], "the reconciler still gets them")
+	resolver := prepared.Context.(*template.Resolver)
+	got, ok := resolver.RenderString(`{{ .args.image }}`)
+	assert.True(t, ok)
+	assert.Equal(t, "nginx:1.27", got, "templates rendered afterwards see .args")
+}
+
+func TestRenderArgs_NoArgsLeavesTheResolver(t *testing.T) {
+	prepared := preparedWithArgs(nil, map[string]interface{}{"image": "nginx"})
+	before := prepared.Context
+	RenderArgs(prepared)
+	assert.Same(t, before, prepared.Context)
+}

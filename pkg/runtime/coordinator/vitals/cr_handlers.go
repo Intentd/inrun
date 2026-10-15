@@ -10,7 +10,7 @@
 //       Returns name, namespace, phase, ready, age, generation.
 //       ?field=<dot-path> additionally resolves that field (e.g. spec.domain)
 //       against each instance's full object and returns it as "value" —
-//       used by the gateway's operator: unique admission check.
+//       used by the gateway's unique: true admission check.
 //
 //   GET /catalog/{crd}/cr/{name}           (cluster-scoped CRDs)
 //   GET /catalog/{crd}/cr/{namespace}/{name} (namespaced CRDs)
@@ -71,7 +71,7 @@ type CRSummary struct {
 	// Value is the resolved value of the ?field= dot-path requested on this
 	// list call — e.g. ?field=spec.domain. Empty when no field was
 	// requested, or when the CR doesn't have that field. This is what lets
-	// operator: unique check other instances without a live List() call
+	// unique: true check other instances without a live List() call
 	// against the API server: the informer cache already holds full spec
 	// data, this just surfaces one field of it instead of discarding
 	// everything but the summary. See pkg/utils/common/query.

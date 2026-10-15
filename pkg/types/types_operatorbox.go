@@ -600,6 +600,12 @@ func (c *OperatorBoxConfig) EffectiveOnDelete() *HookTemplates {
 	return c.Reconcile.OnDelete
 }
 
+// HasTemplates reports whether onCreate, onReconcile or onDelete templates
+// are declared.
+func (c *OperatorBoxConfig) HasTemplates() bool {
+	return c.EffectiveOnCreate() != nil || c.EffectiveOnReconcile() != nil || c.EffectiveOnDelete() != nil
+}
+
 // HasEmit reports whether an emit block is declared.
 func (c *OperatorBoxConfig) HasEmit() bool {
 	return c != nil && c.Emit != nil

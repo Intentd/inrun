@@ -518,6 +518,11 @@ func (h *CRDHealth) StateAndStatus() (string, int) {
 //		{{ .health.uptime }}             — string: how long the reconciler has been running
 //		{{ .health.lastError }}          — string: most recent error message (empty if none)
 //		{{ .health.hasUnhealthyDeps }}   — bool: any dependency is unsatisfied
+//
+// At reconcile these are live. The gateway reads them from the CR's
+// inrun.dev/health annotation, which is rewritten only when health changes,
+// so in admission rules totalReconciles, lastReconcile and uptime are as of
+// the last change.
 func (h *CRDHealth) HealthAsMap() map[string]interface{} {
 	if h == nil {
 		return map[string]interface{}{}

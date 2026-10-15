@@ -105,30 +105,55 @@ func (nr NoteRegistry) ExpressionFor(name string) string {
 	return ""
 }
 
-// ContainsInExpression reports whether the named note's expression body, or any
-// note it transitively calls, contains substr. Cycle-safe via a visited set.
-func (nr NoteRegistry) ContainsInExpression(name, substr string) bool {
-	return nr.containsInExpression(name, substr, make(map[string]bool))
+// References reports whether expr reads the data root (for example
+// "health", "external" or "args.quota"): as a field path ("health.status" or
+// ".health.status"), inside a template ("{{ .health.status }}"), or through a
+// note the template calls, followed through the notes that note calls.
+// Sentinels are never notes. Cycle-safe.
+func (nr NoteRegistry) References(expr, root string) bool {
+	expr = strings.TrimSpace(expr)
+	if expr == "" || root == "" {
+		return false
+	}
+	if !strings.Contains(expr, "{{") {
+		path := strings.TrimPrefix(expr, ".")
+		return path == root || strings.HasPrefix(path, root+".")
+	}
+	return nr.templateReferences(expr, root, make(map[string]bool))
 }
 
-func (nr NoteRegistry) containsInExpression(name, substr string, visited map[string]bool) bool {
-	if visited[name] {
-		return false
-	}
-	visited[name] = true
-	expr := nr.ExpressionFor(name)
-	if expr == "" {
-		return false
-	}
-	if strings.Contains(expr, substr) {
+func (nr NoteRegistry) templateReferences(expr, root string, visited map[string]bool) bool {
+	if readsRoot(expr, root) {
 		return true
 	}
 	for _, n := range nr.Functions {
-		if !visited[n.Name] && isWordIn(expr, n.Name) {
-			if nr.containsInExpression(n.Name, substr, visited) {
-				return true
-			}
+		if visited[n.Name] || sentinel.IsValid(n.Name) || !isWordIn(expr, n.Name) {
+			continue
 		}
+		visited[n.Name] = true
+		if nr.templateReferences(n.Expression, root, visited) {
+			return true
+		}
+	}
+	return false
+}
+
+// readsRoot reports whether the template expr reads ".root" as the start of a
+// path: not part of a longer path (.spec.health) or name (.healthCheck).
+func readsRoot(expr, root string) bool {
+	needle := "." + root
+	for i := strings.Index(expr, needle); i >= 0; {
+		end := i + len(needle)
+		startsPath := i == 0 || !(isIdentByte(expr[i-1]) || expr[i-1] == '.' || expr[i-1] == ')' || expr[i-1] == ']')
+		endsName := end == len(expr) || !isIdentByte(expr[end])
+		if startsPath && endsName {
+			return true
+		}
+		next := strings.Index(expr[i+1:], needle)
+		if next < 0 {
+			break
+		}
+		i = i + 1 + next
 	}
 	return false
 }

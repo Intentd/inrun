@@ -16,6 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const uniqueTestCRD = `
@@ -69,7 +72,7 @@ spec:
         validation:
           rules:
             - field: spec.domain
-              operator: unique
+              unique: true
               message: "spec.domain must be unique across all Website instances"
               action: deny
 `
@@ -247,4 +250,28 @@ func TestParseCollectionURL(t *testing.T) {
 			assert.Equal(t, tc.wantNamespace, gotNS)
 		})
 	}
+}
+
+func TestExtractMetaName_JSON(t *testing.T) {
+	assert.Equal(t, "logs", extractMetaName([]byte(`{"metadata":{"name":"logs"}}`)))
+}
+
+// Typed clients get protobuf back for built-in kinds; 
+// a create's name must still be recorded.
+func TestExtractMetaName_Protobuf(t *testing.T) {
+	sa := &corev1.ServiceAccount{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-site-sa", Namespace: "default"},
+	}
+	info, ok := runtime.SerializerInfoForMediaType(clientgoscheme.Codecs.SupportedMediaTypes(), runtime.ContentTypeProtobuf)
+	require.True(t, ok)
+	encoder := clientgoscheme.Codecs.EncoderForVersion(info.Serializer, corev1.SchemeGroupVersion)
+	body, err := runtime.Encode(encoder, sa)
+	require.NoError(t, err)
+
+	assert.Equal(t, "my-site-sa", extractMetaName(body))
+}
+
+func TestExtractMetaName_Garbage(t *testing.T) {
+	assert.Equal(t, "", extractMetaName([]byte("not an object")))
 }

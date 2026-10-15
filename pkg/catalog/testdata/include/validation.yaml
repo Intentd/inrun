@@ -15,8 +15,7 @@ spec:
           include: ./validation-rules.yaml
           rules:
             - field: spec.replicas
-              operator: lte
-              value: "10"
+              max: "10"
               message: "replicas must not exceed 10"
               action: deny
 

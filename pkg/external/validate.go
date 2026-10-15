@@ -49,39 +49,39 @@ func ValidateCall(location string, call types.ExternalCallSpec) error {
 		if call.Query == "" {
 			return fmt.Errorf("%s: query is required for protocol: prometheus", location)
 		}
-		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || call.ExpectedStatus != 0 {
+		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || len(call.ExpectedStatus) > 0 {
 			return fmt.Errorf("%s: body, method, headers, and expectedStatus are HTTP-only fields", location)
 		}
 	case types.ProtocolRedis:
 		if call.Query == "" {
 			return fmt.Errorf("%s: query is required for protocol: redis (e.g. \"GET mykey\")", location)
 		}
-		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || call.ExpectedStatus != 0 {
+		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || len(call.ExpectedStatus) > 0 {
 			return fmt.Errorf("%s: body, method, headers, and expectedStatus are HTTP-only fields", location)
 		}
 	case types.ProtocolPostgres:
 		if call.Query == "" {
 			return fmt.Errorf("%s: query is required for protocol: postgres", location)
 		}
-		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || call.ExpectedStatus != 0 {
+		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || len(call.ExpectedStatus) > 0 {
 			return fmt.Errorf("%s: body, method, headers, and expectedStatus are HTTP-only fields", location)
 		}
 	case types.ProtocolMongo:
 		if call.Query == "" {
 			return fmt.Errorf("%s: query is required for protocol: mongo (e.g. \"mydb.mycollection\")", location)
 		}
-		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || call.ExpectedStatus != 0 {
+		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || len(call.ExpectedStatus) > 0 {
 			return fmt.Errorf("%s: body, method, headers, and expectedStatus are HTTP-only fields", location)
 		}
 	case types.ProtocolKafka:
 		if call.Query == "" {
 			return fmt.Errorf("%s: query is required for protocol: kafka (e.g. \"group/topic\" or \"@topic\")", location)
 		}
-		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || call.ExpectedStatus != 0 {
+		if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || len(call.ExpectedStatus) > 0 {
 			return fmt.Errorf("%s: body, method, headers, and expectedStatus are HTTP-only fields", location)
 		}
 		// case types.ProtocolGRPC, types.ProtocolNATS, types.ProtocolMQTT:
-		// 	if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || call.ExpectedStatus != 0 {
+		// 	if call.Body != "" || call.Method != "" || len(call.Headers) > 0 || len(call.ExpectedStatus) > 0 {
 		// 		return fmt.Errorf("%s: body, method, headers, and expectedStatus are HTTP-only fields", location)
 		// 	}
 	}
@@ -134,6 +134,11 @@ func validateHTTPCall(location string, call types.ExternalCallSpec) error {
 	}
 	if call.PoolSize != 0 {
 		return fmt.Errorf("%s: poolSize is only meaningful for stateful protocols (redis, postgres, kafka)", location)
+	}
+	for _, code := range call.ExpectedStatus {
+		if code < 100 || code > 599 {
+			return fmt.Errorf("%s: expectedStatus %d is not an HTTP status code (100–599)", location, code)
+		}
 	}
 	return nil
 }

@@ -66,8 +66,8 @@ func TestRequiredServeFieldRules_SpecField(t *testing.T) {
 	if r.Field != "spec.team" {
 		t.Errorf("Field = %q, want %q", r.Field, "spec.team")
 	}
-	if r.Operator != ConditionExists {
-		t.Errorf("Operator = %q, want %q", r.Operator, ConditionExists)
+	if !isTrue(r.Exists) {
+		t.Errorf("Exists = %v, want true", r.Exists)
 	}
 	if r.Message != "Team is required" {
 		t.Errorf("Message = %q, want %q", r.Message, "Team is required")
@@ -150,14 +150,14 @@ func TestRequiredServeFieldRules_LabelsAndAnnotationsUsePaths(t *testing.T) {
 	}
 
 	labelRule := findValidationRule(t, rules, `metadata.labels.team`)
-	if labelRule.Message != "Team is required" || labelRule.Operator != ConditionExists {
+	if labelRule.Message != "Team is required" || !isTrue(labelRule.Exists) {
 		t.Errorf("label rule = %+v, want an exists rule on the label path", labelRule)
 	}
 
 	// A dotted annotation key is escaped, so it stays one path segment.
 	annotationField := `metadata.annotations.platform\.myorg\.io/jira-ticket`
 	annotationRule := findValidationRule(t, rules, annotationField)
-	if annotationRule.Message != "Jira Ticket is required" || annotationRule.Operator != ConditionExists {
+	if annotationRule.Message != "Jira Ticket is required" || !isTrue(annotationRule.Exists) {
 		t.Errorf("annotation rule = %+v, want an exists rule on the annotation path", annotationRule)
 	}
 }
@@ -343,11 +343,8 @@ func TestEnumServeFieldRules_SpecField(t *testing.T) {
 	if r.Field != "spec.workloadType" {
 		t.Errorf("Field = %q, want %q", r.Field, "spec.workloadType")
 	}
-	if r.Operator != ConditionIn {
-		t.Errorf("Operator = %q, want %q", r.Operator, ConditionIn)
-	}
-	if r.Value != "app,cert" {
-		t.Errorf("Value = %q, want %q", r.Value, "app,cert")
+	if r.In != "app,cert" {
+		t.Errorf("In = %q, want %q", r.In, "app,cert")
 	}
 	if r.Message != "Workload Type must be one of: app, cert" {
 		t.Errorf("Message = %q, want %q", r.Message, "Workload Type must be one of: app, cert")
@@ -382,7 +379,7 @@ func TestEnumServeFieldRules_ExistsGateIndependentOfRequired(t *testing.T) {
 	rules := c.EnumServeFieldRules()
 
 	requiredRule := findValidationRule(t, rules, "spec.workloadType")
-	if len(requiredRule.When) != 1 || requiredRule.When[0].Field != "spec.workloadType" || requiredRule.When[0].Operator != ConditionExists {
+	if len(requiredRule.When) != 1 || requiredRule.When[0].Field != "spec.workloadType" || !isTrue(requiredRule.When[0].Exists) {
 		t.Errorf("workloadType rule.When = %+v, want a single synthesized exists gate on itself", requiredRule.When)
 	}
 
@@ -390,7 +387,7 @@ func TestEnumServeFieldRules_ExistsGateIndependentOfRequired(t *testing.T) {
 	if len(optionalRule.When) != 2 {
 		t.Fatalf("environment rule.When = %+v, want 2 (synthesized exists gate + the field's own When)", optionalRule.When)
 	}
-	if optionalRule.When[0].Field != "spec.environment" || optionalRule.When[0].Operator != ConditionExists {
+	if optionalRule.When[0].Field != "spec.environment" || !isTrue(optionalRule.When[0].Exists) {
 		t.Errorf("environment rule.When[0] = %+v, want the synthesized exists gate first", optionalRule.When[0])
 	}
 	if optionalRule.When[1].Field != "spec.workloadType" || optionalRule.When[1].Equals != "app" {
@@ -412,10 +409,10 @@ func TestEnumServeFieldRules_LabelsAndAnnotationsUsePaths(t *testing.T) {
 
 	field := `metadata.labels.tier`
 	r := findValidationRule(t, rules, field)
-	if r.Value != "free,pro,enterprise" {
-		t.Errorf("Value = %q, want %q", r.Value, "free,pro,enterprise")
+	if r.In != "free,pro,enterprise" {
+		t.Errorf("In = %q, want %q", r.In, "free,pro,enterprise")
 	}
-	if len(r.When) != 1 || r.When[0].Field != field || r.When[0].Operator != ConditionExists {
+	if len(r.When) != 1 || r.When[0].Field != field || !isTrue(r.When[0].Exists) {
 		t.Errorf("When = %+v, want a single synthesized exists gate on the same label path", r.When)
 	}
 	if r.Link != "tier" {
@@ -689,3 +686,5 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testin
 		t.Errorf("GitHub rule.Or = %+v, want empty — the field declared no conditions", githubRule.Or)
 	}
 }
+
+func isTrue(b *bool) bool { return b != nil && *b }

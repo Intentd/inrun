@@ -235,8 +235,7 @@ func (c *checker) validateRemote(name string, crd *types.CRDEntry) error {
 	if err := c.validateRemoteRequest(name, crd, remote); err != nil {
 		return err
 	}
-
-	return nil
+	return c.validateRemoteMapping(name, crd, remote)
 }
 
 // validateRemoteRequest validates request.object.exclude and request.children.

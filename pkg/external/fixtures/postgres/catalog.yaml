@@ -57,5 +57,5 @@ spec:
                 value: "Degraded"
                 when:
                   - field: external.dbName.error
-                    operator: exists
+                    exists: true
 

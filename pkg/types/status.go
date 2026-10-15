@@ -127,7 +127,7 @@ type StatusFieldSpec struct {
 //        value: "Pending"
 //        when:
 //          - field: status.phase
-//            operator: notExists
+//            notExists: true
 //
 //      - path: phase
 //        value: "Running"
@@ -141,8 +141,7 @@ type StatusFieldSpec struct {
 //          - field: status.phase
 //            equals: "Running"
 //          - field: children.job.status.succeeded
-//            operator: gt
-//            value: "0"
+//            greaterThan: "0"
 //
 // With the new Type field, these state transitions can now write strongly-typed
 // values into status, enabling CRDs that expose the Kubernetes /scale subresource

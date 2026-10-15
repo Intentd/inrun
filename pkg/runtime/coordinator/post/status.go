@@ -38,6 +38,7 @@ func applyStatus(
 	conditions := []interface{}{cond}
 	conditions = append(conditions, buildValidationCondition(valResult))
 	conditions = append(conditions, buildValidationWarningCondition(valResult))
+	keepTransitionTimes(obj, conditions)
 	patch["conditions"] = conditions
 
 	if !skipObservedGen {
@@ -151,6 +152,38 @@ func statusPatchNeeded(obj domain.Object, patch map[string]interface{}) bool {
 	}
 
 	return false
+}
+
+// keepTransitionTimes carries over a condition's lastTransitionTime when its
+// status, reason and message are unchanged: the time moves only when the
+// condition does, as Kubernetes conventions expect.
+func keepTransitionTimes(obj domain.Object, conditions []interface{}) {
+	u, ok := any(obj).(*unstructured.Unstructured)
+	if !ok {
+		return
+	}
+	existing, _, _ := unstructured.NestedSlice(u.Object, "status", "conditions")
+	byType := make(map[string]map[string]interface{}, len(existing))
+	for _, c := range existing {
+		if cm, ok := c.(map[string]interface{}); ok {
+			if t, _ := cm["type"].(string); t != "" {
+				byType[t] = cm
+			}
+		}
+	}
+	for _, c := range conditions {
+		cm, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		ex, found := byType[cm["type"].(string)]
+		if !found || ex["status"] != cm["status"] || ex["reason"] != cm["reason"] || ex["message"] != cm["message"] {
+			continue
+		}
+		if t, ok := ex["lastTransitionTime"].(string); ok && t != "" {
+			cm["lastTransitionTime"] = t
+		}
+	}
 }
 
 func buildReadyCondition(reconcileErr error, generation int64, skipObservedGeneration bool) map[string]interface{} {

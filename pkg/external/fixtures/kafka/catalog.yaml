@@ -39,11 +39,11 @@ spec:
                 value: "Ready"
                 when:
                   - field: external.topicMeta.error
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Degraded"
                 when:
                   - field: external.topicMeta.error
-                    operator: exists
+                    exists: true
 

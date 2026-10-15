@@ -2,6 +2,8 @@ package post
 
 import (
 	"context"
+	"encoding/json"
+	"reflect"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
@@ -37,7 +39,7 @@ func injectRuntimeAnnotations(ctx context.Context, obj domain.Object, in Input) 
 
 	after := u.GetAnnotations()
 	if after[labels.AnnotationCrossMetrics] == before[0] &&
-		after[labels.AnnotationHealth] == before[1] {
+		sameHealth(after[labels.AnnotationHealth], before[1]) {
 		return
 	}
 	if err := in.Kube.PatchAnnotations(ctx, obj, after, metav1.PatchOptions{}); err != nil {
@@ -45,6 +47,28 @@ func injectRuntimeAnnotations(ctx context.Context, obj domain.Object, in Input) 
 			Str("name", obj.GetName()).
 			Msg("post: runtime annotation patch failed")
 	}
+}
+
+// perPassHealth are the health fields that move on every reconcile.
+var perPassHealth = []string{"lastReconcile", "uptime", "totalReconciles"}
+
+// sameHealth reports whether two health annotations differ only in fields
+// that move on every pass: rewriting the CR for those alone would be an API
+// write and a watch event per reconcile. Their live values are on the vitals
+// endpoints; the annotation carries them as of the last change in health.
+func sameHealth(a, b string) bool {
+	if a == b {
+		return true
+	}
+	var ma, mb map[string]interface{}
+	if json.Unmarshal([]byte(a), &ma) != nil || json.Unmarshal([]byte(b), &mb) != nil {
+		return false
+	}
+	for _, k := range perPassHealth {
+		delete(ma, k)
+		delete(mb, k)
+	}
+	return reflect.DeepEqual(ma, mb)
 }
 
 func toUnstructured(obj domain.Object) *unstructured.Unstructured {

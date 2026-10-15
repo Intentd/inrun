@@ -170,7 +170,7 @@ func validateKubectlGet(loc string, g types.E2EKubectlGet) []error {
 	if g.YQ != "" && g.Format != "yaml" {
 		errs = append(errs, fmt.Errorf("%s: yq requires format: yaml", loc))
 	}
-	if !hasAssertion(kubectlGetAssertions(g)) {
+	if g.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -188,7 +188,7 @@ func validateKubectlLogs(loc string, l types.E2EKubectlLogs) []error {
 	} else if l.Name == "" && l.LabelSelector == "" {
 		errs = append(errs, fmt.Errorf("%s: name, labelSelector, or leaderElection is required", loc))
 	}
-	if !hasAssertion(kubectlLogsAssertions(l)) {
+	if l.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -202,7 +202,7 @@ func validateKubectlDescribe(loc string, d types.E2EKubectlDescribe) []error {
 	if d.Name == "" && d.LabelSelector == "" {
 		errs = append(errs, fmt.Errorf("%s: name or labelSelector is required", loc))
 	}
-	if !hasAssertion(kubectlDescribeAssertions(d)) {
+	if d.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -223,7 +223,7 @@ func validateKubectlExec(loc string, e types.E2EKubectlExec) []error {
 	if len(e.Command) == 0 {
 		errs = append(errs, fmt.Errorf("%s: command is required", loc))
 	}
-	if !hasAssertion(kubectlExecAssertions(e)) {
+	if e.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -241,7 +241,7 @@ func validateKubectlPortForward(loc string, p types.E2EKubectlPortForward) []err
 	if p.Port <= 0 {
 		errs = append(errs, fmt.Errorf("%s: port must be > 0", loc))
 	}
-	hasAny := hasAssertion(kubectlPortForwardAssertions(p))
+	hasAny := !p.E2EAssertions.Empty()
 	if hasAny && p.Path == "" {
 		errs = append(errs, fmt.Errorf("%s: path is required when assertions are set", loc))
 	}
@@ -304,7 +304,7 @@ func validateKubectlEvents(loc string, e types.E2EKubectlEvents) []error {
 	if e.Name == "" {
 		errs = append(errs, fmt.Errorf("%s: name is required", loc))
 	}
-	if !hasAssertion(kubectlEventsAssertions(e)) {
+	if e.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -318,7 +318,7 @@ func validateKubectlAuth(loc string, a types.E2EKubectlAuth) []error {
 	if a.Resource == "" {
 		errs = append(errs, fmt.Errorf("%s: resource is required", loc))
 	}
-	if !hasAssertion(kubectlAuthAssertions(a)) {
+	if a.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -332,7 +332,7 @@ func validateKubectlCp(loc string, c types.E2EKubectlCp) []error {
 	if c.Src == "" {
 		errs = append(errs, fmt.Errorf("%s: src is required", loc))
 	}
-	if !hasAssertion(kubectlCpAssertions(c)) {
+	if c.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -348,7 +348,7 @@ func validateKubectlTop(loc string, t types.E2EKubectlTop) []error {
 			errs = append(errs, fmt.Errorf("%s: kind must be pod or node, got %q", loc, t.Kind))
 		}
 	}
-	if !hasAssertion(kubectlTopAssertions(t)) {
+	if t.E2EAssertions.Empty() {
 		errs = append(errs, fmt.Errorf("%s: %s", loc, assertionListMsg))
 	}
 	return errs
@@ -374,10 +374,4 @@ func validateKubectlScale(loc string, s types.E2EKubectlScale) []error {
 		errs = append(errs, fmt.Errorf("%s: name is required", loc))
 	}
 	return errs
-}
-
-func hasAssertion(a assertions) bool {
-	return a.Equals != "" || a.NotEquals != "" || a.OutputContains != "" || a.OutputNotContains != "" ||
-		a.Regex != "" || a.GreaterThan != "" || a.LessThan != "" || a.GreaterThanOrEqual != "" || a.LessThanOrEqual != "" ||
-		a.Between != "" || a.NotBetween != "" || len(a.OneOf) > 0 || len(a.NotOneOf) > 0 || a.Exists || a.NotExists
 }

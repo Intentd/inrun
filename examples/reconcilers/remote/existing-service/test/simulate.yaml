@@ -1,0 +1,22 @@
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: bucket-existing-service-sim
+  description: >
+    Reconcile a Bucket against the bucket API on the dev server
+    (inrun simulate --dev-server). Only the CR changes: finalizer and status.
+
+spec:
+  catalog: ../catalog.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+  # Provisioning, then ready, then one pass to settle.
+  cycles: 4
+
+  expect:
+    steady: true
+    noErrors: true
+    absent:
+      - cycle: 1
+        verb: apply
+        resource: configmaps

@@ -20,7 +20,7 @@ spec:
             - name: healthCheck
               url: "{{ .spec.healthCheckUrl }}"
               method: GET
-              expectedStatus: 200
+              expectedStatus: [200]
               continueOnError: true
               timeout: 5s
               fires:
@@ -87,7 +87,7 @@ spec:
                   - field: external.healthCheck.called
                     equals: "true"
                   - field: external.healthCheck.error
-                    operator: exists
+                    exists: true
 
               - path: admissionOnlyRan
                 value: "true"

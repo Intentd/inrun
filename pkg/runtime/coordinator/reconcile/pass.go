@@ -301,7 +301,7 @@ func safeReconcile(ctx context.Context, in Input, prepared *domain.PreparedReque
 	// Any returned error is treated as a reconcile failure.
 	ns, name, _ := cache.SplitMetaNamespaceKey(key)
 
-	prepared.Args = prepare.Args(prepared)
+	prepare.RenderArgs(prepared)
 	result, err = in.Reconciler.Reconcile(ctx, domain.Request{
 		Key:            key,
 		NamespacedName: apitypes.NamespacedName{Namespace: ns, Name: name},

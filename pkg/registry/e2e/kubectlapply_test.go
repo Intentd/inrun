@@ -40,8 +40,8 @@ func TestAssertKubectlApplyOutput_UnexpectedFailure(t *testing.T) {
 func TestAssertKubectlApplyOutput_ExpectedRejection(t *testing.T) {
 	runErr := exitErrorWithCode(t, 1)
 	e := types.E2EKubectlApply{
-		ExitCode:       1,
-		OutputContains: "denied the request",
+		ExitCode:      1,
+		E2EAssertions: types.E2EAssertions{Contains: "denied the request"},
 	}
 	err := assertKubectlApplyOutput("kubectl apply -f x.yaml", []byte("Error from server (Forbidden): admission webhook denied the request"), runErr, e)
 	if err != nil {
@@ -69,8 +69,8 @@ func TestAssertKubectlApplyOutput_WrongExitCode(t *testing.T) {
 func TestAssertKubectlApplyOutput_RejectionMessageMismatch(t *testing.T) {
 	runErr := exitErrorWithCode(t, 1)
 	e := types.E2EKubectlApply{
-		ExitCode:       1,
-		OutputContains: "spec.domain must be unique",
+		ExitCode:      1,
+		E2EAssertions: types.E2EAssertions{Contains: "spec.domain must be unique"},
 	}
 	err := assertKubectlApplyOutput("kubectl apply -f x.yaml", []byte("Error from server (Forbidden): some unrelated rule denied the request"), runErr, e)
 	if err == nil {

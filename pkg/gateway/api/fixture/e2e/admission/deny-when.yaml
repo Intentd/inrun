@@ -17,7 +17,7 @@ expect:
             issuer: letsencrypt-staging
           EOF
         exitCode: 1
-        outputContains: "spec.domain is required for cert workloads"
+        contains: "spec.domain is required for cert workloads"
 
   - name: Deny when skipped for cert with domain present
     after: cr-applied

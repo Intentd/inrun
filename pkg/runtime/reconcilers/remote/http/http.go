@@ -25,6 +25,7 @@ type Reconciler struct {
 	event            event.Recorder
 	managedResources []domain.ManagedResource
 	namespace        string // inrun namespace, used as default when secretRef.namespace is empty
+	timeout          time.Duration
 	client           httpDoer
 }
 
@@ -52,6 +53,7 @@ func New(
 		event:            ev,
 		managedResources: managedResources,
 		namespace:        ownNamespace,
+		timeout:          timeout,
 		client:           newHTTPClient(timeout),
 	}
 }
@@ -67,6 +69,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req domain.Request) (domain.
 
 	log.Info().Str("key", req.Key).Msg("dispatching to remote reconciler")
 
+	if r.decl.Mapped() {
+		return r.reconcileMapped(ctx, req)
+	}
 	raw, err := r.callRemote(ctx, req)
 	if err != nil {
 		return domain.Result{}, err

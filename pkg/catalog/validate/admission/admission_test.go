@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,74 +35,57 @@ func catalogWithMutationRule(crdName string, rules ...types.MutationRule) *check
 	})
 }
 
-func TestValidateAdmissionOperators_NoCRDs(t *testing.T) {
+func TestValidateAdmissionComparisons_NoCRDs(t *testing.T) {
 	e := newCatalogExec(map[string]types.CRDEntry{})
-	assert.NoError(t, e.validateAdmissionOperators())
+	assert.NoError(t, e.validateAdmissionComparisons())
 }
 
-func TestValidateAdmissionOperators_NoOperatorSet(t *testing.T) {
+func TestValidateAdmissionComparisons_OneComparison(t *testing.T) {
 	e := catalogWithValidationRule("app", types.ValidationRule{
-		Field: "spec.image", Prefix: "myorg/", Message: "must be from myorg",
+		Field: "spec.replicas", Max: "10", Message: "too many replicas",
+		When: []types.Condition{{Field: "spec.tier", TypeOf: "string"}},
 	})
-	assert.NoError(t, e.validateAdmissionOperators())
+	assert.NoError(t, e.validateAdmissionComparisons())
 }
 
-func TestValidateAdmissionOperators_KnownOperator(t *testing.T) {
+func TestValidateAdmissionComparisons_TwoOnARule(t *testing.T) {
 	e := catalogWithValidationRule("app", types.ValidationRule{
-		Field: "spec.replicas", Operator: types.ConditionLte, Value: "10", Message: "too many replicas",
+		Field: "spec.replicas", Min: "1", Max: "10", Message: "out of range",
 	})
-	assert.NoError(t, e.validateAdmissionOperators())
-}
-
-func TestValidateAdmissionOperators_UnknownOperator(t *testing.T) {
-	e := catalogWithValidationRule("app", types.ValidationRule{
-		Field: "spec.replicas", Operator: "lte2", Value: "10", Message: "too many replicas",
-	})
-	err := e.validateAdmissionOperators()
+	err := e.validateAdmissionComparisons()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "lte2")
-	assert.Contains(t, err.Error(), "app")
+	assert.Contains(t, err.Error(), "declares min and max")
 	assert.Contains(t, err.Error(), "spec.replicas")
 }
 
-func TestValidateAdmissionOperators_UnknownOperatorInWhen(t *testing.T) {
+func TestValidateAdmissionComparisons_TwoOnACondition(t *testing.T) {
 	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Prefix: "x", Message: "msg",
-		When: []types.Condition{{Field: "spec.tier", Operator: "greaterOrEqual"}},
+		Or: []types.Condition{{Field: "spec.tier", Equals: "gold", Exists: utils.BoolPtr(true)}},
 	})
-	err := e.validateAdmissionOperators()
+	err := e.validateAdmissionComparisons()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "greaterOrEqual")
+	assert.Contains(t, err.Error(), "declares exists and equals")
 }
 
-func TestValidateAdmissionOperators_UnknownOperatorInOr(t *testing.T) {
-	e := catalogWithValidationRule("app", types.ValidationRule{
-		Field: "spec.replicas", Prefix: "x", Message: "msg",
-		Or: []types.Condition{{Field: "spec.tier", Operator: "notARealOp"}},
-	})
-	err := e.validateAdmissionOperators()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "notARealOp")
-}
-
-func TestValidateAdmissionOperators_MutationRuleUnknownOperatorInWhen(t *testing.T) {
+func TestValidateAdmissionComparisons_MutationWhen(t *testing.T) {
 	e := catalogWithMutationRule("app", types.MutationRule{
 		Field:   "spec.tier",
 		Default: "standard",
-		When:    []types.Condition{{Field: "spec.env", Operator: "isEqualTo"}},
+		When:    []types.Condition{{Field: "spec.env", TypeOf: "list"}},
 	})
-	err := e.validateAdmissionOperators()
+	err := e.validateAdmissionComparisons()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "isEqualTo")
+	assert.Contains(t, err.Error(), `typeOf "list" is not a type`)
 }
 
-func TestValidateAdmissionOperators_MutationRuleKnownOperator(t *testing.T) {
-	e := catalogWithMutationRule("app", types.MutationRule{
-		Field:   "spec.tier",
-		Default: "standard",
-		When:    []types.Condition{{Field: "spec.env", Operator: types.ConditionGte, Value: "1"}},
-	})
-	assert.NoError(t, e.validateAdmissionOperators())
+func TestValidateValidationRules_NoComparisonListsThem(t *testing.T) {
+	e := catalogWithValidationRule("app", types.ValidationRule{Field: "spec.image", Message: "m"})
+	err := e.validateValidationRules()
+	require.Error(t, err)
+	for _, name := range types.ComparisonNames() {
+		assert.Contains(t, err.Error(), name)
+	}
 }
 
 func catalogWithServeValidationRule(crdName string, srv *types.ServeConfig, rules ...types.ValidationRule) *checker {
@@ -164,7 +148,7 @@ func TestValidateValidationRuleLinks_RedundantSpecFieldLink(t *testing.T) {
 			"team": {Label: "Team"},
 		}}
 	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
-		Field: "spec.team", Link: "team", Operator: types.ConditionExists, Message: "team is required",
+		Field: "spec.team", Link: "team", Exists: utils.BoolPtr(true), Message: "team is required",
 	})
 	err := e.validateValidationRuleLinks()
 	require.Error(t, err)

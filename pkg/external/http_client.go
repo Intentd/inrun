@@ -21,16 +21,15 @@ func (c *httpProtocolClient) Fetch(ctx context.Context, spec types.ExternalCallS
 	result := executeHTTPCall(ctx, spec, resolvedURL, resolvedBody, credential, authHeader)
 
 	entry := map[string]interface{}{}
+	// A JSON body is also available decoded, as .external.<name>.json: an
+	// object, array or scalar, read like any other value. A body that is not
+	// JSON has no json key; body always holds the raw text.
 	if result.Body != "" {
-		var parsed map[string]interface{}
+		var parsed interface{}
 		if err := json.Unmarshal([]byte(result.Body), &parsed); err == nil {
-			for k, v := range parsed {
-				entry[k] = v
-			}
+			entry["json"] = parsed
 		}
 	}
-	// HTTP meta keys set after JSON so they're never overwritten by a body key
-	// with the same name (e.g. {"status": "ok"}).
 	entry["status"] = result.Status
 	entry["body"] = result.Body
 	entry["error"] = result.Error

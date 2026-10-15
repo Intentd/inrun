@@ -1,13 +1,14 @@
 package e2e
 
 import (
+	"github.com/intentd/inrun/pkg/utils"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestAssertKubectlGetOutput(t *testing.T) {
-	e := types.E2EKubectlGet{Kind: "Website", Name: "site-a", OutputContains: "Ready"}
+	e := types.E2EKubectlGet{Kind: "Website", Name: "site-a", E2EAssertions: types.E2EAssertions{Contains: "Ready"}}
 	if err := assertKubectlGetOutput("phase: Ready", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -17,7 +18,7 @@ func TestAssertKubectlGetOutput(t *testing.T) {
 }
 
 func TestAssertKubectlGetOutput_Exists(t *testing.T) {
-	e := types.E2EKubectlGet{Kind: "Website", Name: "site-a", NotExists: true}
+	e := types.E2EKubectlGet{Kind: "Website", Name: "site-a", E2EAssertions: types.E2EAssertions{NotExists: utils.BoolPtr(true)}}
 	if err := assertKubectlGetOutput("", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -27,7 +28,7 @@ func TestAssertKubectlGetOutput_Exists(t *testing.T) {
 }
 
 func TestAssertKubectlLogsOutput(t *testing.T) {
-	e := types.E2EKubectlLogs{OutputContains: "started"}
+	e := types.E2EKubectlLogs{E2EAssertions: types.E2EAssertions{Contains: "started"}}
 	if err := assertKubectlLogsOutput("server started on :8080", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -37,7 +38,7 @@ func TestAssertKubectlLogsOutput(t *testing.T) {
 }
 
 func TestAssertKubectlDescribeOutput(t *testing.T) {
-	e := types.E2EKubectlDescribe{Kind: "Pod", Name: "site-a-0", OutputContains: "Status:        Running"}
+	e := types.E2EKubectlDescribe{Kind: "Pod", Name: "site-a-0", E2EAssertions: types.E2EAssertions{Contains: "Status:        Running"}}
 	if err := assertKubectlDescribeOutput("Status:        Running", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -47,7 +48,7 @@ func TestAssertKubectlDescribeOutput(t *testing.T) {
 }
 
 func TestAssertKubectlExecOutput(t *testing.T) {
-	e := types.E2EKubectlExec{Command: []string{"cat", "/etc/hostname"}, Equals: "site-a-0"}
+	e := types.E2EKubectlExec{Command: []string{"cat", "/etc/hostname"}, E2EAssertions: types.E2EAssertions{Equals: "site-a-0"}}
 	if err := assertKubectlExecOutput("site-a-0", "site-a-0", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -57,7 +58,7 @@ func TestAssertKubectlExecOutput(t *testing.T) {
 }
 
 func TestAssertKubectlEventsOutput(t *testing.T) {
-	e := types.E2EKubectlEvents{Kind: "Website", Name: "site-a", OutputContains: "Reconciled"}
+	e := types.E2EKubectlEvents{Kind: "Website", Name: "site-a", E2EAssertions: types.E2EAssertions{Contains: "Reconciled"}}
 	if err := assertKubectlEventsOutput("1m  Normal  Reconciled  website/site-a  Reconciled successfully", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -67,7 +68,7 @@ func TestAssertKubectlEventsOutput(t *testing.T) {
 }
 
 func TestAssertKubectlCpOutput(t *testing.T) {
-	e := types.E2EKubectlCp{Src: "/data/config.json", OutputContains: `"env":"prod"`}
+	e := types.E2EKubectlCp{Src: "/data/config.json", E2EAssertions: types.E2EAssertions{Contains: `"env":"prod"`}}
 	if err := assertKubectlCpOutput("/data/config.json", `{"env":"prod"}`, e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -77,7 +78,7 @@ func TestAssertKubectlCpOutput(t *testing.T) {
 }
 
 func TestAssertKubectlTopOutput(t *testing.T) {
-	e := types.E2EKubectlTop{Kind: "pod", OutputContains: "site-a-0"}
+	e := types.E2EKubectlTop{Kind: "pod", E2EAssertions: types.E2EAssertions{Contains: "site-a-0"}}
 	if err := assertKubectlTopOutput("pod", "NAME       CPU   MEMORY\nsite-a-0   5m    32Mi", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

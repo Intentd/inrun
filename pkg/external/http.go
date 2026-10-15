@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -104,9 +105,9 @@ func executeHTTPCall(
 	statusCode := fmt.Sprintf("%d", resp.StatusCode)
 	callErr := ""
 
-	if spec.ExpectedStatus > 0 && resp.StatusCode != spec.ExpectedStatus {
-		callErr = fmt.Sprintf("expected status %d, got %d", spec.ExpectedStatus, resp.StatusCode)
-	} else if resp.StatusCode >= 400 && spec.ExpectedStatus == 0 {
+	if len(spec.ExpectedStatus) > 0 && !slices.Contains(spec.ExpectedStatus, resp.StatusCode) {
+		callErr = fmt.Sprintf("expected status %v, got %d", spec.ExpectedStatus, resp.StatusCode)
+	} else if len(spec.ExpectedStatus) == 0 && resp.StatusCode >= 400 {
 		callErr = fmt.Sprintf("HTTP %d", resp.StatusCode)
 	}
 

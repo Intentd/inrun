@@ -61,6 +61,19 @@ type slackMessage struct {
 	Text    string `json:"text"`
 }
 
+// buckets backs /buckets/{name}, keyed by name.
+var (
+	buckets   = map[string]*bucket{}
+	bucketsMu sync.Mutex
+)
+
+type bucket struct {
+	ID       string `json:"id"`
+	Status   string `json:"status"`
+	QuotaGB  int    `json:"quotaGB"`
+	Endpoint string `json:"endpoint"`
+}
+
 // certGet returns whether the cert is currently issued (true) or pending (false).
 func certGet(name string) bool {
 	if v, ok := certState.Load(name); ok {
@@ -151,5 +164,8 @@ func printDevBanner(port int) {
 	fmt.Printf("  GET  /jira/issues/:key          → transition last recorded for that key (404 if none)\n")
 	fmt.Printf("  POST /slack/notify              → Slack notify stub (channel + text → ok)\n")
 	fmt.Printf("  GET  /slack/messages            → every message recorded via /slack/notify\n")
+	fmt.Printf("  PUT  /buckets/:name             → ensure a bucket (provisioning, then ready)\n")
+	fmt.Printf("  GET  /buckets/:name             → the bucket, or 404\n")
+	fmt.Printf("  DELETE /buckets/:name           → 202 deleting, then 404 once gone\n")
 	fmt.Printf("──────────────────────────────────────────\n\n")
 }

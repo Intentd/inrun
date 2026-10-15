@@ -51,19 +51,21 @@ func Factory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 		return nil, err
 	}
 	remoteDecls := crd.TargetRemoteDeclarations()
+	newRemotes := make(map[string]func() domain.Reconciler, len(remoteDecls))
 	for name, decl := range remoteDecls {
-		if _, err := remote.New(decl, crd.GVK(), d.Kube, d.Event, crd.ManagedResources(), d.OwnNamespace); err != nil {
+		newRemote, err := remoteFactory(crd, decl, crd.EffectiveOperatorBox(name), d)
+		if err != nil {
 			return nil, fmt.Errorf("serve target %q: %w", name, err)
 		}
+		newRemotes[name] = newRemote
 	}
 	return func() domain.Reconciler {
-		targets := make(map[string]domain.Reconciler, len(ctors)+len(remoteDecls))
+		targets := make(map[string]domain.Reconciler, len(ctors)+len(newRemotes))
 		for name, ctor := range ctors {
 			targets[name] = ctor(constructorKube(crd, d))
 		}
-		for name, decl := range remoteDecls {
-			r, _ := remote.New(decl, crd.GVK(), remoteKube(d), d.Event, crd.ManagedResources(), d.OwnNamespace)
-			targets[name] = r
+		for name, newRemote := range newRemotes {
+			targets[name] = newRemote()
 		}
 		return mux.New(d.Informer, targets, base())
 	}, nil
@@ -74,33 +76,10 @@ func Factory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 func baseFactory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 	switch crd.ReconcilerKind() {
 	case types.KindDeclarative, types.KindHooks:
-		var hooks domain.AnyReconcileHooks
-		if factory, ok := crd.HookFactory(); ok {
-			hooks = factory()
-		}
-		// Hooks read reconcile.args with req.Args(), like every reconciler.
-		kube := d.Kube.WithForceConflict(crd.ResolveForceConflict())
-		object, _, err := crd.RuntimeObjects()
-		if err != nil {
-			return nil, err
-		}
-		return func() domain.Reconciler {
-			return generic.New(crd, d.Informer, kube, hooks,
-				func() domain.Object { return object.DeepCopyObject().(domain.Object) },
-				d.Catalog)
-		}, nil
+		return genericFactory(crd, d, nil)
 
 	case types.KindRemote:
-		decl := crd.Box().Reconcile.Remote
-		// remote.New fails only on an unsupported protocol; check it once here.
-		if _, err := remote.New(decl, crd.GVK(), d.Kube, d.Event, crd.ManagedResources(), d.OwnNamespace); err != nil {
-			return nil, err
-		}
-		kube := remoteKube(d)
-		return func() domain.Reconciler {
-			r, _ := remote.New(decl, crd.GVK(), kube, d.Event, crd.ManagedResources(), d.OwnNamespace)
-			return r
-		}, nil
+		return remoteFactory(crd, crd.Box().Reconcile.Remote, crd.Box(), d)
 
 	default:
 		ctor, ok := crd.Constructor()
@@ -114,6 +93,53 @@ func baseFactory(crd types.CRDEntry, d Deps) (func() domain.Reconciler, error) {
 			return ctor(kube)
 		}, nil
 	}
+}
+
+// remoteFactory is the factory for a remote reconciler declared in box (the
+// CRD's or a serve target's). A mapped remote with templates in box becomes
+// the generic reconciler's hook: its call drives the Result, and the
+// templates run after it with .response in scope.
+func remoteFactory(crd types.CRDEntry, decl *types.RemoteReconcilerDeclaration, box *types.OperatorBoxConfig, d Deps) (func() domain.Reconciler, error) {
+	// remote.New fails only on an unsupported protocol; check it once here.
+	if _, err := remote.New(decl, crd.GVK(), d.Kube, d.Event, crd.ManagedResources(), d.OwnNamespace); err != nil {
+		return nil, err
+	}
+	kube := remoteKube(d)
+	if decl.Mapped() && box.HasTemplates() {
+		return genericFactory(crd, d, func() domain.ObjectHooks {
+			r, _ := remote.New(decl, crd.GVK(), kube, d.Event, crd.ManagedResources(), d.OwnNamespace)
+			return r.Hooks()
+		})
+	}
+	return func() domain.Reconciler {
+		r, _ := remote.New(decl, crd.GVK(), kube, d.Event, crd.ManagedResources(), d.OwnNamespace)
+		return r
+	}, nil
+}
+
+// genericFactory is the factory for the generic reconciler: the CRD's
+// templates, and its hooks when registered. call, when set, gives the hooks
+// instead: a mapped remote's call, run before the templates.
+func genericFactory(crd types.CRDEntry, d Deps, call func() domain.ObjectHooks) (func() domain.Reconciler, error) {
+	var hooks domain.AnyReconcileHooks
+	if factory, ok := crd.HookFactory(); ok {
+		hooks = factory()
+	}
+	// Hooks read reconcile.args with req.Args(), like every reconciler.
+	kube := d.Kube.WithForceConflict(crd.ResolveForceConflict())
+	object, _, err := crd.RuntimeObjects()
+	if err != nil {
+		return nil, err
+	}
+	return func() domain.Reconciler {
+		r := generic.New(crd, d.Informer, kube, hooks,
+			func() domain.Object { return object.DeepCopyObject().(domain.Object) },
+			d.Catalog)
+		if call != nil {
+			return r.WithCall(call())
+		}
+		return r
+	}, nil
 }
 
 // remoteKube is the kube client a remote reconciler gets: it reads children

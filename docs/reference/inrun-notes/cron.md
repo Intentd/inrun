@@ -29,8 +29,7 @@ Cron notes work with cron schedule expressions. They cover three problems: extra
   schedule: "{{ cronFromMap .spec.schedule }}"
   when:
     - field: spec.schedule
-      operator: typeOf
-      value: map
+      typeOf: map
 {minute: "*/5", hour: "0", dayOfMonth: "*", month: "*", dayOfWeek: "1"}
 → "*/5 0 * * 1"
 

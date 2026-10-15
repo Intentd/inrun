@@ -1,0 +1,60 @@
+# Schema reference: https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: bucket-existing-service-resources-e2e
+  description: >
+    Reconcile a Bucket through the dev server's bucket API (run with
+    --dev-server), then turn the API's answer into a ConfigMap the API knows
+    nothing about. The ConfigMap goes with the CR on delete.
+
+spec:
+  catalog: ../catalog.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: The API's answer mapped into status
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: Bucket
+            name: assets
+            namespace: default
+            field: .status.state
+            equals: ready
+
+    - name: The template after the call turns the answer into a ConfigMap
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: ConfigMap
+            name: assets-bucket
+            namespace: default
+            field: .data.bucketId
+            equals: b-assets
+          - kind: ConfigMap
+            name: assets-bucket
+            namespace: default
+            field: .data.endpoint
+            equals: https://b-assets.storage.example
+
+    - name: Delete released once the API answers 404, ConfigMap gone with it
+      after: cr-deleted
+      timeout: 60s
+      resources:
+        - kind: Bucket
+          name: assets
+          namespace: default
+          count: 0
+        - kind: ConfigMap
+          name: assets-bucket
+          namespace: default
+          count: 0

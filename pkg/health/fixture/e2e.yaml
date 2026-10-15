@@ -39,7 +39,7 @@ spec:
               namespace: inrun-system
             port: 8080
             path: /startup
-            outputContains: started
+            contains: started
 
     - name: /health — operator liveness
       after: cr-applied
@@ -51,7 +51,7 @@ spec:
               namespace: inrun-system
             port: 8080
             path: /health
-            outputContains: healthy
+            contains: healthy
 
     - name: /ready — operator readiness
       after: cr-applied
@@ -63,7 +63,7 @@ spec:
               namespace: inrun-system
             port: 8080
             path: /ready
-            outputContains: ready
+            contains: ready
 
     - name: Cleanup verified
       after: cr-deleted

@@ -9,6 +9,7 @@ import (
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -30,14 +31,17 @@ type Input struct {
 //  3. Namespace guard — returns (nil, nil, nil) for restricted/non-allowed namespaces
 //  4. Effective box + target
 //  5. Normalize + base resolver
-//  6. Enrichment chain (profiles, notes, intent, uniqueness, hooks external)
+//  6. Enrichment chain (profiles, notes, intent, uniqueness), then
+//     reconcile.when/or — returns (nil, nil, nil) when they do not hold —
+//     then reconcile.external
 //  7. Cross-CRD observation
 //  8. Mutation (if mutateFirst)
 //  9. Validation / admission
 //  10. Mutation (if !mutateFirst)
 //
 // Returns (nil, nil, nil) when the object is not in cache (deleted between dequeue
-// and preparation) or when the namespace guard blocks it.
+// and preparation), when the namespace guard blocks it, or when reconcile.when/or
+// does not hold.
 // Returns (nil, nil, err) on failure — caller should requeue.
 func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *ValidationResult, error) {
 	if in.Entry.Informer == nil {
@@ -99,6 +103,19 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 		resolver = resolver.WithUniquenessChecker(
 			newUniquenessChecker(ctx, in.Kube, crd.GVR(), crd.IsNamespaced()),
 		)
+	}
+
+	// reconcile.when/or: should this reconcile happen at all? Evaluated before
+	// the reconcile's calls, over the CR, notes, profiles, intent and .args
+	// (validation keeps .external, and args that read it, out of them). A CR
+	// being deleted is always reconciled.
+	if box.Reconcile.HasConditions() && obj.GetDeletionTimestamp() == nil {
+		met, reason := resolver.WithArgs(renderArgs(box, resolver)).EvaluateConditions(box.Reconcile.When, box.Reconcile.Or)
+		if !met {
+			logger.FromContext(ctx).Info().Str("key", in.Key).Str("reason", reason).
+				Msg("reconcile.when not met: reconcile skipped")
+			return nil, nil, nil
+		}
 	}
 
 	// reconcile.external calls — run here, before any reconciler, so results

@@ -63,11 +63,11 @@ spec:
                   - field: external.goroutines.called
                     equals: "true"
                   - field: external.goroutines.error
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Degraded"
                 when:
                   - field: external.goroutines.error
-                    operator: exists
+                    exists: true
 

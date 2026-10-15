@@ -19,7 +19,7 @@ expect:
             targetNamespace: team-payments
           EOF
         exitCode: 0
-        outputContains: "direct apply detected"
+        contains: "direct apply detected"
 
   - name: isDirectApply warn skipped when serve-target annotation present
     after: cr-applied

@@ -33,7 +33,7 @@ expect:
           name: my-app-degraded
           namespace: default
           field: .status.admissionOnlyRan
-          equals: ""
+          notExists: true
 
   - name: configFetch ran and drove phase
     after: cr-applied

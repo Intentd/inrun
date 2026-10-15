@@ -58,7 +58,7 @@ func (ws *WebhookServer) evaluateValidationRules(
 	// so CRDs with no unique/health/metrics rules pay zero HTTP cost.
 	// Note bodies are scanned so a rule like {{ inBusinessHours }} correctly
 	// triggers a fetch when inBusinessHours references .health.* or .metrics.*.
-	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.HasHealthField(notes) || cfg.HasMetricsField(notes)) {
+	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
 		result := ws.catalog.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
@@ -66,10 +66,10 @@ func (ws *WebhookServer) evaluateValidationRules(
 			if cfg.HasUniqueRule() {
 				resolver = resolver.WithUniquenessChecker(q)
 			}
-			if cfg.HasHealthField(notes) {
+			if cfg.References(notes, "health") {
 				resolver = resolver.WithHealth(q.ForHealth())
 			}
-			if cfg.HasMetricsField(notes) {
+			if cfg.References(notes, "metrics") {
 				resolver = resolver.WithMetrics(q.ForMetrics())
 			}
 		}
@@ -141,7 +141,7 @@ func (ws *WebhookServer) applyMutationRules(
 			logger.FromContext(ctx).Warn().Err(err).Str("kind", kindName).Msg("admission/mutate: external call failed")
 		}
 	}
-	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.HasHealthField(notes) || cfg.HasMetricsField(notes)) {
+	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
 		result := cat.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
@@ -149,10 +149,10 @@ func (ws *WebhookServer) applyMutationRules(
 			if cfg.HasUniqueRule() {
 				resolver = resolver.WithUniquenessChecker(q)
 			}
-			if cfg.HasHealthField(notes) {
+			if cfg.References(notes, "health") {
 				resolver = resolver.WithHealth(q.ForHealth())
 			}
-			if cfg.HasMetricsField(notes) {
+			if cfg.References(notes, "metrics") {
 				resolver = resolver.WithMetrics(q.ForMetrics())
 			}
 		}

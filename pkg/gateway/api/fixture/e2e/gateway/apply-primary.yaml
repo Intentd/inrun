@@ -40,7 +40,7 @@ expect:
           name: gw-primary
           namespace: team-payments
           field: .metadata.annotations["inrun.dev/serve-alias"]
-          equals: ""
+          notExists: true
 
   - name: GET via gateway returns provenance in payload — primary target
     after: cr-applied

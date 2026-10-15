@@ -16,7 +16,7 @@ package gate
 // reconciler. No cluster connection, no TLS, no webhook server.
 //
 // Limitations vs. the real webhook:
-//   - operator: unique  — skipped; no informer cache without a cluster.
+//   - unique: true  — skipped; no informer cache without a cluster.
 //   - external: calls   — skipped (both validation and mutation); no endpoint.
 //   Both produce a note in the output so the user knows they weren't checked.
 
@@ -45,7 +45,7 @@ provided CR using the same evaluation logic as the admission webhook and the
 reconciler. No cluster, no TLS, no webhook server required.
 
 Limitations:
-  operator: unique  — skipped (no live informer cache)
+  unique: true  — skipped (no live informer cache)
   external: calls   — skipped (no real endpoint to call)
 Both are noted in the output.
 
@@ -124,7 +124,7 @@ func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 	hasValidationExternal := crd.EffectiveValidation() != nil && len(crd.EffectiveValidation().AdmissionExternal()) > 0
 	hasMutationExternal := crd.EffectiveMutation() != nil && len(crd.EffectiveMutation().AdmissionExternal()) > 0
 	if hasUnique {
-		fmt.Printf("  %s operator: unique — skipped (no live cluster)\n", cmdutil.Dim("note:"))
+		fmt.Printf("  %s unique: true — skipped (no live cluster)\n", cmdutil.Dim("note:"))
 	}
 	if hasValidationExternal || hasMutationExternal {
 		fmt.Printf("  %s external: calls — skipped (no endpoint)\n", cmdutil.Dim("note:"))
@@ -225,16 +225,7 @@ func printGateMutateResult(r AdmissionMutationResult) {
 }
 
 func hasUniqueRule(crd *types.CRDEntry) bool {
-	v := crd.EffectiveValidation()
-	if v == nil {
-		return false
-	}
-	for _, r := range v.Rules {
-		if r.Operator == types.ConditionUnique {
-			return true
-		}
-	}
-	return false
+	return crd.EffectiveValidation().HasUniqueRule()
 }
 
 var gateRunCmd = &cobra.Command{

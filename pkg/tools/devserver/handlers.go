@@ -24,21 +24,17 @@ func registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/protected/", handle(protectedHandler))
 	mux.HandleFunc("/resources/", handle(resourcesHandler))
 	mux.HandleFunc("/flags/", handle(flagsHandler))
-	// 06-sbom-cosign
 	mux.HandleFunc("/sbom/", handle(sbomHandler))
 	mux.HandleFunc("/cosign/verify", handle(cosignVerifyHandler))
-	// 07-vault-secret-gate
 	mux.HandleFunc("/vault/", handle(vaultHandler))
-	// 08-opa-policy
 	mux.HandleFunc("/v1/data/", handle(opaPolicyHandler))
-	// 09-cert-readiness
 	mux.HandleFunc("/certs/", handle(certsHandler))
-	// 03-jira-slack (serve example)
 	mux.HandleFunc("/jira/transition", handle(jiraTransitionHandler))
 	mux.HandleFunc("/jira/issues", handle(jiraIssueHandler))  // no key → list all
 	mux.HandleFunc("/jira/issues/", handle(jiraIssueHandler)) // /jira/issues/{key} → single lookup
 	mux.HandleFunc("/slack/notify", handle(slackNotifyHandler))
 	mux.HandleFunc("/slack/messages", handle(slackMessagesHandler))
+	mux.HandleFunc("/buckets/", handle(bucketHandler))
 }
 
 // handle wraps a handler with debug logging.
@@ -519,4 +515,60 @@ func workloadMetricsFlipHandler(w http.ResponseWriter, _ *http.Request) {
 		state = "high-load"
 	}
 	writePlain(w, http.StatusOK, state)
+}
+
+// /buckets/{name} is a storage API that knows nothing about Inrun, for the
+// existing-service example (a mapped remote reconciler):
+//
+//	PUT    → ensure: 200, provisioning on the first call and ready after
+//	GET    → 200 with the bucket, 404 when there is none
+//	DELETE → 202 deleting on the first call, 404 once it is gone
+func bucketHandler(w http.ResponseWriter, r *http.Request) {
+	name := strings.Trim(strings.TrimPrefix(r.URL.Path, "/buckets"), "/")
+	if name == "" {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "bucket name required"})
+		return
+	}
+
+	bucketsMu.Lock()
+	defer bucketsMu.Unlock()
+	b, exists := buckets[name]
+
+	switch r.Method {
+	case http.MethodPut:
+		var body struct {
+			QuotaGB int `json:"quotaGB"`
+		}
+		json.NewDecoder(r.Body).Decode(&body) //nolint:errcheck
+		if !exists {
+			b = &bucket{ID: "b-" + name, Status: "provisioning", Endpoint: "https://b-" + name + ".storage.example"}
+			buckets[name] = b
+		} else if b.Status == "provisioning" {
+			b.Status = "ready"
+		}
+		b.QuotaGB = body.QuotaGB
+		writeJSON(w, http.StatusOK, b)
+
+	case http.MethodGet:
+		if !exists {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no bucket " + name})
+			return
+		}
+		writeJSON(w, http.StatusOK, b)
+
+	case http.MethodDelete:
+		switch {
+		case !exists:
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no bucket " + name})
+		case b.Status == "deleting":
+			delete(buckets, name)
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no bucket " + name})
+		default:
+			b.Status = "deleting"
+			writeJSON(w, http.StatusAccepted, b)
+		}
+
+	default:
+		writePlain(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
 }

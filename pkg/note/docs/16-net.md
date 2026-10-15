@@ -36,9 +36,8 @@ Keywords: network, ip, address, validate, valid, ipv4, ipv6
 ```yaml
 validation:
   rules:
-    - field: spec.clientIP
-      operator: custom
-      value: "{{ ipValid .spec.clientIP }}"
+    - field: "{{ ipValid .spec.clientIP }}"
+      equals: "true"
       message: "spec.clientIP must be a valid IP address"
       action: deny
 ```

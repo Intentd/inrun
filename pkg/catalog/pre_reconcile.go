@@ -2,7 +2,6 @@ package catalog
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"
@@ -60,10 +59,7 @@ func (c *Catalog) EvaluatePreReconcile(ctx context.Context, gvk string, obj *uns
 		return g.SentinelsAllowed(opts.Sentinels), ""
 	}
 
-	if !types.EvaluateConditions(resolver.Data(), pr.WhenConditions(), pr.OrConditions(), resolver.TemplateEvaluator()) {
-		return false, preReconcileGateReason(pr, resolver)
-	}
-	return true, ""
+	return resolver.EvaluateConditions(pr.WhenConditions(), pr.OrConditions())
 }
 
 // EvaluateEnqueueFilter evaluates preReconcile.enqueueGate conditions for the named CRD.
@@ -226,18 +222,6 @@ func (c *Catalog) effectiveBox(obj domain.Object, gvk string) *types.OperatorBox
 	}
 	target := intent.Target(obj.GetAnnotations())
 	return entry.EffectiveOperatorBox(target)
-}
-
-// preReconcileGateReason returns a human-readable description of why the gate fired.
-func preReconcileGateReason(pr *types.PreReconcileConfig, resolver *template.Resolver) string {
-	eval := resolver.TemplateEvaluator()
-	for _, cond := range pr.WhenConditions() {
-		if !types.EvaluateConditions(resolver.Data(), []types.Condition{cond}, nil, eval) {
-			val, _ := resolver.Resolve(cond.Field)
-			return fmt.Sprintf("when: %q = %q, want %q", cond.Field, val, cond.Equals)
-		}
-	}
-	return "or: no condition satisfied"
 }
 
 // evaluateGate evaluates a gate against the supplied resolver.

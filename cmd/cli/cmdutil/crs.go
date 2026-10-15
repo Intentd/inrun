@@ -64,7 +64,7 @@ type CRSimInputs struct {
 // The FIRST document of the target kind is the CR under test — unchanged
 // behavior from a single-CR file. Any FURTHER documents of that same kind
 // are pre-existing instances: seeded into the fake dynamic client so
-// reconcile-time checks that list other instances (operator: unique) can
+// reconcile-time checks that list other instances (unique: true) can
 // see them, but never reconciled themselves — same convention already used
 // for cross: peers, extended from "one doc per other kind" to "one or more
 // docs of the CRD's own kind". Documents of OTHER kinds become cross: peers,

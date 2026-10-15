@@ -145,7 +145,7 @@ func toList(s string) []string {
 //
 // typeOf is used in:
 //   - Template expressions: {{ typeOf .spec.schedule }} → "string" or "map"
-//   - when: conditions:    operator: typeOf, value: map
+//   - when: conditions:    typeOf: map
 //
 // The condition operator path uses NavigateRawPath → note.TypeOf directly.
 // The template expression path uses the FuncMap entry registered in note.Map().

@@ -107,7 +107,7 @@ jobs:
         run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
 
       - name: Start the remote example's reconciler
-        working-directory: examples/reconcilers/remote
+        working-directory: examples/reconcilers/remote/endpoint
         env:
           RECONCILER_TOKEN: inrun-demo-token
         run: |
@@ -121,7 +121,7 @@ jobs:
       - name: Simulate declarative and remote examples
         working-directory: examples
         run: |
-          "$RUNNER_TEMP/inrun" simulate ./... --skip typed,intent
+          "$RUNNER_TEMP/inrun" simulate ./... --skip typed,intent --dev-server
 
       - name: Simulate the intent example
         working-directory: examples/intent

@@ -1,8 +1,6 @@
 // pkg/types/admission.go
 package types
 
-import "strings"
-
 // ── Validation and Mutation ────────────────────────────────────────────────
 //
 // These declarations control policy enforcement at two points:
@@ -124,7 +122,7 @@ func (a *Admission) HasValidationExternal() bool {
 // Example — warn, advisory only:
 //
 //   - field: metadata.labels.team
-//     operator: exists
+//     exists: true
 //     message: "all resources should declare a team owner"
 //     action: warn
 //
@@ -147,7 +145,8 @@ type ValidationRule struct {
 	// warn: warning at admission, advisory at reconcile.
 	Action ValidationAction `yaml:"action,omitempty" json:"action,omitempty"`
 
-	// Shorthands — use these for the common cases.
+	// Comparisons: set exactly one. Same names and meaning as Condition's;
+	// min and max are inclusive, greaterThan and lessThan strict.
 	Equals      string `yaml:"equals,omitempty" json:"equals,omitempty"`
 	NotEquals   string `yaml:"notEquals,omitempty" json:"notEquals,omitempty"`
 	Prefix      string `yaml:"prefix,omitempty" json:"prefix,omitempty"`
@@ -160,36 +159,35 @@ type ValidationRule struct {
 	GreaterThan string `yaml:"greaterThan,omitempty" json:"greaterThan,omitempty"`
 	LessThan    string `yaml:"lessThan,omitempty" json:"lessThan,omitempty"`
 
-	// GreaterThanOrEqual is a shorthand for operator: gte.
-	GreaterThanOrEqual string `yaml:"greaterThanOrEqual,omitempty" json:"greaterThanOrEqual,omitempty"`
-
-	// LessThanOrEqual is a shorthand for operator: lte.
-	LessThanOrEqual string `yaml:"lessThanOrEqual,omitempty" json:"lessThanOrEqual,omitempty"`
-
-	// NotContains is a shorthand for operator: notContains.
 	NotContains string `yaml:"notContains,omitempty" json:"notContains,omitempty"`
 
-	// Regex is a shorthand for operator: regex.
+	// Regex is an RE2 pattern.
 	Regex string `yaml:"regex,omitempty" json:"regex,omitempty"`
 
-	// Between is a shorthand for operator: between. Comma-separated "min,max",
-	// both inclusive.
+	// Between and NotBetween take an inclusive "min,max" range.
 	Between string `yaml:"between,omitempty" json:"between,omitempty"`
 
-	// NotBetween is a shorthand for operator: notBetween. Comma-separated
-	// "min,max", same bounds as between.
 	NotBetween string `yaml:"notBetween,omitempty" json:"notBetween,omitempty"`
 
-	// In is a shorthand for operator: in. Comma-separated list.
+	// In and NotIn take a comma-separated list.
 	In string `yaml:"in,omitempty" json:"in,omitempty"`
 
-	// NotIn is a shorthand for operator: notIn. Comma-separated list.
 	NotIn string `yaml:"notIn,omitempty" json:"notIn,omitempty"`
 
-	// Explicit operator form — use when no shorthand covers the comparison.
-	Operator  ConditionOperator `yaml:"operator,omitempty" json:"operator,omitempty"`
-	Value     string            `yaml:"value,omitempty" json:"value,omitempty"`
-	ValueType string            `yaml:"valueType,omitempty"` // "string", "int" or "integer", "float" or "number", "bool" or "boolean"
+	// TypeOf passes when the field's value has this type: map, slice,
+	// string, number, bool or null.
+	TypeOf FieldType `yaml:"typeOf,omitempty" json:"typeOf,omitempty"`
+
+	// Exists and NotExists require the field to be present (non-empty) or
+	// absent.
+	Exists    *bool `yaml:"exists,omitempty" json:"exists,omitempty"`
+	NotExists *bool `yaml:"notExists,omitempty" json:"notExists,omitempty"`
+
+	// Unique, when true, requires that no other instance of the CRD has the
+	// same value at Field.
+	Unique *bool `yaml:"unique,omitempty" json:"unique,omitempty"`
+
+	ValueType string `yaml:"valueType,omitempty"` // "string", "int" or "integer", "float" or "number", "bool" or "boolean"
 
 	// When — all conditions must pass for this rule to be evaluated (AND).
 	// Empty means unconditional.
@@ -206,33 +204,14 @@ type ValidationRule struct {
 	// at the admission boundary, not during reconcile.
 	Fires *FiresConfig `yaml:"fires,omitempty" json:"fires,omitempty"`
 
-	// Link names the serve.fields or serve.labels and serve.annotations
-	// key this rule concerns, for UI highlighting. Only needed when Field
-	// isn't already a plain, self-describing path — serve.labels and serve.annotations
-	// entries always resolve through getLabel/getAnnotation template
-	// expressions (or a notes: function built on one), and a hand-written
-	// rule on a spec field can do the same (e.g. wrapping it in a format
-	// check like isValidGitRepository) instead of comparing it directly.
-	// Neither is itself a valid display name. When set, violations report
-	// Link instead of Field as the offending field — the Console (or
-	// any Gateway API client) matches it directly against the form field it
-	// rendered for that serve entry, no guessing at the expression required.
-	//
-	// Link is a plain literal string, not a template expression — it's the
-	// exact serve.fields / serve.labels and serve.annotations key itself, never resolved
-	// against the CR the way Field/Value/Message can be.
-	//
-	// Validated at catalog-load time: must match a key declared in
-	// serve.fields, serve.labels, or .annotations
-	// for this CRD. Linking a spec field whose Field is already exactly
-	// "spec.<name>" is an error, though — at that point Field already is a
-	// clean display name on its own, so the link is always redundant.
-	//
-	// Automatically set by the required/enum rules serve.labels and serve.annotations
-	// entries synthesize. Hand-written rules that target the same field
-	// (e.g. multiple focused checks split across separate rules instead of
-	// one compound expression) should set it too, so every rule touching
-	// that field highlights consistently:
+	// Link is the serve.fields, serve.labels or serve.annotations key this
+	// rule is about. Violations report it instead of Field, so a form (the
+	// Console, any Gateway API client) can highlight the input it rendered.
+	// Set it when Field is an expression rather than a plain path, for
+	// example a note call. A literal key, never a template; it must be
+	// declared on the CRD, and linking a plain "spec.<name>" Field is
+	// rejected as redundant. Rules synthesized from required or enum serve
+	// entries set it themselves.
 	//
 	//	validation:
 	//	  rules:
@@ -244,19 +223,10 @@ type ValidationRule struct {
 	Link string `yaml:"link,omitempty" json:"link,omitempty"`
 }
 
-// IsEmptyAssertions reports whether this rule has at either a valid operator or shorthand defined
+// IsEmptyAssertions reports whether the rule declares no comparison (it then
+// means exists).
 func (r ValidationRule) IsEmptyAssertions() bool {
-	return r.Operator == "" && r.ShorthandsEmpty()
-}
-
-func (r ValidationRule) ShorthandsEmpty() bool {
-	switch {
-	case r.Equals == "" && r.NotEquals == "" && r.GreaterThan == "" && r.LessThan == "" && r.GreaterThanOrEqual == "" && r.LessThanOrEqual == "" &&
-		r.Between == "" && r.NotBetween == "" && r.Contains == "" && r.NotContains == "" && r.In == "" && r.NotIn == "" && r.Prefix == "" && r.NotPrefix == "" &&
-		r.Suffix == "" && r.NotSuffix == "" && r.Min == "" && r.Max == "" && r.Regex == "":
-		return true
-	}
-	return false
+	return len(r.Declared()) == 0
 }
 
 // ValidationRuleFor returns the first matching mutation rule for a given field
@@ -372,59 +342,32 @@ func (c *ValidationConfig) HasAnyRules() bool {
 	return len(c.Rules) > 0
 }
 
-// HasUniqueRule reports whether any rule uses operator: unique.
+// HasUniqueRule reports whether any rule sets unique: true.
 func (c *ValidationConfig) HasUniqueRule() bool {
 	if c == nil {
 		return false
 	}
 	for _, r := range c.Rules {
-		if r.Operator == ConditionUnique {
+		if r.Unique != nil && *r.Unique {
 			return true
 		}
 	}
 	return false
 }
 
-// HasHealthField reports whether any rule's field expression references .health,
-// including through a user-defined note whose expression body references .health.
-func (c *ValidationConfig) HasHealthField(nr NoteRegistry) bool {
+// References reports whether any rule's field reads the data root (for
+// example "health" or "metrics"), directly or through a note. Used by
+// validators and also the webhook to fetch data only when a rule needs it.
+func (c *ValidationConfig) References(nr NoteRegistry, root string) bool {
 	if c == nil {
 		return false
 	}
 	for _, r := range c.Rules {
-		if fieldHasPrefix(r.Field, ".health.") {
-			return true
-		}
-		if IsNoteRef(r.Field) && nr.ContainsInExpression(NoteRefName(r.Field), ".health.") {
+		if nr.References(r.Field, root) {
 			return true
 		}
 	}
 	return false
-}
-
-// HasMetricsField reports whether any rule's field expression references .metrics,
-// including through a user-defined note whose expression body references .metrics.
-func (c *ValidationConfig) HasMetricsField(nr NoteRegistry) bool {
-	if c == nil {
-		return false
-	}
-	for _, r := range c.Rules {
-		if fieldHasPrefix(r.Field, ".metrics.") {
-			return true
-		}
-		if IsNoteRef(r.Field) && nr.ContainsInExpression(NoteRefName(r.Field), ".metrics.") {
-			return true
-		}
-	}
-	return false
-}
-
-// fieldHasPrefix strips a leading {{ and trims space before checking the prefix,
-// so both ".health.status" and "{{ .health.status }}" are handled uniformly.
-func fieldHasPrefix(field, prefix string) bool {
-	s := strings.TrimPrefix(field, "{{")
-	s = strings.TrimSpace(s)
-	return strings.HasPrefix(s, prefix)
 }
 
 // ── MutationRule ──────────────────────────────────────────────────────────
@@ -629,54 +572,27 @@ func (c *MutationConfig) ReconcileExternal() []ExternalCallSpec {
 	return out
 }
 
-// HasUniqueRule reports whether any rule uses operator: unique.
+// HasUniqueRule reports whether any rule sets unique: true.
 // Always false for mutation — unique is a validation-only operator.
 func (c *MutationConfig) HasUniqueRule() bool {
 	return false
 }
 
-// HasHealthField reports whether any rule's field, default, or override expression
-// references .health, including through a user-defined note whose expression body
-// references .health.
-func (c *MutationConfig) HasHealthField(nr NoteRegistry) bool {
+// References reports whether any rule's field, default or override reads
+// the data root (for example "health" or "metrics"), directly or through a
+// note.
+func (c *MutationConfig) References(nr NoteRegistry, root string) bool {
 	if c == nil {
 		return false
 	}
 	for _, r := range c.Rules {
-		if fieldHasPrefix(r.Field, ".health.") {
+		if nr.References(r.Field, root) {
 			return true
 		}
-		if IsNoteRef(r.Field) && nr.ContainsInExpression(NoteRefName(r.Field), ".health.") {
+		if s, ok := r.Default.(string); ok && nr.References(s, root) {
 			return true
 		}
-		if s, ok := r.Default.(string); ok && fieldHasPrefix(s, ".health.") {
-			return true
-		}
-		if s, ok := r.Override.(string); ok && fieldHasPrefix(s, ".health.") {
-			return true
-		}
-	}
-	return false
-}
-
-// HasMetricsField reports whether any rule's field, default, or override expression
-// references .metrics, including through a user-defined note whose expression body
-// references .metrics.
-func (c *MutationConfig) HasMetricsField(nr NoteRegistry) bool {
-	if c == nil {
-		return false
-	}
-	for _, r := range c.Rules {
-		if fieldHasPrefix(r.Field, ".metrics.") {
-			return true
-		}
-		if IsNoteRef(r.Field) && nr.ContainsInExpression(NoteRefName(r.Field), ".metrics.") {
-			return true
-		}
-		if s, ok := r.Default.(string); ok && fieldHasPrefix(s, ".metrics.") {
-			return true
-		}
-		if s, ok := r.Override.(string); ok && fieldHasPrefix(s, ".metrics.") {
+		if s, ok := r.Override.(string); ok && nr.References(s, root) {
 			return true
 		}
 	}

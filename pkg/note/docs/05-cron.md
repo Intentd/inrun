@@ -50,8 +50,7 @@ Keywords: cron, schedule, map, convert, fields, expression
   schedule: "{{ cronFromMap .spec.schedule }}"
   when:
     - field: spec.schedule
-      operator: typeOf
-      value: map
+      typeOf: map
 ```
 
 ```
@@ -195,9 +194,8 @@ Keywords: cron, schedule, validate, valid, check, boolean
 ```yaml
 validation:
   rules:
-    - field: spec.schedule
-      operator: custom
-      value: "{{ cronValid .spec.schedule }}"
+    - field: "{{ cronValid .spec.schedule }}"
+      equals: "true"
       message: "spec.schedule must be a valid cron expression"
       action: deny
 ```

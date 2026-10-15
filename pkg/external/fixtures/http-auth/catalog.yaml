@@ -26,14 +26,14 @@ spec:
               - name: healthCheck
                 url: "{{ .spec.url }}/health"
                 method: GET
-                expectedStatus: 200
+                expectedStatus: [200]
                 continueOnError: true
                 timeout: 5s
 
               - name: config
                 url: "{{ .spec.url }}/protected/{{ .metadata.name }}"
                 method: GET
-                expectedStatus: 200
+                expectedStatus: [200]
                 continueOnError: true
                 timeout: 5s
                 auth:
@@ -73,5 +73,5 @@ spec:
                 value: "{{ .external.config.status }}"
 
               - path: tokenValid
-                value: "{{ .external.config.tokenValid }}"
+                value: "{{ .external.config.json.tokenValid }}"
 

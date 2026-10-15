@@ -1,4 +1,4 @@
-# Fixture for operator: unique — exercised in both validation.rules (deny on
+# Fixture for unique: true — exercised in both validation.rules (deny on
 # duplicate spec.domain) and status.fields' when: (writes domainUnique from
 # the same check). Both read the live UniquenessChecker the reconciler
 # injects via template.Resolver.WithUniquenessChecker.
@@ -8,7 +8,7 @@ metadata:
   name: simulate-fixture-unique-operator
   author: intentd
   version: 0.1.0
-  description: "Fixture for operator: unique in validation.rules and when/or."
+  description: "Fixture for unique: true in validation.rules and when/or."
 
 spec:
   crds:
@@ -23,7 +23,7 @@ spec:
         validation:
           rules:
             - field: spec.domain
-              operator: unique
+              unique: true
               message: "spec.domain must be unique across all Website instances"
               action: deny
       operatorBox:
@@ -36,6 +36,6 @@ spec:
                 value: "true"
                 when:
                   - field: spec.domain
-                    operator: unique
+                    unique: true
                 clearOnFalse: true
 

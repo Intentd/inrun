@@ -3,6 +3,6 @@ fields:
     value: Pending
     when:
       - field: status.phase
-        operator: notExists
+        notExists: true
   - path: team
     value: "{{ .spec.team }}"

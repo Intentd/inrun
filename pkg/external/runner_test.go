@@ -83,7 +83,7 @@ func TestRun_SuccessfulCall(t *testing.T) {
 	}
 }
 
-func TestRun_JSONBodyAutoParsed(t *testing.T) {
+func TestRun_JSONBodyDecoded(t *testing.T) {
 	defer withTransport(t, stubTransport{status: 200, body: `{"enabled":true,"limit":5}`})()
 
 	r := resolver(map[string]interface{}{})
@@ -100,12 +100,36 @@ func TestRun_JSONBodyAutoParsed(t *testing.T) {
 	ext := data["external"].(map[string]interface{})
 	cfg := ext["cfg"].(map[string]interface{})
 
-	// top-level JSON keys auto-merged into entry
-	if cfg["enabled"] != true {
-		t.Errorf("enabled: got %v, want true", cfg["enabled"])
+	// the decoded body is under json; nothing is merged into the entry
+	body, ok := cfg["json"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("json: got %T, want the decoded object", cfg["json"])
 	}
-	if fmt.Sprintf("%v", cfg["limit"]) != "5" {
-		t.Errorf("limit: got %v, want 5", cfg["limit"])
+	if body["enabled"] != true {
+		t.Errorf("json.enabled: got %v, want true", body["enabled"])
+	}
+	if fmt.Sprintf("%v", body["limit"]) != "5" {
+		t.Errorf("json.limit: got %v, want 5", body["limit"])
+	}
+	if _, merged := cfg["enabled"]; merged {
+		t.Error("body keys must not be merged into the entry")
+	}
+}
+
+func TestRun_JSONArrayBodyDecoded(t *testing.T) {
+	defer withTransport(t, stubTransport{status: 200, body: `[{"id":"a"},{"id":"b"}]`})()
+
+	r := resolver(map[string]interface{}{})
+	calls := []types.ExternalCallSpec{{Name: "list", URL: "http://api.internal/items"}}
+
+	got, err := external.Run(context.Background(), "test", r, calls, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	entry := got.Data()["external"].(map[string]interface{})["list"].(map[string]interface{})
+	items, ok := entry["json"].([]interface{})
+	if !ok || len(items) != 2 {
+		t.Fatalf("json: got %v, want a two-item array", entry["json"])
 	}
 }
 
@@ -218,7 +242,7 @@ func TestRun_ExpectedStatusMismatch(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "api", URL: "http://api.internal/v1", ExpectedStatus: 200, ContinueOnError: false},
+		{Name: "api", URL: "http://api.internal/v1", ExpectedStatus: []int{200}, ContinueOnError: false},
 	}
 
 	_, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -227,8 +251,9 @@ func TestRun_ExpectedStatusMismatch(t *testing.T) {
 	}
 }
 
-func TestRun_JSONStatusKeyDoesNotOverwriteHTTPStatus(t *testing.T) {
-	// Body {"status":"ok"} must not overwrite the HTTP status code "200".
+func TestRun_JSONStatusKeyStaysReadable(t *testing.T) {
+	// A body field named like a result key ("status") is read from json and
+	// never overwrites the HTTP status code.
 	defer withTransport(t, stubTransport{status: 200, body: `{"status":"ok"}`})()
 
 	r := resolver(map[string]interface{}{})
@@ -245,6 +270,9 @@ func TestRun_JSONStatusKeyDoesNotOverwriteHTTPStatus(t *testing.T) {
 	health := ext["health"].(map[string]interface{})
 	if health["status"] != "200" {
 		t.Errorf("status: got %v, want 200 — JSON body key must not overwrite HTTP status", health["status"])
+	}
+	if body := health["json"].(map[string]interface{}); body["status"] != "ok" {
+		t.Errorf("json.status: got %v, want ok", body["status"])
 	}
 }
 
@@ -266,9 +294,8 @@ func TestRun_NonJSONBodyNotParsed(t *testing.T) {
 	if entry["body"] != "plain text response" {
 		t.Errorf("body: got %v, want 'plain text response'", entry["body"])
 	}
-	// no extra keys merged in
-	if _, ok := entry["plain"]; ok {
-		t.Error("unexpected key merged from non-JSON body")
+	if _, ok := entry["json"]; ok {
+		t.Error("a non-JSON body has no json key")
 	}
 }
 
@@ -276,3 +303,68 @@ func TestRun_NonJSONBodyNotParsed(t *testing.T) {
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestRun_ExpectedStatusList(t *testing.T) {
+	defer withTransport(t, stubTransport{status: 404, body: ""})()
+
+	r := resolver(map[string]interface{}{})
+	calls := []types.ExternalCallSpec{
+		{Name: "read", URL: "http://api.internal/v1/item", ExpectedStatus: []int{200, 404}},
+	}
+
+	got, err := external.Run(context.Background(), "test", r, calls, nil)
+	if err != nil {
+		t.Fatalf("404 is listed in expectedStatus, so the call succeeds: %v", err)
+	}
+	entry := got.Data()["external"].(map[string]interface{})["read"].(map[string]interface{})
+	if entry["status"] != "404" || entry["error"] != "" {
+		t.Errorf("got status %v error %q, want 404 and no error", entry["status"], entry["error"])
+	}
+}
+
+func TestValidateCall_ExpectedStatusRange(t *testing.T) {
+	call := types.ExternalCallSpec{Name: "read", URL: "http://api.internal", ExpectedStatus: []int{200, 99}}
+	if err := external.ValidateCall("test", call); err == nil {
+		t.Fatal("99 is not an HTTP status code")
+	}
+	call.ExpectedStatus = []int{200, 404}
+	if err := external.ValidateCall("test", call); err != nil {
+		t.Fatalf("200 and 404 are valid: %v", err)
+	}
+}
+
+func TestCall_OneCall(t *testing.T) {
+	defer withTransport(t, stubTransport{status: 200, body: `{"id":"b-1"}`})()
+	r := resolver(map[string]interface{}{"spec": map[string]interface{}{"ready": "no"}})
+
+	entry, err := external.Call(context.Background(), "test", "remote", r,
+		types.ExternalCallSpec{Name: "ensure", URL: "http://api.internal/buckets/b-1", Method: "PUT"}, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry["status"] != "200" || entry["json"].(map[string]interface{})["id"] != "b-1" {
+		t.Errorf("got %v", entry)
+	}
+
+	skipped, err := external.Call(context.Background(), "test", "remote", r, types.ExternalCallSpec{
+		Name: "gated", URL: "http://api.internal/x",
+		Conditions: []types.Condition{{Field: "spec.ready", Equals: "yes"}},
+	}, nil)
+	if err != nil || skipped["called"] != "false" {
+		t.Errorf("a call whose conditions fail is skipped: %v, %v", skipped, err)
+	}
+}
+
+func TestCall_FailureReturnsEntryAndError(t *testing.T) {
+	defer withTransport(t, stubTransport{status: 503, body: `{"reason":"busy"}`})()
+	r := resolver(map[string]interface{}{})
+
+	entry, err := external.Call(context.Background(), "test", "remote", r,
+		types.ExternalCallSpec{Name: "ensure", URL: "http://api.internal/x"}, nil)
+	if err == nil {
+		t.Fatal("a 503 without continueOnError is an error")
+	}
+	if entry == nil || entry["status"] != "503" {
+		t.Errorf("the failed call's entry is still returned: %v", entry)
+	}
+}

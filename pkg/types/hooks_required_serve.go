@@ -106,13 +106,13 @@ func (c *CRDEntry) RequiredServeFieldRules() []ValidationRule {
 			continue
 		}
 		rules = append(rules, ValidationRule{
-			Field:    ref.field,
-			Link:     ref.link,
-			Operator: ConditionExists,
-			Message:  ref.label + " is required",
-			Action:   ValidationActionDeny,
-			When:     ref.cfg.When,
-			Or:       ref.cfg.Or,
+			Field:   ref.field,
+			Link:    ref.link,
+			Exists:  boolPtr(true),
+			Message: ref.label + " is required",
+			Action:  ValidationActionDeny,
+			When:    ref.cfg.When,
+			Or:      ref.cfg.Or,
 		})
 	}
 	return rules
@@ -128,16 +128,15 @@ func (c *CRDEntry) EnumServeFieldRules() []ValidationRule {
 		if cfgType != "enum" || len(ref.cfg.Enum) == 0 {
 			continue
 		}
-		when := append([]Condition{{Field: ref.field, Operator: ConditionExists}}, ref.cfg.When...)
+		when := append([]Condition{{Field: ref.field, Exists: boolPtr(true)}}, ref.cfg.When...)
 		rules = append(rules, ValidationRule{
-			Field:    ref.field,
-			Link:     ref.link,
-			Operator: ConditionIn,
-			Value:    strings.Join(ref.cfg.Enum, ","),
-			Message:  ref.label + " must be one of: " + strings.Join(ref.cfg.Enum, ", "),
-			Action:   ValidationActionDeny,
-			When:     when,
-			Or:       ref.cfg.Or,
+			Field:   ref.field,
+			Link:    ref.link,
+			In:      strings.Join(ref.cfg.Enum, ","),
+			Message: ref.label + " must be one of: " + strings.Join(ref.cfg.Enum, ", "),
+			Action:  ValidationActionDeny,
+			When:    when,
+			Or:      ref.cfg.Or,
 		})
 	}
 	return rules

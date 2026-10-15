@@ -16,7 +16,7 @@ expect:
             environment: staging
           EOF
         exitCode: 1
-        outputContains: "spec.repoURL is required for app and monitoring workloads"
+        contains: "spec.repoURL is required for app and monitoring workloads"
 
   - name: Admission blocks monitoring workload missing repoURL (deny or)
     after: cr-applied
@@ -36,7 +36,7 @@ expect:
             scrapeInterval: 15s
           EOF
         exitCode: 1
-        outputContains: "spec.repoURL is required for app and monitoring workloads"
+        contains: "spec.repoURL is required for app and monitoring workloads"
 
   - name: Deny or skipped for monitoring with repoURL present
     after: cr-applied

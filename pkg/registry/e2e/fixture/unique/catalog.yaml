@@ -3,7 +3,7 @@ kind: Catalog
 metadata:
   name: unique-operator-e2e
   description: >
-    Verifies operator: unique end to end, at both enforcement points: a
+    Verifies unique: true end to end, at both enforcement points: a
     duplicate spec.domain is rejected synchronously at kubectl apply time
     by the admission webhook (querying the runtime's informer cache over
     HTTP), and would also be denied at reconcile time via a live List() if
@@ -27,7 +27,7 @@ spec:
         validation:
           rules:
             - field: spec.domain
-              operator: unique
+              unique: true
               message: "spec.domain must be unique across all Website instances"
               action: deny
       operatorBox:

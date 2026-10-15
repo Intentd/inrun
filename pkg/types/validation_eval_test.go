@@ -124,7 +124,7 @@ func TestResolveValidationOp_Shorthands(t *testing.T) {
 		{"max maps to lte", ValidationRule{Max: "10"}, ConditionLte, "10"},
 		{"greaterThan maps to gt", ValidationRule{GreaterThan: "5"}, ConditionGt, "5"},
 		{"lessThan maps to lt", ValidationRule{LessThan: "5"}, ConditionLt, "5"},
-		{"explicit operator", ValidationRule{Operator: ConditionIn, Value: "a,b"}, ConditionIn, "a,b"},
+		{"explicit operator", ValidationRule{In: "a,b"}, ConditionIn, "a,b"},
 		{"no shorthand defaults to exists", ValidationRule{Field: "spec.image"}, ConditionExists, ""},
 	}
 
@@ -152,14 +152,14 @@ func TestEvaluateValidationRule_Operators(t *testing.T) {
 		wantPass bool
 	}{
 		// ── exists ──────────────────────────────────────────────────────────
-		{"exists: field present with value — passes", specData(map[string]interface{}{"image": "myorg/app:v1"}), ValidationRule{Field: "spec.image", Operator: ConditionExists, Message: "required"}, true},
-		{"exists: field missing — fails", specData(map[string]interface{}{}), ValidationRule{Field: "spec.image", Operator: ConditionExists, Message: "required"}, false},
-		{"exists: field present but empty string — fails", specData(map[string]interface{}{"image": ""}), ValidationRule{Field: "spec.image", Operator: ConditionExists, Message: "required"}, false},
+		{"exists: field present with value — passes", specData(map[string]interface{}{"image": "myorg/app:v1"}), ValidationRule{Field: "spec.image", Exists: boolPtr(true), Message: "required"}, true},
+		{"exists: field missing — fails", specData(map[string]interface{}{}), ValidationRule{Field: "spec.image", Exists: boolPtr(true), Message: "required"}, false},
+		{"exists: field present but empty string — fails", specData(map[string]interface{}{"image": ""}), ValidationRule{Field: "spec.image", Exists: boolPtr(true), Message: "required"}, false},
 
 		// ── notExists ───────────────────────────────────────────────────────
-		{"notExists: field absent — passes", specData(map[string]interface{}{}), ValidationRule{Field: "spec.debug", Operator: ConditionNotExists, Message: "debug not allowed"}, true},
-		{"notExists: field present with value — fails", specData(map[string]interface{}{"debug": "true"}), ValidationRule{Field: "spec.debug", Operator: ConditionNotExists, Message: "debug not allowed"}, false},
-		{"notExists: field present but empty — passes", specData(map[string]interface{}{"debug": ""}), ValidationRule{Field: "spec.debug", Operator: ConditionNotExists, Message: "debug not allowed"}, true},
+		{"notExists: field absent — passes", specData(map[string]interface{}{}), ValidationRule{Field: "spec.debug", NotExists: boolPtr(true), Message: "debug not allowed"}, true},
+		{"notExists: field present with value — fails", specData(map[string]interface{}{"debug": "true"}), ValidationRule{Field: "spec.debug", NotExists: boolPtr(true), Message: "debug not allowed"}, false},
+		{"notExists: field present but empty — passes", specData(map[string]interface{}{"debug": ""}), ValidationRule{Field: "spec.debug", NotExists: boolPtr(true), Message: "debug not allowed"}, true},
 
 		// ── equals ──────────────────────────────────────────────────────────
 		{"equals: exact match — passes", specData(map[string]interface{}{"env": "production"}), ValidationRule{Field: "spec.env", Equals: "production", Message: "must be production"}, true},
@@ -189,10 +189,10 @@ func TestEvaluateValidationRule_Operators(t *testing.T) {
 		// for when:/or: conditions but missing from the validation-rule
 		// evaluation switch, so a rule using it always passed silently, in
 		// both the reconciler and the webhook, at once.
-		{"in: value in list — passes", specData(map[string]interface{}{"workloadType": "app"}), ValidationRule{Field: "spec.workloadType", Operator: ConditionIn, Value: "app,cert,monitoring,infra", Message: "invalid"}, true},
-		{"in: value not in list — fails", specData(map[string]interface{}{"workloadType": "bogus"}), ValidationRule{Field: "spec.workloadType", Operator: ConditionIn, Value: "app,cert,monitoring,infra", Message: "invalid"}, false},
-		{"in: field missing — fails", specData(map[string]interface{}{}), ValidationRule{Field: "spec.workloadType", Operator: ConditionIn, Value: "app,cert", Message: "invalid"}, false},
-		{"in: whitespace around list entries is trimmed", specData(map[string]interface{}{"env": "prod"}), ValidationRule{Field: "spec.env", Operator: ConditionIn, Value: "dev, staging, prod", Message: "invalid"}, true},
+		{"in: value in list — passes", specData(map[string]interface{}{"workloadType": "app"}), ValidationRule{Field: "spec.workloadType", In: "app,cert,monitoring,infra", Message: "invalid"}, true},
+		{"in: value not in list — fails", specData(map[string]interface{}{"workloadType": "bogus"}), ValidationRule{Field: "spec.workloadType", In: "app,cert,monitoring,infra", Message: "invalid"}, false},
+		{"in: field missing — fails", specData(map[string]interface{}{}), ValidationRule{Field: "spec.workloadType", In: "app,cert", Message: "invalid"}, false},
+		{"in: whitespace around list entries is trimmed", specData(map[string]interface{}{"env": "prod"}), ValidationRule{Field: "spec.env", In: "dev, staging, prod", Message: "invalid"}, true},
 
 		// ── min (ConditionGte) — inclusive ───────────────────────────────────
 		{"min: value exactly at minimum — passes", specData(map[string]interface{}{"replicas": float64(1)}), ValidationRule{Field: "spec.replicas", Min: "1", Message: "at least 1 replica"}, true},
@@ -217,10 +217,10 @@ func TestEvaluateValidationRule_Operators(t *testing.T) {
 		{"lt: value below bound — passes", specData(map[string]interface{}{"replicas": float64(9)}), ValidationRule{Field: "spec.replicas", LessThan: "10", Message: "must be under 10"}, true},
 
 		// ── explicit gte/lte — inclusive ──────────────────────────────────────
-		{"gte: value equal to bound — passes", specData(map[string]interface{}{"replicas": float64(1)}), ValidationRule{Field: "spec.replicas", GreaterThanOrEqual: "1", Message: "at least 1"}, true},
-		{"gte: value below bound — fails", specData(map[string]interface{}{"replicas": float64(0)}), ValidationRule{Field: "spec.replicas", GreaterThanOrEqual: "1", Message: "at least 1"}, false},
-		{"lte: value equal to bound — passes", specData(map[string]interface{}{"replicas": float64(10)}), ValidationRule{Field: "spec.replicas", LessThanOrEqual: "10", Message: "at most 10"}, true},
-		{"lte: value above bound — fails", specData(map[string]interface{}{"replicas": float64(11)}), ValidationRule{Field: "spec.replicas", LessThanOrEqual: "10", Message: "at most 10"}, false},
+		{"gte: value equal to bound — passes", specData(map[string]interface{}{"replicas": float64(1)}), ValidationRule{Field: "spec.replicas", Min: "1", Message: "at least 1"}, true},
+		{"gte: value below bound — fails", specData(map[string]interface{}{"replicas": float64(0)}), ValidationRule{Field: "spec.replicas", Min: "1", Message: "at least 1"}, false},
+		{"lte: value equal to bound — passes", specData(map[string]interface{}{"replicas": float64(10)}), ValidationRule{Field: "spec.replicas", Max: "10", Message: "at most 10"}, true},
+		{"lte: value above bound — fails", specData(map[string]interface{}{"replicas": float64(11)}), ValidationRule{Field: "spec.replicas", Max: "10", Message: "at most 10"}, false},
 
 		// ── between / notBetween — inclusive bounds ──────────────────────────
 		{"between: value inside range — passes", specData(map[string]interface{}{"replicas": float64(5)}), ValidationRule{Field: "spec.replicas", Between: "1,10", Message: "must be 1-10"}, true},
@@ -282,7 +282,7 @@ func withUniqueChecker(data map[string]interface{}, checker UniquenessChecker) m
 }
 
 func TestEvaluateValidationRule_Unique(t *testing.T) {
-	rule := ValidationRule{Field: "spec.domain", Operator: ConditionUnique, Message: "must be unique"}
+	rule := ValidationRule{Field: "spec.domain", Unique: boolPtr(true), Message: "must be unique"}
 	data := specData(map[string]interface{}{"domain": "a.example.com"})
 
 	t.Run("no checker injected — always passes", func(t *testing.T) {
@@ -363,11 +363,11 @@ func TestEvaluateValidationRule_ViolationFieldsArePopulated(t *testing.T) {
 func TestEvaluateValidationRule_LinkOverridesDisplayField(t *testing.T) {
 	data := specData(map[string]interface{}{"team": ""})
 	rule := ValidationRule{
-		Field:    `{{ getLabel . "team" }}`,
-		Link:     "team",
-		Operator: ConditionExists,
-		Message:  "team is required",
-		Action:   ValidationActionDeny,
+		Field:   `{{ getLabel . "team" }}`,
+		Link:    "team",
+		Exists:  boolPtr(true),
+		Message: "team is required",
+		Action:  ValidationActionDeny,
 	}
 
 	v := EvaluateValidationRule(data, nil, rule)
@@ -383,10 +383,10 @@ func TestEvaluateValidationRule_LinkOverridesDisplayField(t *testing.T) {
 func TestEvaluateValidationRule_NoLinkUsesFieldAsDisplayField(t *testing.T) {
 	data := specData(map[string]interface{}{})
 	rule := ValidationRule{
-		Field:    `{{ getLabel . "team" }}`,
-		Operator: ConditionExists,
-		Message:  "team is required",
-		Action:   ValidationActionDeny,
+		Field:   `{{ getLabel . "team" }}`,
+		Exists:  boolPtr(true),
+		Message: "team is required",
+		Action:  ValidationActionDeny,
 	}
 
 	v := EvaluateValidationRule(data, nil, rule)

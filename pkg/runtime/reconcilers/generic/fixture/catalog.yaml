@@ -61,8 +61,7 @@ spec:
               message: "replicas must be at least 1"
               action: deny
             - field: spec.tier
-              operator: in
-              value: "basic,premium"
+              in: "basic,premium"
               message: "tier must be basic or premium"
               action: deny
 

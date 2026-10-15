@@ -137,7 +137,7 @@ spec:
               lease: inrun-leader
             port: 8080
             path: /catalog/website
-            outputContains: "Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website"
+            contains: "Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website"
 
     - include: ./e2e/cleanup.yaml
 

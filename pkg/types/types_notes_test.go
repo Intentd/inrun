@@ -66,15 +66,15 @@ func TestNoteRegistry_ExpressionFor(t *testing.T) {
 	assert.Equal(t, "", nr.ExpressionFor("unknown"))
 }
 
-// ── NoteRegistry.ContainsInExpression ────────────────────────────────────────
+// ── NoteRegistry.References ──────────────────────────────────────────────────
 
-func TestNoteRegistry_ContainsInExpression(t *testing.T) {
+func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
 	t.Run("direct reference to .health in expression", func(t *testing.T) {
 		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
 			{Name: "isHealthy", Expression: `{{ eq .health.status "healthy" }}`},
 		}}
-		assert.True(t, nr.ContainsInExpression("isHealthy", ".health."))
-		assert.False(t, nr.ContainsInExpression("isHealthy", ".metrics."))
+		assert.True(t, nr.References("{{ isHealthy }}", "health"))
+		assert.False(t, nr.References("{{ isHealthy }}", "metrics"))
 	})
 
 	t.Run("transitive — note calls another note that references .health", func(t *testing.T) {
@@ -83,8 +83,8 @@ func TestNoteRegistry_ContainsInExpression(t *testing.T) {
 			{Name: "isReady", Expression: `{{ and isHealthy (gt .metrics.readyCount 0) }}`},
 			{Name: "canAccept", Expression: `{{ and isReady (lt .metrics.queueDepth 500) }}`},
 		}}
-		assert.True(t, nr.ContainsInExpression("canAccept", ".health."))
-		assert.True(t, nr.ContainsInExpression("canAccept", ".metrics."))
+		assert.True(t, nr.References("{{ canAccept }}", "health"))
+		assert.True(t, nr.References("{{ canAccept }}", "metrics"))
 	})
 
 	t.Run("word boundary — note named 'is' does not match inside 'isHealthy'", func(t *testing.T) {
@@ -93,13 +93,13 @@ func TestNoteRegistry_ContainsInExpression(t *testing.T) {
 			{Name: "isHealthy", Expression: `{{ gt .metrics.workersBusyPercent 80 }}`},
 		}}
 		// canAccept calls isHealthy (whole word), not is (which is a prefix of isHealthy)
-		assert.False(t, nr.ContainsInExpression("isHealthy", ".health."))
+		assert.False(t, nr.References("{{ isHealthy }}", "health"))
 		// "is" is a whole word in a plain expression
 		nr2 := types.NoteRegistry{Functions: []types.UserDefinedNote{
 			{Name: "is", Expression: `{{ eq .health.status "healthy" }}`},
 			{Name: "outer", Expression: `{{ is }}`},
 		}}
-		assert.True(t, nr2.ContainsInExpression("outer", ".health."))
+		assert.True(t, nr2.References("{{ outer }}", "health"))
 	})
 
 	t.Run("cycle — mutual recursion does not loop", func(t *testing.T) {
@@ -107,19 +107,45 @@ func TestNoteRegistry_ContainsInExpression(t *testing.T) {
 			{Name: "alpha", Expression: `{{ beta }}`},
 			{Name: "beta", Expression: `{{ alpha }}`},
 		}}
-		assert.False(t, nr.ContainsInExpression("alpha", ".health."))
+		assert.False(t, nr.References("{{ alpha }}", "health"))
 	})
 
 	t.Run("note not in registry returns false", func(t *testing.T) {
 		nr := types.NoteRegistry{}
-		assert.False(t, nr.ContainsInExpression("unknown", ".health."))
+		assert.False(t, nr.References("{{ unknown }}", "health"))
 	})
 
 	t.Run("note composing both .health and .metrics", func(t *testing.T) {
 		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
 			{Name: "combined", Expression: `{{ and (eq .health.status "healthy") (lt .metrics.queueDepth 100) }}`},
 		}}
-		assert.True(t, nr.ContainsInExpression("combined", ".health."))
-		assert.True(t, nr.ContainsInExpression("combined", ".metrics."))
+		assert.True(t, nr.References("{{ combined }}", "health"))
+		assert.True(t, nr.References("{{ combined }}", "metrics"))
 	})
+}
+
+func TestNoteRegistry_References_Forms(t *testing.T) {
+	nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		{Name: "bigQuota", Expression: `{{ gt .args.quota 100 }}`},
+	}}
+	cases := []struct {
+		expr, root string
+		want       bool
+	}{
+		{"external.plan.json.env", "external", true},
+		{".external.plan.status", "external", true},
+		{"{{ .external.plan.status }}", "external", true},
+		{"{{ index .external \"plan\" }}", "external", true},
+		{"externalName", "external", false},
+		{"{{ .spec.external.url }}", "external", false},
+		{"{{ .externalName }}", "external", false},
+		{"args.quota", "args.quota", true},
+		{"args.quotaGB", "args.quota", false},
+		{"{{ bigQuota }}", "args.quota", true},
+		{"{{ bigQuota }}", "external", false},
+		{"", "external", false},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, nr.References(c.expr, c.root), "%q reads %q", c.expr, c.root)
+	}
 }

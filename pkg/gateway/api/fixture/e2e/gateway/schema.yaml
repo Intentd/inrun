@@ -10,7 +10,7 @@ expect:
           path: /api/v1/schema
           headers:
             Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
-          outputContains: "apifixture"
+          contains: "apifixture"
 
   - name: Schema for apifixture target returns field definitions
     after: cr-applied
@@ -37,7 +37,7 @@ expect:
           path: /api/v1/schema?target=does-not-exist
           headers:
             Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
-          outputContains: "unknown target"
+          contains: "unknown target"
 
   - name: Schema endpoint rejects unauthenticated request
     after: cr-applied

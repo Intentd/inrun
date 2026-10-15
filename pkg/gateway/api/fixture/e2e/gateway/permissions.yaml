@@ -14,7 +14,7 @@ expect:
             Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
             Content-Type: "application/json"
           body: '{"target":"does-not-exist","name":"gw-bad","workloadType":"app"}'
-          outputContains: "unknown target"
+          contains: "unknown target"
 
   # ── unauthenticated ────────────────────────────────────────────────────────
   - name: Unauthenticated apply is rejected with 401

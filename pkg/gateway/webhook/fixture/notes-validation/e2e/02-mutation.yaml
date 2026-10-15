@@ -8,7 +8,7 @@ expect:
     commands:
       - run: kubectl apply -f ../cr.yaml
         exitCode: 1
-        outputContains: "business hours"
+        contains: "business hours"
 
   - name: mutation defaults spec.replicas via webhook before admission
     after: cr-applied

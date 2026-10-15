@@ -41,4 +41,4 @@ expect:
           name: my-app
           namespace: default
           field: .status.admissionOnlyRan
-          equals: ""
+          notExists: true

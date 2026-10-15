@@ -205,144 +205,8 @@ func checkCommand(ctx context.Context, c types.E2ECommand, workDir string) error
 		return fmt.Errorf("command %q: expected exit code %d, got %d\noutput: %s",
 			c.Run, c.ExitCode, exitCode, strings.TrimSpace(string(out)))
 	}
-	if err := applyAssertions(string(out), commandAssertions(c)); err != nil {
+	if err := c.E2EAssertions.Check(string(out)); err != nil {
 		return fmt.Errorf("command %q: %w\noutput: %s", c.Run, err, strings.TrimSpace(string(out)))
-	}
-	return nil
-}
-
-// assertions holds all output assertion fields shared across e2e command and
-// kubectl subcommand types. Each non-empty/non-zero field is checked
-// independently — every assertion set on one entry applies, same as before.
-type assertions struct {
-	Equals             string
-	NotEquals          string
-	OutputContains     string
-	OutputNotContains  string
-	Regex              string
-	GreaterThan        string
-	LessThan           string
-	GreaterThanOrEqual string
-	LessThanOrEqual    string
-	Between            string
-	NotBetween         string
-	OneOf              []string
-	NotOneOf           []string
-	Exists             bool
-	NotExists          bool
-}
-
-// applyAssertions checks all assertion fields against output. Empty fields
-// are skipped; every set field is checked independently so several can
-// combine on one entry, same as before.
-//
-// Each check builds a single-field types.Condition around the trimmed
-// output and evaluates it with the same EvaluateOneCond the reconciler and
-// webhook use for when:/or: — comparison logic (numeric parsing, regex,
-// ranges) lives in exactly one place instead of being reimplemented here,
-// and gains every operator pkg/types supports for free.
-func applyAssertions(output string, a assertions) error {
-	trimmed := strings.TrimSpace(output)
-	data := map[string]interface{}{"output": trimmed}
-
-	check := func(cond types.Condition, format string, args ...interface{}) error {
-		if !types.EvaluateOneCond(data, cond, nil) {
-			return fmt.Errorf(format, args...)
-		}
-		return nil
-	}
-
-	if a.OutputContains != "" {
-		if err := check(types.Condition{Field: "output", Contains: a.OutputContains},
-			"output does not contain %q", a.OutputContains); err != nil {
-			return err
-		}
-	}
-	if a.OutputNotContains != "" {
-		if err := check(types.Condition{Field: "output", NotContains: a.OutputNotContains},
-			"output must not contain %q", a.OutputNotContains); err != nil {
-			return err
-		}
-	}
-	if a.Regex != "" {
-		if err := check(types.Condition{Field: "output", Regex: a.Regex},
-			"output %q does not match pattern %q", trimmed, a.Regex); err != nil {
-			return err
-		}
-	}
-	if a.Equals != "" {
-		if err := check(types.Condition{Field: "output", Equals: a.Equals},
-			"output: want %q got %q", a.Equals, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.NotEquals != "" {
-		if err := check(types.Condition{Field: "output", NotEquals: a.NotEquals},
-			"output must not equal %q", a.NotEquals); err != nil {
-			return err
-		}
-	}
-	if len(a.OneOf) > 0 {
-		if err := check(types.Condition{Field: "output", In: strings.Join(a.OneOf, ",")},
-			"output: want one of %v, got %q", a.OneOf, trimmed); err != nil {
-			return err
-		}
-	}
-	if len(a.NotOneOf) > 0 {
-		if err := check(types.Condition{Field: "output", NotIn: strings.Join(a.NotOneOf, ",")},
-			"output: must not be one of %v, got %q", a.NotOneOf, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.Exists {
-		t := true
-		if err := check(types.Condition{Field: "output", Exists: &t},
-			"output: field is empty or missing (exists assertion failed)"); err != nil {
-			return err
-		}
-	}
-	if a.NotExists {
-		t := true
-		if err := check(types.Condition{Field: "output", NotExists: &t},
-			"output: field must be absent but got %q (notExists assertion failed)", trimmed); err != nil {
-			return err
-		}
-	}
-	if a.GreaterThan != "" {
-		if err := check(types.Condition{Field: "output", GreaterThan: a.GreaterThan},
-			"output: want > %s, got %s", a.GreaterThan, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.LessThan != "" {
-		if err := check(types.Condition{Field: "output", LessThan: a.LessThan},
-			"output: want < %s, got %s", a.LessThan, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.GreaterThanOrEqual != "" {
-		if err := check(types.Condition{Field: "output", GreaterThanOrEqual: a.GreaterThanOrEqual},
-			"output: want >= %s, got %s", a.GreaterThanOrEqual, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.LessThanOrEqual != "" {
-		if err := check(types.Condition{Field: "output", LessThanOrEqual: a.LessThanOrEqual},
-			"output: want <= %s, got %s", a.LessThanOrEqual, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.Between != "" {
-		if err := check(types.Condition{Field: "output", Between: a.Between},
-			"output: want between %s, got %s", a.Between, trimmed); err != nil {
-			return err
-		}
-	}
-	if a.NotBetween != "" {
-		if err := check(types.Condition{Field: "output", NotBetween: a.NotBetween},
-			"output: want outside range %s, got %s", a.NotBetween, trimmed); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -558,7 +422,7 @@ func assertKubectlApplyOutput(label string, out []byte, runErr error, e types.E2
 		return fmt.Errorf("%s: expected exit code %d, got %d\noutput: %s",
 			label, e.ExitCode, exitCode, strings.TrimSpace(string(out)))
 	}
-	if err := applyAssertions(string(out), kubectlApplyAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(string(out)); err != nil {
 		return fmt.Errorf("%s: %w\noutput: %s", label, err, strings.TrimSpace(string(out)))
 	}
 	return nil
@@ -619,7 +483,7 @@ func checkKubectlGet(ctx context.Context, e types.E2EKubectlGet, workDir string)
 // jq/yq-extracted) output. Split out from checkKubectlGet so this logic is
 // testable without kubectl or a cluster.
 func assertKubectlGetOutput(out string, e types.E2EKubectlGet) error {
-	if err := applyAssertions(out, kubectlGetAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl get %s/%s: %w\noutput: %s", e.Kind, e.Name, err, out)
 	}
 	return nil
@@ -685,7 +549,7 @@ func checkKubectlLogs(ctx context.Context, cs kubernetes.Interface, e types.E2EK
 // jq-extracted) log output. Split out so this logic is testable without
 // kubectl or a cluster.
 func assertKubectlLogsOutput(out string, e types.E2EKubectlLogs) error {
-	if err := applyAssertions(out, kubectlLogsAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl logs: %w\noutput: %s", err, out)
 	}
 	return nil
@@ -716,7 +580,7 @@ func checkKubectlDescribe(ctx context.Context, e types.E2EKubectlDescribe, workD
 // describe output. Split out so this logic is testable without kubectl or
 // a cluster.
 func assertKubectlDescribeOutput(out string, e types.E2EKubectlDescribe) error {
-	if err := applyAssertions(out, kubectlDescribeAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl describe %s: %w\noutput: %s", e.Kind, err, out)
 	}
 	return nil
@@ -774,7 +638,7 @@ func checkKubectlExec(ctx context.Context, cs kubernetes.Interface, e types.E2EK
 // jq/yq-extracted) exec output. Split out so this logic is testable
 // without kubectl or a cluster.
 func assertKubectlExecOutput(pod, out string, e types.E2EKubectlExec) error {
-	if err := applyAssertions(out, kubectlExecAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl exec %s: %w\noutput: %s", pod, err, out)
 	}
 	return nil
@@ -943,7 +807,7 @@ func assertPortForwardOutput(ctx context.Context, workDir, raw string, e types.E
 		return fmt.Errorf("kubectl port-forward %s%s: %w", target, e.Path, err)
 	}
 
-	if err := applyAssertions(out, kubectlPortForwardAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl port-forward %s%s: %w\noutput: %s", target, e.Path, err, out)
 	}
 	return nil
@@ -966,7 +830,7 @@ func checkKubectlEvents(ctx context.Context, e types.E2EKubectlEvents, workDir s
 // events output. Split out so this logic is testable without kubectl or a
 // cluster.
 func assertKubectlEventsOutput(out string, e types.E2EKubectlEvents) error {
-	if err := applyAssertions(out, kubectlEventsAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl events %s/%s: %w\noutput: %s", e.Kind, e.Name, err, out)
 	}
 	return nil
@@ -1010,7 +874,7 @@ func checkKubectlAuth(ctx context.Context, cs kubernetes.Interface, e types.E2EK
 	if allowed {
 		out = "yes"
 	}
-	if err := applyAssertions(out, kubectlAuthAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("auth can-i %s %s: %w\nresult: %s", e.Verb, e.Resource, err, out)
 	}
 	return nil
@@ -1067,7 +931,7 @@ func checkKubectlCp(ctx context.Context, e types.E2EKubectlCp, workDir string) e
 // jq/yq-extracted) file content. Split out so this logic is testable
 // without kubectl or a cluster.
 func assertKubectlCpOutput(src, out string, e types.E2EKubectlCp) error {
-	if err := applyAssertions(out, kubectlCpAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl cp %s: %w\noutput: %s", src, err, out)
 	}
 	return nil
@@ -1104,7 +968,7 @@ func checkKubectlTop(ctx context.Context, e types.E2EKubectlTop, workDir string)
 // top` output. Split out so this logic is testable without kubectl or a
 // cluster.
 func assertKubectlTopOutput(kind, out string, e types.E2EKubectlTop) error {
-	if err := applyAssertions(out, kubectlTopAssertions(e)); err != nil {
+	if err := e.E2EAssertions.Check(out); err != nil {
 		return fmt.Errorf("kubectl top %s: %w\noutput: %s", kind, err, out)
 	}
 	return nil

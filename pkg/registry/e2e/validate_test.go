@@ -177,27 +177,27 @@ func TestValidateKubectl_NoKubectlBlock(t *testing.T) {
 
 func TestValidateKubectl_GetMissingKind(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Name:   "foo",
-		Field:  ".status",
-		Equals: "ok",
+		Name:          "foo",
+		Field:         ".status",
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "kind")
 }
 
 func TestValidateKubectl_GetMissingName(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Kind:   "Deployment",
-		Field:  ".status",
-		Equals: "ok",
+		Kind:          "Deployment",
+		Field:         ".status",
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "name")
 }
 
 func TestValidateKubectl_GetMissingFieldAndFormat(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Kind:   "Deployment",
-		Name:   "app",
-		Equals: "ok",
+		Kind:          "Deployment",
+		Name:          "app",
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "field or format")
 }
@@ -213,42 +213,42 @@ func TestValidateKubectl_GetNoAssertion(t *testing.T) {
 
 func TestValidateKubectl_GetInvalidFormat(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Kind:   "Deployment",
-		Name:   "app",
-		Format: "xml",
-		Equals: "ok",
+		Kind:          "Deployment",
+		Name:          "app",
+		Format:        "xml",
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "json or yaml")
 }
 
 func TestValidateKubectl_GetJQWithoutJSON(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Kind:   "Deployment",
-		Name:   "app",
-		Format: "yaml",
-		JQ:     ".metadata",
-		Equals: "ok",
+		Kind:          "Deployment",
+		Name:          "app",
+		Format:        "yaml",
+		JQ:            ".metadata",
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "jq requires format: json")
 }
 
 func TestValidateKubectl_GetYQWithoutYAML(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Kind:   "Deployment",
-		Name:   "app",
-		Format: "json",
-		YQ:     ".metadata",
-		Equals: "ok",
+		Kind:          "Deployment",
+		Name:          "app",
+		Format:        "json",
+		YQ:            ".metadata",
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "yq requires format: yaml")
 }
 
 func TestValidateKubectl_GetValid(t *testing.T) {
 	errs := validateKubectlGet("loc", types.E2EKubectlGet{
-		Kind:   "Deployment",
-		Name:   "app",
-		Field:  ".status.phase",
-		Equals: "Running",
+		Kind:          "Deployment",
+		Name:          "app",
+		Field:         ".status.phase",
+		E2EAssertions: types.E2EAssertions{Equals: "Running"},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected no errors, got: %v", errs)
@@ -259,7 +259,7 @@ func TestValidateKubectl_GetValid(t *testing.T) {
 
 func TestValidateKubectl_LogsMissingSelector(t *testing.T) {
 	errs := validateKubectlLogs("loc", types.E2EKubectlLogs{
-		OutputContains: "started",
+		E2EAssertions: types.E2EAssertions{Contains: "started"},
 	})
 	requireErr(t, errs, "name, labelSelector, or leaderElection")
 }
@@ -274,7 +274,7 @@ func TestValidateKubectl_LogsNoAssertion(t *testing.T) {
 func TestValidateKubectl_LogsLeaderElectionMissingLease(t *testing.T) {
 	errs := validateKubectlLogs("loc", types.E2EKubectlLogs{
 		LeaderElection: &types.E2EKubectlLeaderElection{},
-		OutputContains: "started",
+		E2EAssertions:  types.E2EAssertions{Contains: "started"},
 	})
 	requireErr(t, errs, "leaderElection.lease")
 }
@@ -285,7 +285,7 @@ func TestValidateKubectl_LogsLeaderElectionMutuallyExclusiveWithName(t *testing.
 		LeaderElection: &types.E2EKubectlLeaderElection{
 			Lease: "my-lease",
 		},
-		OutputContains: "started",
+		E2EAssertions: types.E2EAssertions{Contains: "started"},
 	})
 	requireErr(t, errs, "mutually exclusive")
 }
@@ -296,7 +296,7 @@ func TestValidateKubectl_LogsLeaderElectionMutuallyExclusiveWithSelector(t *test
 		LeaderElection: &types.E2EKubectlLeaderElection{
 			Lease: "my-lease",
 		},
-		OutputContains: "started",
+		E2EAssertions: types.E2EAssertions{Contains: "started"},
 	})
 	requireErr(t, errs, "mutually exclusive")
 }
@@ -306,7 +306,7 @@ func TestValidateKubectl_LogsLeaderElectionValid(t *testing.T) {
 		LeaderElection: &types.E2EKubectlLeaderElection{
 			Lease: "my-lease",
 		},
-		OutputContains: "started",
+		E2EAssertions: types.E2EAssertions{Contains: "started"},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected no errors, got: %v", errs)
@@ -352,9 +352,9 @@ func TestValidateKubectl_DeleteByKindAndName(t *testing.T) {
 
 func TestValidateKubectl_PortForwardAssertionWithoutPath(t *testing.T) {
 	errs := validateKubectlPortForward("loc", types.E2EKubectlPortForward{
-		Service: "my-svc",
-		Port:    8080,
-		Equals:  "ok",
+		Service:       "my-svc",
+		Port:          8080,
+		E2EAssertions: types.E2EAssertions{Equals: "ok"},
 	})
 	requireErr(t, errs, "path is required")
 }
@@ -449,21 +449,21 @@ func TestValidateKubectl_PatchValid(t *testing.T) {
 
 func TestValidateKubectl_TopInvalidKind(t *testing.T) {
 	errs := validateKubectlTop("loc", types.E2EKubectlTop{
-		Kind:           "deployment",
-		OutputContains: "cpu",
+		Kind:          "deployment",
+		E2EAssertions: types.E2EAssertions{Contains: "cpu"},
 	})
 	requireErr(t, errs, "pod or node")
 }
 
 func TestValidateKubectl_TopMissingKind(t *testing.T) {
-	errs := validateKubectlTop("loc", types.E2EKubectlTop{OutputContains: "cpu"})
+	errs := validateKubectlTop("loc", types.E2EKubectlTop{E2EAssertions: types.E2EAssertions{Contains: "cpu"}})
 	requireErr(t, errs, "kind is required")
 }
 
 func TestValidateKubectl_TopValidPod(t *testing.T) {
 	errs := validateKubectlTop("loc", types.E2EKubectlTop{
-		Kind:           "pod",
-		OutputContains: "cpu",
+		Kind:          "pod",
+		E2EAssertions: types.E2EAssertions{Contains: "cpu"},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected no errors, got: %v", errs)

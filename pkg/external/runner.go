@@ -33,100 +33,117 @@ func Run(
 		return resolver, nil
 	}
 
-	log := logger.FromContext(ctx)
 	results := make(map[string]interface{}, len(calls))
-
 	for i, call := range calls {
-		if !types.EvaluateConditions(resolver.Data(), call.Conditions, call.Or, resolver.TemplateEvaluator()) {
-			results[call.Name] = skippedResult(call.Protocol)
-			log.Debug().
-				Str("call", call.Name).
-				Int("index", i).
-				Msg("external call skipped — when: conditions not met")
-			continue
-		}
-
-		resolvedURL, err := resolver.Resolve(call.URL)
-		if err != nil {
-			return resolver, fmt.Errorf("external[%d].url: %w", i, err)
-		}
-		resolvedQuery, err := resolver.Resolve(call.Query)
-		if err != nil {
-			return resolver, fmt.Errorf("external[%d].query: %w", i, err)
-		}
-		resolvedBody, err := resolver.Resolve(call.Body)
-		if err != nil {
-			return resolver, fmt.Errorf("external[%d].body: %w", i, err)
-		}
-		credential, _, err := ResolveAuth(ctx, call.Auth, cs)
-		if err != nil {
-			return resolver, fmt.Errorf("external[%d] %q: %w", i, call.Name, err)
-		}
-
-		// Cache check for protocols that declare cacheFor:.
-		var entry map[string]interface{}
-		cacheHit := false
-		if call.CacheFor != "" {
-			key := cacheKey(gvk, call.Name, resolvedURL, resolvedQuery)
-			if cached, ok := cacheGet(key); ok {
-				entry = cached
-				cacheHit = true
-				log.Debug().Str("call", call.Name).Msg("external call: cache hit")
-			}
-		}
-
-		if !cacheHit {
-			client := newProtocolClient(call.Protocol)
-			entry, err = client.Fetch(ctx, call, resolvedURL, resolvedQuery, resolvedBody, credential)
-			if err != nil {
-				// Hard error from the client (e.g. context cancelled).
-				if !call.ContinueOnError {
-					return resolver, fmt.Errorf("external call %q: %w", call.Name, err)
-				}
-				log.Warn().Err(err).Str("call", call.Name).Msg("external call hard error — continuing")
-				entry = errorResult(err.Error())
-			}
-
-			if call.CacheFor != "" {
-				if ttl, err := utils.ParseTimeDuration(call.CacheFor); err == nil {
-					key := cacheKey(gvk, call.Name, resolvedURL, resolvedQuery)
-					cacheSet(key, entry, ttl)
-				}
-			}
-		}
-
-		results[call.Name] = entry
-
-		// Record metrics using the url for HTTP calls; query for others.
-		callErr, _ := entry["error"].(string)
-		statusStr, _ := entry["status"].(string)
-		durationSeconds := 0.0 // non-HTTP clients don't surface duration yet
-		metrics.RecordExternalCall(gvk, call.Name, resolvedURL, durationSeconds, callErr, 0)
-
+		entry, err := Call(ctx, gvk, fmt.Sprintf("external[%d]", i), resolver, call, cs)
 		// Inject before any early return so status fields can reference this
 		// call's result even when continueOnError is false.
-		resolver = resolver.WithExternal(results)
+		if entry != nil {
+			results[call.Name] = entry
+			resolver = resolver.WithExternal(results)
+		}
+		if err != nil {
+			return resolver, err
+		}
+	}
+	return resolver, nil
+}
 
-		if callErr != "" {
-			log.Warn().
-				Str("call", call.Name).
-				Str("url", resolvedURL).
-				Str("error", callErr).
-				Msg("external call failed")
+// Call makes one external call against resolver and returns its result: the
+// entry templates see as .external.<name>. where labels errors (for example
+// "external[2]"). A call whose when/or conditions fail returns the skipped
+// result. The error is set when the call must stop the caller: a template or
+// auth that cannot be resolved, or a failure without continueOnError; the
+// entry is still returned for a failed call so its error can be read.
+func Call(
+	ctx context.Context,
+	gvk, where string,
+	resolver *template.Resolver,
+	call types.ExternalCallSpec,
+	cs kubernetes.Interface,
+) (map[string]interface{}, error) {
+	log := logger.FromContext(ctx)
 
-			if !call.ContinueOnError {
-				return resolver, fmt.Errorf("external call %q failed: %s", call.Name, callErr)
-			}
-		} else {
-			log.Debug().
-				Str("call", call.Name).
-				Str("url", resolvedURL).
-				Str("status", statusStr).
-				Msg("external call succeeded")
+	if !types.EvaluateConditions(resolver.Data(), call.Conditions, call.Or, resolver.TemplateEvaluator()) {
+		log.Debug().
+			Str("call", call.Name).
+			Str("where", where).
+			Msg("external call skipped — when: conditions not met")
+		return skippedResult(call.Protocol), nil
+	}
+
+	resolvedURL, err := resolver.Resolve(call.URL)
+	if err != nil {
+		return nil, fmt.Errorf("%s.url: %w", where, err)
+	}
+	resolvedQuery, err := resolver.Resolve(call.Query)
+	if err != nil {
+		return nil, fmt.Errorf("%s.query: %w", where, err)
+	}
+	resolvedBody, err := resolver.Resolve(call.Body)
+	if err != nil {
+		return nil, fmt.Errorf("%s.body: %w", where, err)
+	}
+	credential, _, err := ResolveAuth(ctx, call.Auth, cs)
+	if err != nil {
+		return nil, fmt.Errorf("%s %q: %w", where, call.Name, err)
+	}
+
+	// Cache check for protocols that declare cacheFor:.
+	var entry map[string]interface{}
+	cacheHit := false
+	if call.CacheFor != "" {
+		key := cacheKey(gvk, call.Name, resolvedURL, resolvedQuery)
+		if cached, ok := cacheGet(key); ok {
+			entry = cached
+			cacheHit = true
+			log.Debug().Str("call", call.Name).Msg("external call: cache hit")
 		}
 	}
 
-	return resolver, nil
+	if !cacheHit {
+		client := newProtocolClient(call.Protocol)
+		entry, err = client.Fetch(ctx, call, resolvedURL, resolvedQuery, resolvedBody, credential)
+		if err != nil {
+			// Hard error from the client (e.g. context cancelled).
+			if !call.ContinueOnError {
+				return nil, fmt.Errorf("external call %q: %w", call.Name, err)
+			}
+			log.Warn().Err(err).Str("call", call.Name).Msg("external call hard error — continuing")
+			entry = errorResult(err.Error())
+		}
+
+		if call.CacheFor != "" {
+			if ttl, err := utils.ParseTimeDuration(call.CacheFor); err == nil {
+				key := cacheKey(gvk, call.Name, resolvedURL, resolvedQuery)
+				cacheSet(key, entry, ttl)
+			}
+		}
+	}
+
+	// Record metrics using the url for HTTP calls; query for others.
+	callErr, _ := entry["error"].(string)
+	statusStr, _ := entry["status"].(string)
+	durationSeconds := 0.0 // non-HTTP clients don't surface duration yet
+	metrics.RecordExternalCall(gvk, call.Name, resolvedURL, durationSeconds, callErr, 0)
+
+	if callErr != "" {
+		log.Warn().
+			Str("call", call.Name).
+			Str("url", resolvedURL).
+			Str("error", callErr).
+			Msg("external call failed")
+		if !call.ContinueOnError {
+			return entry, fmt.Errorf("external call %q failed: %s", call.Name, callErr)
+		}
+		return entry, nil
+	}
+	log.Debug().
+		Str("call", call.Name).
+		Str("url", resolvedURL).
+		Str("status", statusStr).
+		Msg("external call succeeded")
+	return entry, nil
 }
 
 // skippedResult returns the zero-value result for a skipped call.

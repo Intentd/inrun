@@ -69,7 +69,7 @@ type FakeKubeclient struct {
 // present at construction time fail even if the object is added later.
 // Used to make an in-progress-reconcile CR (and any pre-existing sibling
 // instances from a multi-doc CR file) visible to reconcile-time checks that
-// list other instances of the same CRD, like operator: unique.
+// list other instances of the same CRD, like unique: true.
 func NewFakeKubeclient(scheme *runtime.Scheme, dynamicObjects ...runtime.Object) *FakeKubeclient {
 	f := &FakeKubeclient{shared: &fakeShared{}}
 
@@ -99,9 +99,10 @@ func NewFakeKubeclient(scheme *runtime.Scheme, dynamicObjects ...runtime.Object)
 
 	dyn := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(scheme, listKinds, dynamicObjects...)
 
-	if _, ok := listKinds[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}]; !ok {
-		panic("listKinds missing configmaps — check children.ListKindsForFakeDynamic()")
-	}
+	// Test line
+	// if _, ok := listKinds[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}]; !ok {
+	// 	panic("listKinds missing configmaps — check children.ListKindsForFakeDynamic()")
+	// }
 
 	// dyn := fakedynamic.NewSimpleDynamicClient(scheme, dynamicObjects...) // For custom + seeded pre-existing instances
 

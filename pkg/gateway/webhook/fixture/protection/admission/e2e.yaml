@@ -31,7 +31,7 @@ spec:
       commands:
         - run: kubectl apply -f ./cr-bad.yaml
           exitCode: 1
-          outputContains: "denied the request"
+          contains: "denied the request"
 
     - name: Deployment removed on delete
       after: cr-deleted

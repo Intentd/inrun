@@ -3,7 +3,7 @@
 //
 // This used to be two independently hand-maintained copies of the same
 // switch statement, one in pkg/runtime/reconciler, one in
-// pkg/gateway/webhook. That's how operator: in — defined for when:/or:
+// pkg/gateway/webhook. That's how in — defined for when:/or:
 // conditions — went unimplemented in validation.rules in both places at
 // once, silently, without either side noticing: a rule using it always
 // passed. One implementation means one place to fix, and no way for the two
@@ -12,6 +12,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/pkg/note"
 	"github.com/intentd/inrun/pkg/utils"
 	"regexp"
 	"strconv"
@@ -51,13 +52,13 @@ type UniquenessChecker interface {
 // function. Set via template.Resolver.WithUniquenessChecker — the
 // reconciler wires in a live-List() checker on every reconcile, the
 // admission webhook wires in an HTTP-backed one on every admission request,
-// so operator: unique is enforced identically in both validation.rules and
+// so unique: true is enforced identically in both validation.rules and
 // when:/or: at both points. Always passes elsewhere (e2e, template-only
 // contexts, simulate without a seeded fixture) where there's no live CRD to
 // check against.
 const uniquenessCheckerKey = "_uniquenessChecker"
 
-// resolveUnique evaluates operator: unique against a checker injected under
+// resolveUnique evaluates unique: true against a checker injected under
 // uniquenessCheckerKey, excluding the CR under evaluation by its own
 // metadata.namespace/name. Shared by EvaluateValidationRule and
 // applyOperator (when.go) so the operator behaves identically wherever it's
@@ -141,51 +142,8 @@ func ScalarToString(v interface{}) string {
 // from a ValidationRule, handling all shorthand fields. Falls back to an
 // explicit operator+value pair, or a bare exists check when neither is set.
 func ResolveValidationOp(r ValidationRule) (ConditionOperator, string) {
-	switch {
-	case r.Equals != "":
-		return ConditionEquals, r.Equals
-	case r.NotEquals != "":
-		return ConditionNotEquals, r.NotEquals
-	case r.Prefix != "":
-		return ConditionPrefix, r.Prefix
-	case r.NotPrefix != "":
-		return ConditionNotPrefix, r.NotPrefix
-	case r.Suffix != "":
-		return ConditionSuffix, r.Suffix
-	case r.NotSuffix != "":
-		return ConditionNotSuffix, r.NotSuffix
-	case r.Contains != "":
-		return ConditionContains, r.Contains
-	case r.NotContains != "":
-		return ConditionNotContains, r.NotContains
-	case r.Regex != "":
-		return ConditionRegex, r.Regex
-	case r.Min != "":
-		// Min/Max are documented as inclusive bounds — Gte/Lte, not Gt/Lt.
-		return ConditionGte, r.Min
-	case r.Max != "":
-		return ConditionLte, r.Max
-	case r.GreaterThan != "":
-		return ConditionGt, r.GreaterThan
-	case r.LessThan != "":
-		return ConditionLt, r.LessThan
-	case r.GreaterThanOrEqual != "":
-		return ConditionGte, r.GreaterThanOrEqual
-	case r.LessThanOrEqual != "":
-		return ConditionLte, r.LessThanOrEqual
-	case r.Between != "":
-		return ConditionBetween, r.Between
-	case r.NotBetween != "":
-		return ConditionNotBetween, r.NotBetween
-	case r.In != "":
-		return ConditionIn, r.In
-	case r.NotIn != "":
-		return ConditionNotIn, r.NotIn
-	case r.Operator != "":
-		return r.Operator, r.Value
-	default:
-		return ConditionExists, ""
-	}
+	_, op, value := resolve(r.flagValues(), r.values())
+	return op, value
 }
 
 // RuleTypeLabel returns a short string identifying a ValidationRule's
@@ -195,46 +153,8 @@ func ResolveValidationOp(r ValidationRule) (ConditionOperator, string) {
 // distinct "min" operator), since that's the more actionable label for
 // "which rule type is causing the most friction" alerting.
 func RuleTypeLabel(r ValidationRule) string {
-	switch {
-	case r.Equals != "":
-		return "equals"
-	case r.NotEquals != "":
-		return "notEquals"
-	case r.Prefix != "":
-		return "prefix"
-	case r.Suffix != "":
-		return "suffix"
-	case r.Contains != "":
-		return "contains"
-	case r.NotContains != "":
-		return "notContains"
-	case r.Regex != "":
-		return "regex"
-	case r.Min != "":
-		return "min"
-	case r.Max != "":
-		return "max"
-	case r.GreaterThan != "":
-		return "greaterThan"
-	case r.LessThan != "":
-		return "lessThan"
-	case r.GreaterThanOrEqual != "":
-		return "greaterThanOrEqual"
-	case r.LessThanOrEqual != "":
-		return "lessThanOrEqual"
-	case r.Between != "":
-		return "between"
-	case r.NotBetween != "":
-		return "notBetween"
-	case r.In != "":
-		return "in"
-	case r.NotIn != "":
-		return "notIn"
-	case r.Operator != "":
-		return string(r.Operator)
-	default:
-		return "exists"
-	}
+	name, _, _ := resolve(r.flagValues(), r.values())
+	return name
 }
 
 // inCommaList reports whether value equals one of expected's comma-separated
@@ -455,6 +375,11 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 		}
 		fv, err := strconv.ParseFloat(fieldVal, 64)
 		if err != nil || (fv >= lo && fv <= hi) {
+			return fail()
+		}
+
+	case ConditionTypeOf:
+		if note.TypeOf(NavigateRawPath(data, rule.Field)) != expected {
 			return fail()
 		}
 

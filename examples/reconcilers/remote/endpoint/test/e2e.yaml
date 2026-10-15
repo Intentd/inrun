@@ -140,7 +140,7 @@ spec:
         logs:
           - labelSelector: app=webapp-reconciler
             namespace: default
-            outputContains: key=default/my-webapp
+            contains: key=default/my-webapp
 
     - name: Prune — Service deleted when the reconciler stops returning it
       after: cr-applied

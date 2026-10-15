@@ -11,7 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// New returns the reconciler for the declared remote transport.
+// Transport is what each remote protocol implements: Reconcile for a remote
+// on its own, and Hooks for a mapped remote with templates, where the call is
+// the generic reconciler's hook (see http.Reconciler.Hooks).
+type Transport interface {
+	domain.Reconciler
+	Hooks() domain.ObjectHooks
+}
+
+// New returns the transport for the declared protocol (HTTP when unset).
 // Callers import only this package — transport selection is internal.
 func New(
 	decl *types.RemoteReconcilerDeclaration,
@@ -20,7 +28,7 @@ func New(
 	ev event.Recorder,
 	managedResources []domain.ManagedResource,
 	ownNamespace string,
-) (domain.Reconciler, error) {
+) (Transport, error) {
 	t := decl.Protocol
 	if t == "" {
 		t = types.RemoteReconcileProtocolHTTP

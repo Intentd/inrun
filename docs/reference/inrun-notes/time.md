@@ -39,8 +39,7 @@ status:
 # Gate rotation on time elapsed (30 days = 2592000 seconds)
 when:
   - field: "{{ timeSince (index .metadata.annotations \"myorg.io/last-rotated\") }}"
-    operator: gte
-    value: "2592000"
+    min: "2592000"
 
 # timeUntil
 operatorBox:
@@ -49,7 +48,7 @@ operatorBox:
       after: "{{ timeUntil .status.certExpiry }}"
       when:
         - field: status.certExpiry
-          operator: exists
+          exists: true
 
 status:
   fields:

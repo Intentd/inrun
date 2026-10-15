@@ -37,13 +37,13 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Running"
                 when:
                   - field: "{{ podNodeName .children.pod }}"
-                    operator: exists
+                    exists: true
 
               # ── enriched pod node notes (require enrich: [node]) ────────────
               - path: nodeName

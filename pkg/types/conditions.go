@@ -28,79 +28,54 @@ type Condition struct {
 	// e.g. "spec.environment", "metrics.queueDepth", "cross.managed-database.metrics.queueDepth"
 	Field string `yaml:"field" validate:"required" json:"field"`
 
-	// Operator — how to compare the field value.
-	// See ConditionOperator constants below.
-	Operator ConditionOperator `yaml:"operator,omitempty" json:"operator,omitempty"`
-
-	// Value — the value to compare against.
-	// Not used for exists/notExists operators.
-	// Supports template expressions: "{{ .metadata.name }}-prod"
-	Value string `yaml:"value,omitempty" json:"value,omitempty"`
-
-	// Equals is a shorthand for operator: equals.
-	Equals string `yaml:"equals,omitempty" json:"equals,omitempty"`
-
-	// NotEquals is a shorthand for operator: notEquals.
-	NotEquals string `yaml:"notEquals,omitempty" json:"notEquals,omitempty"`
-
-	// Contains is a shorthand for operator: contains.
-	Contains string `yaml:"contains,omitempty" json:"contains,omitempty"`
-
-	// NotContains is a shorthand for operator: notContains.
+	// Comparisons: set one. Each passes when the field's value matches:
+	// equals / notEquals the value, contains / notContains it, starts
+	// (prefix) or ends (suffix) with it, or matches the RE2 pattern in regex.
+	Equals      string `yaml:"equals,omitempty" json:"equals,omitempty"`
+	NotEquals   string `yaml:"notEquals,omitempty" json:"notEquals,omitempty"`
+	Contains    string `yaml:"contains,omitempty" json:"contains,omitempty"`
 	NotContains string `yaml:"notContains,omitempty" json:"notContains,omitempty"`
+	Regex       string `yaml:"regex,omitempty" json:"regex,omitempty"`
+	Prefix      string `yaml:"prefix,omitempty" json:"prefix,omitempty"`
+	NotPrefix   string `yaml:"notPrefix,omitempty" json:"notPrefix,omitempty"`
+	Suffix      string `yaml:"suffix,omitempty" json:"suffix,omitempty"`
+	NotSuffix   string `yaml:"notSuffix,omitempty" json:"notSuffix,omitempty"`
 
-	// Regex is a shorthand for operator: regex.
-	Regex string `yaml:"regex,omitempty" json:"regex,omitempty"`
-
-	// Prefix is a shorthand for operator: prefix.
-	Prefix string `yaml:"prefix,omitempty" json:"prefix,omitempty"`
-
-	// NotPrefix is a shorthand for operator: notPrefix.
-	NotPrefix string `yaml:"notPrefix,omitempty" json:"notPrefix,omitempty"`
-
-	// Suffix is a shorthand for operator: suffix.
-	Suffix string `yaml:"suffix,omitempty" json:"suffix,omitempty"`
-
-	// NotSuffix is a shorthand for operator: notSuffix.
-	NotSuffix string `yaml:"notSuffix,omitempty" json:"notSuffix,omitempty"`
-
-	// Exists is a shorthand for operator: exists.
-	// When true, the condition passes when the field is present and non-empty.
+	// Exists, when true, passes when the field is present and non-empty. A
+	// condition with no comparison at all means exists.
 	Exists *bool `yaml:"exists,omitempty" json:"exists,omitempty"`
 
-	// NotExists is a shorthand for operator: notExists.
-	// When true, the condition passes when the field is absent or empty.
+	// NotExists, when true, passes when the field is absent or empty.
 	NotExists *bool `yaml:"notExists,omitempty" json:"notExists,omitempty"`
 
-	// Numeric shorthands
+	// Unique, when true, passes when no other instance of the CRD has the same
+	// value at Field. Always passes where no uniqueness checker is available
+	// (e2e, simulate without a seeded fixture).
+	Unique *bool `yaml:"unique,omitempty" json:"unique,omitempty"`
+
+	// TypeOf passes when the field's value has this type: map, slice,
+	// string, number, bool or null (the names the typeOf function returns).
+	TypeOf FieldType `yaml:"typeOf,omitempty" json:"typeOf,omitempty"`
+
+	// GreaterThan and LessThan are strict numeric comparisons.
 	GreaterThan string `yaml:"greaterThan,omitempty" json:"greaterThan,omitempty"`
 	LessThan    string `yaml:"lessThan,omitempty" json:"lessThan,omitempty"`
 
-	// GreaterThanOrEqual is a shorthand for operator: gte.
-	GreaterThanOrEqual string `yaml:"greaterThanOrEqual,omitempty" json:"greaterThanOrEqual,omitempty"`
-
-	// LessThanOrEqual is a shorthand for operator: lte.
-	LessThanOrEqual string `yaml:"lessThanOrEqual,omitempty" json:"lessThanOrEqual,omitempty"`
-
-	// Min is a shorthand for operator: gte. Same operator as GreaterThanOrEqual —
-	// reads better for a bound on a quantity (min: "1") than a direct comparison.
+	// Min is an inclusive lower bound (field >= min).
 	Min string `yaml:"min,omitempty" json:"min,omitempty"`
 
-	// Max is a shorthand for operator: lte. Same operator as LessThanOrEqual.
+	// Max is an inclusive upper bound (field <= max).
 	Max string `yaml:"max,omitempty" json:"max,omitempty"`
 
-	// Between is a shorthand for operator: between. Comma-separated "min,max",
-	// both inclusive.
+	// Between passes inside an inclusive "min,max" range; NotBetween outside it.
 	Between string `yaml:"between,omitempty" json:"between,omitempty"`
 
-	// NotBetween is a shorthand for operator: notBetween. Comma-separated
-	// "min,max", same bounds as between.
 	NotBetween string `yaml:"notBetween,omitempty" json:"notBetween,omitempty"`
 
-	// In is a shorthand for operator: in. Comma-separated list.
+	// In passes when the value is one of a comma-separated list; NotIn when
+	// it is none of them.
 	In string `yaml:"in,omitempty" json:"in,omitempty"`
 
-	// NotIn is a shorthand for operator: notIn. Comma-separated list.
 	NotIn string `yaml:"notIn,omitempty" json:"notIn,omitempty"`
 
 	// ── Time-based fields (or in autoscale conditions) ────────────────────
@@ -157,6 +132,16 @@ type Condition struct {
 	Source *CrossSource `yaml:"source,omitempty" json:"source,omitempty"`
 }
 
+// Expressions returns what a template or path in the condition can be
+// written in: its field and the operand it compares with (one, resolved from
+// the shorthands by ResolveConditionOp).
+func (c Condition) Expressions() []string {
+	if _, operand := ResolveConditionOp(c); operand != "" {
+		return []string{c.Field, operand}
+	}
+	return []string{c.Field}
+}
+
 // ConditionOperator defines how a condition's field is compared to its value.
 type ConditionOperator string
 
@@ -191,7 +176,7 @@ const (
 	// Use for: first-reconcile detection (phase not yet written).
 	//   when:
 	//     - field: status.phase
-	//       operator: notExists
+	//       notExists: true
 	ConditionNotExists ConditionOperator = "notExists"
 
 	// ConditionGt — field value is numerically greater than condition value
@@ -210,8 +195,7 @@ const (
 	// Empty string matches an empty field (for first-reconcile detection).
 	//   when:
 	//     - field: status.phase
-	//       operator: in
-	//       value: ",Pending"   # empty or "Pending"
+	//       in: ",Pending"   # empty or "Pending"
 	ConditionIn ConditionOperator = "in"
 
 	// ConditionNotIn — field value is none of a comma-separated list.
@@ -229,8 +213,7 @@ const (
 	// Value is a comma-separated "min,max" pair.
 	//   when:
 	//     - field: spec.replicas
-	//       operator: between
-	//       value: "1,10"
+	//       between: "1,10"
 	ConditionBetween ConditionOperator = "between"
 
 	// ConditionNotBetween — field value is numerically outside an inclusive
@@ -256,80 +239,19 @@ const (
 	//	validation:
 	//	  rules:
 	//	    - field: spec.domain
-	//	      operator: unique
+	//	      unique: true
 	//	      message: "spec.domain must be unique across all instances"
 	//	      action: deny
 	//
 	//	when:
 	//	  - field: spec.domain
-	//	    operator: unique
+	//	    unique: true
 	//
 	// Always passes wherever no checker is injected — e2e, simulate without
 	// a seeded fixture, and any other context without live CRD access (see
 	// UniquenessChecker in validation_eval.go).
 	ConditionUnique ConditionOperator = "unique"
 
-	// ConditionTypeOf — check field type
+	// ConditionTypeOf — field value has the FieldType given (typeOf: map).
 	ConditionTypeOf ConditionOperator = "typeOf"
-
-	// ConditionTypeMap — field value is a map (YAML object)
-	ConditionTypeMap ConditionOperator = "typeMap"
-
-	// ConditionTypeList — field value is a slice (YAML array)
-	ConditionTypeList ConditionOperator = "typeList"
-
-	// ConditionTypeString — field value is a string
-	ConditionTypeString ConditionOperator = "typeString"
-
-	// ConditionTypeNumber — field value is a number (int/float)
-	ConditionTypeNumber ConditionOperator = "typeNumber"
-
-	// ConditionTypeBool — field value is a boolean
-	ConditionTypeBool ConditionOperator = "typeBool"
-
-	// ConditionTypeNull — field value is null or missing
-	ConditionTypeNull ConditionOperator = "typeNull"
 )
-
-// knownConditionOperators is the complete set of operator strings that
-// EvaluateValidationRule and EvaluateOneCond know how to evaluate.
-var knownConditionOperators = map[ConditionOperator]bool{
-	ConditionEquals:      true,
-	ConditionNotEquals:   true,
-	ConditionContains:    true,
-	ConditionPrefix:      true,
-	ConditionNotPrefix:   true,
-	ConditionSuffix:      true,
-	ConditionNotSuffix:   true,
-	ConditionExists:      true,
-	ConditionNotExists:   true,
-	ConditionGt:          true,
-	ConditionLt:          true,
-	ConditionGte:         true,
-	ConditionLte:         true,
-	ConditionIn:          true,
-	ConditionNotIn:       true,
-	ConditionNotContains: true,
-	ConditionRegex:       true,
-	ConditionBetween:     true,
-	ConditionNotBetween:  true,
-	ConditionUnique:      true,
-	ConditionTypeOf:      true,
-	ConditionTypeMap:     true,
-	ConditionTypeList:    true,
-	ConditionTypeString:  true,
-	ConditionTypeNumber:  true,
-	ConditionTypeBool:    true,
-	ConditionTypeNull:    true,
-}
-
-// IsValidConditionOperator reports whether op is one of the known operators
-// evaluated by EvaluateValidationRule / EvaluateOneCond. An unrecognized
-// operator string is silently skipped by both evaluators (the rule always
-// passes) rather than erroring — this is what catalog-load-time validation
-// should reject instead of letting through. Empty is not valid here; check
-// for that separately since it means "no explicit operator", not "unknown
-// operator" (a shorthand field or the exists-default may still apply).
-func IsValidConditionOperator(op ConditionOperator) bool {
-	return knownConditionOperators[op]
-}

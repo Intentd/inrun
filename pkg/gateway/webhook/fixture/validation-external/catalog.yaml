@@ -30,7 +30,7 @@ spec:
             - name: admissionCheck
               url: "{{ .spec.healthCheckUrl }}"
               method: GET
-              expectedStatus: 200
+              expectedStatus: [200]
               continueOnError: true
               timeout: 5s
               fires:

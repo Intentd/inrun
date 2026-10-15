@@ -4,7 +4,7 @@ kind: E2E
 metadata:
   name: unique-operator-e2e
   description: >
-    End-to-end test for operator: unique. Applies a Website with
+    End-to-end test for unique: true. Applies a Website with
     spec.domain set, then attempts a second Website with the same domain
     and asserts the admission webhook rejects it synchronously at
     kubectl apply time — not just on the next reconcile.
@@ -38,7 +38,7 @@ spec:
         apply:
           - file: ./cr-duplicate.yaml
             exitCode: 1
-            outputContains: "denied the request"
+            contains: "denied the request"
 
     - name: Rejection message names the actual rule
       after: cr-applied
@@ -47,7 +47,7 @@ spec:
         apply:
           - file: ./cr-duplicate.yaml
             exitCode: 1
-            outputContains: "spec.domain must be unique across all Website instances"
+            contains: "spec.domain must be unique across all Website instances"
 
     - name: Rejected duplicate was never created
       after: cr-applied

@@ -19,7 +19,7 @@ expect:
             targetNamespace: team-payments
           EOF
         exitCode: 0
-        outputContains: "productionApproval"
+        contains: "productionApproval"
 
   - name: Warn rule skipped when approval ticket present
     after: cr-applied

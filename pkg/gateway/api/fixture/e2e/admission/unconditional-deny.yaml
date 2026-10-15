@@ -15,7 +15,7 @@ expect:
             environment: staging
           EOF
         exitCode: 1
-        outputContains: "spec.team is required"
+        contains: "spec.team is required"
 
   - name: Admission blocks invalid workloadType
     after: cr-applied
@@ -34,4 +34,4 @@ expect:
             environment: staging
           EOF
         exitCode: 1
-        outputContains: "must be one of: app, cert, monitoring"
+        contains: "must be one of: app, cert, monitoring"

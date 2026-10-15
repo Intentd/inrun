@@ -27,7 +27,7 @@ spec:
       commands:
         - run: kubectl apply -f cr-rejected.yaml
           exitCode: 1
-          outputContains: "replicas must be at least 1"
+          contains: "replicas must be at least 1"
     - include: ./e2e/03-status.yaml
     - include: ./e2e/04-cleanup.yaml
 

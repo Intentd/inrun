@@ -56,5 +56,5 @@ spec:
                 value: "Degraded"
                 when:
                   - field: external.ping.error
-                    operator: exists
+                    exists: true
 

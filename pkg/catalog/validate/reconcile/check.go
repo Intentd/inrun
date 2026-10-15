@@ -18,6 +18,7 @@ func Check(cat *catalog.Catalog, cfg *config.Config) error {
 		c.validateExternalCalls,
 		c.validateRetryBackoff,
 		c.validateRequeue,
+		c.validateReconcileConditions,
 		c.validateEnrich,
 		c.validateTimeDuration,
 		c.validateHPAReference,

@@ -13,6 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/contract"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -51,7 +52,11 @@ func (r *Reconciler) callRemote(ctx context.Context, req domain.Request) (contra
 		return contract.Result{}, fmt.Errorf("remote reconciler: build request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	method := http.MethodPost
+	if r.decl.Request != nil && r.decl.Request.Method != "" {
+		method = r.decl.Request.Method
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return contract.Result{}, fmt.Errorf("remote reconciler: create request: %w", err)
 	}
@@ -83,6 +88,15 @@ func (r *Reconciler) callRemote(ctx context.Context, req domain.Request) (contra
 	return result, nil
 }
 
+// resolverFor returns the request's template resolver.
+func resolverFor(req domain.Request) (*template.Resolver, bool) {
+	if req.Prepared == nil {
+		return nil, false
+	}
+	resolver, ok := req.Prepared.Context.(*template.Resolver)
+	return resolver, ok && resolver != nil
+}
+
 // resolveEndpoint evaluates the endpoint as a template when it contains "{{".
 // Falls back to the static string on failure or when no resolver is available.
 func (r *Reconciler) resolveEndpoint(req domain.Request) string {
@@ -101,8 +115,20 @@ func (r *Reconciler) resolveEndpoint(req domain.Request) string {
 	return resolved
 }
 
-// buildBody serialises the request for the remote endpoint.
+// buildBody serialises the request for the remote endpoint: request.body
+// rendered against the CR when declared, Inrun's request otherwise.
 func (r *Reconciler) buildBody(req domain.Request) ([]byte, error) {
+	if r.decl.Request != nil && r.decl.Request.Body != "" {
+		resolver, ok := resolverFor(req)
+		if !ok {
+			return nil, fmt.Errorf("request.body: no template context for %s", req.Key)
+		}
+		rendered, err := resolver.Resolve(r.decl.Request.Body)
+		if err != nil {
+			return nil, fmt.Errorf("request.body: %w", err)
+		}
+		return []byte(rendered), nil
+	}
 	body := remoteRequest{
 		Key:        req.Key,
 		APIVersion: r.gvk.GroupVersion().String(),
@@ -134,18 +160,25 @@ func (r *Reconciler) applyObjectExclusions(obj domain.Object, paths []string) ma
 	return cp
 }
 
+// effectiveAuth is the declared auth with a secretRef without a namespace
+// resolved in Inrun's own namespace; nil when no auth is declared.
+func (r *Reconciler) effectiveAuth() *types.ExternalAuth {
+	auth := r.decl.Auth
+	if auth == nil || auth.SecretRef == nil || auth.SecretRef.Namespace != "" {
+		return auth
+	}
+	cp := *auth.SecretRef
+	cp.Namespace = r.namespace
+	authCopy := *auth
+	authCopy.SecretRef = &cp
+	return &authCopy
+}
+
 // applyAuth injects the credential into the request header when auth is declared.
 func (r *Reconciler) applyAuth(ctx context.Context, req *http.Request) error {
-	if r.decl.Auth == nil {
+	auth := r.effectiveAuth()
+	if auth == nil {
 		return nil
-	}
-	auth := r.decl.Auth
-	if auth.SecretRef != nil && auth.SecretRef.Namespace == "" {
-		cp := *auth.SecretRef
-		cp.Namespace = r.namespace
-		authCopy := *auth
-		authCopy.SecretRef = &cp
-		auth = &authCopy
 	}
 	credential, header, err := external.ResolveAuth(ctx, auth, r.kube.Clientset())
 	if err != nil {

@@ -15,8 +15,7 @@ Keywords: list, collection, contains, check, slice, boolean, membership
 ```yaml
 # when:
 #   - field: spec.regions
-#     operator: typeOf
-#     value: slice
+#     typeOf: slice
 # value: "{{ listHas .spec.regions \"us-east-1\" }}"
 # ["us-east-1", "eu-west-1"] → true
 # ["eu-west-1"]              → false

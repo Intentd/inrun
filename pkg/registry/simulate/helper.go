@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -118,7 +119,9 @@ func parseCollectionURL(req *http.Request) (resource, namespace string) {
 	return
 }
 
-// extractMetaName reads metadata.name from a raw Kubernetes API response body.
+// extractMetaName reads metadata.name from a raw Kubernetes API response
+// body: JSON for custom resources, and JSON or protobuf for built-in kinds
+// (typed clients ask for protobuf), decoded with client-go's scheme.
 func extractMetaName(body []byte) string {
 	var obj struct {
 		Metadata struct {
@@ -127,6 +130,13 @@ func extractMetaName(body []byte) string {
 	}
 	if err := json.Unmarshal(body, &obj); err == nil {
 		return obj.Metadata.Name
+	}
+	decoded, _, err := clientgoscheme.Codecs.UniversalDeserializer().Decode(body, nil, nil)
+	if err != nil {
+		return ""
+	}
+	if m, err := meta.Accessor(decoded); err == nil {
+		return m.GetName()
 	}
 	return ""
 }

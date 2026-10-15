@@ -42,7 +42,7 @@ spec:
       commands:
         - run: kubectl delete crd apps.security.inrun.dev
           exitCode: 1
-          outputContains: "denied the request"
+          contains: "denied the request"
 
     - name: Unprotected CRD can be deleted freely
       after: cr-applied

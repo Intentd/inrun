@@ -72,7 +72,7 @@ spec:
     #   commands:
     #     - run: "kubectl exec -n <namespace> deploy/<name> -- wget -qO- localhost:8080/health"
     #       exitCode: 0
-    #       outputContains: "ok"
+    #       contains: "ok"
 
     # 4. Full cleanup verified after CR deletion
     - name: Cleanup verified

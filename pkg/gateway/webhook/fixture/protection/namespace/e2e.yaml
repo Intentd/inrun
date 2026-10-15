@@ -34,7 +34,7 @@ spec:
       commands:
         - run: kubectl apply -f ./cr-blocked.yaml
           exitCode: 1
-          outputContains: "denied the request"
+          contains: "denied the request"
 
     - name: Deployments removed on delete
       after: cr-deleted

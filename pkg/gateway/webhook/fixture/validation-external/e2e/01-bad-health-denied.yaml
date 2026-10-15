@@ -5,7 +5,7 @@ expect:
     commands:
       - run: kubectl apply -f ../cr-bad-health.yaml
         exitCode: 1
-        outputContains: "denied the request"
+        contains: "denied the request"
 
   - name: denial message names the health check failure
     after: cr-applied
@@ -13,7 +13,7 @@ expect:
     commands:
       - run: kubectl apply -f ../cr-bad-health.yaml
         exitCode: 1
-        outputContains: "health check failed at admission"
+        contains: "health check failed at admission"
 
   - name: no WebApp persisted for denied CR
     after: cr-applied

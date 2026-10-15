@@ -53,14 +53,13 @@ spec:
 
             # Hard rule — environment must be a known value
             - field: spec.environment
-              operator: in
-              value: "development,staging,production"
+              in: "development,staging,production"
               message: "environment must be one of: development, staging, production"
               action: deny
 
             # Advisory — rateLimit should be set explicitly for production
             - field: spec.rateLimit
-              operator: exists
+              exists: true
               message: "declare spec.rateLimit for production readiness"
               action: warn
 

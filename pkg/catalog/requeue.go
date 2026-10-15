@@ -6,7 +6,6 @@ import (
 
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/template"
-	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -17,9 +16,8 @@ import (
 //  1. If requeue: is absent or effectively empty, return 0. For a CR being
 //     deleted, a requeue without when/or conditions is a periodic refresh, not
 //     a wait: return 0 so it does not hold the CR's finalizer.
-//  2. Evaluate when/or conditions — if conditions are declared and fail, return 0.
-//  3. Render the after: template against the live CR; parse as a Go duration.
-//  4. Return the parsed duration (0 on parse failure — fail-open for requeue).
+//  2. Resolver.EvaluateRequeue: when/or conditions, then the after: template
+//     rendered against the live CR and parsed (0 on failure: fail-open).
 func (c *Catalog) EvaluateRequeue(ctx context.Context, crdName string, obj *unstructured.Unstructured, resolver *template.Resolver) time.Duration {
 	if obj == nil || resolver == nil {
 		return 0
@@ -39,20 +37,5 @@ func (c *Catalog) EvaluateRequeue(ctx context.Context, crdName string, obj *unst
 		return 0
 	}
 
-	if !types.EvaluateConditions(resolver.Data(), rq.When, rq.Or, resolver.TemplateEvaluator()) {
-		return 0
-	}
-
-	if rq.After == "" {
-		return 0
-	}
-	rendered, ok := resolver.RenderString(rq.After)
-	if !ok || rendered == "" || rendered == "0s" {
-		return 0
-	}
-	d, err := parseTimeDuration(rendered)
-	if err != nil {
-		return 0
-	}
-	return d
+	return resolver.EvaluateRequeue(rq)
 }

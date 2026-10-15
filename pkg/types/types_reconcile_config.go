@@ -47,17 +47,88 @@ type RemoteReconcilerDeclaration struct {
 	// Timeout caps the round-trip. Defaults to 30s when omitted.
 	Timeout Duration `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
-	// Request controls what the outbound request body carries.
+	// Request controls the outbound request: what the body carries, or the
+	// service's own method and body.
 	Request *RemoteRequestConfig `yaml:"request,omitempty" json:"request,omitempty"`
+
+	// Response maps the service's own response onto the reconcile. Without it
+	// the service answers in Inrun's Result. With it the service answers in its
+	// own shape: expectedStatus says what success is, status and requeue are
+	// rendered with the response in scope as .response, and the CRD's templates
+	// run after the call. One call per reconcile either way.
+	Response *RemoteResponseConfig `yaml:"response,omitempty" json:"response,omitempty"`
 }
 
-// RemoteRequestConfig controls what the outbound request body carries.
+// Mapped reports whether the remote reconciler's response is mapped by the
+// Catalog (remote.response) instead of being Inrun's Result.
+func (d *RemoteReconcilerDeclaration) Mapped() bool {
+	return d != nil && d.Response != nil
+}
+
+// RemoteResponseConfig maps a service's response onto the reconcile.
+type RemoteResponseConfig struct {
+	// Status writes fields onto the CR's status, rendered with .response in
+	// scope (.response.status, .response.json, …). Same shape as emit.status.
+	Status *StatusConfig `yaml:"status,omitempty" json:"status,omitempty"`
+
+	// Requeue asks to reconcile again, rendered with .response in scope. Same
+	// shape as reconcile.requeue; with when/or it also holds a CR being deleted.
+	Requeue *RequeueConfig `yaml:"requeue,omitempty" json:"requeue,omitempty"`
+}
+
+// RemoteRequestConfig controls the outbound request.
 type RemoteRequestConfig struct {
+	// Method is the HTTP method. Default: POST.
+	Method string `yaml:"method,omitempty" json:"method,omitempty"`
+
+	// Body replaces Inrun's request body with the service's own, a template
+	// rendered against the CR with .args and .external in scope. Object and
+	// Children shape Inrun's body and do not apply when Body is set.
+	Body string `yaml:"body,omitempty" json:"body,omitempty"`
+
+	// ExpectedStatus lists the HTTP status codes that count as success for
+	// this call. Default: any status below 400; anything else fails the
+	// reconcile. Only with a mapped response; Inrun's own reply is always 200.
+	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
+
+	// When and Or decide whether the call is made this pass, evaluated after
+	// reconcile.external (.external in scope): a service that already has
+	// what was asked needs no write. Skipped, there is no .response to map;
+	// response.requeue still applies. Only with a mapped response.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	Or   []Condition `yaml:"or,omitempty" json:"or,omitempty"`
+
+	// Finalize is the call made on the finalizing pass, while the CR is being
+	// deleted, in place of Method and Body. Only with a mapped response;
+	// without it a mapped remote makes no call while finalizing.
+	Finalize *RemoteRequestCall `yaml:"finalize,omitempty" json:"finalize,omitempty"`
+
 	// Object controls which paths are stripped from the CR object before serialisation.
 	Object *RemoteRequestObjectConfig `yaml:"object,omitempty" json:"object,omitempty"`
 
 	// Children controls which previously-created child resources are injected into the request.
 	Children *RemoteRequestChildrenConfig `yaml:"children,omitempty" json:"children,omitempty"`
+}
+
+// RemoteRequestCall is one call other than the request's: its method, body,
+// endpoint, success codes and conditions.
+type RemoteRequestCall struct {
+	// Method is the HTTP method. Default: the request's method.
+	Method string `yaml:"method,omitempty" json:"method,omitempty"`
+	// Body is a template like request.body. Default: no body.
+	Body string `yaml:"body,omitempty" json:"body,omitempty"`
+	// ExpectedStatus lists the status codes that count as success for this
+	// call, separately from the request's: for a delete, 404 usually means
+	// done. Default: any status below 400.
+	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
+	// Endpoint is this call's URL, a template like remote.endpoint (often
+	// the id the service assigned: .external.<name>.json.id or a status
+	// field). Default: remote.endpoint.
+	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty"`
+	// When and Or decide whether the call is made, after reconcile.external.
+	// Skipped, the CR is released: there is nothing to clean up.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	Or   []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 }
 
 // RemoteRequestObjectConfig strips paths from the CR object before it is sent to the reconciler.
@@ -185,6 +256,15 @@ type ReconcileConfig struct {
 	// constructor and remote reconcilers; rejected on declarative-only CRDs.
 	Args map[string]interface{} `yaml:"args,omitempty" json:"args,omitempty"`
 
+	// When and Or decide whether this reconcile happens at all. They are
+	// evaluated first, before reconcile.external, so a skipped reconcile makes
+	// no calls: the CR, notes, profiles, the intent and .args are in scope, but
+	// not .external, nor an arg that reads it (rejected by validation). To
+	// decide on a call's result, use preReconcile.reconcileGate. A CR being
+	// deleted is always reconciled.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	Or   []Condition `yaml:"or,omitempty" json:"or,omitempty"`
+
 	// External declares HTTP calls the runtime makes before each reconcile.
 	// Results are available as .external.<name>.* in reconcile.args templates.
 	// Used by hooks, constructor and remote reconcilers; declarative templates
@@ -250,6 +330,11 @@ func (r *ReconcileConfig) HasHooksDecl() bool {
 // HasConstructorDecl reports whether a constructor declaration exists.
 func (r *ReconcileConfig) HasConstructorDecl() bool {
 	return r != nil && r.ConstructorDecl != nil && r.ConstructorDecl.Location != ""
+}
+
+// HasConditions reports whether reconcile.when or reconcile.or is declared.
+func (r *ReconcileConfig) HasConditions() bool {
+	return r != nil && (len(r.When) > 0 || len(r.Or) > 0)
 }
 
 // HasRemoteDecl reports whether a remote reconciler declaration exists.

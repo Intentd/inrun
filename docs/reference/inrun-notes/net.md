@@ -27,9 +27,8 @@ when:
 # ipValid
 validation:
   rules:
-    - field: spec.clientIP
-      operator: custom
-      value: "{{ ipValid .spec.clientIP }}"
+    - field: "{{ ipValid .spec.clientIP }}"
+      equals: "true"
       message: "spec.clientIP must be a valid IP address"
       action: deny
 {{ ipValid "10.0.0.1"     }}  → true

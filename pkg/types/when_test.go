@@ -147,17 +147,10 @@ func TestResolveConditionOp_LessThan(t *testing.T) {
 }
 
 func TestResolveConditionOp_ExplicitOperator(t *testing.T) {
-	c := types.Condition{Operator: types.ConditionIn, Value: "a,b,c"}
+	c := types.Condition{In: "a,b,c"}
 	op, val := types.ResolveConditionOp(c)
 	assert.Equal(t, types.ConditionIn, op)
 	assert.Equal(t, "a,b,c", val)
-}
-
-func TestResolveConditionOp_ValueShorthand(t *testing.T) {
-	c := types.Condition{Value: "Running"}
-	op, val := types.ResolveConditionOp(c)
-	assert.Equal(t, types.ConditionEquals, op)
-	assert.Equal(t, "Running", val)
 }
 
 func TestResolveConditionOp_Default(t *testing.T) {
@@ -227,25 +220,25 @@ func TestEvaluateOneCond_Suffix(t *testing.T) {
 
 func TestEvaluateOneCond_Exists_Present(t *testing.T) {
 	d := data("phase", "Running")
-	c := types.Condition{Field: "phase", Operator: types.ConditionExists}
+	c := types.Condition{Field: "phase", Exists: boolPtr(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Exists_Missing(t *testing.T) {
 	d := map[string]interface{}{}
-	c := types.Condition{Field: "phase", Operator: types.ConditionExists}
+	c := types.Condition{Field: "phase", Exists: boolPtr(true)}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_NotExists_Missing(t *testing.T) {
 	d := map[string]interface{}{}
-	c := types.Condition{Field: "phase", Operator: types.ConditionNotExists}
+	c := types.Condition{Field: "phase", NotExists: boolPtr(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_NotExists_Present(t *testing.T) {
 	d := data("phase", "Running")
-	c := types.Condition{Field: "phase", Operator: types.ConditionNotExists}
+	c := types.Condition{Field: "phase", NotExists: boolPtr(true)}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -275,13 +268,13 @@ func TestEvaluateOneCond_Lt_Pass(t *testing.T) {
 
 func TestEvaluateOneCond_In_Match(t *testing.T) {
 	d := data("env", "prod")
-	c := types.Condition{Field: "env", Operator: types.ConditionIn, Value: "dev,staging,prod"}
+	c := types.Condition{Field: "env", In: "dev,staging,prod"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_In_NoMatch(t *testing.T) {
 	d := data("env", "test")
-	c := types.Condition{Field: "env", Operator: types.ConditionIn, Value: "dev,staging,prod"}
+	c := types.Condition{Field: "env", In: "dev,staging,prod"}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -299,25 +292,25 @@ func TestEvaluateOneCond_NotIn_NoMatch(t *testing.T) {
 
 func TestEvaluateOneCond_Gte_EqualBound(t *testing.T) {
 	d := data("replicas", "3")
-	c := types.Condition{Field: "replicas", GreaterThanOrEqual: "3"}
+	c := types.Condition{Field: "replicas", Min: "3"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Gte_BelowBound(t *testing.T) {
 	d := data("replicas", "2")
-	c := types.Condition{Field: "replicas", GreaterThanOrEqual: "3"}
+	c := types.Condition{Field: "replicas", Min: "3"}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Lte_EqualBound(t *testing.T) {
 	d := data("cpu", "80")
-	c := types.Condition{Field: "cpu", LessThanOrEqual: "80"}
+	c := types.Condition{Field: "cpu", Max: "80"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Lte_AboveBound(t *testing.T) {
 	d := data("cpu", "81")
-	c := types.Condition{Field: "cpu", LessThanOrEqual: "80"}
+	c := types.Condition{Field: "cpu", Max: "80"}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -427,7 +420,7 @@ func TestEvaluateOneCond_TypeOf_Map(t *testing.T) {
 	d := map[string]interface{}{
 		"spec": map[string]interface{}{"key": "val"},
 	}
-	c := types.Condition{Field: "spec", Operator: types.ConditionTypeMap}
+	c := types.Condition{Field: "spec", TypeOf: "map"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -435,43 +428,43 @@ func TestEvaluateOneCond_TypeOf_List(t *testing.T) {
 	d := map[string]interface{}{
 		"items": []interface{}{"a", "b"},
 	}
-	c := types.Condition{Field: "items", Operator: types.ConditionTypeList}
+	c := types.Condition{Field: "items", TypeOf: "slice"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_TypeOf_String(t *testing.T) {
 	d := data("phase", "Running")
-	c := types.Condition{Field: "phase", Operator: types.ConditionTypeString}
+	c := types.Condition{Field: "phase", TypeOf: "string"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_TypeOf_Bool(t *testing.T) {
 	d := map[string]interface{}{"enabled": true}
-	c := types.Condition{Field: "enabled", Operator: types.ConditionTypeBool}
+	c := types.Condition{Field: "enabled", TypeOf: "bool"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_TypeOf_Number(t *testing.T) {
 	d := map[string]interface{}{"replicas": 3}
-	c := types.Condition{Field: "replicas", Operator: types.ConditionTypeNumber}
+	c := types.Condition{Field: "replicas", TypeOf: "number"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_TypeOf_Null(t *testing.T) {
 	d := map[string]interface{}{"field": nil}
-	c := types.Condition{Field: "field", Operator: types.ConditionTypeNull}
+	c := types.Condition{Field: "field", TypeOf: "null"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_TypeOf_Explicit(t *testing.T) {
 	d := data("phase", "Running")
-	c := types.Condition{Field: "phase", Operator: types.ConditionTypeOf, Value: "string"}
+	c := types.Condition{Field: "phase", TypeOf: "string"}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_AlwaysTrue(t *testing.T) {
 	d := data("name", "foo")
-	c := types.Condition{Field: "name", Operator: types.ConditionUnique}
+	c := types.Condition{Field: "name", Unique: boolPtr(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -577,28 +570,28 @@ func (f *fakeUniqueChecker) IsUnique(field, value, selfNamespace, selfName strin
 
 func TestEvaluateOneCond_Unique_NoCheckerInjected_AlwaysPasses(t *testing.T) {
 	d := data("domain", "a.example.com")
-	c := types.Condition{Field: "domain", Operator: types.ConditionUnique}
+	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_CheckerReportsUnique(t *testing.T) {
 	d := data("domain", "a.example.com")
 	d["_uniquenessChecker"] = &fakeUniqueChecker{unique: true}
-	c := types.Condition{Field: "domain", Operator: types.ConditionUnique}
+	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_CheckerReportsDuplicate(t *testing.T) {
 	d := data("domain", "shared.example.com")
 	d["_uniquenessChecker"] = &fakeUniqueChecker{unique: false}
-	c := types.Condition{Field: "domain", Operator: types.ConditionUnique}
+	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_CheckerErrors_FailsOpen(t *testing.T) {
 	d := data("domain", "a.example.com")
 	d["_uniquenessChecker"] = &fakeUniqueChecker{err: errors.New("list failed")}
-	c := types.Condition{Field: "domain", Operator: types.ConditionUnique}
+	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 

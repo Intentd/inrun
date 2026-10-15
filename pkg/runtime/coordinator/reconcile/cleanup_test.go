@@ -50,7 +50,7 @@ func newCR(phase string, ann map[string]string) *unstructured.Unstructured {
 
 func cleanupBox(after time.Duration) types.OperatorBoxConfig {
 	return types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{Cleanup: &types.CleanupConfig{
-		Or:    []types.Condition{{Field: "status.phase", Operator: types.ConditionEquals, Value: "Completed"}},
+		Or:    []types.Condition{{Field: "status.phase", Equals: "Completed"}},
 		After: types.Duration{Duration: after},
 	}}}
 }

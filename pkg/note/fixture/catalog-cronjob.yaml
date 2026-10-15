@@ -42,7 +42,7 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Running"
@@ -60,7 +60,7 @@ spec:
                 value: "Scheduled"
                 when:
                   - field: "{{ cronJobLastScheduleTime .children.cronjob }}"
-                    operator: exists
+                    exists: true
 
               # ── CronJob notes (no enrichment required) ──────────────────────
               - path: activeCount

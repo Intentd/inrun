@@ -40,6 +40,10 @@ type Reconciler[PTR domain.Object] struct {
 	// When empty, all targets fall back to the CRD-level hooks field.
 	targetHooks map[string]domain.ObjectHooks
 
+	// callFirst runs hooks before the templates whatever runHooksFirst says:
+	// a mapped remote's call, whose answer the templates read as .response.
+	callFirst bool
+
 	operatorBox *types.OperatorBoxConfig
 	newObj      func() PTR
 	crd         types.CRDEntry
@@ -112,6 +116,15 @@ func New[PTR domain.Object](
 
 var _ domain.Reconciler = (*Reconciler[domain.Object])(nil)
 
+// WithCall makes hooks the reconciler's hooks and runs them before the
+// templates: a mapped remote's call, so templates can read its answer as
+// .response. Its OnDelete, when set, replaces the onDelete templates, like a
+// Go hook's.
+func (r *Reconciler[PTR]) WithCall(hooks domain.ObjectHooks) *Reconciler[PTR] {
+	r.hooks, r.callFirst = hooks, true
+	return r
+}
+
 // Reconcile dispatches to the correct reconcile implementation.
 // Order:
 //  1. Conditional provisioning (when blocks) — handled by runTemplateReconcile
@@ -174,14 +187,18 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, req domain.Request,
 		// Requires: inrun generate registry to register in HookRegistry.
 		//
 		// Order: by default declared templates run first (hybrid 90/10 pattern).
-		// Set hooks.runHooksFirst: true in the Catalog to run the hook first.
-		if !r.crd.RunHooksFirst() && hasTemplates {
+		// Set hooks.runHooksFirst: true in the Catalog to run the hook first;
+		// a mapped remote's call always runs first.
+		hooksFirst := r.callFirst || r.crd.RunHooksFirst()
+		if !hooksFirst && hasTemplates {
 			resolver, err = r.runTemplateReconcile(ctx, resolver, obj, box)
 		}
 		if err == nil {
 			result, err = hooks.OnReconcile(ctx, req, obj)
 		}
-		if err == nil && r.crd.RunHooksFirst() && hasTemplates {
+		if err == nil && hooksFirst && hasTemplates {
+			// A hook may add to the request's resolver (a call's .response).
+			resolver = req.Prepared.Context.(*template.Resolver)
 			resolver, err = r.runTemplateReconcile(ctx, resolver, obj, box)
 		}
 

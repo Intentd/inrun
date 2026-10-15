@@ -239,26 +239,7 @@ func applyOperator(op ConditionOperator, fieldVal, expected string, data map[str
 	case ConditionUnique:
 		return resolveUnique(data, cond.Field, fieldVal)
 	case ConditionTypeOf:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == expected
-	case ConditionTypeMap:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == "map"
-	case ConditionTypeList:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == "slice"
-	case ConditionTypeString:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == "string"
-	case ConditionTypeNumber:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == "number"
-	case ConditionTypeBool:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == "bool"
-	case ConditionTypeNull:
-		raw := NavigateRawPath(data, cond.Field)
-		return note.TypeOf(raw) == "null"
+		return note.TypeOf(NavigateRawPath(data, cond.Field)) == expected
 	}
 	return false
 }
@@ -333,76 +314,8 @@ func NavigateDotPath(m map[string]interface{}, path string) string {
 // from a Condition, respecting shorthand fields.
 // Exported so the template package can use the same resolution logic.
 func ResolveConditionOp(c Condition) (ConditionOperator, string) {
-	if c.Exists != nil && *c.Exists {
-		return ConditionExists, ""
-	}
-	if c.NotExists != nil && *c.NotExists {
-		return ConditionNotExists, ""
-	}
-	if c.Equals != "" {
-		return ConditionEquals, c.Equals
-	}
-	if c.NotEquals != "" {
-		return ConditionNotEquals, c.NotEquals
-	}
-	if c.Prefix != "" {
-		return ConditionPrefix, c.Prefix
-	}
-	if c.NotPrefix != "" {
-		return ConditionNotPrefix, c.NotPrefix
-	}
-	if c.Suffix != "" {
-		return ConditionSuffix, c.Suffix
-	}
-	if c.NotSuffix != "" {
-		return ConditionNotSuffix, c.NotSuffix
-	}
-	if c.Contains != "" {
-		return ConditionContains, c.Contains
-	}
-	if c.NotContains != "" {
-		return ConditionNotContains, c.NotContains
-	}
-	if c.Regex != "" {
-		return ConditionRegex, c.Regex
-	}
-	if c.GreaterThan != "" {
-		return ConditionGt, c.GreaterThan
-	}
-	if c.LessThan != "" {
-		return ConditionLt, c.LessThan
-	}
-	if c.GreaterThanOrEqual != "" {
-		return ConditionGte, c.GreaterThanOrEqual
-	}
-	if c.LessThanOrEqual != "" {
-		return ConditionLte, c.LessThanOrEqual
-	}
-	if c.Min != "" {
-		return ConditionGte, c.Min
-	}
-	if c.Max != "" {
-		return ConditionLte, c.Max
-	}
-	if c.Between != "" {
-		return ConditionBetween, c.Between
-	}
-	if c.NotBetween != "" {
-		return ConditionNotBetween, c.NotBetween
-	}
-	if c.In != "" {
-		return ConditionIn, c.In
-	}
-	if c.NotIn != "" {
-		return ConditionNotIn, c.NotIn
-	}
-	if c.Operator != "" {
-		return c.Operator, c.Value
-	}
-	if c.Value != "" {
-		return ConditionEquals, c.Value
-	}
-	return ConditionExists, ""
+	_, op, value := resolve(c.flagValues(), c.values())
+	return op, value
 }
 
 // ── Private string/numeric helpers ───────────────────────────────────────────

@@ -2,6 +2,7 @@ package admission
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -18,42 +19,33 @@ func (c *checker) validateAdmissionRules() error {
 	if err := c.validateValidationRuleLinks(); err != nil {
 		return err
 	}
-	if err := c.validateAdmissionOperators(); err != nil {
+	if err := c.validateAdmissionComparisons(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateAdmissionOperators rejects any validation.rules or mutation.rules
-// entry — including their own when:/or: gating conditions — that declares
-// an operator: string outside the known ConditionOperator set. An unknown
-// operator is otherwise silently skipped by the evaluator and the rule
-// always passes; this is exactly how operator: in went unimplemented in
-// validation.rules before evaluation was consolidated into
-// pkg/types/validation_eval.go.
-func (c *checker) validateAdmissionOperators() error {
+// validateAdmissionComparisons checks every validation.rules and
+// mutation.rules entry, and their own when:/or: conditions: each compares one
+// way, and a typeOf names a type.
+func (c *checker) validateAdmissionComparisons() error {
 	for _, crd := range c.Cat.EnabledCRDs() {
 		if crd.HasValidationRules() {
-			for _, rule := range crd.EffectiveValidation().Rules {
-				if err := checkKnownOperator(rule.Operator, crd.Name, rule.Field); err != nil {
-					return err
+			for i, rule := range crd.EffectiveValidation().Rules {
+				where := fmt.Sprintf("validation.rules[%d] (%s)", i, rule.Field)
+				if err := rule.CheckComparison(); err != nil {
+					return comparisonError(crd.Name, where, err)
 				}
-				if err := checkConditionOperators(rule.When, crd.Name, rule.Field); err != nil {
-					return err
-				}
-				if err := checkConditionOperators(rule.Or, crd.Name, rule.Field); err != nil {
+				if err := checkConditions(crd.Name, where, rule.When, rule.Or); err != nil {
 					return err
 				}
 			}
 		}
-
 		if crd.HasMutationRules() {
-			for _, rule := range crd.EffectiveMutation().Rules {
-				if err := checkConditionOperators(rule.When, crd.Name, rule.Field); err != nil {
-					return err
-				}
-				if err := checkConditionOperators(rule.Or, crd.Name, rule.Field); err != nil {
+			for i, rule := range crd.EffectiveMutation().Rules {
+				where := fmt.Sprintf("mutation.rules[%d] (%s)", i, rule.Field)
+				if err := checkConditions(crd.Name, where, rule.When, rule.Or); err != nil {
 					return err
 				}
 			}
@@ -62,40 +54,17 @@ func (c *checker) validateAdmissionOperators() error {
 	return nil
 }
 
-// checkKnownOperator returns an error for a set-but-unrecognized operator.
-// Empty is fine — it means no explicit operator: was set, not an unknown one.
-func checkKnownOperator(op types.ConditionOperator, crdName, field string) error {
-	if op == "" || types.IsValidConditionOperator(op) {
-		return nil
-	}
-	return errUnknownOperator(op, crdName, field)
-}
-
-func checkConditionOperators(conditions []types.Condition, crdName, field string) error {
-	for _, cond := range conditions {
-		if err := checkKnownOperator(cond.Operator, crdName, field); err != nil {
-			return err
+func checkConditions(crdName, where string, when, or []types.Condition) error {
+	for _, cond := range append(append([]types.Condition{}, when...), or...) {
+		if err := cond.CheckComparison(); err != nil {
+			return comparisonError(crdName, fmt.Sprintf("%s condition on %s", where, cond.Field), err)
 		}
 	}
 	return nil
 }
 
-func errUnknownOperator(op types.ConditionOperator, crd, field string) error {
-	return fmt.Errorf(`
-──────────────────────────────────────────────
-%s Unknown operator %q
-   CRD: %s
-   field: %s
-
-Allowed values:
-  • equals, notEquals
-  • contains, notContains, prefix, suffix, regex
-  • exists, notExists
-  • gt, lt, gte, lte, between, notBetween
-  • in, notIn
-  • unique
-  • typeOf, typeMap, typeList, typeString, typeNumber, typeBool, typeNull
-──────────────────────────────────────────────`, failureMark(), op, crd, field)
+func comparisonError(crdName, where string, err error) error {
+	return fmt.Errorf("%s CRD %q: %s %v", failureMark(), crdName, where, err)
 }
 
 // validateValidationRuleLinks rejects a validation.rules entry's link: value
@@ -219,7 +188,8 @@ func (c *checker) validateValidationRules() error {
 				return fmt.Errorf("%s CRD: %s - validation.rules[%d].field is required", failureMark(), crd.Name, i)
 			}
 			if rule.IsEmptyAssertions() {
-				return fmt.Errorf("%s CRD: %s - validation.rules[%d] requires one of `operator` or shorthand (eg: equals) to be defined", failureMark(), crd.Name, i)
+				return fmt.Errorf("%s CRD: %s - validation.rules[%d] declares no comparison: use one of %s",
+					failureMark(), crd.Name, i, strings.Join(types.ComparisonNames(), ", "))
 			}
 		}
 	}
@@ -247,6 +217,6 @@ func errRedundantLink(link, crd string) error {
 This rule's field is already "spec.%s" — already a clean display name on
 its own. link: only matters when field is a template expression that isn't
 itself a valid display name (e.g. wraps getLabel/getAnnotation, or a notes:
-function). Remove link: here.
+function). Consider removing link: here.
 ──────────────────────────────────────────────`, failureMark(), link, crd, link)
 }

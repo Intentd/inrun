@@ -38,7 +38,7 @@ Keywords: type, inspect, runtime, branch, kind, detect
 | `nil` | `"null"` |
 | anything else | `"unknown"` |
 
-`typeOf` in template expressions returns the same strings as the `operator: typeOf` condition operator — they share the same underlying function.
+`typeOf` in template expressions returns the same strings as the `typeOf` condition — they share the same underlying function.
 
 ---
 
@@ -220,13 +220,12 @@ serve:
 
 ## The `typeOf` + `when:` connection
 
-The same type names that `typeOf` returns in templates are used by the `operator: typeOf` condition in `when:` blocks:
+The same type names that `typeOf` returns in templates are used by the `typeOf` condition in `when:` blocks:
 
 ```yaml
 when:
   - field: spec.schedule
-    operator: typeOf
-    value: map       # same string that typeOf returns
+    typeOf: map       # same string that typeOf returns
 ```
 
 This symmetry means you can use `typeOf` in status fields to surface the detected type for debugging, then use the `typeOf` condition operator to route reconcile logic — and the values always match.

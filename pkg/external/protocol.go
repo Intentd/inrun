@@ -11,7 +11,7 @@ import (
 // ProtocolClient executes one external call and returns the result map to
 // inject under .external.<name>. The map is used directly by the runner.
 //
-// HTTP clients return: status, body, error, called + auto-parsed JSON keys.
+// HTTP clients return: status, body, error, called, and json (the decoded body, when it is JSON).
 // Non-HTTP clients return: result, raw, error, called + protocol-specific keys.
 type ProtocolClient interface {
 	Fetch(ctx context.Context, spec types.ExternalCallSpec, resolvedURL, resolvedQuery, resolvedBody, credential string) (map[string]interface{}, error)

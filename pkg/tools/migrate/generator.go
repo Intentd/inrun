@@ -246,7 +246,7 @@ spec:
       timeout: 60s
       commands:
         - run: kubectl get TODO my-cr -o jsonpath='{.status.phase}'  # TODO(inrun migrate): adjust
-          outputContains: Running
+          contains: Running
 
     - name: Resources created
       after: cr-applied

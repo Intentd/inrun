@@ -167,9 +167,10 @@ type ExternalCallSpec struct {
 	// Default: 10s. Format: "5s", "1m", "500ms"
 	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
-	// ExpectedStatus is the HTTP status code that signals success. HTTP only.
-	// Default: any 2xx status.
-	ExpectedStatus int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
+	// ExpectedStatus lists the HTTP status codes that count as success, e.g.
+	// [200, 404] for a read where "not found" is an answer. HTTP only.
+	// Default: any status below 400.
+	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
 
 	// ContinueOnError controls whether a failed call halts reconciliation.
 	// false (default): failure returns an error, halting the reconcile.

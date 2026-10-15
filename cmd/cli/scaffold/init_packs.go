@@ -30,6 +30,7 @@ var Packs = map[string]Pack{
 		Name:        "remote",
 		Description: "A reconciler in any language, called over HTTP.",
 		Path:        "reconcilers/remote",
+		First:       "endpoint",
 		Order:       2,
 	},
 	"typed": {

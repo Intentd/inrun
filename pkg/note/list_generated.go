@@ -37,7 +37,7 @@ var BuiltinNotes = []NoteInfo{
 		Name:        "listHas",
 		Domain:      "collections",
 		Description: "Check whether a list contains a value. Comparison is by `==`.",
-		Example:     "# when:\n#   - field: spec.regions\n#     operator: typeOf\n#     value: slice\n# value: \"{{ listHas .spec.regions \\\"us-east-1\\\" }}\"\n# [\"us-east-1\", \"eu-west-1\"] → true\n# [\"eu-west-1\"]              → false",
+		Example:     "# when:\n#   - field: spec.regions\n#     typeOf: slice\n# value: \"{{ listHas .spec.regions \\\"us-east-1\\\" }}\"\n# [\"us-east-1\", \"eu-west-1\"] → true\n# [\"eu-west-1\"]              → false",
 		Keywords:    []string{"list", "collection", "contains", "check", "slice", "boolean", "membership"},
 	},
 	{
@@ -188,7 +188,7 @@ var BuiltinNotes = []NoteInfo{
 		Name:        "cronFromMap",
 		Domain:      "cron",
 		Description: "Convert a schedule **map** to a five-field cron string. Reads keys `minute`, `hour`, `dayOfMonth`, `month`, `dayOfWeek`; absent keys default to `*`. Errors if the input is not a map — use `cronFromAny` when the input may be a string.",
-		Example:     "# onReconcile Path B — input is guaranteed a map by the when: gate\n- name: \"{{ .metadata.name }}\"\n  schedule: \"{{ cronFromMap .spec.schedule }}\"\n  when:\n    - field: spec.schedule\n      operator: typeOf\n      value: map\n{minute: \"*/5\", hour: \"0\", dayOfMonth: \"*\", month: \"*\", dayOfWeek: \"1\"}\n→ \"*/5 0 * * 1\"",
+		Example:     "# onReconcile Path B — input is guaranteed a map by the when: gate\n- name: \"{{ .metadata.name }}\"\n  schedule: \"{{ cronFromMap .spec.schedule }}\"\n  when:\n    - field: spec.schedule\n      typeOf: map\n{minute: \"*/5\", hour: \"0\", dayOfMonth: \"*\", month: \"*\", dayOfWeek: \"1\"}\n→ \"*/5 0 * * 1\"",
 		Keywords:    []string{"cron", "schedule", "map", "convert", "fields", "expression"},
 	},
 	{
@@ -876,7 +876,7 @@ var BuiltinNotes = []NoteInfo{
 		Name:        "ipValid",
 		Domain:      "net",
 		Description: "Report whether a string is a valid IPv4 or IPv6 address.",
-		Example:     "validation:\n  rules:\n    - field: spec.clientIP\n      operator: custom\n      value: \"{{ ipValid .spec.clientIP }}\"\n      message: \"spec.clientIP must be a valid IP address\"\n      action: deny\n{{ ipValid \"10.0.0.1\"     }}  → true\n{{ ipValid \"2001:db8::1\"  }}  → true\n{{ ipValid \"not-an-ip\"    }}  → false\n{{ ipValid \"\"             }}  → false",
+		Example:     "validation:\n  rules:\n    - field: \"{{ ipValid .spec.clientIP }}\"\n      equals: \"true\"\n      message: \"spec.clientIP must be a valid IP address\"\n      action: deny\n{{ ipValid \"10.0.0.1\"     }}  → true\n{{ ipValid \"2001:db8::1\"  }}  → true\n{{ ipValid \"not-an-ip\"    }}  → false\n{{ ipValid \"\"             }}  → false",
 		Keywords:    []string{"network", "ip", "address", "validate", "valid", "ipv4", "ipv6"},
 	},
 	{
@@ -1737,14 +1737,14 @@ var BuiltinNotes = []NoteInfo{
 		Name:        "timeSince",
 		Domain:      "time",
 		Description: "Return the number of seconds elapsed since a timestamp as an integer. Use for programmatic comparisons in `when:` conditions.",
-		Example:     "# Gate rotation on time elapsed (30 days = 2592000 seconds)\nwhen:\n  - field: \"{{ timeSince (index .metadata.annotations \\\"myorg.io/last-rotated\\\") }}\"\n    operator: gte\n    value: \"2592000\"",
+		Example:     "# Gate rotation on time elapsed (30 days = 2592000 seconds)\nwhen:\n  - field: \"{{ timeSince (index .metadata.annotations \\\"myorg.io/last-rotated\\\") }}\"\n    min: \"2592000\"",
 		Keywords:    []string{"time", "since", "seconds", "elapsed", "duration", "int", "compare"},
 	},
 	{
 		Name:        "timeUntil",
 		Domain:      "time",
 		Description: "Return a Go duration string representing the time remaining until a timestamp. Returns `\"0s\"` when the timestamp is in the past or unparseable. The primary use is `requeue.after:` — schedule the next reconcile at exactly the right moment for this specific CR.",
-		Example:     "operatorBox:\n  reconcile:\n    requeue:\n      after: \"{{ timeUntil .status.certExpiry }}\"\n      when:\n        - field: status.certExpiry\n          operator: exists\n\nstatus:\n  fields:\n    - path: timeUntilExpiry\n      value: \"{{ timeUntil .status.certExpiry }}\"\n      # → \"719h43m12s\"  (about 30 days)\n      # → \"0s\"          (already expired)",
+		Example:     "operatorBox:\n  reconcile:\n    requeue:\n      after: \"{{ timeUntil .status.certExpiry }}\"\n      when:\n        - field: status.certExpiry\n          exists: true\n\nstatus:\n  fields:\n    - path: timeUntilExpiry\n      value: \"{{ timeUntil .status.certExpiry }}\"\n      # → \"719h43m12s\"  (about 30 days)\n      # → \"0s\"          (already expired)",
 		Keywords:    []string{"time", "until", "remaining", "duration", "expiry", "cert", "requeue", "schedule"},
 	},
 	{
@@ -1800,7 +1800,7 @@ var BuiltinNotes = []NoteInfo{
 		Name:        "toList",
 		Domain:      "types",
 		Description: "Convert a comma-separated string to a list of trimmed strings. Returns an empty list for empty strings. Essential for dynamic exclusion lists in `serve.view` and other places where a comma-separated value needs to be treated as a list.",
-		Example:     "# value: \"{{ toList .spec.excludeFields }}\"\n# \"a,b,c\"   → [\"a\", \"b\", \"c\"]\n# \"a, b, c\" → [\"a\", \"b\", \"c\"]  (spaces trimmed)\n# \"\"        → []\n# \"foo\"     → [\"foo\"]\nserve:\n  view:\n    exclude: '{{ toList (getAnnotation . \"platform.myorg.io/exclude-fields\") }}'\nnotes:\n  - name: excludeForExternal\n    expression: |\n      {{ if eq (getLabel . \"visibility\") \"external\" }}\n        \"metadata.managedFields,status.detailed,spec.internalSecrets\"\n      {{ else }}\n        \"\"\n      {{ end }}\n\nserve:\n  view:\n    exclude: '{{ toList (excludeForExternal) }}'\nwhen:\n  - field: spec.schedule\n    operator: typeOf\n    value: map       # same string that typeOf returns",
+		Example:     "# value: \"{{ toList .spec.excludeFields }}\"\n# \"a,b,c\"   → [\"a\", \"b\", \"c\"]\n# \"a, b, c\" → [\"a\", \"b\", \"c\"]  (spaces trimmed)\n# \"\"        → []\n# \"foo\"     → [\"foo\"]\nserve:\n  view:\n    exclude: '{{ toList (getAnnotation . \"platform.myorg.io/exclude-fields\") }}'\nnotes:\n  - name: excludeForExternal\n    expression: |\n      {{ if eq (getLabel . \"visibility\") \"external\" }}\n        \"metadata.managedFields,status.detailed,spec.internalSecrets\"\n      {{ else }}\n        \"\"\n      {{ end }}\n\nserve:\n  view:\n    exclude: '{{ toList (excludeForExternal) }}'\nwhen:\n  - field: spec.schedule\n    typeOf: map       # same string that typeOf returns",
 		Keywords:    []string{"type", "convert", "list", "slice", "split", "parse", "csv"},
 	},
 	{

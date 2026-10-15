@@ -75,20 +75,20 @@ func TestEvaluateConditions_Operators(t *testing.T) {
 		cond   types.Condition
 		expect bool
 	}{
-		{"prefix matches", types.Condition{Field: "spec.image", Operator: types.ConditionPrefix, Value: "myorg/"}, true},
-		{"prefix no match", types.Condition{Field: "spec.image", Operator: types.ConditionPrefix, Value: "other/"}, false},
-		{"suffix matches", types.Condition{Field: "spec.image", Operator: types.ConditionSuffix, Value: ":1.25"}, true},
-		{"contains matches", types.Condition{Field: "spec.image", Operator: types.ConditionContains, Value: "nginx"}, true},
-		{"notEquals matches", types.Condition{Field: "spec.logLevel", Operator: types.ConditionNotEquals, Value: "debug"}, true},
-		{"gt matches — 5 > 3", types.Condition{Field: "spec.replicas", Operator: types.ConditionGt, Value: "3"}, true},
-		{"gt fails — 5 not > 10", types.Condition{Field: "spec.replicas", Operator: types.ConditionGt, Value: "10"}, false},
-		{"lt matches — 5 < 10", types.Condition{Field: "spec.replicas", Operator: types.ConditionLt, Value: "10"}, true},
-		{"exists — present field", types.Condition{Field: "spec.image", Operator: types.ConditionExists}, true},
-		{"exists — absent field", types.Condition{Field: "spec.missing", Operator: types.ConditionExists}, false},
-		{"notExists — absent field", types.Condition{Field: "spec.missing", Operator: types.ConditionNotExists}, true},
-		{"notExists — present field", types.Condition{Field: "spec.image", Operator: types.ConditionNotExists}, false},
-		{"in — value in list", types.Condition{Field: "spec.logLevel", Operator: types.ConditionIn, Value: "debug,info,warn"}, true},
-		{"in — value not in list", types.Condition{Field: "spec.logLevel", Operator: types.ConditionIn, Value: "debug,warn"}, false},
+		{"prefix matches", types.Condition{Field: "spec.image", Prefix: "myorg/"}, true},
+		{"prefix no match", types.Condition{Field: "spec.image", Prefix: "other/"}, false},
+		{"suffix matches", types.Condition{Field: "spec.image", Suffix: ":1.25"}, true},
+		{"contains matches", types.Condition{Field: "spec.image", Contains: "nginx"}, true},
+		{"notEquals matches", types.Condition{Field: "spec.logLevel", NotEquals: "debug"}, true},
+		{"gt matches — 5 > 3", types.Condition{Field: "spec.replicas", GreaterThan: "3"}, true},
+		{"gt fails — 5 not > 10", types.Condition{Field: "spec.replicas", GreaterThan: "10"}, false},
+		{"lt matches — 5 < 10", types.Condition{Field: "spec.replicas", LessThan: "10"}, true},
+		{"exists — present field", types.Condition{Field: "spec.image", Exists: boolPtr(true)}, true},
+		{"exists — absent field", types.Condition{Field: "spec.missing", Exists: boolPtr(true)}, false},
+		{"notExists — absent field", types.Condition{Field: "spec.missing", NotExists: boolPtr(true)}, true},
+		{"notExists — present field", types.Condition{Field: "spec.image", NotExists: boolPtr(true)}, false},
+		{"in — value in list", types.Condition{Field: "spec.logLevel", In: "debug,info,warn"}, true},
+		{"in — value not in list", types.Condition{Field: "spec.logLevel", In: "debug,warn"}, false},
 	}
 
 	for _, tt := range tests {

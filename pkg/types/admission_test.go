@@ -258,10 +258,9 @@ func TestMutationConfig_MutateFirstDefault(t *testing.T) {
 	assert.False(t, cfg.MutateFirst)
 }
 
-// ── ValidationConfig.HasHealthField / HasMetricsField ────────────────────────
+// ── ValidationConfig.References ──────────────────────────────────────────────
 //
-// fieldHasPrefix strips "{{" and trims space before checking the prefix, so
-// both plain dot-path forms and Go template expression forms are detected.
+// Both plain dot-path forms and Go template expression forms are detected.
 // When a rule's field is a user-defined note reference ({{ noteName }}), the
 // note's expression body is scanned for .health.* / .metrics.* so the webhook
 // correctly fetches runtime data even when the reference is indirect.
@@ -274,45 +273,45 @@ func note(name, expr string) types.UserDefinedNote {
 	return types.UserDefinedNote{Name: name, Expression: expr}
 }
 
-func TestValidationConfig_HasHealthField(t *testing.T) {
+func TestValidationConfig_ReferencesHealth(t *testing.T) {
 	empty := types.NoteRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.ValidationConfig
-		assert.False(t, cfg.HasHealthField(empty))
+		assert.False(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("empty rules returns false", func(t *testing.T) {
 		cfg := &types.ValidationConfig{}
-		assert.False(t, cfg.HasHealthField(empty))
+		assert.False(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("plain dot-path .health.status", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: ".health.status", Prefix: "healthy"}},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("template form {{ .health.status }}", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ .health.status }}", Prefix: "healthy"}},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("template form without trailing space", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{.health.readyCount}}"}},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("spec field with 'health' in name is not a false positive", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "spec.healthCheck"}},
 		}
-		assert.False(t, cfg.HasHealthField(empty))
+		assert.False(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("note whose body references .health triggers fetch", func(t *testing.T) {
@@ -320,7 +319,7 @@ func TestValidationConfig_HasHealthField(t *testing.T) {
 			Rules: []types.ValidationRule{{Field: "{{ inBusinessHours }}", Equals: "true"}},
 		}
 		nr := noteReg(note("inBusinessHours", `{{ eq .health.status "healthy" }}`))
-		assert.True(t, cfg.HasHealthField(nr))
+		assert.True(t, cfg.References(nr, "health"))
 	})
 
 	t.Run("transitive — note calls another note that references .health", func(t *testing.T) {
@@ -331,8 +330,8 @@ func TestValidationConfig_HasHealthField(t *testing.T) {
 			note("isHealthy", `{{ eq .health.status "healthy" }}`),
 			note("canAccept", `{{ and isHealthy (lt .metrics.queueDepth 500) }}`),
 		)
-		assert.True(t, cfg.HasHealthField(nr))
-		assert.True(t, cfg.HasMetricsField(nr))
+		assert.True(t, cfg.References(nr, "health"))
+		assert.True(t, cfg.References(nr, "metrics"))
 	})
 
 	t.Run("note whose body does not reference .health returns false", func(t *testing.T) {
@@ -340,7 +339,7 @@ func TestValidationConfig_HasHealthField(t *testing.T) {
 			Rules: []types.ValidationRule{{Field: "{{ inBusinessHours }}", Equals: "true"}},
 		}
 		nr := noteReg(note("inBusinessHours", `{{ isWithinHours 9 17 }}`))
-		assert.False(t, cfg.HasHealthField(nr))
+		assert.False(t, cfg.References(nr, "health"))
 	})
 
 	t.Run("sentinel in field is not a note ref", func(t *testing.T) {
@@ -348,14 +347,14 @@ func TestValidationConfig_HasHealthField(t *testing.T) {
 			Rules: []types.ValidationRule{{Field: "{{ generationChanged }}", Equals: "true"}},
 		}
 		nr := noteReg(note("generationChanged", `{{ eq .health.status "healthy" }}`))
-		assert.False(t, cfg.HasHealthField(nr))
+		assert.False(t, cfg.References(nr, "health"))
 	})
 
 	t.Run("note not in registry returns false", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ unknownNote }}", Equals: "true"}},
 		}
-		assert.False(t, cfg.HasHealthField(empty))
+		assert.False(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("only one rule needs to match", func(t *testing.T) {
@@ -365,37 +364,37 @@ func TestValidationConfig_HasHealthField(t *testing.T) {
 				{Field: "{{ .health.phase }}"},
 			},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 }
 
-func TestValidationConfig_HasMetricsField(t *testing.T) {
+func TestValidationConfig_ReferencesMetrics(t *testing.T) {
 	empty := types.NoteRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.ValidationConfig
-		assert.False(t, cfg.HasMetricsField(empty))
+		assert.False(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("plain dot-path .metrics.queueDepth", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: ".metrics.queueDepth"}},
 		}
-		assert.True(t, cfg.HasMetricsField(empty))
+		assert.True(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("template form {{ .metrics.workersBusyPercent }}", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ .metrics.workersBusyPercent }}"}},
 		}
-		assert.True(t, cfg.HasMetricsField(empty))
+		assert.True(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("spec field with 'metrics' in name is not a false positive", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "spec.metricsPort"}},
 		}
-		assert.False(t, cfg.HasMetricsField(empty))
+		assert.False(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("note whose body references .metrics triggers fetch", func(t *testing.T) {
@@ -403,7 +402,7 @@ func TestValidationConfig_HasMetricsField(t *testing.T) {
 			Rules: []types.ValidationRule{{Field: "{{ inBusinessHours }}", Equals: "false"}},
 		}
 		nr := noteReg(note("inBusinessHours", `{{ gt .metrics.workersBusyPercent 80 }}`))
-		assert.True(t, cfg.HasMetricsField(nr))
+		assert.True(t, cfg.References(nr, "metrics"))
 	})
 
 	t.Run("note composing both .health and .metrics — both detected", func(t *testing.T) {
@@ -411,29 +410,29 @@ func TestValidationConfig_HasMetricsField(t *testing.T) {
 			Rules: []types.ValidationRule{{Field: "{{ combinedCheck }}", Equals: "true"}},
 		}
 		nr := noteReg(note("combinedCheck", `{{ and (eq .health.status "healthy") (lt .metrics.queueDepth 100) }}`))
-		assert.True(t, cfg.HasHealthField(nr))
-		assert.True(t, cfg.HasMetricsField(nr))
+		assert.True(t, cfg.References(nr, "health"))
+		assert.True(t, cfg.References(nr, "metrics"))
 	})
 }
 
-// ── MutationConfig.HasHealthField / HasMetricsField ──────────────────────────
+// ── MutationConfig.References ────────────────────────────────────────────────
 //
 // Mutation rules also check Default and Override expressions in addition to
 // the Field path, because the live value may be used on the right-hand side.
 
-func TestMutationConfig_HasHealthField(t *testing.T) {
+func TestMutationConfig_ReferencesHealth(t *testing.T) {
 	empty := types.NoteRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.MutationConfig
-		assert.False(t, cfg.HasHealthField(empty))
+		assert.False(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("field expression references .health", func(t *testing.T) {
 		cfg := &types.MutationConfig{
 			Rules: []types.MutationRule{{Field: "{{ .health.status }}"}},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("field is note ref whose body references .health", func(t *testing.T) {
@@ -441,7 +440,7 @@ func TestMutationConfig_HasHealthField(t *testing.T) {
 			Rules: []types.MutationRule{{Field: "{{ isHealthy }}", Default: "false"}},
 		}
 		nr := noteReg(note("isHealthy", `{{ eq .health.status "healthy" }}`))
-		assert.True(t, cfg.HasHealthField(nr))
+		assert.True(t, cfg.References(nr, "health"))
 	})
 
 	t.Run("default expression references .health", func(t *testing.T) {
@@ -450,7 +449,7 @@ func TestMutationConfig_HasHealthField(t *testing.T) {
 				{Field: "spec.statusCopy", Default: "{{ .health.status }}"},
 			},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("override expression references .health", func(t *testing.T) {
@@ -459,7 +458,7 @@ func TestMutationConfig_HasHealthField(t *testing.T) {
 				{Field: "spec.phase", Override: ".health.phase"},
 			},
 		}
-		assert.True(t, cfg.HasHealthField(empty))
+		assert.True(t, cfg.References(empty, "health"))
 	})
 
 	t.Run("unrelated rules return false", func(t *testing.T) {
@@ -468,23 +467,23 @@ func TestMutationConfig_HasHealthField(t *testing.T) {
 				{Field: "spec.replicas", Default: "2"},
 			},
 		}
-		assert.False(t, cfg.HasHealthField(empty))
+		assert.False(t, cfg.References(empty, "health"))
 	})
 }
 
-func TestMutationConfig_HasMetricsField(t *testing.T) {
+func TestMutationConfig_ReferencesMetrics(t *testing.T) {
 	empty := types.NoteRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.MutationConfig
-		assert.False(t, cfg.HasMetricsField(empty))
+		assert.False(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("field expression references .metrics", func(t *testing.T) {
 		cfg := &types.MutationConfig{
 			Rules: []types.MutationRule{{Field: ".metrics.queueDepth"}},
 		}
-		assert.True(t, cfg.HasMetricsField(empty))
+		assert.True(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("field is note ref whose body references .metrics", func(t *testing.T) {
@@ -492,7 +491,7 @@ func TestMutationConfig_HasMetricsField(t *testing.T) {
 			Rules: []types.MutationRule{{Field: "{{ isBusy }}", Default: "false"}},
 		}
 		nr := noteReg(note("isBusy", `{{ gt .metrics.workersBusyPercent 80 }}`))
-		assert.True(t, cfg.HasMetricsField(nr))
+		assert.True(t, cfg.References(nr, "metrics"))
 	})
 
 	t.Run("default expression references .metrics", func(t *testing.T) {
@@ -501,7 +500,7 @@ func TestMutationConfig_HasMetricsField(t *testing.T) {
 				{Field: "spec.depth", Default: "{{ .metrics.queueDepth }}"},
 			},
 		}
-		assert.True(t, cfg.HasMetricsField(empty))
+		assert.True(t, cfg.References(empty, "metrics"))
 	})
 
 	t.Run("note not in registry returns false", func(t *testing.T) {
@@ -510,6 +509,6 @@ func TestMutationConfig_HasMetricsField(t *testing.T) {
 				{Field: "{{ unknownNote }}", Default: "false"},
 			},
 		}
-		assert.False(t, cfg.HasMetricsField(empty))
+		assert.False(t, cfg.References(empty, "metrics"))
 	})
 }

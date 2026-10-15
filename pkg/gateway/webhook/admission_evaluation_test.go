@@ -5,6 +5,7 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"github.com/intentd/inrun/pkg/utils"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/types"
@@ -78,7 +79,7 @@ func TestEvaluateValidationRules_MixedDenyAndWarn(t *testing.T) {
 		Rules: []types.ValidationRule{
 			{Field: "spec.image", Prefix: "myorg/", Message: "wrong registry", Action: types.ValidationActionDeny},
 			{Field: "spec.replicas", Max: "10", Message: "too many replicas", Action: types.ValidationActionDeny},
-			{Field: "metadata.labels.team", Operator: types.ConditionExists, Message: "team label required", Action: types.ValidationActionWarn},
+			{Field: "metadata.labels.team", Exists: utils.BoolPtr(true), Message: "team label required", Action: types.ValidationActionWarn},
 		},
 	}
 
@@ -107,7 +108,7 @@ func TestEvaluateValidationRules_AllPass(t *testing.T) {
 		Rules: []types.ValidationRule{
 			{Field: "spec.image", Prefix: "myorg/", Message: "wrong registry", Action: types.ValidationActionDeny},
 			{Field: "spec.replicas", Max: "10", Message: "too many", Action: types.ValidationActionDeny},
-			{Field: "metadata.labels.team", Operator: types.ConditionExists, Message: "team required", Action: types.ValidationActionWarn},
+			{Field: "metadata.labels.team", Exists: utils.BoolPtr(true), Message: "team required", Action: types.ValidationActionWarn},
 		},
 	}
 

@@ -39,7 +39,7 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Ready"
@@ -73,7 +73,7 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Ready"
@@ -108,7 +108,7 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Ready"
@@ -144,7 +144,7 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Ready"
@@ -179,7 +179,7 @@ spec:
                 value: "Pending"
                 when:
                   - field: status.phase
-                    operator: notExists
+                    notExists: true
 
               - path: phase
                 value: "Ready"

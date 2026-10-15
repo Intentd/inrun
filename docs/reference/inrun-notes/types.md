@@ -189,6 +189,5 @@ serve:
     exclude: '{{ toList (excludeForExternal) }}'
 when:
   - field: spec.schedule
-    operator: typeOf
-    value: map       # same string that typeOf returns
+    typeOf: map       # same string that typeOf returns
 ```

@@ -5,7 +5,7 @@ expect:
     commands:
       - run: kubectl apply -f ../cr-bad-image.yaml
         exitCode: 1
-        outputContains: "denied the request"
+        contains: "denied the request"
 
   - name: webhook denial message contains allowedRegistry note value
     after: cr-applied
@@ -13,4 +13,4 @@ expect:
     commands:
       - run: kubectl apply -f ../cr-bad-image.yaml
         exitCode: 1
-        outputContains: "image must be from myorg/"
+        contains: "image must be from myorg/"

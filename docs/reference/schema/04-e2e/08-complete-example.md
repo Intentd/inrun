@@ -124,14 +124,14 @@ spec:
         logs:
           - labelSelector: inrun-owner=my-probe-server
             namespace: default
-            outputContains: "autoscale-metrics"
+            contains: "autoscale-metrics"
           - labelSelector: inrun-owner=my-probe-exec
             namespace: default
-            outputContains: "Configuration complete"
+            contains: "Configuration complete"
           - leaderElection:
               lease: inrun-leader
               namespace: inrun-system
-            outputContains: "became leader"
+            contains: "became leader"
 
     # ── kubectl.describe ─────────────────────────────────────────────────────
     - name: Describe shows expected resource state
@@ -142,11 +142,11 @@ spec:
           - kind: Deployment
             name: my-probe-exec
             namespace: default
-            outputContains: RollingUpdate
+            contains: RollingUpdate
           - kind: Service
             name: my-probe-server-svc
             namespace: default
-            outputContains: ClusterIP
+            contains: ClusterIP
 
     # ── kubectl.exec ─────────────────────────────────────────────────────────
     - name: Exec into nginx pod (has sh)
@@ -169,17 +169,17 @@ spec:
             namespace: default
             port: 9999
             path: /health
-            outputContains: ok
+            contains: ok
           - service: my-probe-server-svc
             namespace: default
             port: 9999
             path: /started
-            outputContains: started
+            contains: started
           - service: my-probe-server-svc
             namespace: default
             port: 9999
             path: /ready
-            outputContains: ready
+            contains: ready
 
     # ── kubectl.apply ────────────────────────────────────────────────────────
     - name: Apply a ConfigMap inline and assert it landed
@@ -244,11 +244,11 @@ spec:
           - kind: Deployment
             name: my-probe-server
             namespace: default
-            outputContains: ScalingReplicaSet
+            contains: ScalingReplicaSet
           - kind: Deployment
             name: my-probe-exec
             namespace: default
-            outputContains: ScalingReplicaSet
+            contains: ScalingReplicaSet
 
     # ── kubectl.auth ─────────────────────────────────────────────────────────
     - name: Current user can query cluster resources
@@ -274,7 +274,7 @@ spec:
           - labelSelector: inrun-owner=my-probe-exec
             namespace: default
             src: /etc/nginx/nginx.conf
-            outputContains: worker_processes
+            contains: worker_processes
 
     # ── kubectl.top ──────────────────────────────────────────────────────────
     - name: Live resource usage visible via kubectl top
@@ -285,11 +285,11 @@ spec:
           - kind: pod
             namespace: default
             labelSelector: inrun-owner=my-probe-server
-            outputContains: my-probe-server
+            contains: my-probe-server
           - kind: pod
             namespace: default
             labelSelector: inrun-owner=my-probe-exec
-            outputContains: my-probe-exec
+            contains: my-probe-exec
 
     # ── commands: (arbitrary shell) ──────────────────────────────────────────
     - name: Arbitrary commands still work alongside the DSL
@@ -297,7 +297,7 @@ spec:
       timeout: 30s
       commands:
         - run: kubectl get e2eprobe -n default -o name
-          outputContains: my-probe-server
+          contains: my-probe-server
 
     # ── kubectl.restart ──────────────────────────────────────────────────────
     - name: Rollout restart recovers the probe deployment
@@ -445,7 +445,7 @@ spec:
 | All resources created and ready | `resources:` |
 | Both probes reach Ready status | `kubectl.get` — jsonpath field extraction |
 | Field assertions on Deployments and Services | `kubectl.get` — multiple entries per block |
-| Pod logs show expected startup output | `kubectl.logs` — `labelSelector`, `outputContains` |
+| Pod logs show expected startup output | `kubectl.logs` — `labelSelector`, `contains` |
 | Describe shows expected resource state | `kubectl.describe` — kind + name |
 | Exec into nginx pod (has sh) | `kubectl.exec` — `labelSelector`, inline command |
 | Port-forward to devserver health endpoints | `kubectl.port-forward` — multiple paths per block |

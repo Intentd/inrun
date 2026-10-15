@@ -14,7 +14,7 @@ spec:
         validation:
           rules:
             - field: spec.name
-              operator: exists
+              exists: true
               message: "spec.name is required"
               action: deny
 

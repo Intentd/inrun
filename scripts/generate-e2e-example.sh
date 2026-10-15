@@ -48,7 +48,7 @@ cat >> "$OUT" <<'FOOTER'
 | All resources created and ready | `resources:` |
 | Both probes reach Ready status | `kubectl.get` — jsonpath field extraction |
 | Field assertions on Deployments and Services | `kubectl.get` — multiple entries per block |
-| Pod logs show expected startup output | `kubectl.logs` — `labelSelector`, `outputContains` |
+| Pod logs show expected startup output | `kubectl.logs` — `labelSelector`, `contains` |
 | Describe shows expected resource state | `kubectl.describe` — kind + name |
 | Exec into nginx pod (has sh) | `kubectl.exec` — `labelSelector`, inline command |
 | Port-forward to devserver health endpoints | `kubectl.port-forward` — multiple paths per block |

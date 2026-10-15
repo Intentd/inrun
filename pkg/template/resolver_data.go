@@ -22,6 +22,8 @@
 package template
 
 import (
+	"maps"
+
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -127,7 +129,9 @@ func (r *Resolver) WithItemAndValue(key interface{}, value interface{}, as strin
 //	  - name: healthCheck
 //	    url: "{{ .spec.serviceUrl }}/health"
 //
-// Results accessible in subsequent template expressions and when: conditions:
+// Results add to those already in scope, so a template block's own calls sit
+// beside reconcile.external's. Results accessible in subsequent template
+// expressions and when: conditions:
 //
 //	{{ .external.healthCheck.status }}    → HTTP status code as string
 //	{{ .external.healthCheck.body }}      → response body (first 4KB)
@@ -143,7 +147,38 @@ func (r *Resolver) WithExternal(results map[string]interface{}) *Resolver {
 		return r
 	}
 	newData := r.shallowCopy()
-	newData["external"] = results
+	// Add to the calls already made (reconcile.external before a template
+	// block's own), a later call of the same name replacing an earlier one.
+	merged := map[string]interface{}{}
+	if earlier, ok := newData["external"].(map[string]interface{}); ok {
+		maps.Copy(merged, earlier)
+	}
+	maps.Copy(merged, results)
+	newData["external"] = merged
+	return r.copyWith(newData)
+}
+
+// WithResponse returns a copy of the Resolver with a remote reconciler's
+// response available as .response: status, body, error, called and, for a
+// JSON body, json.
+func (r *Resolver) WithResponse(response map[string]interface{}) *Resolver {
+	if len(response) == 0 {
+		return r
+	}
+	newData := r.shallowCopy()
+	newData["response"] = response
+	return r.copyWith(newData)
+}
+
+// WithArgs returns a copy of the Resolver with the rendered reconcile.args
+// available as .args, for everything rendered after them: templates,
+// emit.status, when conditions and a remote request body.
+func (r *Resolver) WithArgs(args map[string]interface{}) *Resolver {
+	if len(args) == 0 {
+		return r
+	}
+	newData := r.shallowCopy()
+	newData["args"] = args
 	return r.copyWith(newData)
 }
 
@@ -272,13 +307,13 @@ func (r *Resolver) WithHealth(health map[string]interface{}) *Resolver {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WithUniquenessChecker — operator: unique injection
+// WithUniquenessChecker — unique: true injection
 // ─────────────────────────────────────────────────────────────────────────────
 
 // WithUniquenessChecker returns a new Resolver with a live UniquenessChecker
 // injected under the "_uniquenessChecker" key — the string must match
 // pkg/types' uniquenessCheckerKey constant (same convention as _cronWindows,
-// see when.go). Not template-visible; read internally by operator: unique in
+// see when.go). Not template-visible; read internally by unique: true in
 // both validation.rules and when:/or: (see types.UniquenessChecker).
 // Only the reconciler calls this, so the operator is enforced at reconcile
 // time only.
