@@ -1,4 +1,4 @@
-package migrate
+package rewrite
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 )
 
 // baseline is a minimal controller-runtime reconciler matching the pattern
-// that inrun migrate targets — embedded client, ctrl.Request signature, req.NamespacedName.
+// that inrun rewrite targets — embedded client, ctrl.Request signature, req.NamespacedName.
 const baseline = `package controller
 
 import (
@@ -56,7 +56,7 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 `
 
 func TestRewrite_SignatureChange(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestRewrite_SignatureChange(t *testing.T) {
 }
 
 func TestRewrite_ReturnCollapse(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestRewrite_ReturnCollapse(t *testing.T) {
 }
 
 func TestRewrite_ReqNamespacedName(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestRewrite_ReqNamespacedName(t *testing.T) {
 }
 
 func TestRewrite_ReqString(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestRewrite_ReqString(t *testing.T) {
 }
 
 func TestRewrite_SetupWithManagerRemoved(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestRewrite_SetupWithManagerRemoved(t *testing.T) {
 }
 
 func TestRewrite_StructRewritten(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestRewrite_StructRewritten(t *testing.T) {
 }
 
 func TestRewrite_ConstructorGenerated(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -183,15 +183,15 @@ func TestRewrite_ConstructorGenerated(t *testing.T) {
 }
 
 func TestRewrite_StatusUpdateFlagged(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
 
 	src := string(res.Source)
 
-	if !strings.Contains(src, "TODO(inrun migrate)") {
-		t.Error("expected TODO(inrun migrate) for r.Status().Update()")
+	if !strings.Contains(src, "TODO(inrun rewrite)") {
+		t.Error("expected TODO(inrun rewrite) for r.Status().Update()")
 	}
 	hasWarning := false
 	for _, w := range res.Warnings {
@@ -205,7 +205,7 @@ func TestRewrite_StatusUpdateFlagged(t *testing.T) {
 }
 
 func TestRewrite_ReceiverType(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestRewrite_ReceiverType(t *testing.T) {
 }
 
 func TestRewrite_NoCtrlImport(t *testing.T) {
-	res, err := Rewrite([]byte(baseline), ModeNative)
+	res, err := Apply([]byte(baseline), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -245,7 +245,7 @@ func (r *MyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Re
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 `
-	res, err := Rewrite([]byte(src), ModeNative)
+	res, err := Apply([]byte(src), ModeNative)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -281,7 +281,7 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).For(&WebApp{}).Complete(r)
 }
 `
-	res, err := Rewrite([]byte(src), ModeToClient)
+	res, err := Apply([]byte(src), ModeToClient)
 	if err != nil {
 		t.Fatalf("Rewrite ModeToClient: %v", err)
 	}
@@ -340,7 +340,7 @@ type MyReconciler struct{}
 
 func (r *MyReconciler) DoSomething() {}
 `
-	_, err := Rewrite([]byte(src), ModeNative)
+	_, err := Apply([]byte(src), ModeNative)
 	if err == nil {
 		t.Error("expected error when no Reconcile method found")
 	}
@@ -389,7 +389,7 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 `
-	res, err := Rewrite([]byte(src), ModeToClient)
+	res, err := Apply([]byte(src), ModeToClient)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}
@@ -465,7 +465,7 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 `
-	res, err := Rewrite([]byte(src), ModeToClient)
+	res, err := Apply([]byte(src), ModeToClient)
 	if err != nil {
 		t.Fatalf("Rewrite: %v", err)
 	}

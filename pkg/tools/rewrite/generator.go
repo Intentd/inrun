@@ -5,7 +5,7 @@
 //
 // All generated files are stubs with TODO markers. The user fills in
 // CRD details (group, kind, location) and resource assertions.
-package migrate
+package rewrite
 
 import (
 	"fmt"
@@ -75,11 +75,11 @@ func generateCatalog(res *Result, opts Options, crdName, constructorFn string) s
 	object := todoField(p.Object, "set the Go type name (e.g. WebApp)")
 	objectList := p.ObjectList
 	if objectList == "" {
-		objectList = "TODO  # TODO(inrun migrate): set the Go list type (e.g. WebAppList)"
+		objectList = "TODO  # TODO(inrun rewrite): set the Go list type (e.g. WebAppList)"
 	}
 	location := p.Location
 	if location == "" {
-		location = opts.ModulePath + "/api/" + version + "  # TODO(inrun migrate): adjust to your API types package"
+		location = opts.ModulePath + "/api/" + version + "  # TODO(inrun rewrite): adjust to your API types package"
 	}
 	alias := p.Alias
 	if alias == "" {
@@ -91,7 +91,7 @@ apiVersion: inrun.dev/v1
 kind: Catalog
 metadata:
   name: %s
-  author: myorg  # TODO(inrun migrate): set your name or org
+  author: myorg  # TODO(inrun rewrite): set your name or org
   version: 0.1.0
   description: >
     Migrated from controller-runtime. The constructor lifted from %s
@@ -106,10 +106,10 @@ spec:
   crds:
     %s:
       apiTypes:
-        group: TODO  # TODO(inrun migrate): set your CRD group (e.g. apps.myorg.io)
+        group: TODO  # TODO(inrun rewrite): set your CRD group (e.g. apps.myorg.io)
         version: %s
         kind: %s
-        plural: TODO # TODO(inrun migrate): set the plural (e.g. webapps)
+        plural: TODO # TODO(inrun rewrite): set the plural (e.g. webapps)
         object: %s
         objectList: %s
         location: %s
@@ -128,7 +128,7 @@ spec:
           managedResources:
 %s
           constructor:
-            location: %s/%s  # TODO(inrun migrate): adjust to your reconciler package
+            location: %s/%s  # TODO(inrun rewrite): adjust to your reconciler package
             function: %s
 `, opts.OperatorName, res.PkgName, crdName,
 		version, kind, object, objectList, location, alias,
@@ -140,13 +140,13 @@ func todoField(value, hint string) string {
 	if value != "" {
 		return value
 	}
-	return "TODO  # TODO(inrun migrate): " + hint
+	return "TODO  # TODO(inrun rewrite): " + hint
 }
 
 // buildResourcesBlock renders the reconcile.managedResources list from Owns() detections.
 func buildResourcesBlock(owns []DetectedType) string {
 	if len(owns) == 0 {
-		return "            - kind: TODO  # TODO(inrun migrate): list every resource kind your operator manages\n"
+		return "            - kind: TODO  # TODO(inrun rewrite): list every resource kind your operator manages\n"
 	}
 	var b strings.Builder
 	for _, o := range owns {
@@ -154,7 +154,7 @@ func buildResourcesBlock(owns []DetectedType) string {
 		if o.APIVersion != "" && !strings.HasPrefix(o.APIVersion, "TODO") {
 			fmt.Fprintf(&b, "              apiVersion: %s\n", o.APIVersion)
 		} else if strings.HasPrefix(o.APIVersion, "TODO:") {
-			fmt.Fprintf(&b, "              # TODO(inrun migrate): apiVersion for %s (%s)\n",
+			fmt.Fprintf(&b, "              # TODO(inrun rewrite): apiVersion for %s (%s)\n",
 				o.Kind, strings.TrimPrefix(o.APIVersion, "TODO: "))
 		}
 	}
@@ -174,7 +174,7 @@ func buildWatchBlock(watches []DetectedType) string {
 		suffix := ""
 		if strings.HasPrefix(apiVer, "TODO:") {
 			// Emit the raw import path as a comment so the user knows where to look.
-			suffix = "  # TODO(inrun migrate): verify apiVersion (" + strings.TrimPrefix(apiVer, "TODO: ") + ")"
+			suffix = "  # TODO(inrun rewrite): verify apiVersion (" + strings.TrimPrefix(apiVer, "TODO: ") + ")"
 			apiVer = "TODO"
 		}
 		fmt.Fprintf(&b, "            - apiVersion: %s%s\n", apiVer, suffix)
@@ -192,7 +192,7 @@ metadata:
   name: %s-sim
   description: >
     Verify resources are created in cycle 1 — no cluster needed.
-    TODO(inrun migrate): fill in the resource kinds your operator creates.
+    TODO(inrun rewrite): fill in the resource kinds your operator creates.
 
 spec:
   catalog: ../catalog.yaml
@@ -205,7 +205,7 @@ spec:
     ops:
       - cycle: 1
         verb: create
-        resource: TODO  # TODO(inrun migrate): e.g. deployments, services, configmaps
+        resource: TODO  # TODO(inrun rewrite): e.g. deployments, services, configmaps
       # - cycle: 1
       #   verb: create
       #   resource: services
@@ -220,7 +220,7 @@ metadata:
   name: %s-e2e
   description: >
     End-to-end test for %s.
-    TODO(inrun migrate): fill in your CRD kind, CR name, and assertions.
+    TODO(inrun rewrite): fill in your CRD kind, CR name, and assertions.
 
 spec:
   catalog: ../catalog.yaml
@@ -237,22 +237,22 @@ spec:
       after: cr-applied
       timeout: 30s
       resources:
-        - kind: TODO  # TODO(inrun migrate): set your CRD kind
-          name: TODO  # TODO(inrun migrate): set your CR name from manifests/cr.yaml
+        - kind: TODO  # TODO(inrun rewrite): set your CRD kind
+          name: TODO  # TODO(inrun rewrite): set your CR name from manifests/cr.yaml
           namespace: default
 
     - name: Status written
       after: cr-applied
       timeout: 60s
       commands:
-        - run: kubectl get TODO my-cr -o jsonpath='{.status.phase}'  # TODO(inrun migrate): adjust
+        - run: kubectl get TODO my-cr -o jsonpath='{.status.phase}'  # TODO(inrun rewrite): adjust
           contains: Running
 
     - name: Resources created
       after: cr-applied
       timeout: 90s
       resources:
-        - kind: TODO  # TODO(inrun migrate): e.g. Deployment
+        - kind: TODO  # TODO(inrun rewrite): e.g. Deployment
           name: TODO
           namespace: default
           ready: true
@@ -261,7 +261,7 @@ spec:
       after: cr-deleted
       timeout: 30s
       resources:
-        - kind: TODO  # TODO(inrun migrate): your managed resource
+        - kind: TODO  # TODO(inrun rewrite): your managed resource
           name: TODO
           namespace: default
           count: 0
@@ -271,7 +271,7 @@ spec:
 func generateGoMod(opts Options) string {
 	inrunVer := opts.InrunVersion
 	if inrunVer == "" || inrunVer == "dev" {
-		inrunVer = "v0.0.0  // TODO(inrun migrate): replace with the published Inrun version"
+		inrunVer = "v0.0.0  // TODO(inrun rewrite): replace with the published Inrun version"
 	}
 	return fmt.Sprintf(`module %s
 
@@ -394,13 +394,13 @@ func generateREADME() string {
 	bt := "```"
 	return `# Migrated operator
 
-Generated by ` + "`" + `inrun migrate` + "`" + `. Your ` + "`" + `Reconcile` + "`" + ` is unchanged; Inrun now runs the
+Generated by ` + "`" + `inrun rewrite` + "`" + `. Your ` + "`" + `Reconcile` + "`" + ` is unchanged; Inrun now runs the
 informer, queue, workers, leader election and metrics.
 
 ### 1. Resolve the TODOs
 
 ` + bt + `bash
-grep -rn "TODO(inrun migrate)" .
+grep -rn "TODO(inrun rewrite)" .
 ` + bt + `
 
 Set ` + "`" + `apiTypes` + "`" + ` and ` + "`" + `managedResources` + "`" + ` in ` + "`" + `catalog.yaml` + "`" + `, add assertions to

@@ -1,4 +1,4 @@
-package migrate
+package rewrite
 
 import (
 	"fmt"
@@ -74,7 +74,7 @@ func rewriteKubeCalls(src []byte, receiverName string) []byte {
 			} else {
 				keyText := sliceSrc(src, fset, call.Args[1])
 				newArgs = ctxText + `, namespace, name, ` + objText +
-					` /* TODO(inrun migrate): extract namespace+name from: ` + keyText + ` */`
+					` /* TODO(inrun rewrite): extract namespace+name from: ` + keyText + ` */`
 			}
 			reps = append(reps, replacement{
 				start: off(fset, call.Args[0].Pos()),

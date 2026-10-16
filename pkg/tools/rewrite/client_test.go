@@ -1,4 +1,4 @@
-package migrate
+package rewrite
 
 import (
 	"go/parser"
@@ -284,7 +284,7 @@ func TestClientFieldKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			source := "package migrate\n" + tt.source
+			source := "package rewrite\n" + tt.source
 
 			fset := token.NewFileSet()
 			f, err := parser.ParseFile(

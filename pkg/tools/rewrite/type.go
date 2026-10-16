@@ -1,4 +1,4 @@
-package migrate
+package rewrite
 
 const (
 	domain     = "github.com/intentd/inrun/domain"

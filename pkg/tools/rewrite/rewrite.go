@@ -4,7 +4,7 @@
 // signature. It is intentionally a starting point — the output compiles but
 // still requires review for status updates, event recording, and informer
 // cache lookups.
-package migrate
+package rewrite
 
 import (
 	"fmt"
@@ -14,13 +14,13 @@ import (
 	"strings"
 )
 
-// Rewrite parses src, locates a controller-runtime Reconcile method, and
+// Apply parses src, locates a controller-runtime Reconcile method, and
 // returns the source rewritten according to mode.
 //
 // ModeToClient is the recommended starting point: zero changes to Reconcile
 // or call sites, only SetupWithManager removed and a ToClient constructor
 // injected. ModeNative performs the full signature and call-site rewrite.
-func Rewrite(src []byte, mode Mode) (*Result, error) {
+func Apply(src []byte, mode Mode) (*Result, error) {
 	if mode == ModeToClient {
 		return rewriteToClient(src)
 	}
@@ -131,7 +131,7 @@ func rewriteNative(src []byte) (*Result, error) {
 			reps = append(reps, replacement{
 				start: off(fset, call.Pos()),
 				end:   off(fset, call.End()),
-				text:  "nil /* TODO(inrun migrate): replace with r.kube.PatchStatus(ctx, obj, map[string]interface{}{...}) */",
+				text:  "nil /* TODO(inrun rewrite): replace with r.kube.PatchStatus(ctx, obj, map[string]interface{}{...}) */",
 			})
 			res.Warnings = append(res.Warnings, "r.Status().Update() flagged — replace with r.kube.PatchStatus")
 		}
@@ -229,7 +229,7 @@ func rewriteImports(src []byte, addStrings bool) []byte {
 
 	// Inject Inrun import hints as a block comment so the user knows exactly what to add.
 	result = injectImport(result,
-		"// TODO(inrun migrate): add these imports:\n"+
+		"// TODO(inrun rewrite): add these imports:\n"+
 			"//   \"github.com/intentd/inrun/domain\"\n"+
 			"//   \"github.com/intentd/inrun/pkg/kubeclient\"")
 
