@@ -389,12 +389,7 @@ func (dc *DependencyCoordinator) deactivateCRD(gvk string) {
 //   - (false, err) — transient failure (network blip, timeout, dial error);
 //     callers must skip all health-state changes and retry next tick
 func (dc *DependencyCoordinator) crdExists(gvk *schema.GroupVersionKind) (bool, error) {
-	err := utils.WaitForCRD(
-		dc.kube.RestConfig(),
-		gvk.Group,
-		gvk.Kind,
-		gvk.Version,
-	)
+	_, err := utils.CheckCRDExists(dc.kube.RestConfig(), gvk)
 	if err == nil {
 		return true, nil
 	}

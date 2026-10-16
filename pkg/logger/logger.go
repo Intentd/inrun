@@ -55,6 +55,28 @@ func Quiet() (restore func()) {
 	return func() { zerolog.SetGlobalLevel(prev) }
 }
 
+// Silent raises the global level to error until restore is called, keeping
+// info and warn diagnostics from code being exercised out of the CLI's own
+// output.
+func Silent() (restore func()) {
+	prev := zerolog.GlobalLevel()
+	if prev >= zerolog.ErrorLevel {
+		return func() {}
+	}
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	return func() { zerolog.SetGlobalLevel(prev) }
+}
+
+// Nop returns a logger that discards all output. Use it where a component's
+// own diagnostics would duplicate output the caller renders itself — for
+// example, a CLI that prints its own summary of a run.
+func Nop() *zerolog.Logger {
+	nop := zerolog.Nop()
+	return &nop
+}
+
+// FromContext returns the process logger with any request-scoped fields
+// (request ID, CRD, resource) pulled from ctx. Missing values are skipped.
 func FromContext(ctx context.Context) *zerolog.Logger {
 	l := log.With()
 

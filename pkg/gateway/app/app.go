@@ -1,9 +1,9 @@
-// Package app assembles the Inrun gateway: the Serve layer (Gateway API and
-// intake webhooks) everywhere, and inside a pod also TLS, the admission and
-// conversion webhook server and its /catalog routes. New wires everything and
-// starts nothing; the caller starts the process. The gateway runs no
-// reconcilers, informers or leader election: it is stateless and runs as
-// several replicas.
+// Package app assembles the Inrun gateway: the Serve layer (Gateway API),
+// schema migration, everywhere, and inside a pod also TLS,
+// the admission and conversion webhook server and its /catalog routes.
+// New wires everything and starts nothing; the caller starts the process.
+// The gateway runs no reconcilers, informers or leader election:
+// it is stateless and runs as several replicas.
 package app
 
 import (
@@ -18,6 +18,7 @@ import (
 	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/inrun/pkg/process"
 	"github.com/intentd/inrun/pkg/utils"
 )
@@ -28,15 +29,30 @@ type Gateway struct {
 	Process *process.Manager
 }
 
+// GatewayOptions controls optional behavior of the assembled Gateway.
+type GatewayOptions struct {
+	// Migrate runs the Catalog's declared schema migrations against live CRs
+	// during startup, before the gateway begins serving. When false, the
+	// gateway assumes CRs are already in the current schema.
+	Migrate bool
+}
+
 // New wires the gateway. Inside a pod it serves the webhooks over TLS next to
 // the Gateway API. Outside one there is no cluster to hold certificates or
 // patch CRDs, so it serves the Gateway API (POST /api/v1/apply,
-// GET /api/v1/resources/, and so on) and intake webhooks on the plain HTTP
-// health port — the same API surface — and leaves the webhooks out.
-func New(ctx context.Context, cfg *config.Config, m *merger.Merger) (*Gateway, error) {
+// GET /api/v1/resources/, and so on) on the plain
+// HTTP health port — the same API surface — and leaves the webhooks out.
+func New(ctx context.Context, cfg *config.Config, m *merger.Merger, opts GatewayOptions) (*Gateway, error) {
 	cat, kube, err := buildBase(ctx, cfg, m)
 	if err != nil {
 		return nil, err
+	}
+
+	// Apply schema migrations if any
+	if opts.Migrate {
+		if err := migrate.Apply(ctx, cat, kube); err != nil {
+			return nil, fmt.Errorf("schema migration failed: %w", err)
+		}
 	}
 
 	// HTTP: probes, metrics, the /catalog API and the Gateway API.

@@ -224,6 +224,10 @@ type ServeFieldConfig struct {
 	// Label overrides the field name in the rendered form.
 	Label string `yaml:"label,omitempty" json:"label,omitempty"`
 
+	// Description is a short human-readable information about the field.
+	// Informational only.
+	Description string `yaml:"description,omitempty" json:"description,omitempty"`
+
 	// Placeholder is the input placeholder text.
 	Placeholder string `yaml:"placeholder,omitempty" json:"placeholder,omitempty"`
 
@@ -327,6 +331,19 @@ type ServeFieldConfig struct {
 	// Path is ignored when Values is present.
 	// Value and Values are mutually exclusive.
 	Values map[string]string `yaml:"values,omitempty" json:"values,omitempty"`
+	// Migrate configures schema migration for this field.
+	// When set, `inrun gateway migrate` reads values from Migrate.From,
+	// applies the field's value/values transform (if any), writes the result
+	// to this field's current Path, then removes Migrate.From.
+	// Idempotent: CRs where Migrate.From is absent are skipped.
+
+	Migrate *ServeFieldMigrate `yaml:"migrate,omitempty" json:"migrate,omitempty"`
+}
+
+// ServeFieldMigrate holds the schema migration source for a serve field.
+type ServeFieldMigrate struct {
+	// From is the dot-notation spec path where the value currently lives.
+	From string `yaml:"from" json:"from"`
 }
 
 // IsValidServeFieldType reports whether t is a valid ServeFieldConfig.Type value.
@@ -376,6 +393,19 @@ func (f ServeFieldConfig) HasValues() bool {
 // (either value or values). Plain fields with neither are written as-is.
 func (f ServeFieldConfig) IsTranslated() bool {
 	return f.HasValue() || f.HasValues()
+}
+
+// HasMigrate reports whether this field has a migration source path configured.
+func (f ServeFieldConfig) HasMigrate() bool {
+	return f.Migrate != nil && f.Migrate.From != ""
+}
+
+// MigrateFrom returns the dot-notation spec path to migrate from, or "".
+func (f ServeFieldConfig) MigrateFrom() string {
+	if f.Migrate == nil {
+		return ""
+	}
+	return f.Migrate.From
 }
 
 // IsGateOnly reports whether this field is declared purely for intent gating —

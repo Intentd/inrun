@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/validate/content"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ValidateLabelMap checks every entry in labels as a Kubernetes label:
@@ -31,4 +32,25 @@ func ValidateAnnotationKeys(annotations map[string]string) error {
 		}
 	}
 	return nil
+}
+
+// ValidateLabelSelector reports whether sel is a syntactically valid
+// Kubernetes label selector (e.g. "app=nginx", "tier in (gold,silver)").
+// The parsed selector is discarded — callers only need to know whether the
+// string would be accepted by the API server.
+func ValidateLabelSelector(sel string) (bool, error) {
+	if _, err := metav1.ParseToLabelSelector(sel); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// IsValidLabelSelector reports whether sel is a syntactically valid
+// Kubernetes label selector (e.g. "app=nginx", "tier in (gold,silver)").
+// It is the boolean-only form of ValidateLabelSelector: parse errors are
+// collapsed into false, so callers that need to report why a selector is
+// invalid should call ValidateLabelSelector instead.
+func IsValidLabelSelector(sel string) bool {
+	_, err := metav1.ParseToLabelSelector(sel)
+	return err == nil
 }

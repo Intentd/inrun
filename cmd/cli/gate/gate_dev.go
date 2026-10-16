@@ -16,7 +16,7 @@ package gate
 // reconciler. No cluster connection, no TLS, no webhook server.
 //
 // Limitations vs. the real webhook:
-//   - unique: true  — skipped; no informer cache without a cluster.
+//   - operator: unique  — skipped; no informer cache without a cluster.
 //   - external: calls   — skipped (both validation and mutation); no endpoint.
 //   Both produce a note in the output so the user knows they weren't checked.
 
@@ -25,20 +25,55 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
-
 	"github.com/intentd/inrun/cmd/internal"
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/gateway/app"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-var gatewayCmd = &cobra.Command{
-	Use:   "gate",
-	Short: "Evaluate admission rules locally against a CR (no cluster required)",
-	Long: `Evaluate admission rules locally against a CR.
+var gateRunCmd = &cobra.Command{
+	Use:   "run",
+	Short: "Start the gateway locally (HTTP only, no TLS, no admission webhooks)",
+	Long: `Start the Inrun Gateway in local HTTP mode.
+
+The Gateway API (POST /api/v1/apply, GET /api/v1/resources/, intake webhooks)
+runs on the health port (default :8080). Admission and conversion webhooks are
+disabled — TLS and a live cluster are required for those.
+
+Use this to test serve routing, apply flows, and intake payloads without a
+Helm deployment.
+
+Example:
+  inrun gate run -f catalog.yaml`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		paths, _ := cmd.Flags().GetStringSlice("file")
+		if len(paths) == 0 {
+			paths = cmdutil.DefaultFilePaths()
+		}
+		if len(paths) == 0 {
+			return fmt.Errorf(cmdutil.ErrNoCatalog)
+		}
+
+		migrate, _ := cmd.Flags().GetBool("migrate")
+
+		m := merger.New(paths...)
+		if err := m.Merge(); err != nil {
+			return fmt.Errorf("merging catalogs: %w", err)
+		}
+
+		internal.RunGateway(cmdutil.Ctx, cmdutil.Cfg, m, app.GatewayOptions{Migrate: migrate})
+		return nil
+	},
+}
+
+func init() {
+	// Wire admission evaluator as the default action for bare `inrun gate`.
+	gatewayCmd.RunE = gateEvalRunE
+	gatewayCmd.Long = `Evaluate admission rules locally against a CR.
 
 Reads the validation.rules declared in the Catalog and runs them against the
 provided CR using the same evaluation logic as the admission webhook and the
@@ -50,63 +85,70 @@ Limitations:
 Both are noted in the output.
 
 Example:
-  inrun gate -f catalog.yaml --cr cr.yaml`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		crFile, _ := cmd.Flags().GetString("cr")
-		if crFile == "" {
-			crFile = cmdutil.FindFile(cmdutil.FileCr, cmdutil.DirManifests)
-		}
+  inrun gate -f catalog.yaml --cr cr.yaml`
 
-		paths, _ := cmd.Flags().GetStringSlice("file")
-		if len(paths) == 0 {
-			paths = cmdutil.DefaultFilePaths()
-		}
-		if len(paths) == 0 {
-			return fmt.Errorf(cmdutil.ErrNoCatalog)
-		}
+	gatewayCmd.AddCommand(gateRunCmd)
+	gatewayCmd.Flags().String("cr", "", "CR file to evaluate (default: cr.yaml)")
+	gateRunCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to catalog.yaml (repeatable)")
+	gateRunCmd.Flags().Bool("migrate", false, "Run schema migration before starting the gateway")
+	cmdutil.ShadowGlobalCommandFlags(gateRunCmd)
+}
 
-		m := merger.New(paths...)
-		if err := m.Merge(); err != nil {
-			return fmt.Errorf("merging Catalog: %w", err)
-		}
-		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
-		if err != nil {
-			return fmt.Errorf("parsing Catalog: %w", err)
-		}
+func gateEvalRunE(cmd *cobra.Command, args []string) error {
+	crFile, _ := cmd.Flags().GetString("cr")
+	if crFile == "" {
+		crFile = cmdutil.FindFile(cmdutil.FileCr, cmdutil.DirManifests)
+	}
 
-		crData, err := cmdutil.ReadLocal(crFile)
-		if err != nil {
-			return fmt.Errorf("reading CR %q: %w", crFile, err)
-		}
-		crs := cmdutil.ParseMultiDocCRs(crData)
-		if len(crs) == 0 {
-			return fmt.Errorf("no valid CR documents found in %s", crFile)
-		}
+	paths, _ := cmd.Flags().GetStringSlice("file")
+	if len(paths) == 0 {
+		paths = cmdutil.DefaultFilePaths()
+	}
+	if len(paths) == 0 {
+		return fmt.Errorf(cmdutil.ErrNoCatalog)
+	}
 
-		fmt.Println()
-		fmt.Printf("%s  inrun gate\n", cmdutil.Bold("▶"))
-		fmt.Printf("  %s %s\n", cmdutil.Gray("cr:     "), cmdutil.Cyan(crFile))
-		fmt.Printf("  %s %s\n", cmdutil.Gray("catalog:"), cmdutil.Cyan(strings.Join(paths, ", ")))
-		fmt.Println()
+	m := merger.New(paths...)
+	if err := m.Merge(); err != nil {
+		return fmt.Errorf("merging Catalog: %w", err)
+	}
+	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
+	if err != nil {
+		return fmt.Errorf("parsing Catalog: %w", err)
+	}
 
-		var anyDenied bool
-		for _, name := range cat.CRDNames() {
-			crdEntry, ok := cat.CRDEntry(name)
-			if !ok {
-				continue
-			}
-			in, ok := cmdutil.ResolveCRInputs(crs, crdEntry.APITypes.Kind)
-			if !ok {
-				continue
-			}
-			anyDenied = gateEvalCRD(cat, &crdEntry, in.CR.Object) || anyDenied
-		}
+	crData, err := cmdutil.ReadLocal(crFile)
+	if err != nil {
+		return fmt.Errorf("reading CR %q: %w", crFile, err)
+	}
+	crs := cmdutil.ParseMultiDocCRs(crData)
+	if len(crs) == 0 {
+		return fmt.Errorf("no valid CR documents found in %s", crFile)
+	}
 
-		if anyDenied {
-			return fmt.Errorf("admission denied")
+	fmt.Println()
+	fmt.Printf("%s  inrun gate\n", cmdutil.Bold("▶"))
+	fmt.Printf("  %s %s\n", cmdutil.Gray("cr:     "), cmdutil.Cyan(crFile))
+	fmt.Printf("  %s %s\n", cmdutil.Gray("catalog:"), cmdutil.Cyan(strings.Join(paths, ", ")))
+	fmt.Println()
+
+	var anyDenied bool
+	for _, name := range cat.CRDNames() {
+		crdEntry, ok := cat.CRDEntry(name)
+		if !ok {
+			continue
 		}
-		return nil
-	},
+		in, ok := cmdutil.ResolveCRInputs(crs, crdEntry.APITypes.Kind)
+		if !ok {
+			continue
+		}
+		anyDenied = gateEvalCRD(cat, &crdEntry, in.CR.Object) || anyDenied
+	}
+
+	if anyDenied {
+		return fmt.Errorf("admission denied")
+	}
+	return nil
 }
 
 // gateEvalCRD evaluates validation rules and previews mutation rules for one
@@ -120,7 +162,7 @@ func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 	}
 
 	// Limitation notes — printed once for the CRD.
-	hasUnique := hasUniqueRule(crd)
+	hasUnique := crd.EffectiveValidation().HasUniqueRule()
 	hasValidationExternal := crd.EffectiveValidation() != nil && len(crd.EffectiveValidation().AdmissionExternal()) > 0
 	hasMutationExternal := crd.EffectiveMutation() != nil && len(crd.EffectiveMutation().AdmissionExternal()) > 0
 	if hasUnique {
@@ -222,51 +264,4 @@ func printGateMutateResult(r AdmissionMutationResult) {
 	} else {
 		fmt.Printf("  %s no mutations apply\n", cmdutil.Dim("note:"))
 	}
-}
-
-func hasUniqueRule(crd *types.CRDEntry) bool {
-	return crd.EffectiveValidation().HasUniqueRule()
-}
-
-var gateRunCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Start the gateway locally (HTTP only, no TLS, no admission webhooks)",
-	Long: `Start the Inrun Gateway in local HTTP mode.
-
-The Gateway API (POST /api/v1/apply, GET /api/v1/resources/, intake webhooks)
-runs on the health port (default :8080). Admission and conversion webhooks are
-disabled — TLS and a live cluster are required for those.
-
-Use this to test serve routing, apply flows, and intake payloads without a
-Helm deployment.
-
-Example:
-  inrun gate run -f catalog.yaml`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		paths, _ := cmd.Flags().GetStringSlice("file")
-		if len(paths) == 0 {
-			paths = cmdutil.DefaultFilePaths()
-		}
-		if len(paths) == 0 {
-			return fmt.Errorf(cmdutil.ErrNoCatalog)
-		}
-
-		m := merger.New(paths...)
-		if err := m.Merge(); err != nil {
-			return fmt.Errorf("merging catalogs: %w", err)
-		}
-
-		internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx)
-		return nil
-	},
-}
-
-func init() {
-	cmdutil.RootCmd.AddCommand(gatewayCmd)
-	gatewayCmd.AddCommand(gateRunCmd)
-	gatewayCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to catalog.yaml (repeatable)")
-	gatewayCmd.Flags().String("cr", "", "CR file to evaluate (default: cr.yaml)")
-	gateRunCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to catalog.yaml (repeatable)")
-	cmdutil.ShadowGlobalCommandFlags(gatewayCmd)
-	cmdutil.ShadowGlobalCommandFlags(gateRunCmd)
 }

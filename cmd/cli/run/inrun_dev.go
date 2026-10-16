@@ -77,10 +77,12 @@ func runDev(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	migrate, _ := cmd.Flags().GetBool("migrate")
+
 	// Run the runtime. Once its Catalog is built, start the console, and the
 	// gateway when the Catalog serves.
 	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx, func(cat *catalog.Catalog) {
-		companions.Start(cmdutil.Ctx, cmdutil.Cfg, paths, cat)
+		companions.Start(cmdutil.Ctx, cmdutil.Cfg, paths, cat, migrate)
 	})
 	return nil
 }
@@ -116,4 +118,5 @@ func init() {
 	root.Flags().Bool("use-stack", false, "Run the pattern's stack.yaml instead of its catalog.yaml")
 	root.Flags().Bool("refresh", false, "Pull the pattern again even if it is cached")
 	root.Flags().Bool("apply-cr", false, "Apply the pattern's example CRD and CR before starting")
+	root.Flags().Bool("migrate", false, "Run schema migration before the gateway starts")
 }

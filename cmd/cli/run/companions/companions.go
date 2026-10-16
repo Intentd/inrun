@@ -24,11 +24,11 @@ import (
 //
 // paths are the Catalogs the gateway loads; cfg is the runtime's config, which
 // advertises the gateway to the console.
-func Start(ctx context.Context, cfg *config.Config, paths []string, cat *catalog.Catalog) {
+func Start(ctx context.Context, cfg *config.Config, paths []string, cat *catalog.Catalog, migrate bool) {
 	var children []*exec.Cmd
 
 	if cat.HasServeEnabled() {
-		cmd, url, err := startGateway(ctx, paths)
+		cmd, url, err := startGateway(ctx, paths, migrate)
 		if err != nil {
 			logger.Warn().Err(err).Msg("gateway not started")
 		} else {
@@ -76,7 +76,7 @@ func stopWithInrun(children []*exec.Cmd) {
 
 // startGateway runs this binary's `gate run` with the same Catalogs, on
 // INRUN_GATEWAY_PORT (default 8082).
-func startGateway(ctx context.Context, paths []string) (*exec.Cmd, string, error) {
+func startGateway(ctx context.Context, paths []string, migrate bool) (*exec.Cmd, string, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return nil, "", fmt.Errorf("locating inrun: %w", err)
@@ -85,6 +85,9 @@ func startGateway(ctx context.Context, paths []string) (*exec.Cmd, string, error
 	args := []string{"gate", "run"}
 	for _, p := range paths {
 		args = append(args, "-f", p)
+	}
+	if migrate {
+		args = append(args, "--migrate")
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Env = append(os.Environ(), "INRUN_PORT="+port)

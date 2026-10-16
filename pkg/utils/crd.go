@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
@@ -18,24 +19,50 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-// Wait for CRD creation
-func WaitForCRD(cfg *rest.Config, group, kind, version string) error {
+// CheckCRDExists returns nil when the CRD for gvk is registered in the cluster. It
+// returns a descriptive error naming the CRD when discovery cannot find it,
+// or the underlying error when discovery itself fails. Single-shot: one
+// lookup, no retry.
+func CheckCRDExists(cfg *rest.Config, gvk *schema.GroupVersionKind) (bool, error) {
+	if cfg == nil {
+		return false, fmt.Errorf("CheckCRDExists: nil rest config")
+	}
+	if gvk == nil {
+		return false, fmt.Errorf("CheckCRDExists: nil GroupVersionKind")
+	}
+	if gvk.Kind == "" || gvk.Version == "" {
+		return false, fmt.Errorf("CheckCRDExists: incomplete GVK %q (group, kind, and version are required)", *gvk)
+	}
+
 	disco, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("discovery client: %w", err)
 	}
 
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(
-		memory.NewMemCacheClient(disco),
-	)
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
 
-	gk := schema.GroupKind{Group: group, Kind: kind}
-
-	_, err = mapper.RESTMapping(gk, version)
+	_, err = mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if meta.IsNoMatchError(err) {
-		return fmt.Errorf("CRD %s.%s/%s not installed", kind, group, version)
+		return false, fmt.Errorf("CRD %s.%s/%s not installed", gvk.Kind, gvk.Group, gvk.Version)
 	}
-	return err
+	return true, err
+}
+
+// MatchesFieldRequirements checks that u satisfies all requirements using
+// simple string equality on unstructured field values. Used as a post-filter
+// after an index lookup to handle residual requirements the index did not cover.
+func MatchesFieldRequirements(u *unstructured.Unstructured, reqs fields.Requirements) bool {
+	for _, req := range reqs {
+		parts := SplitField(req.Field)
+		if len(parts) == 0 {
+			continue
+		}
+		val, _, _ := unstructured.NestedString(u.Object, parts...)
+		if val != req.Value {
+			return false
+		}
+	}
+	return true
 }
 
 func RequireStrParams(required map[string]string) error {

@@ -147,7 +147,10 @@ func (f *Factory) getOrCreate(
 	})
 
 	// Check if CRD exists
-	crdExists := crdExists(gvk, f.restConfig)
+	crdExists, err := crdExists(f.restConfig, gvk)
+	if err != nil {
+		logger.Error().Err(err).Msg("crd existence check")
+	}
 
 	entry := &InformerEntry{
 		Informer: inf,

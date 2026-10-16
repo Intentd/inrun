@@ -1,0 +1,71 @@
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: schema-evolution-e2e
+  description: >
+    CronJob operator with serve field translation and schema migration.
+    Verifies that a flat cron string submitted via the gateway is fanned out
+    to the five structured schedule fields, and that inrun gate migrate
+    backfills existing flat-schedule CRs to the structured form.
+
+spec:
+  catalog: ../catalog.yaml
+  crd: ../manifests/crd.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Gateway accepts flat cron string and fans out to structured spec
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: '{"target":"cronjob","name":"daily-backup","schedule":"0 2 * * 1-5","image":"busybox:latest"}'
+            statusCode: 200
+
+    - name: Serve translation fans cron string out to structured spec fields
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: cronjobs.demo.inrun.dev
+            name: daily-backup
+            namespace: default
+            field: .spec.schedule.minute
+            equals: "0"
+          - kind: cronjobs.demo.inrun.dev
+            name: daily-backup
+            namespace: default
+            field: .spec.schedule.hour
+            equals: "2"
+          - kind: cronjobs.demo.inrun.dev
+            name: daily-backup
+            namespace: default
+            field: .spec.schedule.dayOfWeek
+            equals: "1-5"
+
+    - name: Invalid cron string is rejected at intent gate
+      timeout: 30s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: '{"target":"cronjob","name":"bad-cron","schedule":"not-a-cron","image":"busybox:latest"}'
+            outputContains: '"accepted":false'

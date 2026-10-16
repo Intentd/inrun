@@ -1,0 +1,39 @@
+apiVersion: inrun.dev/v1
+kind: Catalog
+metadata:
+  name: appconfig-operator
+  version: 0.1.0
+  description: >
+    AppConfig operator demonstrating deep-path schema migration. Two fields
+    relocate to nested objects: spec.replicas → spec.scaling.min and
+    spec.logLevel → spec.observability.logging.level. The serve layer uses
+    path: to declare the new write target; migrate.from names the old read
+    source. inrun gate migrate backfills all existing CRs in one pass.
+
+gateway:
+  api:
+    enabled: true
+    auth:
+      tokens:
+        - name: dev
+          token: "${DEV_TOKEN}"
+
+spec:
+  crds:
+    appconfig:
+      crdFile: ./manifests/crd-transitional.yaml
+      serve:
+        enabled: true
+        target: my-api-server
+        name: api-server
+        namespace: platform-09
+        include: ./serve/appconfig.yaml
+        tokens:
+          dev:
+            permissions:
+              global: ["*"]
+
+      operatorBox:
+        reconcile:
+          workers: 3
+          resync: 60s

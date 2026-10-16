@@ -119,39 +119,8 @@ func routeFields(
 
 		// ─── Spec fields ─────────────────────────────────────────────────
 		if config, ok := crd.Serve.Fields[key]; ok {
-			// Fanout: one submitted field → multiple CR spec paths.
-			if config.HasValues() {
-				r := baseResolver.WithFieldValue(submitted)
-				for specPath, expr := range config.Values {
-					result, err := r.Resolve(expr)
-					if err != nil {
-						errs = append(errs, fmt.Sprintf("field %q: values[%q]: %s", key, specPath, err.Error()))
-						continue
-					}
-					if err := setSpecValue(spec, specPath, result); err != nil {
-						errs = append(errs, fmt.Sprintf("field %q: values[%q]: %s", key, specPath, err.Error()))
-					}
-				}
-				continue
-			}
-
-			// Single transform: evaluate expression, write result to spec path.
-			if config.HasValue() {
-				r := baseResolver.WithFieldValue(submitted)
-				result, err := r.Resolve(config.Value)
-				if err != nil {
-					errs = append(errs, fmt.Sprintf("field %q: value: %s", key, err.Error()))
-					continue
-				}
-				if err := setSpecValue(spec, config.SpecPath(key), result); err != nil {
-					errs = append(errs, fmt.Sprintf("field %q: value: %s", key, err.Error()))
-				}
-				continue
-			}
-
-			// Plain field: write submitted value as-is to spec path.
-			if err := setSpecValue(spec, config.SpecPath(key), submitted); err != nil {
-				errs = append(errs, fmt.Sprintf("field %q: %s", key, err.Error()))
+			if err := ApplyFieldTransform(baseResolver, spec, key, config, submitted); err != nil {
+				errs = append(errs, err.Error())
 			}
 			continue
 		}
@@ -175,6 +144,58 @@ func routeFields(
 		return fmt.Errorf("field translation failed: %s", strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+// ApplyFieldTransform applies a single serve field's value/values transform
+// and writes the result into spec. It is the shared core used by both Build
+// (normal apply path) and the schema migrator.
+//
+// resolver must already have WithRequest injected (the full payload context).
+// submitted is the raw value for this field — the migrator passes the value
+// read from the old path; the apply path passes the caller-submitted value.
+// key is the field name, used to derive the spec path when config has no Path.
+//
+// Errors are returned in the form "field <key>: <reason>" so callers can
+// collect them across multiple fields before surfacing a single joined error.
+func ApplyFieldTransform(
+	resolver *template.Resolver,
+	spec map[string]interface{},
+	key string,
+	config types.ServeFieldConfig,
+	submitted interface{},
+) error {
+	// Fanout: one submitted field → multiple CR spec paths.
+	if config.HasValues() {
+		r := resolver.WithFieldValue(submitted)
+		var errs []string
+		for specPath, expr := range config.Values {
+			result, err := r.Resolve(expr)
+			if err != nil {
+				errs = append(errs, fmt.Sprintf("field %q: values[%q]: %s", key, specPath, err.Error()))
+				continue
+			}
+			if err := setSpecValue(spec, specPath, result); err != nil {
+				errs = append(errs, fmt.Sprintf("field %q: values[%q]: %s", key, specPath, err.Error()))
+			}
+		}
+		if len(errs) > 0 {
+			return fmt.Errorf("%s", strings.Join(errs, "; "))
+		}
+		return nil
+	}
+
+	// Single transform: evaluate expression, write result to spec path.
+	if config.HasValue() {
+		r := resolver.WithFieldValue(submitted)
+		result, err := r.Resolve(config.Value)
+		if err != nil {
+			return fmt.Errorf("field %q: value: %s", key, err.Error())
+		}
+		return setSpecValue(spec, config.SpecPath(key), result)
+	}
+
+	// Plain field: write submitted value as-is to spec path.
+	return setSpecValue(spec, config.SpecPath(key), submitted)
 }
 
 // setSpecValue writes a value to a dot-notation spec path, creating intermediate

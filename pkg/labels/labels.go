@@ -194,6 +194,15 @@ const (
 	// Example: '{"spec.mealPlan":"dinner","spec.kitchenConfig":"standard"}'
 	AnnotationServeSelector = "inrun.dev/serve-selector"
 
+	// AnnotationMigrateSnapshot stores a JSON map of {migrateFromPath: oldValue}
+	// captured immediately before a schema migration patch. Used by
+	// `inrun gate migrate --rollback` to restore the previous field layout.
+	AnnotationMigrateSnapshot = "inrun.dev/migrate-snapshot"
+
+	// AnnotationMigrateTimestamp records when the most recent schema migration
+	// patch was applied to this CR, as an RFC3339 timestamp.
+	AnnotationMigrateTimestamp = "inrun.dev/migrate-timestamp"
+
 	// AnnotationLastSurface records the serve surface (target name) that was active
 	// on the last successful reconcile of a CR. Written by the reconciler after
 	// surface orphan cleanup so that the next reconcile can detect a surface switch

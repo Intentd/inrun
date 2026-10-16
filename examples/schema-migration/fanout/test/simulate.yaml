@@ -1,0 +1,22 @@
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: schema-evolution-sim
+  description: >
+    Verify serve field translation: a flat cron string in the intent is fanned
+    out to the five structured spec.schedule fields by the serve layer.
+
+spec:
+  catalog: ../catalog.yaml
+  intent: ../intent.yaml
+  token: dev
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: cronjobs
+        name: daily-backup

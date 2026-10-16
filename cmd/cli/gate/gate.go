@@ -28,6 +28,8 @@ func runGateway(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf(cmdutil.ErrNoCatalog)
 	}
 
+	doMigrate, _ := cmd.Flags().GetBool("migrate")
+
 	m := merger.New(paths...)
 	if err := m.Merge(); err != nil {
 		return fmt.Errorf("merging catalogs: %w", err)
@@ -39,11 +41,12 @@ func runGateway(cmd *cobra.Command, args []string) error {
 		Int("enabled", m.EnabledCount()).
 		Msg("catalogs merged")
 
-	internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx)
+	internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx, doMigrate)
 	return nil
 }
 
 func init() {
 	cmdutil.RootCmd.Args = cobra.NoArgs
 	cmdutil.RootCmd.RunE = runGateway
+	cmdutil.RootCmd.Flags().Bool("migrate", false, "Run schema migration before starting the gateway")
 }

@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	sigs "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -32,12 +33,7 @@ func GVRFor(c Interface, obj runtime.Object) (*apimeta.RESTMapping, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	mapping, err := c.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		return nil, fmt.Errorf("no REST mapping for %s: %w", gvk, err)
-	}
-	return mapping, nil
+	return RestMappingForGVK(c, gvk)
 }
 
 // ResourceFor returns the dynamic resource interface at the object's scope.
@@ -49,23 +45,109 @@ func ResourceFor(c Interface, obj sigs.Object) (dynamic.ResourceInterface, error
 
 	resource := c.DynamicClient().Resource(mapping.Resource)
 
-	if mapping.Scope.Name() == apimeta.RESTScopeNameNamespace {
+	if !isClusterScoped(mapping) {
 		return resource.Namespace(obj.GetNamespace()), nil
 	}
 	return resource, nil
 }
 
+// PatchUnstructured dispatches a patch to the correct scope — namespaced or
+// cluster-scoped — based on the object's own namespace field.
+func PatchUnstructured(
+	ctx context.Context,
+	resource dynamic.NamespaceableResourceInterface,
+	obj *unstructured.Unstructured,
+	pt k8stypes.PatchType,
+	data []byte,
+	opts metav1.PatchOptions,
+) (*unstructured.Unstructured, error) {
+	if ns := obj.GetNamespace(); ns != "" {
+		return resource.Namespace(ns).Patch(ctx, obj.GetName(), pt, data, opts)
+	}
+	return resource.Patch(ctx, obj.GetName(), pt, data, opts)
+}
+
+// ListAllForNamespaces lists all objects across the given namespaces. When
+// clusterScoped is true or namespaces is empty, a single unscoped list is
+// performed instead. Pagination is handled internally.
+func ListAllForNamespaces(ctx context.Context, resource dynamic.NamespaceableResourceInterface, clusterScoped bool, namespaces []string, opts metav1.ListOptions) ([]unstructured.Unstructured, error) {
+	if clusterScoped || len(namespaces) == 0 {
+		return ListAll(ctx, resource, opts)
+	}
+	var all []unstructured.Unstructured
+	for _, ns := range namespaces {
+		items, err := ListAllInNamespace(ctx, resource, ns, opts)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, items...)
+	}
+	return all, nil
+}
+
+// ListAllInNamespace lists all objects for a namespaced resource, following
+// continuation tokens so the caller gets a single flat slice regardless of
+// how many pages the API server returns.
+func ListAllInNamespace(ctx context.Context, resource dynamic.NamespaceableResourceInterface, ns string, opts metav1.ListOptions) ([]unstructured.Unstructured, error) {
+	return listAll(ctx, resource.Namespace(ns), opts)
+}
+
+// ListAll lists all objects for a cluster-scoped resource (or an unscoped
+// list across all namespaces), following continuation tokens.
+func ListAll(ctx context.Context, resource dynamic.NamespaceableResourceInterface, opts metav1.ListOptions) ([]unstructured.Unstructured, error) {
+	return listAll(ctx, resource, opts)
+}
+
+func listAll(ctx context.Context, lister dynamic.ResourceInterface, opts metav1.ListOptions) ([]unstructured.Unstructured, error) {
+	var items []unstructured.Unstructured
+	for {
+		page, err := lister.List(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, page.Items...)
+		opts.Continue = page.GetContinue()
+		if opts.Continue == "" {
+			return items, nil
+		}
+	}
+}
+
+// isClusterScoped reports whether a REST mapping is for a cluster-scoped resource.
+func isClusterScoped(m *apimeta.RESTMapping) bool {
+	return m.Scope.Name() == apimeta.RESTScopeNameRoot
+}
+
+// RestMappingForGVK resolves the REST mapping for a GVK.
+func RestMappingForGVK(c Interface, gvk schema.GroupVersionKind) (*apimeta.RESTMapping, error) {
+	mapping, err := c.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, fmt.Errorf("no REST mapping for %s: %w. Check that the CRD is installed", gvk, err)
+	}
+	return mapping, nil
+}
+
+// DynamicResourceFor resolves a namespaceable dynamic resource interface for a
+// GVK, plus a bool reporting whether the resource is cluster-scoped. The caller
+// controls namespace selection; for a scoped resource use
+// resource.Namespace(ns), for a cluster-scoped one use resource directly.
+func DynamicResourceFor(c Interface, gvk schema.GroupVersionKind) (dynamic.NamespaceableResourceInterface, bool, error) {
+	mapping, err := RestMappingForGVK(c, gvk)
+	if err != nil {
+		return nil, false, err
+	}
+	resource := c.DynamicClient().Resource(mapping.Resource)
+	return resource, isClusterScoped(mapping), nil
+}
+
 // ResourceForGVK resolves a dynamic resource interface for a GVK and
 // applies the namespace when the mapped resource is namespaced.
 func ResourceForGVK(c Interface, gvk schema.GroupVersionKind, namespace string) (dynamic.ResourceInterface, error) {
-	mapping, err := c.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	resource, clusterScoped, err := DynamicResourceFor(c, gvk)
 	if err != nil {
-		return nil, fmt.Errorf("no REST mapping for %s: %w", gvk, err)
+		return nil, err
 	}
-
-	resource := c.DynamicClient().Resource(mapping.Resource)
-
-	if mapping.Scope.Name() == apimeta.RESTScopeNameNamespace {
+	if !clusterScoped {
 		return resource.Namespace(namespace), nil
 	}
 	return resource, nil
@@ -104,7 +186,7 @@ func IsObjectNamespaced(c Interface, obj runtime.Object) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return mapping.Scope.Name() == apimeta.RESTScopeNameNamespace, nil
+	return !isClusterScoped(mapping), nil
 }
 
 // RunApply executes a server-side apply against the target resource,

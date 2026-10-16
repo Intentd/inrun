@@ -1,0 +1,36 @@
+# Serve field config for the schema-evolution example.
+# Included from catalog.yaml via serve.include.
+
+fields:
+  # ── Fanout: one cron string → five structured spec fields ─────────────────
+  #
+  # The caller submits:
+  #   schedule: "0 2 * * 1-5"
+  #
+  # The serve layer writes:
+  #   spec.schedule.minute:     "0"
+  #   spec.schedule.hour:       "2"
+  #   spec.schedule.dayOfMonth: "*"
+  #   spec.schedule.month:      "*"
+  #   spec.schedule.dayOfWeek:  "1-5"
+  #
+  # migrate.from: schedule tells inrun gate migrate to backfill existing CRs
+  # that were written with a flat spec.schedule string (old schema). The same
+  # cron functions run during migration — the result is identical to a fresh apply.
+  schedule:
+    label: "Schedule (cron)"
+    hint: 'Standard cron expression, e.g. "*/5 * * * *" or "0 2 * * 1-5"'
+    required: true
+    values:
+      schedule.minute:     '{{ cronMinute .value }}'
+      schedule.hour:       '{{ cronHour   .value }}'
+      schedule.dayOfMonth: '{{ cronDom    .value }}'
+      schedule.month:      '{{ cronMonth  .value }}'
+      schedule.dayOfWeek:  '{{ cronDow    .value }}'
+    migrate:
+      from: schedule
+
+  image:
+    label: "Image"
+    hint: "Container image to run on the schedule"
+    required: true

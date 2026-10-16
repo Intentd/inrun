@@ -1,0 +1,80 @@
+---
+# CronJob CRD — structured schedule only (current schema).
+#
+# spec.schedule is always a structured object. The serve layer fans a flat cron
+# string from the caller into the five fields. inrun gate migrate backfills
+# existing CRs written with a flat spec.schedule string.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: cronjobs.demo.inrun.dev
+spec:
+  group: demo.inrun.dev
+  scope: Namespaced
+  names:
+    plural: cronjobs
+    singular: cronjob
+    kind: CronJob
+    shortNames: [cj]
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        # - name: Schedule
+        #   type: string
+        #   jsonPath: .status.scheduleExpression
+        - name: Schedule
+          type: string
+          jsonPath: .spec.schedule
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Image
+          type: string
+          jsonPath: .spec.image
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [image, schedule]
+              properties:
+                image:
+                  type: string
+                schedule:
+                  type: object
+                  required: [minute, hour, dayOfMonth, month, dayOfWeek]
+                  properties:
+                    minute:
+                      type: string
+                    hour:
+                      type: string
+                    dayOfMonth:
+                      type: string
+                    month:
+                      type: string
+                    dayOfWeek:
+                      type: string
+                concurrencyPolicy:
+                  type: string
+                  enum: [Allow, Forbid, Replace]
+                  default: Allow
+                suspend:
+                  type: boolean
+                  default: false
+                successfulJobsHistoryLimit:
+                  type: integer
+                  default: 3
+                failedJobsHistoryLimit:
+                  type: integer
+                  default: 1
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
