@@ -3,7 +3,7 @@
 A `CronJob` operator that walks through a real schema migration. The CRD starts
 with a flat cron string in `spec.schedule`. The schema evolves to a structured
 object with five fields. Existing CRs written against the old schema stay in
-the cluster as-is until `inrun gate migrate` backfills them.
+the cluster as-is until `inrun migrate` backfills them.
 
 ## The schema change
 
@@ -110,18 +110,18 @@ inrun validate
 
 ### 6. Run the migration
 
-`inrun gate migrate` reads the `migrate.from` declarations in the catalog, finds
+`inrun migrate` reads the `migrate.from` declarations in the catalog, finds
 every CR across all namespaces where the old path is present, applies the same
 fanout transform the serve layer uses, and removes the old path.
 
 Dry-run first if you want to preview without writing:
 
 ```bash
-inrun gate migrate --dry-run
+inrun migrate --dry-run
 ```
 
 ```bash
-inrun gate migrate
+inrun migrate
 ```
 
 Run it again to confirm idempotency — CRs already in the new form are skipped:

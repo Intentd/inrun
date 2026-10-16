@@ -1,20 +1,100 @@
 //go:build !runtime
 
-package gate
+package migrate
 
 import (
 	"fmt"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
-	"github.com/intentd/inrun/cmd/cli/gate/output"
+	"github.com/intentd/inrun/cmd/cli/migrate/output"
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/catalog/pipeline"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/migrate"
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
+
+// runMigrateCmd runs a migrate-family operation end to end: load the catalog,
+// build a migrator for the given mode, build the output options, and render
+// the result.
+func runMigrateCmd(cmd *cobra.Command, mode migrate.MigrateMode) error {
+	paths, err := resolvePaths(cmd)
+	if err != nil {
+		return err
+	}
+
+	cat, kube, err := loadCatalogAndKube(paths)
+	if err != nil {
+		return err
+	}
+
+	migrator, err := newMigrator(cmd, kube, cat.UserNotes(), mode)
+	if err != nil {
+		return err
+	}
+
+	opts := outputOptsFrom(cmd, paths)
+	opts.Clean = mode == migrate.ModeClean
+
+	printFn, err := resolveMigrateOutputFormat(cmd, mode.String())
+	if err != nil {
+		return err
+	}
+
+	return runMigratorForKinds(cat, migrator, opts, printFn)
+}
+
+// newMigrator builds a CLI migrator for the given mode. The CLI renders its
+// own output, so the migrator logs nothing.
+func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, notes types.NoteRegistry, mode migrate.MigrateMode) (*migrate.Migrator, error) {
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	strict, _ := cmd.Flags().GetBool("strict")
+	pageSize, _ := cmd.Flags().GetInt64("page-size")
+	name, _ := cmd.Flags().GetString("name")
+	selector, _ := cmd.Flags().GetString("selector")
+	namespaces, _ := cmd.Flags().GetStringSlice("namespace")
+	if err := validateSelector(selector); err != nil {
+		return nil, err
+	}
+	return migrate.New(cmd.Context(), kube, notes, mode, migrate.MigratorOpts{
+		DryRun:     dryRun,
+		Strict:     strict,
+		PageSize:   pageSize,
+		Name:       name,
+		Selector:   selector,
+		Namespaces: namespaces,
+		Log:        logger.Nop(),
+	}), nil
+}
+
+// outputOptsFrom builds the rendering options for a migrate-family command
+// from its flags and the already-resolved catalog paths. It reads the same
+// flags the migrator does — dry-run, verbose, limit, kind, name, selector,
+// namespace — plus the paths resolved from --file.
+func outputOptsFrom(cmd *cobra.Command, paths []string) output.Opts {
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	verbose, _ := cmd.Flags().GetBool("verbose")
+	limit, _ := cmd.Flags().GetInt("limit")
+	name, _ := cmd.Flags().GetString("name")
+	selector, _ := cmd.Flags().GetString("selector")
+	kind, _ := cmd.Flags().GetString("kind")
+	namespaces, _ := cmd.Flags().GetStringSlice("namespace")
+
+	return output.Opts{
+		DryRun:     dryRun,
+		Verbose:    verbose,
+		Limit:      limit,
+		Paths:      paths,
+		Namespaces: namespaces,
+		Name:       name,
+		Selector:   selector,
+		Kind:       kind,
+	}
+}
 
 // resolvePaths reads catalog file paths from the --file flag, falling back to
 // defaults. Returns an error if no paths are found.

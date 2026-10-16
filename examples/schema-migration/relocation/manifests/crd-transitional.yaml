@@ -1,4 +1,4 @@
-# Transitional schema — apply this before running inrun gate migrate.
+# Transitional schema — apply this before running inrun migrate.
 #
 # Both the old fields (replicas, logLevel) and the new nested fields
 # (scaling.min, observability.logging.level) are present. This prevents

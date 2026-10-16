@@ -11,7 +11,7 @@ import (
 
 func PrintRollback(opts Opts) {
 	fmt.Println()
-	label := cmdutil.Bold("⟳") + "  inrun gate rollback"
+	label := cmdutil.Bold("⟳") + "  inrun migrate rollback"
 	if opts.DryRun {
 		label += "  " + cmdutil.Yellow("[dry-run]")
 	}

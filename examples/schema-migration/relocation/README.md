@@ -167,13 +167,13 @@ platform-10   api-server myapp/api:2.2.0              6                     warn
 ### 6. Dry-run the migration
 
 ```bash
-inrun gate migrate --dry-run
+inrun migrate --dry-run
 ```
 
 8 would be migrated. Platforms 09 and 10 are already done regardless of how they were created. Platform-05 shows only `replicas`:
 
 ```console
-⟳  inrun gate migrate  [dry-run]
+⟳  inrun migrate  [dry-run]
   catalog: catalog.yaml
 
 ◆  AppConfig  10 CRs
@@ -194,7 +194,7 @@ inrun gate migrate --dry-run
 ### 7. Run the migration
 
 ```bash
-inrun gate migrate
+inrun migrate
 ```
 
 ### 8. Verify
@@ -234,7 +234,7 @@ kubectl get appconfig api-server -n platform-09 -o jsonpath='{.spec}' | jq
 ### 11. Idempotency — run again
 
 ```bash
-inrun gate migrate
+inrun migrate
 ```
 
 ```
@@ -259,11 +259,11 @@ Assuming an error occured during the migration and you want to rollback, you can
 #### Dry run the rollback
 
 ```bash
-inrun gate rollback --dry-run
+inrun migrate rollback --dry-run
 ```
 
 ```
-⟳  inrun gate rollback  [dry-run]
+⟳  inrun migrate rollback  [dry-run]
   catalog: catalog.yaml
 
 ◆  AppConfig  10 CRs
@@ -340,7 +340,7 @@ kubectl get appconfig api-server -n platform-07 -o jsonpath='{.spec}' | jq
 Dry run the rollback for this CR:
 
 ```bash
-inrun gate rollback --name api-server --namespace platform-07 --dry-run --verbose
+inrun migrate rollback --name api-server --namespace platform-07 --dry-run --verbose
 # replace verbose with -ojson for machine-readable output
 ```
 
@@ -363,7 +363,7 @@ inrun gate rollback --name api-server --namespace platform-07 --dry-run --verbos
 Apply the rollback:
 
 ```bash
-inrun gate rollback --name api-server --namespace platform-07
+inrun migrate rollback --name api-server --namespace platform-07
 ```
 
 Observe rolled-back state:
@@ -386,7 +386,7 @@ kubectl get appconfig api-server -n platform-07 -o jsonpath='{.spec}' | jq
 
 Re-apply the migration
 ```bash
-inrun gate migrate --name api-server --namespace platform-07
+inrun migrate --name api-server --namespace platform-07
 ```
 
 ### 10. Apply the final CRD
@@ -403,12 +403,12 @@ Optional: Clean up migration metadata after the final CRD has been applied
 
 Dry run:
 ```bash
-inrun gate migrate --clean --dry-run
+inrun migrate clean --dry-run
 ```
 
 Clean:
 ```bash
-inrun gate migrate --clean
+inrun migrate clean
 ```
 
 Cleanup other resources

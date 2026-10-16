@@ -7,6 +7,7 @@ import (
 	_ "github.com/intentd/inrun/cmd/cli/console"
 	_ "github.com/intentd/inrun/cmd/cli/gate"
 	_ "github.com/intentd/inrun/cmd/cli/generate"
+	_ "github.com/intentd/inrun/cmd/cli/migrate"
 	_ "github.com/intentd/inrun/cmd/cli/notes"
 	_ "github.com/intentd/inrun/cmd/cli/registry"
 	_ "github.com/intentd/inrun/cmd/cli/rewrite"

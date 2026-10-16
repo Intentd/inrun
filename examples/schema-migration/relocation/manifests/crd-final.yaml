@@ -1,4 +1,4 @@
-# Final schema — apply this after inrun gate migrate completes.
+# Final schema — apply this after inrun migrate completes.
 #
 # The old fields (replicas, logLevel) are removed. At this point all CRs have
 # been migrated to the new paths, so pruning is safe.

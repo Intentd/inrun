@@ -14,7 +14,7 @@ fields:
   #   spec.schedule.month:      "*"
   #   spec.schedule.dayOfWeek:  "1-5"
   #
-  # migrate.from: schedule tells inrun gate migrate to backfill existing CRs
+  # migrate.from: schedule tells inrun migrate to backfill existing CRs
   # that were written with a flat spec.schedule string (old schema). The same
   # cron functions run during migration — the result is identical to a fresh apply.
   schedule:

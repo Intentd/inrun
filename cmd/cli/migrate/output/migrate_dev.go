@@ -14,9 +14,9 @@ func PrintMigrate(opts Opts) {
 	fmt.Println()
 	op := "migrate"
 	if opts.Clean {
-		op = "migrate --clean"
+		op = "migrate clean"
 	}
-	label := cmdutil.Bold("⟳") + "  inrun gate " + op
+	label := cmdutil.Bold("⟳") + "  inrun " + op
 	if opts.DryRun {
 		label += "  " + cmdutil.Yellow("[dry-run]")
 	}

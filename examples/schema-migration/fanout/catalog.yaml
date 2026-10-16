@@ -4,10 +4,10 @@ metadata:
   name: cronjob-operator
   version: 0.1.0
   description: >
-    CronJob operator demonstrating schema evolution via inrun gate migrate.
+    CronJob operator demonstrating schema evolution via inrun migrate.
     Callers submit a flat cron string; serve.fields.values fans it out to five
     structured schedule fields. The migrate.from entry on the schedule field
-    lets inrun gate migrate backfill existing CRs that were written with a flat
+    lets inrun migrate backfill existing CRs that were written with a flat
     spec.schedule string before the structured schema was introduced.
 
 gateway:

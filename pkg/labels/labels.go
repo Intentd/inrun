@@ -196,7 +196,7 @@ const (
 
 	// AnnotationMigrateSnapshot stores a JSON map of {migrateFromPath: oldValue}
 	// captured immediately before a schema migration patch. Used by
-	// `inrun gate migrate --rollback` to restore the previous field layout.
+	// `inrun migrate --rollback` to restore the previous field layout.
 	AnnotationMigrateSnapshot = "inrun.dev/migrate-snapshot"
 
 	// AnnotationMigrateTimestamp records when the most recent schema migration

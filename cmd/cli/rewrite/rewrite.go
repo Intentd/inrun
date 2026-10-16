@@ -183,7 +183,7 @@ func init() {
 	cmdutil.RootCmd.AddCommand(rewriteCmd)
 
 	rewriteCmd.Flags().StringP("output", "o", "", "Write output to this directory (non-destructive; skips confirmation)")
-	rewriteCmd.Flags().String("module", "", "Go module path for the rewrited operator (e.g. github.com/myorg/my-operator)")
+	rewriteCmd.Flags().String("module", "", "Go module path for the rewritten operator (e.g. github.com/myorg/my-operator)")
 	rewriteCmd.Flags().String("name", "", "Operator name in kebab-case (e.g. my-operator); derived from receiver type if omitted")
 	rewriteCmd.Flags().String("mode", "toclient", "Migration mode: toclient (default, zero Reconcile changes) or native (full rewrite)")
 

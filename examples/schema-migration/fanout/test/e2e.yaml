@@ -5,7 +5,7 @@ metadata:
   description: >
     CronJob operator with serve field translation and schema migration.
     Verifies that a flat cron string submitted via the gateway is fanned out
-    to the five structured schedule fields, and that inrun gate migrate
+    to the five structured schedule fields, and that inrun migrate
     backfills existing flat-schedule CRs to the structured form.
 
 spec:

@@ -8,7 +8,7 @@ metadata:
     relocate to nested objects: spec.replicas → spec.scaling.min and
     spec.logLevel → spec.observability.logging.level. The serve layer uses
     path: to declare the new write target; migrate.from names the old read
-    source. inrun gate migrate backfills all existing CRs in one pass.
+    source. inrun migrate backfills all existing CRs in one pass.
 
 gateway:
   api:
