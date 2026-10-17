@@ -227,7 +227,7 @@ func TestValidateGatewayClusters_ServeClusters_Template(t *testing.T) {
 		"widget": {
 			Serve: &types.ServeConfig{
 				Enabled:   true,
-				Clusters:  []string{`{{ if eq .request.env "prod" }}prod{{ else }}staging{{ end }}`},
+				Clusters:  []string{`{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}`},
 				Namespace: "default",
 			},
 		},
@@ -244,7 +244,7 @@ func TestValidateGatewayClusters_ServeClusters_InvalidTemplate(t *testing.T) {
 		"widget": {
 			Serve: &types.ServeConfig{
 				Enabled:   true,
-				Clusters:  []string{`{{ .request.env }`},
+				Clusters:  []string{`{{ intent.env }`},
 				Namespace: "default",
 			},
 		},

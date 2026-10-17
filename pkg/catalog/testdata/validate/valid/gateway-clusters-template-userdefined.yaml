@@ -8,7 +8,7 @@ notes:
   functions:
     - name: targetCluster
       description: Resolves cluster name from request context.
-      expression: '{{ if eq .request.env "prod" }}prod{{ else }}staging{{ end }}'
+      expression: '{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}'
 spec:
   crds:
     widget:
@@ -22,7 +22,7 @@ spec:
           primary:
             primary: true
             clusters:
-              - '{{ if eq .request.region "us" }}prod{{ else }}staging{{ end }}'
+              - '{{ if eq .intent.region "us" }}prod{{ else }}staging{{ end }}'
 gateway:
   enabled: true
   api:

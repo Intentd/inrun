@@ -4,28 +4,28 @@
 // translation context injection.
 package template
 
-// WithRequest returns a new Resolver with the raw intent payload injected under
-// the "request" key. Used in two places in the serve layer:
+// WithIntent returns a new Resolver with the raw intent payload injected under
+// the "intent" key. Used in two places in the serve layer:
 //
 //  1. Field translation — before evaluating value/values expressions in
 //     BuildCRFromTarget. Expressions reference the submitted payload via:
 //
 //     .value           — the current field's raw submitted value (injected
 //     per-field via WithFieldValue, not by this method)
-//     .request.<field> — any field from the raw intent (cross-field reads)
+//     .intent.<field> — any field from the raw intent (cross-field reads)
 //
 //  2. Admission evaluation — before running validation.rules in the webhook.
 //     Enables intent-level gates that fire on what the caller submitted,
 //     before any field transformation has occurred:
 //
-//     expr: cronValid .request.schedule
-//     expr: 'hasPrefix .request.image "ghcr.io/myorg/"'
-func (r *Resolver) WithRequest(request map[string]interface{}) *Resolver {
-	if len(request) == 0 {
+//     expr: cronValid .intent.schedule
+//     expr: 'hasPrefix .intent.image "ghcr.io/myorg/"'
+func (r *Resolver) WithIntent(intent map[string]interface{}) *Resolver {
+	if len(intent) == 0 {
 		return r
 	}
 	newData := r.shallowCopy()
-	newData["request"] = request
+	newData["intent"] = intent
 	return r.copyWith(newData)
 }
 

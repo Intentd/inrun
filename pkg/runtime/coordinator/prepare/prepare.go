@@ -97,7 +97,7 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 		}
 	}
 	if req := intent.FromObject(resolver.Data()); req != nil {
-		resolver = resolver.WithRequest(req)
+		resolver = resolver.WithIntent(req)
 	}
 	if in.Kube != nil {
 		resolver = resolver.WithUniquenessChecker(

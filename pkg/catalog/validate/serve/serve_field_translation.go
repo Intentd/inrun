@@ -44,7 +44,7 @@ func validateFieldTranslation(
 ──────────────────────────────────────────────
 %s CRD %q: serve.fields %q: field name must not contain hyphens
 
-Hyphenated names cannot be used as Go template identifiers — {{ .request.my-field }}
+Hyphenated names cannot be used as Go template identifiers — {{ .intent.my-field }}
 is invalid template syntax. Use camelCase or underscores instead: %q
 ──────────────────────────────────────────────`, failureMark(), crdName, fieldName, strings.ReplaceAll(fieldName, "-", "_"))
 	}

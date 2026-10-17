@@ -49,7 +49,7 @@ spec:
 
         validation:
           rules:
-            - field: "{{ cronValid .request.schedule }}"
+            - field: "{{ cronValid .intent.schedule }}"
               equals: true
               link: schedule
               fires:

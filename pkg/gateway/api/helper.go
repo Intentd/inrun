@@ -42,7 +42,7 @@ var (
 	nestedSlice      = utils.NestedSlice
 	nestedMap        = utils.NestedMap
 	deleteNestedPath = utils.DeleteNestedPath
-	isTargetRequest  = intent.IsRequest
+	isTargetRequest  = intent.IsTargetRequest
 )
 
 // resolvePollURL builds the poll URL for the Gateway API response.

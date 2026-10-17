@@ -22,7 +22,7 @@ spec:
           image:
             values:
               image.registry:   '{{ .value }}'
-              image.repository: '{{ .request.image }}'
+              image.repository: '{{ .intent.image }}'
               image.tag:        'latest'
 
           # gate-only: exposed in form, consumed by validation rules, not written to spec

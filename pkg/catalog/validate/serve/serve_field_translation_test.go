@@ -49,7 +49,7 @@ func TestValidateServeFieldTranslation_Values_Valid(t *testing.T) {
 		"image": {
 			Values: map[string]string{
 				"image.registry":   `{{ .value }}`,
-				"image.repository": `{{ .request.image }}`,
+				"image.repository": `{{ .intent.image }}`,
 				"image.tag":        `latest`,
 			},
 		},

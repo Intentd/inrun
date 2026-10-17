@@ -44,7 +44,7 @@ func (ws *WebhookServer) evaluateValidationRules(
 	// intent-vocabulary fields (e.g. request.schedule) before field translation.
 	// Only present when the CR was submitted through the Gateway API in target mode.
 	if req := intent.FromObject(obj); req != nil {
-		resolver = resolver.WithRequest(req)
+		resolver = resolver.WithIntent(req)
 	}
 	if calls := cfg.AdmissionExternal(); len(calls) > 0 {
 		var err error
@@ -132,7 +132,7 @@ func (ws *WebhookServer) applyMutationRules(
 	// intent-vocabulary fields (e.g. request.schedule) before field translation.
 	// Only present when the CR was submitted through the Gateway API in target mode.
 	if req := intent.FromObject(obj); req != nil {
-		resolver = resolver.WithRequest(req)
+		resolver = resolver.WithIntent(req)
 	}
 	if calls := cfg.AdmissionExternal(); len(calls) > 0 {
 		var err error

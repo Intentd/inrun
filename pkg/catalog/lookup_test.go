@@ -967,7 +967,7 @@ func TestServeEnabledCRDsForCluster(t *testing.T) {
 				APITypes: types.APITypes{Kind: "Config", Plural: "configs"},
 				Serve: &types.ServeConfig{
 					Enabled:  true,
-					Clusters: []string{`{{ if eq .request.env "prod" }}prod{{ else }}staging{{ end }}`},
+					Clusters: []string{`{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}`},
 				},
 			},
 			"draft": {
@@ -1071,7 +1071,7 @@ func TestServeEnabledCRDsForCluster_TargetTemplateRouted(t *testing.T) {
 					Enabled: true,
 					Target: types.ServeTargetValue{
 						Entries: map[string]*types.ServeTargetConfig{
-							"primary": {Clusters: []string{`{{ .request.env }}`}},
+							"primary": {Clusters: []string{`{{ .intent.env }}`}},
 						},
 					},
 				},

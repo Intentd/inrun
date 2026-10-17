@@ -12,7 +12,7 @@ spec:
         enabled: true
         namespace: default
         clusters:
-          - '{{ .request.env }'   # unclosed action — invalid template
+          - '{{ .intent.env }'   # unclosed action — invalid template
 gateway:
   enabled: true
   api:

@@ -91,7 +91,7 @@ func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string,
 	// unique: operator is skipped (no live cluster); external: calls are skipped.
 	n.stage(5, "Admission validation")
 	{
-		resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithRequest(raw)
+		resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithIntent(raw)
 		eval := resolver.TemplateEvaluator()
 		r := gate.EvalAdmissionValidation(obj.Object, crd, resolver, eval)
 		for _, v := range r.Violations {
@@ -293,7 +293,7 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 		return target, fmt.Errorf("CR construction: %w", err)
 	}
 
-	resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithRequest(raw)
+	resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithIntent(raw)
 	eval := resolver.TemplateEvaluator()
 	r := gate.EvalAdmissionValidation(obj.Object, crd, resolver, eval)
 	denied := r.Denied()

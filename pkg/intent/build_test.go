@@ -71,7 +71,7 @@ func TestRouteFields(t *testing.T) {
 	}
 
 	obj := newCRSkeleton(crd)
-	routeFields(raw, crd, types.NoteRegistry{}, obj)
+	routeFields(raw, crd, types.KELFunctionRegistry{}, obj)
 
 	// Check spec fields
 	spec := obj.Object["spec"].(map[string]interface{})
@@ -117,7 +117,7 @@ func TestRouteFields_MissingFields(t *testing.T) {
 	}
 
 	obj := newCRSkeleton(crd)
-	routeFields(raw, crd, types.NoteRegistry{}, obj)
+	routeFields(raw, crd, types.KELFunctionRegistry{}, obj)
 
 	spec := obj.Object["spec"].(map[string]interface{})
 	assert.NotContains(t, spec, "repository") // Should be absent
@@ -142,7 +142,7 @@ func TestRouteFields_NonStringLabels(t *testing.T) {
 	}
 
 	obj := newCRSkeleton(crd)
-	routeFields(raw, crd, types.NoteRegistry{}, obj)
+	routeFields(raw, crd, types.KELFunctionRegistry{}, obj)
 
 	labels := obj.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})
 	assert.Equal(t, "42", labels["count"]) // Should be converted to string
@@ -150,7 +150,7 @@ func TestRouteFields_NonStringLabels(t *testing.T) {
 
 func TestResolveServeIdentity(t *testing.T) {
 	// Use built-in notes (repoSlug is built-in)
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	namespaced := true
 	crd := &types.CRDEntry{
@@ -182,7 +182,7 @@ func TestResolveServeIdentity(t *testing.T) {
 
 func TestResolveServeIdentity_WithRepoSlugNote(t *testing.T) {
 	// Use built-in notes (repoSlug is built-in)
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	namespaced := true
 	crd := &types.CRDEntry{
@@ -213,7 +213,7 @@ func TestResolveServeIdentity_WithRepoSlugNote(t *testing.T) {
 }
 
 func TestResolveServeIdentity_OnlyName(t *testing.T) {
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	crd := &types.CRDEntry{
 		APITypes: types.APITypes{
@@ -240,7 +240,7 @@ func TestResolveServeIdentity_OnlyName(t *testing.T) {
 }
 
 func TestResolveServeIdentity_NoServeName_FallsBackToRawName(t *testing.T) {
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	crd := &types.CRDEntry{
 		APITypes: types.APITypes{
@@ -264,7 +264,7 @@ func TestResolveServeIdentity_NoServeName_FallsBackToRawName(t *testing.T) {
 }
 
 func TestResolveServeIdentity_NoServeName_NoRawName_StaysEmpty(t *testing.T) {
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	crd := &types.CRDEntry{
 		APITypes: types.APITypes{
@@ -287,7 +287,7 @@ func TestResolveServeIdentity_NoServeName_NoRawName_StaysEmpty(t *testing.T) {
 }
 
 func TestResolveServeIdentity_MissingName(t *testing.T) {
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	namespaced := true
 	crd := &types.CRDEntry{
@@ -315,7 +315,7 @@ func TestResolveServeIdentity_MissingName(t *testing.T) {
 }
 
 func TestResolveServeIdentity_MissingNamespace(t *testing.T) {
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	namespaced := true
 	crd := &types.CRDEntry{
@@ -342,7 +342,7 @@ func TestResolveServeIdentity_MissingNamespace(t *testing.T) {
 }
 
 func TestResolveServeIdentity_EmptyName(t *testing.T) {
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	crd := &types.CRDEntry{
 		APITypes: types.APITypes{
@@ -367,7 +367,7 @@ func TestResolveServeIdentity_EmptyName(t *testing.T) {
 
 func TestNewBuild(t *testing.T) {
 	// Use built-in notes (repoSlug is built-in)
-	notes := types.NoteRegistry{}
+	notes := types.KELFunctionRegistry{}
 
 	namespaced := true
 	crd := &types.CRDEntry{
@@ -436,20 +436,20 @@ func TestNewBuild(t *testing.T) {
 	assert.Equal(t, "team-payments-staging", obj.GetNamespace())
 }
 
-func TestIsRequest(t *testing.T) {
-	assert.True(t, IsRequest(map[string]interface{}{
+func TestIsTargetRequest(t *testing.T) {
+	assert.True(t, IsTargetRequest(map[string]interface{}{
 		"target": "app",
 	}))
 	// target wins even when apiVersion is also present (gradual migration path)
-	assert.True(t, IsRequest(map[string]interface{}{
+	assert.True(t, IsTargetRequest(map[string]interface{}{
 		"target":     "app",
 		"apiVersion": "v1",
 	}))
-	assert.False(t, IsRequest(map[string]interface{}{
+	assert.False(t, IsTargetRequest(map[string]interface{}{
 		"apiVersion": "platform.myorg.io/v1",
 		"kind":       "App",
 	}))
-	assert.False(t, IsRequest(map[string]interface{}{}))
+	assert.False(t, IsTargetRequest(map[string]interface{}{}))
 }
 
 func TestBuild(t *testing.T) {
@@ -495,7 +495,7 @@ func TestBuild(t *testing.T) {
 			"jira-ticket": "PLAT-1234",
 		}
 
-		obj, err := Build(raw, appCRD, types.NoteRegistry{})
+		obj, err := Build(raw, appCRD, types.KELFunctionRegistry{})
 		require.NoError(t, err)
 
 		spec := obj.Object["spec"].(map[string]interface{})
@@ -523,7 +523,7 @@ func TestBuild(t *testing.T) {
 			"environment":   "staging",
 			"unknown-field": "should be ignored",
 		}
-		obj, err := Build(raw, appCRD, types.NoteRegistry{})
+		obj, err := Build(raw, appCRD, types.KELFunctionRegistry{})
 		require.NoError(t, err)
 
 		spec := obj.Object["spec"].(map[string]interface{})
@@ -538,7 +538,7 @@ func TestBuild(t *testing.T) {
 			"team":        "payments",
 			"environment": "staging",
 		}
-		obj, err := Build(raw, appCRD, types.NoteRegistry{})
+		obj, err := Build(raw, appCRD, types.KELFunctionRegistry{})
 		require.NoError(t, err)
 		assert.Equal(t, "platform.myorg.io/v1", obj.GetAPIVersion())
 		assert.Equal(t, "App", obj.GetKind())

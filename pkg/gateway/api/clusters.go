@@ -171,7 +171,7 @@ type clusterTarget struct {
 //  3. (nothing)                 → local cluster [{name:"", kube:localKube}].
 //
 // Static names are looked up in the registry. Template expressions are resolved
-// via the full template engine (WithRequest). When fields is nil (read path),
+// via the full template engine (WithIntent). When fields is nil (read path),
 // templates resolve to "" and the local cluster is used instead.
 func resolveClusterTargets(
 	crd *types.CRDEntry,
@@ -202,7 +202,7 @@ func resolveClusterTargets(
 			if fields == nil {
 				return []clusterTarget{{name: "", kube: localKube}}, nil
 			}
-			resolver := template.NewResolverFromMap(fields).WithUserNotes(notes).WithRequest(fields)
+			resolver := template.NewResolverFromMap(fields).WithUserNotes(notes).WithIntent(fields)
 			resolved, err := resolver.Resolve(expr)
 			if err != nil {
 				return nil, fmt.Errorf("resolving cluster expression %q: %w", expr, err)

@@ -176,21 +176,7 @@ func NewResolverFromMap(data map[string]interface{}) *Resolver {
 	}
 }
 
-// ── Performance review from Engr. Kenny ───────────────────────────────────────────────────
-//
-// note.Map() is called on every Resolve() call that contains "{{".
-// Each call allocates a new FuncMap. For high-throughput operators this
-// can be optimised by making the FuncMap a package-level variable:
-//
-//	var inrunNotes = note.Map()
-//
-// And referencing it in Resolve():
-//
-//	.Funcs(inrunNotes)
-//
-// This is a safe optimisation — note.Map() is a pure function that always
-// returns the same map. The template engine does not modify the FuncMap
-// after registration.
+// Built-in KEL functions
 var inrunNotes = note.Map()
 
 // Resolve evaluates a single field value against the CR.

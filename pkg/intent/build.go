@@ -6,16 +6,17 @@ import (
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+
 	// "github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// IsRequest reports whether raw is a target-mode request.
+// IsTargetRequest reports whether raw is a target-mode request.
 //
 // Detection rule: presence of "target" key, regardless of whether
 // "apiVersion" is also present. This lets callers migrate incrementally
 // by adding "target" without immediately removing Kubernetes fields.
-func IsRequest(raw map[string]interface{}) bool {
+func IsTargetRequest(raw map[string]interface{}) bool {
 	_, ok := raw["target"]
 	return ok
 }
@@ -46,18 +47,18 @@ func IsRequest(raw map[string]interface{}) bool {
 func Build(
 	raw map[string]interface{},
 	crd *types.CRDEntry,
-	notes types.NoteRegistry,
+	functions types.KELFunctionRegistry,
 ) (*unstructured.Unstructured, error) {
 	// 1. Build the CR skeleton
 	obj := newCRSkeleton(crd)
 
 	// 2. Route fields to their destinations
-	if err := routeFields(raw, crd, notes, obj); err != nil {
+	if err := routeFields(raw, crd, functions, obj); err != nil {
 		return nil, err
 	}
 
 	// 3. Resolve serve.name and serve.namespace
-	if err := resolveServeIdentity(raw, crd, notes, obj); err != nil {
+	if err := resolveServeIdentity(raw, crd, functions, obj); err != nil {
 		return nil, err
 	}
 
@@ -93,7 +94,7 @@ func newCRSkeleton(crd *types.CRDEntry) *unstructured.Unstructured {
 func routeFields(
 	raw map[string]interface{},
 	crd *types.CRDEntry,
-	notes types.NoteRegistry,
+	functions types.KELFunctionRegistry,
 	obj *unstructured.Unstructured,
 ) error {
 	meta := obj.Object["metadata"].(map[string]interface{})
@@ -105,9 +106,9 @@ func routeFields(
 	annotationFields := crd.ServeAnnotations()
 
 	// Base resolver for value/values expression evaluation.
-	// WithRequest injects the full intent as .request.<field> for cross-field reads.
+	// WithIntent injects the full intent as .intent.<field> for cross-field reads.
 	// WithFieldValue is called per-field to inject .value for the current field.
-	baseResolver := template.NewResolverFromMap(raw).WithUserNotes(notes).WithRequest(raw)
+	baseResolver := template.NewResolverFromMap(raw).WithUserFunctions(functions).WithIntent(raw)
 
 	var errs []string
 
@@ -150,7 +151,7 @@ func routeFields(
 // and writes the result into spec. It is the shared core used by both Build
 // (normal apply path) and the schema migrator.
 //
-// resolver must already have WithRequest injected (the full payload context).
+// resolver must already have WithIntent injected (the full payload context).
 // submitted is the raw value for this field — the migrator passes the value
 // read from the old path; the apply path passes the caller-submitted value.
 // key is the field name, used to derive the spec path when config has no Path.
@@ -209,11 +210,11 @@ func setSpecValue(spec map[string]interface{}, path string, value interface{}) e
 }
 
 // resolveServeIdentity resolves serve.name and serve.namespace using the flat field map.
-// Notes are available so expressions like `{{ repoSlug .repository }}` work.
+// functions are available so expressions like `{{ repoSlug .repository }}` work.
 func resolveServeIdentity(
 	raw map[string]interface{},
 	crd *types.CRDEntry,
-	notes types.NoteRegistry,
+	functions types.KELFunctionRegistry,
 	obj *unstructured.Unstructured,
 ) error {
 	// Build a resolver data map that exposes both:
@@ -230,7 +231,7 @@ func resolveServeIdentity(
 		}
 	}
 
-	resolver := template.NewResolverFromMap(data).WithUserNotes(notes)
+	resolver := template.NewResolverFromMap(data).WithUserFunctions(functions)
 
 	// Resolve serve.name and serve.namespace. Every field the expression
 	// references must be present — ResolveStrict reports a missing field

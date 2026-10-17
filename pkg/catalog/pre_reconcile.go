@@ -191,7 +191,7 @@ func (c *Catalog) effectiveResolver(ctx context.Context, obj domain.Object, pr *
 	}
 	// .request context
 	if req := intent.FromObject(resolver.Data()); req != nil {
-		resolver = resolver.WithRequest(req)
+		resolver = resolver.WithIntent(req)
 	}
 	// .metrics context
 	if metrics := common.ResolveResourceMetricFromObject(resolver.Data()); metrics != nil {

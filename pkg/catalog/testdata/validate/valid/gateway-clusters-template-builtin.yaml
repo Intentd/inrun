@@ -12,12 +12,12 @@ spec:
         enabled: true
         namespace: default
         clusters:
-          - '{{ if eq .request.env "prod" }}prod{{ else }}staging{{ end }}'
+          - '{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}'
         target:
           primary:
             primary: true
             clusters:
-              - '{{ if eq .request.region "us-east" }}prod{{ else }}staging{{ end }}'
+              - '{{ if eq .intent.region "us-east" }}prod{{ else }}staging{{ end }}'
 gateway:
   enabled: true
   api:

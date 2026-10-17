@@ -200,7 +200,7 @@ type ValidationRule struct {
 	// Fires controls at which lifecycle points this rule is evaluated.
 	// Absent: fires at both admission and reconcile time.
 	// fires.reconcile: false — admission only; reconciler skips this rule.
-	// Use for rules that read .request.* (raw intent), which is only present
+	// Example: use for rules that read .intent.* (raw intent), which is only present
 	// at the admission boundary, not during reconcile.
 	Fires *FiresConfig `yaml:"fires,omitempty" json:"fires,omitempty"`
 

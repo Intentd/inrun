@@ -8,7 +8,7 @@ notes:
   functions:
     - name: targetCluster
       description: Resolves cluster name from request context.
-      expression: '{{ if eq .request.env "prod" }}prod{{ else }}staging{{ end }}'
+      expression: '{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}'
 spec:
   crds:
     widget:
@@ -17,7 +17,7 @@ spec:
         enabled: true
         namespace: default
         clusters:
-          - '{{ unknownFunc .request.env }}'   # unknownFunc is not declared in notes.functions
+          - '{{ unknownFunc .intent.env }}'   # unknownFunc is not declared in notes.functions
 gateway:
   enabled: true
   api:
