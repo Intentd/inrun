@@ -11,7 +11,7 @@ import (
 // request.finalize, and the response mapping.
 func (c *checker) validateRemoteMapping(name string, crd *types.CRDEntry, remote *types.RemoteReconcilerDeclaration) error {
 	at := func(field string) string { return fmt.Sprintf("CRD %q: reconcile.remote.%s", name, field) }
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 	body := func(field, value string) error {
 		if !isTemplate(value) {
 			return nil

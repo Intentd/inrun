@@ -1,0 +1,88 @@
+apiVersion: inrun.dev/v1
+kind: Catalog
+metadata:
+  name: statefulset-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    StatefulSetProbe — living integration test for StatefulSet pod notes.
+    Creates a StatefulSet with enrich: [pods] so pod ordinals and ordered
+    membership are available in status. Apply the CR and inspect:
+    kubectl get statefulsetprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    statefulset-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich: [pods, pvcs]
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            statefulSets:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                volumeClaimTemplates:
+                  - name: data
+                    storageClass: "{{ .spec.storageClassName }}"
+                    storageSize: "{{ .spec.storage }}"
+                    mountPath: /var/lib/noteprobe/data
+                reconcile: true
+        emit:
+          status:
+            fields:
+              # ── Phase ───────────────────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.statefulset }}"
+                    equals: "true"
+
+              # ── pod notes ───────────────────────────────────────────────────
+              - path: members
+                value: '{{ join (podNames .children.statefulset._pods) ", " }}'
+
+              - path: memberIPs
+                value: '{{ join (podIPs .children.statefulset._pods) ", " }}'
+
+              - path: memberPhases
+                value: '{{ join (podPhases .children.statefulset._pods) ", " }}'
+
+              - path: memberNodes
+                value: '{{ join (podNodes .children.statefulset._pods) ", " }}'
+
+              - path: memberCount
+                value: "{{ podCount .children.statefulset._pods }}"
+
+              - path: readyMembers
+                value: "{{ readyPodCount .children.statefulset._pods }}"
+
+              - path: maxRestarts
+                value: "{{ podMaxRestarts .children.statefulset._pods }}"
+
+              # ── ordinal notes ────────────────────────────────────────────────
+              - path: primaryName
+                value: "{{ (podByOrdinal .children.statefulset 0).name }}"
+
+              - path: primaryIP
+                value: "{{ (podByOrdinal .children.statefulset 0).ip }}"
+
+              - path: primaryReady
+                value: "{{ (podByOrdinal .children.statefulset 0).ready }}"
+
+              # ── enriched StatefulSet PVC notes (require enrich: [pvcs]) ─────
+              - path: pvcCount
+                value: "{{ len .children.statefulset._pvcs }}"
+

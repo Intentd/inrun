@@ -19,7 +19,7 @@ import (
 //   - all template expressions (value, values) must compile
 //   - expressions must not be empty strings
 func (c *checker) validateServeFieldTranslation() error {
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 
 	for crdName, crd := range c.Cat.EnabledCRDs() {
 		if !crd.ServeEnabled() || !crd.HasServeFields() {

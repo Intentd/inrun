@@ -33,10 +33,10 @@ import (
 // Merge patch (RFC 7396) is used — SSA would reject the live object if it is
 // still in the old schema shape.
 type Migrator struct {
-	Kube   client.Interface
-	Notes  types.NoteRegistry
-	Mode   MigrateMode
-	DryRun bool
+	Kube      client.Interface
+	Functions types.KELFunctionRegistry
+	Mode      MigrateMode
+	DryRun    bool
 	// Strict causes runFor to return an error if any individual CR fails to
 	// migrate. When false (the default), per-CR failures are logged as warnings
 	// and migration continues — useful for inspecting partial failures without
@@ -119,10 +119,10 @@ func (m MigrateMode) String() string {
 
 // New returns a Migrator configured for the requested migration mode.
 // Common options are applied consistently across forward, rollback, and clean runs.
-func New(ctx context.Context, kube client.Interface, notes types.NoteRegistry, mode MigrateMode, opts MigratorOpts) *Migrator {
+func New(ctx context.Context, kube client.Interface, funcs types.KELFunctionRegistry, mode MigrateMode, opts MigratorOpts) *Migrator {
 	m := &Migrator{
 		Kube:       kube,
-		Notes:      notes,
+		Functions:  funcs,
 		Mode:       mode,
 		DryRun:     opts.DryRun,
 		Strict:     opts.Strict,
@@ -282,7 +282,7 @@ func (m *Migrator) migrateCR(
 		spec = map[string]interface{}{}
 	}
 
-	resolver := template.NewResolverFromMap(spec).WithUserNotes(m.Notes)
+	resolver := template.NewResolverFromMap(spec).WithUserFunctions(m.Functions)
 
 	var migrated []string
 	snapshot := map[string]interface{}{}

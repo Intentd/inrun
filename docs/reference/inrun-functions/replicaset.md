@@ -1,44 +1,55 @@
-# ReplicaSet Notes
+# ReplicaSet
 
-ReplicaSet notes navigate owner relationships and the ReplicaSet inventory embedded by enrichment layers. Use them to surface the controlling Deployment name or count historical ReplicaSets for rollback visibility.
-
----
+Read a Deployment's ReplicaSets, passed as a list: how many, their names, and which are older than the Deployment's current revision; and any object's controller, from its ownerReferences.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `replicaSetOwnerName` | Returns `_owner. |
-| `replicaSetOwnerKind` | Returns `_owner. |
-| `deploymentReplicaSetCount` | Returns the number of ReplicaSets owned by the Deployment, including scaled-to-zero ones kept for rollback. |
-| `deploymentReplicaSets` | Returns a list of the names of all ReplicaSets owned by the Deployment, including inactive (scaled‑to‑zero) ones kept for rollback. |
-| `oldDeploymentReplicaSets` | Returns a list of the names of "old" ReplicaSets owned by the Deployment — i. |
+| Function | Description |
+|----------|-------------|
+| [`deploymentReplicaSetCount`](#deploymentreplicasetcount) | Returns the number of ReplicaSets, including scaled-to-zero ones a Deployment keeps for rollback. |
+| [`deploymentReplicaSets`](#deploymentreplicasets) | Returns the ReplicaSets' names. |
+| [`oldDeploymentReplicaSets`](#olddeploymentreplicasets) | Returns the names of the deployment's ReplicaSets that are not its current revision: those whose deployment.kubernetes.io/revision annotation differs from the Deployment's. |
+| [`replicaSetOwnerKind`](#replicasetownerkind) | Returns the kind of the object's controller; for a ReplicaSet, typically "Deployment". |
+| [`replicaSetOwnerName`](#replicasetownername) | Returns the name of the object's controller (the ownerReference with controller: true); for a ReplicaSet, its Deployment. |
 
-## Examples
+## Functions
 
-```yaml
-# replicaSetOwnerName
-- path: ownerName
-  value: "{{ replicaSetOwnerName .children.replicaset }}"
-# → "my-app"
+### deploymentReplicaSetCount
 
-# replicaSetOwnerKind
-- path: ownerKind
-  value: "{{ replicaSetOwnerKind .children.replicaset }}"
-# → "Deployment"
+`deploymentReplicaSetCount` returns the number of ReplicaSets, including scaled-to-zero ones a Deployment keeps for rollback.
 
-# deploymentReplicaSetCount
-- path: replicaSetCount
-  value: "{{ deploymentReplicaSetCount .children.deployment }}"
-# → 2
+```text
+{{ deploymentReplicaSetCount .replicaSets }}  → 2
+```
 
-# deploymentReplicaSets
-- path: replicaSetNames
-  value: "{{ deploymentReplicaSets .children.deployment }}"
-# → "my-app-7cb76d588c", "my-app-d9c74fd9b"
+### deploymentReplicaSets
 
-# oldDeploymentReplicaSets
-- path: oldReplicaSetNames
-  value: "{{ oldDeploymentReplicaSets .children.deployment }}"
-# → "my-app-7cb76d588c"
+`deploymentReplicaSets` returns the ReplicaSets' names.
+
+```text
+{{ deploymentReplicaSets .replicaSets }}  → [web-6d4f web-5c8b]
+```
+
+### oldDeploymentReplicaSets
+
+`oldDeploymentReplicaSets` returns the names of the deployment's ReplicaSets that are not its current revision: those whose deployment.kubernetes.io/revision annotation differs from the Deployment's. Empty until the Deployment has a revision.
+
+```text
+{{ oldDeploymentReplicaSets .deployment .replicaSets }}  → [web-5c8b]
+```
+
+### replicaSetOwnerKind
+
+`replicaSetOwnerKind` returns the kind of the object's controller; for a ReplicaSet, typically "Deployment".
+
+```text
+{{ replicaSetOwnerKind .replicaset }}  → "Deployment"
+```
+
+### replicaSetOwnerName
+
+`replicaSetOwnerName` returns the name of the object's controller (the ownerReference with controller: true); for a ReplicaSet, its Deployment.
+
+```text
+{{ replicaSetOwnerName .replicaset }}  → "web"
 ```

@@ -32,7 +32,7 @@ func runMigrateCmd(cmd *cobra.Command, mode migrate.MigrateMode) error {
 		return err
 	}
 
-	migrator, err := newMigrator(cmd, kube, cat.UserNotes(), mode)
+	migrator, err := newMigrator(cmd, kube, cat.UserFunctions(), mode)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func runMigrateCmd(cmd *cobra.Command, mode migrate.MigrateMode) error {
 
 // newMigrator builds a CLI migrator for the given mode. The CLI renders its
 // own output, so the migrator logs nothing.
-func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, notes types.NoteRegistry, mode migrate.MigrateMode) (*migrate.Migrator, error) {
+func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, funcs types.KELFunctionRegistry, mode migrate.MigrateMode) (*migrate.Migrator, error) {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	strict, _ := cmd.Flags().GetBool("strict")
 	pageSize, _ := cmd.Flags().GetInt64("page-size")
@@ -60,7 +60,7 @@ func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, notes types.Note
 	if err := validateSelector(selector); err != nil {
 		return nil, err
 	}
-	return migrate.New(cmd.Context(), kube, notes, mode, migrate.MigratorOpts{
+	return migrate.New(cmd.Context(), kube, funcs, mode, migrate.MigratorOpts{
 		DryRun:     dryRun,
 		Strict:     strict,
 		PageSize:   pageSize,

@@ -34,68 +34,22 @@ func enrichGroupWithEndpoints(ctx context.Context, kube kubeclient.Interface, m 
 	}
 }
 
-// enrichServiceWithEndpoints fetches the EndpointSlice for the named service
-// and embeds a list of {ip, port, ready} maps under _endpoints.
+// enrichServiceWithEndpoints attaches the named service's EndpointSlices
+// (native) under _endpoints. A Service can have several slices.
 func enrichServiceWithEndpoints(ctx context.Context, kube kubeclient.Interface, ns, svcName string, obj map[string]interface{}) {
 	list, err := kube.DynamicClient().
 		Resource(EndpointSliceGVR).
 		Namespace(ns).
 		List(ctx, metav1.ListOptions{
 			LabelSelector:   fmt.Sprintf("kubernetes.io/service-name=%s", svcName),
-			Limit:           1,
 			ResourceVersion: "0",
 		})
 	if err != nil || list == nil || len(list.Items) == 0 {
 		return
 	}
-	endpoints := extractEndpointEntries(list.Items[0].Object)
-	if len(endpoints) > 0 {
-		obj["_endpoints"] = endpoints
+	slices := make([]interface{}, 0, len(list.Items))
+	for i := range list.Items {
+		slices = append(slices, list.Items[i].Object)
 	}
-}
-
-// extractEndpointEntries builds the flat _endpoints list from an EndpointSlice object.
-func extractEndpointEntries(esObj map[string]interface{}) []interface{} {
-	ports := extractSlicePorts(esObj)
-	eps, _ := esObj["endpoints"].([]interface{})
-
-	var result []interface{}
-	for _, e := range eps {
-		em, _ := e.(map[string]interface{})
-		if em == nil {
-			continue
-		}
-		cond, _ := em["conditions"].(map[string]interface{})
-		ready, _ := cond["ready"].(bool)
-
-		addrs, _ := em["addresses"].([]interface{})
-		for _, addr := range addrs {
-			ip, _ := addr.(string)
-			if ip == "" {
-				continue
-			}
-			for _, port := range ports {
-				result = append(result, map[string]interface{}{
-					"ip":    ip,
-					"port":  port,
-					"ready": ready,
-				})
-			}
-		}
-	}
-	return result
-}
-
-// extractSlicePorts returns the port numbers from an EndpointSlice's ports array.
-func extractSlicePorts(esObj map[string]interface{}) []int64 {
-	portObjs, _ := esObj["ports"].([]interface{})
-	ports := make([]int64, 0, len(portObjs))
-	for _, p := range portObjs {
-		pm, _ := p.(map[string]interface{})
-		if pm == nil {
-			continue
-		}
-		ports = append(ports, toInt64(pm["port"]))
-	}
-	return ports
+	obj["_endpoints"] = slices
 }

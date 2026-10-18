@@ -1,442 +1,202 @@
-// hack/generate-notes/main.go
+// Command generate-functions documents the template functions Inrun adds to
+// KEL's. It reads the doc comments in pkg/template/funcs, the same way KEL
+// documents its own, and writes:
 //
-// Generates two outputs from the markdown doc files in pkg/note/docs/:
+//  1. pkg/template/funcs/funcs_generated.go — Inrun's functions and domains,
+//     merged with KEL's by funcs.Registry for the CLI
+//  2. docs/reference/inrun-functions/<domain>.md — one reference page per
+//     domain, KEL's and Inrun's together
 //
-//  1. pkg/note/list_generated.go — note registry for the Inrun runtime and CLI
-//  2. docs/reference/inrun-notes/<domain>.md — user-facing reference pages
-//
-// pkg/note/docs/ is the single source of truth. Run `make generate-notes` after
-// adding or updating a doc file — both outputs are refreshed automatically.
-//
-// Files containing an "## In Development" heading are excluded from both outputs
-// until the feature is ready.
+// Functions that replace one of KEL's under the same name (the adapters) are
+// left out: KEL's documentation already describes them.
 //
 // Usage:
 //
-//	go run ./hack/generate-notes
-//	make generate-notes
-//
-// The generator parses every *.md file in docs/ and extracts note entries
-// from ### `noteName` headings. The first non-empty paragraph after the
-// heading becomes the description. The first fenced code block becomes the
-// example. Some headings document two notes together using the form:
-//
-//	### `toLower` / `toUpper`
-//
-// In that case both names are registered with the same description and example.
-//
-// The domain is derived from the filename: "01-strings.md" → "strings".
+//	go run ./hack/generate-functions
+//	make generate-functions
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"go/format"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
 	"strings"
-	"unicode"
+
+	"github.com/intentd/kel"
+	"github.com/intentd/kel/gendoc"
 )
 
-type noteEntry struct {
-	Name        string
-	Domain      string
-	Description string
-	Example     string
-	Keywords    []string
-}
-
-type domainInfo struct {
-	title   string
-	intro   string
-	entries []noteEntry
-}
-
-var (
-	headingRe  = regexp.MustCompile("^###\\s+(.+)$")
-	backtickRe = regexp.MustCompile("`([^`]+)`")
+const (
+	funcsDir = "pkg/template/funcs"
+	pagesDir = "docs/reference/inrun-functions"
 )
+
+// Registry is the Go file this command writes.
+var Registry = gendoc.Registry{
+	Package:   "funcs",
+	Generator: "hack/generate-functions",
+	Qualifier: "kel.",
+	Import:    "github.com/intentd/kel",
+	Functions: "inrunFunctions",
+	Domains:   "inrunDomains",
+}
 
 func main() {
-	docsDir := "pkg/note/docs"
-	outFile := "pkg/note/list_generated.go"
-	userDocsDir := "docs/reference/inrun-notes"
-
-	files, err := filepath.Glob(filepath.Join(docsDir, "*.md"))
-	if err != nil || len(files) == 0 {
-		fatalf("no markdown files found in %s: %v", docsDir, err)
-	}
-	sort.Strings(files)
-
-	var entries []noteEntry
-	domainDocs := map[string]*domainInfo{}
-
-	for _, f := range files {
-		domain := domainFromFilename(filepath.Base(f))
-		if domain == "" || domain == "readme" || domain == "_template" {
-			continue
-		}
-		if isInDevelopment(f) {
-			fmt.Printf("skipping %s (## In Development)\n", filepath.Base(f))
-			continue
-		}
-		parsed, err := parseDoc(f, domain)
-		if err != nil {
-			fatalf("parsing %s: %v", f, err)
-		}
-		title, intro := readDomainMeta(f)
-		domainDocs[domain] = &domainInfo{
-			title:   title,
-			intro:   intro,
-			entries: parsed,
-		}
-		entries = append(entries, parsed...)
-	}
-
-	// Sort by domain, then name for stable output
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Domain != entries[j].Domain {
-			return entries[i].Domain < entries[j].Domain
-		}
-		return entries[i].Name < entries[j].Name
-	})
-
-	// Write the note list
-	src := renderGoFile(entries)
-	formatted, err := format.Source([]byte(src))
+	fns, domains, err := gendoc.Parse(funcsDir)
 	if err != nil {
-		_ = os.WriteFile(outFile, []byte(src), 0644)
-		fatalf("formatting generated source: %v\n\nsource written to %s for inspection", err, outFile)
+		fatalf("doc comments in %s are incomplete:\n%v", funcsDir, err)
 	}
-	if err := os.WriteFile(outFile, formatted, 0644); err != nil {
-		fatalf("writing %s: %v", outFile, err)
-	}
-	fmt.Printf("generated %s (%d notes)\n", outFile, len(entries))
+	fns, domains = withoutOverrides(fns, domains, kel.Builtin())
 
-	// Write user-facing docs
-	domains := make([]string, 0, len(domainDocs))
-	for d := range domainDocs {
-		domains = append(domains, d)
-	}
-	sort.Strings(domains)
-
-	for _, domain := range domains {
-		info := domainDocs[domain]
-		page := renderUserFacingPage(info.title, info.intro, info.entries)
-		outPath := filepath.Join(userDocsDir, domain+".md")
-		if err := os.WriteFile(outPath, []byte(page), 0644); err != nil {
-			fatalf("writing %s: %v", outPath, err)
-		}
-		fmt.Printf("generated %s (%d notes)\n", outPath, len(info.entries))
-	}
-}
-
-// domainFromFilename converts "01-strings.md" → "strings".
-func domainFromFilename(name string) string {
-	name = strings.TrimSuffix(name, ".md")
-	name = strings.ToLower(name)
-	if name == "readme" {
-		return ""
-	}
-	// Strip leading "NN-" prefix
-	if idx := strings.Index(name, "-"); idx >= 0 && idx <= 2 {
-		name = name[idx+1:]
-	}
-	// Normalise separators: "safe-access" → "safeaccess"
-	name = strings.ReplaceAll(name, "-", "")
-	return name
-}
-
-// isInDevelopment reports whether the file contains an "## In Development" heading.
-func isInDevelopment(path string) bool {
-	data, err := os.ReadFile(path)
+	src, err := gendoc.Render(Registry, fns, domains)
 	if err != nil {
-		return false
+		fatalf("rendering registry: %v", err)
 	}
-	for _, line := range strings.Split(string(data), "\n") {
-		if strings.TrimSpace(line) == "## In Development" {
-			return true
+	out := filepath.Join(funcsDir, "funcs_generated.go")
+	if err := os.WriteFile(out, src, 0o644); err != nil {
+		fatalf("writing %s: %v", out, err)
+	}
+	fmt.Printf("generated %s (%d functions)\n", out, len(fns))
+
+	reg := kel.Builtin().With(kel.Registry{Functions: toInfo(fns), Domains: toDomainInfo(domains)})
+	for _, d := range reg.Domains {
+		page := renderPage(d, reg)
+		path := filepath.Join(pagesDir, d.Name+".md")
+		if err := os.WriteFile(path, []byte(page), 0o644); err != nil {
+			fatalf("writing %s: %v", path, err)
 		}
 	}
-	return false
+	fmt.Printf("generated %d pages in %s (%d functions)\n", len(reg.Domains), pagesDir, len(reg.Functions))
 }
 
-// readDomainMeta extracts the domain title and intro text from the doc file.
-// The title is taken from "# NN — Domain Title" (words after the em-dash).
-// The intro is all content between the title line and the first ## section.
-func readDomainMeta(path string) (title, intro string) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", ""
-	}
-	lines := strings.Split(string(data), "\n")
-	pastTitle := false
-	var introLines []string
-	for _, line := range lines {
-		if strings.HasPrefix(line, "# ") && !pastTitle {
-			h := strings.TrimPrefix(line, "# ")
-			if idx := strings.Index(h, "—"); idx >= 0 {
-				title = strings.TrimSpace(h[idx+len("—"):])
-			} else {
-				// Strip leading digits and spaces: "01 Strings" → "Strings"
-				title = strings.TrimLeftFunc(strings.TrimSpace(h), func(r rune) bool {
-					return unicode.IsDigit(r) || r == ' '
-				})
-			}
-			pastTitle = true
+// withoutOverrides drops the functions KEL already has, and the domains left
+// with none.
+func withoutOverrides(fns []gendoc.Function, domains []gendoc.Domain, builtin kel.Registry) ([]gendoc.Function, []gendoc.Domain) {
+	var kept []gendoc.Function
+	used := map[string]bool{}
+	for _, f := range fns {
+		if _, ok := builtin.Get(f.Name); ok {
 			continue
 		}
-		if !pastTitle {
-			continue
-		}
-		// Stop at first ## section
-		if strings.HasPrefix(line, "## ") {
-			break
-		}
-		introLines = append(introLines, line)
+		kept = append(kept, f)
+		used[f.Domain] = true
 	}
-	// Trim leading/trailing blank lines
-	for len(introLines) > 0 && strings.TrimSpace(introLines[0]) == "" {
-		introLines = introLines[1:]
-	}
-	for len(introLines) > 0 && strings.TrimSpace(introLines[len(introLines)-1]) == "" {
-		introLines = introLines[:len(introLines)-1]
-	}
-	intro = strings.Join(introLines, "\n")
-	if title == "" {
-		d := domainFromFilename(filepath.Base(path))
-		if len(d) > 0 {
-			title = strings.ToUpper(d[:1]) + d[1:]
+	var keptDomains []gendoc.Domain
+	for _, d := range domains {
+		if used[d.Name] {
+			keptDomains = append(keptDomains, d)
 		}
 	}
-	return title, intro
+	return kept, keptDomains
 }
 
-// renderUserFacingPage generates a user-facing markdown reference page.
-func renderUserFacingPage(title, intro string, entries []noteEntry) string {
+// renderPage writes one domain's reference page: the intro, a table of its
+// functions, then each function in full.
+func renderPage(d kel.DomainInfo, reg kel.Registry) string {
+	fns := reg.ByDomain(d.Name)
 	var b strings.Builder
-
-	fmt.Fprintf(&b, "# %s\n\n", title)
-
-	if intro != "" {
-		b.WriteString(intro)
-		b.WriteString("\n\n")
+	fmt.Fprintf(&b, "# %s\n\n", d.Title)
+	if d.Intro != "" {
+		b.WriteString(d.Intro + "\n\n")
 	}
 
-	// Reference table
-	b.WriteString("## Reference\n\n")
-	b.WriteString("| Note | Description |\n")
-	b.WriteString("|------|-------------|\n")
-	for _, e := range entries {
-		desc := firstSentence(e.Description)
-		fmt.Fprintf(&b, "| `%s` | %s |\n", e.Name, desc)
+	b.WriteString("## Reference\n\n| Function | Description |\n|----------|-------------|\n")
+	for _, f := range fns {
+		fmt.Fprintf(&b, "| [`%s`](#%s) | %s |\n", f.Name, strings.ToLower(f.Name), tableCell(summary(f)))
 	}
-	b.WriteString("\n")
 
-	// Examples — one combined yaml block with per-note comments
-	b.WriteString("## Examples\n\n")
-	b.WriteString("```yaml\n")
-	first := true
-	for _, e := range entries {
-		if e.Example == "" {
-			continue
+	b.WriteString("\n## Functions\n")
+	for _, f := range fns {
+		fmt.Fprintf(&b, "\n### %s\n\n%s\n\n```text\n%s\n```\n", f.Name, prose(codeNames(f.Description, f.Name)), f.Example)
+		if len(f.SeeAlso) > 0 {
+			links := make([]string, len(f.SeeAlso))
+			for i, s := range f.SeeAlso {
+				links[i] = link(s, f.Domain, reg)
+			}
+			fmt.Fprintf(&b, "\nSee also: %s\n", strings.Join(links, ", "))
 		}
-		if !first {
-			b.WriteString("\n")
-		}
-		fmt.Fprintf(&b, "# %s\n", e.Name)
-		b.WriteString(e.Example)
-		b.WriteString("\n")
-		first = false
 	}
-	b.WriteString("```\n")
-
 	return b.String()
 }
 
-// firstSentence returns the first sentence of s (up to and including the first ".").
-func firstSentence(s string) string {
-	if idx := strings.IndexByte(s, '.'); idx >= 0 {
-		return s[:idx+1]
+// link points at a function's section, on another page when it is in
+// another domain.
+func link(name, domain string, reg kel.Registry) string {
+	f, ok := reg.Get(name)
+	if !ok || f.Domain == domain {
+		return fmt.Sprintf("[`%s`](#%s)", name, strings.ToLower(name))
+	}
+	return fmt.Sprintf("[`%s`](../%s/#%s)", name, f.Domain, strings.ToLower(name))
+}
+
+// codeNames sets the function's name in code where the description starts
+// with it.
+func codeNames(desc, name string) string {
+	if strings.HasPrefix(desc, name+" ") {
+		return "`" + name + "`" + strings.TrimPrefix(desc, name)
+	}
+	return desc
+}
+
+// summary returns the first sentence of f's description without the
+// leading name: "Returns the …" for "getServeAlias returns the …".
+func summary(f kel.FunctionInfo) string {
+	s := firstSentence(f.Description)
+	if rest, ok := strings.CutPrefix(s, f.Name+" "); ok && rest != "" {
+		s = strings.ToUpper(rest[:1]) + rest[1:]
 	}
 	return s
 }
 
-// parseDoc parses one markdown file and returns a slice of note entries.
-func parseDoc(path, domain string) ([]noteEntry, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	type state int
-	const (
-		stateScanning  state = iota // looking for a ### heading
-		stateDesc                   // collecting description lines
-		stateCodeBlock              // inside a ``` block
-		stateDone                   // have description and example for current set
-	)
-
-	var (
-		entries     []noteEntry
-		names       []string // current heading's note names
-		descLines   []string
-		exLines     []string
-		keywords    []string
-		inCodeBlock bool
-		st          state = stateScanning
-	)
-
-	flush := func() {
-		if len(names) == 0 {
-			return
-		}
-		desc := strings.TrimSpace(strings.Join(descLines, " "))
-		ex := strings.TrimSpace(strings.Join(exLines, "\n"))
-		kws := make([]string, len(keywords))
-		copy(kws, keywords)
-		for _, name := range names {
-			entries = append(entries, noteEntry{
-				Name:        name,
-				Domain:      domain,
-				Description: desc,
-				Example:     ex,
-				Keywords:    kws,
-			})
-		}
-		names = nil
-		descLines = nil
-		exLines = nil
-		keywords = nil
-		inCodeBlock = false
-		st = stateScanning
-	}
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Detect ### heading
-		if m := headingRe.FindStringSubmatch(line); m != nil {
-			extracted := extractNoteNames(m[1])
-			if len(extracted) > 0 {
-				flush() // save previous entry
-				names = extracted
-				st = stateDesc
-				continue
-			}
-		}
-
-		if st == stateScanning {
+// firstSentence returns s up to the first sentence end in its first
+// paragraph. Versions ("1.2.3") and abbreviations ("e.g.", "i.e.") are not
+// sentence ends.
+func firstSentence(s string) string {
+	s, _, _ = strings.Cut(s, "\n")
+	for i := 0; i+1 < len(s); i++ {
+		if s[i] != '.' || s[i+1] != ' ' {
 			continue
 		}
-
-		// Track fenced code blocks
-		if strings.HasPrefix(line, "```") {
-			inCodeBlock = !inCodeBlock
-			if !inCodeBlock {
-				// closing fence — we have the example
-				st = stateDone
-			}
+		before := s[:i+1]
+		if strings.HasSuffix(before, "e.g.") || strings.HasSuffix(before, "i.e.") || strings.HasSuffix(before, "vs.") {
 			continue
 		}
-
-		if inCodeBlock {
-			exLines = append(exLines, line)
-			continue
-		}
-
-		if st == stateDesc {
-			// A new ### heading (not a note) or a ## section resets state
-			if strings.HasPrefix(line, "## ") || strings.HasPrefix(line, "# ") {
-				flush()
-				continue
-			}
-			// Blank line after we already have text means description is done
-			trimmed := strings.TrimSpace(line)
-			if trimmed == "" {
-				if len(descLines) > 0 {
-					// description collected; wait for optional example
-				}
-				continue
-			}
-			// Skip lines that are just separators
-			if trimmed == "---" {
-				flush()
-				continue
-			}
-			// Detect "Keywords: a, b, c" line — strip from description, store separately.
-			if strings.HasPrefix(strings.ToLower(trimmed), "keywords:") {
-				raw := trimmed[len("keywords:"):]
-				for _, k := range strings.Split(raw, ",") {
-					k = strings.ToLower(strings.TrimSpace(k))
-					if k != "" {
-						keywords = append(keywords, k)
-					}
-				}
-				continue
-			}
-			descLines = append(descLines, trimmed)
-		}
+		return before
 	}
-	flush()
-
-	return entries, scanner.Err()
+	return s
 }
 
-// extractNoteNames extracts all backtick-quoted identifiers from a heading
-// fragment, filtering out non-function names (those containing spaces, dots, etc.).
-func extractNoteNames(heading string) []string {
-	matches := backtickRe.FindAllStringSubmatch(heading, -1)
-	var names []string
-	for _, m := range matches {
-		name := m[1]
-		// Skip if it looks like a template expression or contains special chars
-		if strings.ContainsAny(name, " .{}()/\\") {
-			continue
-		}
-		// Skip if it starts with uppercase (type, not function)
-		if len(name) > 0 && name[0] >= 'A' && name[0] <= 'Z' {
-			continue
-		}
-		names = append(names, name)
-	}
-	return names
+func tableCell(s string) string {
+	return strings.ReplaceAll(prose(s), "|", `\|`)
 }
 
-func renderGoFile(entries []noteEntry) string {
-	var b bytes.Buffer
-	b.WriteString("// Code generated by hack/generate-notes. DO NOT EDIT.\n\n")
-	b.WriteString("package note\n\n")
-	b.WriteString("// BuiltinNotes is the complete registry of documented Inrun note functions.\n")
-	b.WriteString("// Generated from pkg/note/docs/ — run `make generate-notes` to refresh.\n")
-	b.WriteString("var BuiltinNotes = []NoteInfo{\n")
-	for _, e := range entries {
-		fmt.Fprintf(&b, "\t{\n")
-		fmt.Fprintf(&b, "\t\tName:        %q,\n", e.Name)
-		fmt.Fprintf(&b, "\t\tDomain:      %q,\n", e.Domain)
-		fmt.Fprintf(&b, "\t\tDescription: %q,\n", e.Description)
-		if e.Example != "" {
-			fmt.Fprintf(&b, "\t\tExample:     %q,\n", e.Example)
-		}
-		if len(e.Keywords) > 0 {
-			kwParts := make([]string, len(e.Keywords))
-			for i, k := range e.Keywords {
-				kwParts[i] = fmt.Sprintf("%q", k)
-			}
-			fmt.Fprintf(&b, "\t\tKeywords:    []string{%s},\n", strings.Join(kwParts, ", "))
-		}
-		fmt.Fprintf(&b, "\t},\n")
+// prose escapes angle brackets outside code spans, so "-<ordinal>" is not
+// read as HTML.
+func prose(s string) string {
+	parts := strings.Split(s, "`")
+	for i := 0; i < len(parts); i += 2 {
+		parts[i] = strings.NewReplacer("<", "&lt;", ">", "&gt;").Replace(parts[i])
 	}
-	b.WriteString("}\n")
-	return b.String()
+	return strings.Join(parts, "`")
+}
+
+func toInfo(fns []gendoc.Function) []kel.FunctionInfo {
+	out := make([]kel.FunctionInfo, len(fns))
+	for i, f := range fns {
+		out[i] = kel.FunctionInfo{Name: f.Name, Domain: f.Domain, Description: f.Description, Example: f.Example, SeeAlso: f.SeeAlso, Keywords: f.Keywords}
+	}
+	return out
+}
+
+func toDomainInfo(domains []gendoc.Domain) []kel.DomainInfo {
+	out := make([]kel.DomainInfo, len(domains))
+	for i, d := range domains {
+		out[i] = kel.DomainInfo{Name: d.Name, Title: d.Title, Intro: d.Intro}
+	}
+	return out
 }
 
 func fatalf(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "generate-notes: "+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "generate-functions: "+format+"\n", args...)
 	os.Exit(1)
 }

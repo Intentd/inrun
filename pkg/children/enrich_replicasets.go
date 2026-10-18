@@ -8,56 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// enrichGroupWithOwner embeds the controller owner under "_owner" for each
-// resource in the group. A no-op when owner enrichment is not enabled on the CRD.
-// No API call — data comes from metadata.ownerReferences already in the object.
-func enrichGroupWithOwner(_ context.Context, _ kubeclient.Interface, m map[string]interface{}, crd types.CRDEntry) {
-	if !enrichmentEnabled("owner", crd) {
-		return
-	}
-	embedOwnerFromRefs(m)
-}
-
-// embedOwnerFromRefs reads ownerReferences for each object in the map and
-// embeds the controller owner as "_owner". Used both for declared RS children
-// and for RSes synthesized from _replicaSets.
-func embedOwnerFromRefs(m map[string]interface{}) {
-	for _, v := range m {
-		obj, ok := v.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		embedSingleOwner(obj)
-	}
-}
-
-func embedSingleOwner(obj map[string]interface{}) {
-	meta, _ := obj["metadata"].(map[string]interface{})
-	if meta == nil {
-		return
-	}
-	ownerRefs, _ := meta["ownerReferences"].([]interface{})
-	for _, ref := range ownerRefs {
-		r, _ := ref.(map[string]interface{})
-		if r == nil {
-			continue
-		}
-		if controller, _ := r["controller"].(bool); !controller {
-			continue
-		}
-		obj["_owner"] = map[string]interface{}{
-			"name": r["name"],
-			"kind": r["kind"],
-			"uid":  r["uid"],
-		}
-		break
-	}
-}
-
 // enrichGroupWithReplicaSets lists ReplicaSets owned by each Deployment and
-// embeds them as a slice under "_replicaSets". Each RS also gets "_owner"
-// embedded (pointing back to the Deployment) so that replicaSetOwnerName and
-// replicaSetOwnerKind work when the RS is accessed via .children.replicaset.
+// attaches them (native) as a slice under "_replicaSets".
 // A no-op when replicasets enrichment is not enabled on the CRD.
 func enrichGroupWithReplicaSets(ctx context.Context, kube kubeclient.Interface, m map[string]interface{}, crd types.CRDEntry) {
 	if !crd.ShouldEnrich("replicasets") {
@@ -88,8 +40,6 @@ func enrichGroupWithReplicaSets(ctx context.Context, kube kubeclient.Interface, 
 		var rsList []interface{}
 		for i := range list.Items {
 			if objectOwnedByUID(list.Items[i].Object, uid) {
-				// Embed _owner on each RS so replicaSetOwnerName works.
-				embedSingleOwner(list.Items[i].Object)
 				rsList = append(rsList, list.Items[i].Object)
 			}
 		}

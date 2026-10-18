@@ -19,7 +19,6 @@ Once oriented, pick the area you want to work in:
 | Add a new resource type | [Inrun resources](contributing-resources.md) |
 | Improve the console UI | [console](contributing-console.md) |
 | Add or improve an example pack | [examples](contributing-examples.md) |
-| Add a note function to make operators more declarative (`pkg/note`) | Add to `pkg/note/<domain>.go`, register in `buildNotes()` in `pkg/note/note.go` |
 
 ---
 
@@ -27,7 +26,7 @@ Once oriented, pick the area you want to work in:
 
 | Command | What it does |
 |---------|-------------|
-| `make inrun` | Codegen (note list, e2e example doc) + gofmt + build `inrun` binary to `~/.inrun/bin/` |
+| `make inrun` | Codegen (function list, e2e example doc) + gofmt + build `inrun` binary to `~/.inrun/bin/` |
 | `make test` | `go vet` + unit tests — fast, no cluster required |
 | `make test-race` | Same with Go's race detector — run before every PR |
 | `make test-unit` | Unit tests only, skipping vet |

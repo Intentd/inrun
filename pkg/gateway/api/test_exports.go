@@ -21,11 +21,11 @@ func ExportedSchemaHandler(cat *catalog.Catalog) http.Handler {
 	return schemaHandler(cat)
 }
 
-func ExportedResourcesHandler(kube kubeclient.Interface, cat *catalog.Catalog, notes types.NoteRegistry) http.Handler {
+func ExportedResourcesHandler(kube kubeclient.Interface, cat *catalog.Catalog, notes types.KELFunctionRegistry) http.Handler {
 	return resourcesHandler(kube, &ClusterRegistry{clients: map[string]kubeclient.Interface{}}, cat)
 }
 
-func ExportedApplyHandler(kube kubeclient.Interface, cat *catalog.Catalog, notes types.NoteRegistry) http.Handler {
+func ExportedApplyHandler(kube kubeclient.Interface, cat *catalog.Catalog, notes types.KELFunctionRegistry) http.Handler {
 	return applyHandler(kube, &ClusterRegistry{clients: map[string]kubeclient.Interface{}}, cat)
 }
 

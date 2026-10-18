@@ -1,34 +1,28 @@
-# Domain Notes
+# Domain
 
-Domain notes clean protocol-prefixed URL strings into bare hostnames. Use them in `normalize:` blocks where spec fields may arrive as `"https://acme.com/"`, `"http://acme.com"`, or already-clean `"acme.com"`. Both functions are pure, idempotent, and nil-safe.
+Take domain names and URLs apart: the host of a URL, and a domain without its subdomain.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `domainHost` | Strip surrounding whitespace, `https://` or `http://` prefix, and trailing `/`. |
-| `domainBare` | Same as `domainHost`, and also strips a leading `www. |
+| Function | Description |
+|----------|-------------|
+| [`domainBare`](#domainbare) | Is like `domainHost`, and also strips a leading `www.` subdomain. |
+| [`domainHost`](#domainhost) | Strips surrounding whitespace, `https://` or `http://` prefix, and trailing `/`. |
 
-## Examples
+## Functions
 
-```yaml
-# domainHost
-normalize:
-  spec:
-    domain: '{{ domainHost .spec.domain }}'
-# "https://acme.example.com/" → "acme.example.com"
-# " http://acme.example.com " → "acme.example.com"
-# "acme.example.com"          → "acme.example.com"
-domain: '{{ trimSuffix (domainHost .spec.domain) ":8080" }}'
-# "https://acme.example.com:8080/" → "acme.example.com"
-{{ trimSuffix (trimPrefix (trimPrefix (trimSpace .spec.domain) "https://") "http://") "/" }}
+### domainBare
 
-# domainBare
-normalize:
-  spec:
-    domain: '{{ domainBare .spec.domain }}'
-# "https://www.acme.com/" → "acme.com"
-# "https://acme.com/"     → "acme.com"
-# "www.acme.com"          → "acme.com"
-# "acme.com"              → "acme.com"
+`domainBare` is like `domainHost`, and also strips a leading `www.` subdomain. Returns `""` for nil or non-string input. Idempotent.
+
+```text
+{{ domainBare "https://www.acme.com/" }}  → "acme.com"
+```
+
+### domainHost
+
+`domainHost` strips surrounding whitespace, `https://` or `http://` prefix, and trailing `/`. Returns the bare hostname. Returns `""` for nil or non-string input. Idempotent — calling it on an already-clean hostname is a no-op.
+
+```text
+{{ domainHost "https://acme.example.com/" }}  → "acme.example.com"
 ```

@@ -35,10 +35,10 @@ func (ws *WebhookServer) evaluateValidationRules(
 
 	resolver := template.NewResolverFromMap(obj)
 	cat := ws.catalog
-	var notes types.NoteRegistry
+	var notes types.KELFunctionRegistry
 	if cat != nil {
-		notes = cat.UserNotes()
-		resolver = resolver.WithUserNotes(notes)
+		notes = cat.UserFunctions()
+		resolver = resolver.WithUserFunctions(notes)
 	}
 	// Inject the raw intent payload as .request so validation rules can gate on
 	// intent-vocabulary fields (e.g. request.schedule) before field translation.
@@ -122,10 +122,10 @@ func (ws *WebhookServer) applyMutationRules(
 
 	resolver := template.NewResolverFromMap(obj)
 	cat := ws.catalog
-	var notes types.NoteRegistry
+	var notes types.KELFunctionRegistry
 	if cat != nil {
-		notes = cat.UserNotes()
-		resolver = resolver.WithUserNotes(notes)
+		notes = cat.UserFunctions()
+		resolver = resolver.WithUserFunctions(notes)
 	}
 
 	// Inject the raw intent payload as .request so mutation rules can default/override on

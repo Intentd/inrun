@@ -1,0 +1,76 @@
+apiVersion: inrun.dev/v1
+kind: Catalog
+metadata:
+  name: replicaset-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    ReplicaSetProbe — living integration test for a ReplicaSet's owner (read
+    from its own ownerReferences) and a Deployment's ReplicaSets.
+    enrich: [replicasets] attaches the Deployment's ReplicaSets as _replicaSets.
+    Apply the CR and inspect: kubectl get replicasetprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    replicaset-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - replicasets
+        - events
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-app"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              # ── Phase ───────────────────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+
+              # ── enriched deployment replicasets notes ───────────────────────
+              - path: replicaSetCount
+                value: "{{ deploymentReplicaSetCount .children.deployment._replicaSets }}"
+              - path: deploymentReplicaSets
+                value: '{{ join (deploymentReplicaSets .children.deployment._replicaSets) ", " }}'
+              - path: oldDeploymentReplicaSets
+                value: '{{ join (oldDeploymentReplicaSets .children.deployment .children.deployment._replicaSets) ", " }}'
+
+              # ── enriched replicaset owner notes (via synthesized .children.replicaset)
+              - path: replicaSetOwnerName
+                value: "{{ replicaSetOwnerName .children.replicaset }}"
+              - path: replicaSetOwnerKind
+                value: "{{ replicaSetOwnerKind .children.replicaset }}"
+
+              # ── warning notes (require enrich: [events]) ────────────────────
+              - path: hasWarnings
+                value: "{{ hasWarnings .children.deployment._warnings }}"
+              - path: warningCount
+                value: "{{ warningCount .children.deployment._warnings }}"
+              - path: firstWarning
+                value: "{{ firstWarning .children.deployment._warnings }}"
+              - path: warningMessages
+                value: '{{ join (warningMessages .children.deployment._warnings) ", " }}'
+              - path: warningReasons
+                value: '{{ join (warningReasons .children.deployment._warnings) ", " }}'
+

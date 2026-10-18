@@ -1,68 +1,91 @@
-# Node Notes
+# Node
 
-Node notes read Node resource state directly (for operators that manage Nodes as children) and navigate `_node` topology summaries embedded in Pod children by `enrich: [node]`.
-
----
+Read a Node: readiness, allocatable CPU and memory, conditions, taints, and where it is (zone, region, instance type, from the well-known topology labels); and which node a pod is scheduled on.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `nodeReady` | Returns `true` when the Node's Ready condition status is `"True"`. |
-| `nodeAllocatableCPU` | Returns `status. |
-| `nodeAllocatableMemory` | Returns `status. |
-| `nodeCondition` | Returns the `status` string of the named node condition, or `""` when absent — common types are `Ready`, `MemoryPressure`, and `DiskPressure`. |
-| `nodeTaints` | Returns a comma-separated list of taint keys on the node, or `""` when no taints are present. |
-| `podNodeName` | Returns `_node. |
-| `podNodeZone` | Returns `_node. |
-| `podNodeRegion` | Returns `_node. |
-| `podNodeInstanceType` | Returns `_node. |
+| Function | Description |
+|----------|-------------|
+| [`nodeAllocatableCPU`](#nodeallocatablecpu) | Returns `status.allocatable.cpu`. |
+| [`nodeAllocatableMemory`](#nodeallocatablememory) | Returns `status.allocatable.memory`. |
+| [`nodeCondition`](#nodecondition) | Returns the `status` string of the named node condition, or `""` when absent — common types are `Ready`, `MemoryPressure`, and `DiskPressure`. |
+| [`nodeInstanceType`](#nodeinstancetype) | Returns the node's instance type (label node.kubernetes.io/instance-type). |
+| [`nodeReady`](#nodeready) | Returns `true` when the Node's Ready condition status is `"True"`. |
+| [`nodeRegion`](#noderegion) | Returns the node's region (label topology.kubernetes.io/region). |
+| [`nodeTaints`](#nodetaints) | Returns the keys of the node's taints. |
+| [`nodeZone`](#nodezone) | Returns the node's zone (label topology.kubernetes.io/zone). |
+| [`podNodeName`](#podnodename) | Returns the node a pod is scheduled on; "" while pending. |
 
-## Examples
+## Functions
 
-```yaml
-# nodeReady
-when:
-  - field: "{{ nodeReady .children.node }}"
-    equals: "true"
+### nodeAllocatableCPU
 
-# nodeAllocatableCPU
-- path: allocatableCPU
-  value: "{{ nodeAllocatableCPU .children.node }}"
-# → "3920m"
+`nodeAllocatableCPU` returns `status.allocatable.cpu`.
 
-# nodeAllocatableMemory
-- path: allocatableMemory
-  value: "{{ nodeAllocatableMemory .children.node }}"
-# → "15032020Ki"
+```text
+{{ nodeAllocatableCPU .node }}  → "3920m"
+```
 
-# nodeCondition
-- path: memoryPressure
-  value: "{{ nodeCondition .children.node \"MemoryPressure\" }}"
-# → "False"
+### nodeAllocatableMemory
 
-# nodeTaints
-- path: taints
-  value: "{{ nodeTaints .children.node }}"
-# → "node.kubernetes.io/not-ready"
+`nodeAllocatableMemory` returns `status.allocatable.memory`.
 
-# podNodeName
-- path: nodeName
-  value: "{{ podNodeName .children.pod }}"
-# → "ip-10-0-1-5.us-east-2.compute.internal"
+```text
+{{ nodeAllocatableMemory .node }}  → "15032020Ki"
+```
 
-# podNodeZone
-- path: zone
-  value: "{{ podNodeZone .children.pod }}"
-# → "us-east-2a"
+### nodeCondition
 
-# podNodeRegion
-- path: region
-  value: "{{ podNodeRegion .children.pod }}"
-# → "us-east-2"
+`nodeCondition` returns the `status` string of the named node condition, or `""` when absent — common types are `Ready`, `MemoryPressure`, and `DiskPressure`.
 
-# podNodeInstanceType
-- path: instanceType
-  value: "{{ podNodeInstanceType .children.pod }}"
-# → "t3.medium"
+```text
+{{ nodeCondition .node "MemoryPressure" }}  → "False"
+```
+
+### nodeInstanceType
+
+`nodeInstanceType` returns the node's instance type (label node.kubernetes.io/instance-type).
+
+```text
+{{ nodeInstanceType .node }}  → "m5.large"
+```
+
+### nodeReady
+
+`nodeReady` returns `true` when the Node's Ready condition status is `"True"`.
+
+```text
+{{ nodeReady .node }}  → true
+```
+
+### nodeRegion
+
+`nodeRegion` returns the node's region (label topology.kubernetes.io/region).
+
+```text
+{{ nodeRegion .node }}  → "us-east-2"
+```
+
+### nodeTaints
+
+`nodeTaints` returns the keys of the node's taints.
+
+```text
+{{ nodeTaints .node }}  → [dedicated]
+```
+
+### nodeZone
+
+`nodeZone` returns the node's zone (label topology.kubernetes.io/zone).
+
+```text
+{{ nodeZone .node }}  → "us-east-2a"
+```
+
+### podNodeName
+
+`podNodeName` returns the node a pod is scheduled on; "" while pending.
+
+```text
+{{ podNodeName .pod }}  → "ip-10-0-1-5.us-east-2.compute.internal"
 ```

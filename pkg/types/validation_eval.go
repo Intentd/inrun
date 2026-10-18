@@ -12,17 +12,18 @@ package types
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/pkg/note"
-	"github.com/intentd/inrun/pkg/utils"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/intentd/inrun/pkg/template/funcs"
+	"github.com/intentd/inrun/pkg/utils"
 
 	"github.com/intentd/inrun/pkg/logger"
 )
 
 // TemplateResolver resolves a Go-template expression string against CR data
-// and notes. Satisfied structurally by *pkg/template.Resolver,
+// and functions. Satisfied structurally by *pkg/template.Resolver,
 // which this package can't import directly — that package already imports
 // pkg/types, so a reverse import would cycle.
 type TemplateResolver interface {
@@ -181,7 +182,7 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 	op, expected := ResolveValidationOp(rule)
 
 	// Resolve template expressions in comparison values and messages.
-	// Notes are called by name directly: {{ inBusinessHours }}, {{ allowedRegistry }}.
+	// Functions are called by name directly: {{ inBusinessHours }}, {{ allowedRegistry }}.
 	if resolver != nil && IsTemplate(expected) {
 		if resolved, err := resolver.Resolve(expected); err == nil {
 			expected = resolved
@@ -379,7 +380,7 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 		}
 
 	case ConditionTypeOf:
-		if note.TypeOf(NavigateRawPath(data, rule.Field)) != expected {
+		if funcs.TypeOf(NavigateRawPath(data, rule.Field)) != expected {
 			return fail()
 		}
 

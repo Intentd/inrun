@@ -420,7 +420,7 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 		// Build a template evaluator from spec.notes so when:/or: expressions
 		// on expect blocks can reference user-defined note functions.
 		noteEval := template.NewResolverFromMap(nil).
-			WithUserNotes(r.e2e.Spec.Notes).
+			WithUserFunctions(r.e2e.Spec.Notes).
 			TemplateEvaluator()
 
 		crApplied := false

@@ -204,13 +204,13 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 	m.gateway = doc.Gateway
 	m.publish = doc.Publish
 	m.profiles = doc.Profiles
-	// Expand notes.include against this Catalog's own directory, so a Catalog
+	// Expand functions.include against this Catalog's own directory, so a Catalog
 	// imported by a Stack brings its included functions with it.
-	notes := doc.Notes
-	if err := types.ExpandNotesInclude(&notes, catalogDir); err != nil {
-		return nil, fmt.Errorf("%q: notes: %w", path, err)
+	functions := doc.Functions
+	if err := types.ExpandFunctionsInclude(&functions, catalogDir); err != nil {
+		return nil, fmt.Errorf("%q: functions: %w", path, err)
 	}
-	m.notes = notes
+	m.functions = functions
 	// Resolve spec.imports module file paths to absolute, same as CRD-level imports above.
 	specImports := make([]types.ModuleImport, len(doc.Spec.Imports))
 	copy(specImports, doc.Spec.Imports)
@@ -242,8 +242,8 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 	var accSecurity types.CatalogSecurity
 	var accProfiles types.ProfileRegistry
 	var accSpecImports []types.ModuleImport
-	var accNotes types.NoteRegistry
-	notesSeen := make(map[string]string) // note name → import label, for cross-Catalog conflict detection
+	var accFunctions types.KELFunctionRegistry
+	functionsSeen := make(map[string]string) // function name → import label, for cross-Catalog conflict detection
 
 	// ── Step 1: registry imports ─────────────────────────────────────────────
 	if doc.Imports != nil {
@@ -273,11 +273,11 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 			}
 			accProfiles = merged
 			accSpecImports = append(accSpecImports, m.specImports...)
-			mergedNotes, err := accNotes.MergeImport(m.notes, fmt.Sprintf("registry:%d", i), notesSeen)
+			mergedFunctions, err := accFunctions.MergeImport(m.functions, fmt.Sprintf("registry:%d", i), functionsSeen)
 			if err != nil {
-				return nil, fmt.Errorf("%q imports.registry[%d]: notes: %w", path, i, err)
+				return nil, fmt.Errorf("%q imports.registry[%d]: functions: %w", path, i, err)
 			}
-			accNotes = mergedNotes
+			accFunctions = mergedFunctions
 			logger.Debug().
 				Str("import", fmt.Sprintf("registry:%d", i)).
 				Msg("merger: accumulated security from registry import")
@@ -328,11 +328,11 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 			}
 			accProfiles = merged
 			accSpecImports = append(accSpecImports, m.specImports...)
-			mergedNotes, err := accNotes.MergeImport(m.notes, "file:"+resolved, notesSeen)
+			mergedFunctions, err := accFunctions.MergeImport(m.functions, "file:"+resolved, functionsSeen)
 			if err != nil {
-				return nil, fmt.Errorf("%q imports.files[%q]: notes: %w", path, resolved, err)
+				return nil, fmt.Errorf("%q imports.files[%q]: functions: %w", path, resolved, err)
 			}
-			accNotes = mergedNotes
+			accFunctions = mergedFunctions
 			logger.Debug().
 				Str("import", "file:"+resolved).
 				Msg("merger: accumulated security from file import")
@@ -361,11 +361,11 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 			}
 			accProfiles = merged
 			accSpecImports = append(accSpecImports, m.specImports...)
-			mergedNotes, err := accNotes.MergeImport(m.notes, srcName, notesSeen)
+			mergedFunctions, err := accFunctions.MergeImport(m.functions, srcName, functionsSeen)
 			if err != nil {
-				return nil, fmt.Errorf("%q imports.helm[%d]: notes: %w", path, i, err)
+				return nil, fmt.Errorf("%q imports.helm[%d]: functions: %w", path, i, err)
 			}
-			accNotes = mergedNotes
+			accFunctions = mergedFunctions
 			logger.Debug().
 				Str("import", srcName).
 				Msg("merger: accumulated security from helm import")
@@ -479,14 +479,14 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 	m.profiles = mergedProfiles
 
 	if len(doc.Spec.Imports) > 0 {
-		return nil, fmt.Errorf("%q: Stack does not support spec.imports — declare notes: and profiles: inline to override Catalog-wide settings", path)
+		return nil, fmt.Errorf("%q: Stack does not support spec.imports — declare functions: and profiles: inline to override Catalog-wide settings", path)
 	}
 	m.specImports = accSpecImports
-	mergedNotes, err := doc.Notes.Merge(accNotes, "catalog")
+	mergedFunctions, err := doc.Functions.Merge(accFunctions, "catalog")
 	if err != nil {
-		return nil, fmt.Errorf("%q: notes: %w", path, err)
+		return nil, fmt.Errorf("%q: functions: %w", path, err)
 	}
-	m.notes = mergedNotes
+	m.functions = mergedFunctions
 
 	logger.Debug().
 		Str("path", path).

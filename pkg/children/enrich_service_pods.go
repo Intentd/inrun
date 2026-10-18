@@ -51,7 +51,7 @@ func enrichGroupWithBackingPods(ctx context.Context, kube kubeclient.Interface, 
 		}
 		pods := make([]interface{}, 0, len(list.Items))
 		for i := range list.Items {
-			pods = append(pods, buildPodSummary(list.Items[i].Object))
+			pods = append(pods, trimPod(list.Items[i].Object))
 		}
 		if len(pods) > 0 {
 			obj["_backingPods"] = pods

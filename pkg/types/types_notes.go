@@ -7,75 +7,75 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/sentinel"
 )
 
-// UserDefinedNote is a named template expression declared in a Catalog or Module.
-// Once registered, the note is callable by name in any template expression
+// UserDefinedFunction is a named template expression declared in a Catalog or Module.
+// Once registered, the function is callable by name in any template expression
 // across the Catalog — status fields, when: conditions, normalize, e2e assertions.
-type UserDefinedNote struct {
+type UserDefinedFunction struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description,omitempty"`
 	// Expression is a Go template string evaluated by the Resolver.
-	// Built-in notes and other user-defined notes (same Catalog or imported) are
+	// Built-in functions and other user-defined functions (same Catalog or imported) are
 	// available inside the expression. The result is always a string.
 	Expression string `yaml:"expression"`
-	// Shadow: true acknowledges that this note intentionally overrides a built-in.
+	// Shadow: true acknowledges that this function intentionally overrides a built-in.
 	Shadow bool `yaml:"shadow,omitempty"`
 }
 
-// NoteRegistry holds user-defined notes merged from a Catalog and its spec.imports Modules.
-type NoteRegistry struct {
-	Include   string            `yaml:"include,omitempty"`
-	Functions []UserDefinedNote `yaml:"functions,omitempty"`
+// KELFunctionRegistry holds user-defined functions merged from a Catalog and its spec.imports Modules.
+type KELFunctionRegistry struct {
+	Include     string                `yaml:"include,omitempty"`
+	Definitions []UserDefinedFunction `yaml:"definitions,omitempty"`
 }
 
 // Merge merges src into nr. Local (nr) entries override src entries with the same name.
 // Two src entries (from different Modules) with the same name are a hard error.
-func (nr NoteRegistry) Merge(src NoteRegistry, srcLabel string) (NoteRegistry, error) {
-	if len(src.Functions) == 0 {
+func (nr KELFunctionRegistry) Merge(src KELFunctionRegistry, srcLabel string) (KELFunctionRegistry, error) {
+	if len(src.Definitions) == 0 {
 		return nr, nil
 	}
-	existing := make(map[string]bool, len(nr.Functions))
-	for _, n := range nr.Functions {
+	existing := make(map[string]bool, len(nr.Definitions))
+	for _, n := range nr.Definitions {
 		existing[n.Name] = true
 	}
-	result := NoteRegistry{Functions: make([]UserDefinedNote, len(nr.Functions))}
-	copy(result.Functions, nr.Functions)
-	for _, n := range src.Functions {
+	result := KELFunctionRegistry{Definitions: make([]UserDefinedFunction, len(nr.Definitions))}
+	copy(result.Definitions, nr.Definitions)
+	for _, n := range src.Definitions {
 		if existing[n.Name] {
-			// Local note with same name — local wins silently (intentional override).
+			// Local function with same name — local wins silently (intentional override).
 			continue
 		}
 		existing[n.Name] = true
-		result.Functions = append(result.Functions, n)
+		result.Definitions = append(result.Definitions, n)
 	}
 	return result, nil
 }
 
 // MergeImport merges src into nr detecting conflicts between two non-local sources.
-// Used when accumulating notes from multiple spec.imports Modules.
-func (nr NoteRegistry) MergeImport(src NoteRegistry, srcLabel string, seen map[string]string) (NoteRegistry, error) {
-	result := NoteRegistry{Functions: make([]UserDefinedNote, len(nr.Functions))}
-	copy(result.Functions, nr.Functions)
-	for _, n := range src.Functions {
+// Used when accumulating functions from multiple spec.imports Modules.
+func (nr KELFunctionRegistry) MergeImport(src KELFunctionRegistry, srcLabel string, seen map[string]string) (KELFunctionRegistry, error) {
+	result := KELFunctionRegistry{Definitions: make([]UserDefinedFunction, len(nr.Definitions))}
+	copy(result.Definitions, nr.Definitions)
+	for _, n := range src.Definitions {
 		if prev, seenBefore := seen[n.Name]; seenBefore {
-			// The same definition arriving twice (e.g. one notes.include shared by
+			// The same definition arriving twice (e.g. one functions.include shared by
 			// two imported Catalogs) is reuse, not a conflict: keep one copy.
 			if existing, ok := result.find(n.Name); ok && existing.Expression == n.Expression && existing.Shadow == n.Shadow {
 				continue
 			}
-			return NoteRegistry{}, fmt.Errorf(
-				"note conflict: %q is declared differently in %s and %s — rename one or declare a local override in the Catalog's notes: block",
+			return KELFunctionRegistry{}, fmt.Errorf(
+				"function conflict: %q is declared differently in %s and %s — rename one or declare a local override in the Catalog's functions: block",
 				n.Name, prev, srcLabel,
 			)
 		}
 		seen[n.Name] = srcLabel
-		result.Functions = append(result.Functions, n)
+		result.Definitions = append(result.Definitions, n)
 	}
 	return result, nil
 }
 
-// IsNoteRef reports whether field is a user-defined note call — {{ noteName }}
-// where noteName does not start with a dot (data ref) and is not a sentinel.
-func IsNoteRef(field string) bool {
+// IsKelFuncRef reports whether field is a user-defined function call — {{ functionName }}
+// where functionName does not start with a dot (data ref) and is not a sentinel.
+func IsKelFuncRef(field string) bool {
 	if !strings.HasPrefix(field, "{{") {
 		return false
 	}
@@ -87,17 +87,17 @@ func IsNoteRef(field string) bool {
 	return name != "" && !sentinel.IsValid(name)
 }
 
-// NoteRefName extracts the bare note name from a {{ noteName }} field expression.
-// Assumes IsNoteRef returned true for the same field.
-func NoteRefName(field string) string {
+// FuncRefName extracts the bare function name from a {{ functionName }} field expression.
+// Assumes IsKelFuncRef returned true for the same field.
+func FuncRefName(field string) string {
 	inner := strings.TrimSpace(strings.TrimPrefix(field, "{{"))
 	return strings.TrimSpace(strings.TrimSuffix(inner, "}}"))
 }
 
-// ExpressionFor returns the template expression body for the named note,
-// or an empty string if no note with that name exists in the registry.
-func (nr NoteRegistry) ExpressionFor(name string) string {
-	for _, n := range nr.Functions {
+// ExpressionFor returns the template expression body for the named function,
+// or an empty string if no function with that name exists in the registry.
+func (nr KELFunctionRegistry) ExpressionFor(name string) string {
+	for _, n := range nr.Definitions {
 		if n.Name == name {
 			return n.Expression
 		}
@@ -108,9 +108,9 @@ func (nr NoteRegistry) ExpressionFor(name string) string {
 // References reports whether expr reads the data root (for example
 // "health", "external" or "args.quota"): as a field path ("health.status" or
 // ".health.status"), inside a template ("{{ .health.status }}"), or through a
-// note the template calls, followed through the notes that note calls.
-// Sentinels are never notes. Cycle-safe.
-func (nr NoteRegistry) References(expr, root string) bool {
+// function the template calls, followed through the functions that function calls.
+// Sentinels are never functions. Cycle-safe.
+func (nr KELFunctionRegistry) References(expr, root string) bool {
 	expr = strings.TrimSpace(expr)
 	if expr == "" || root == "" {
 		return false
@@ -122,11 +122,11 @@ func (nr NoteRegistry) References(expr, root string) bool {
 	return nr.templateReferences(expr, root, make(map[string]bool))
 }
 
-func (nr NoteRegistry) templateReferences(expr, root string, visited map[string]bool) bool {
+func (nr KELFunctionRegistry) templateReferences(expr, root string, visited map[string]bool) bool {
 	if readsRoot(expr, root) {
 		return true
 	}
-	for _, n := range nr.Functions {
+	for _, n := range nr.Definitions {
 		if visited[n.Name] || sentinel.IsValid(n.Name) || !isWordIn(expr, n.Name) {
 			continue
 		}
@@ -186,17 +186,17 @@ func isIdentByte(b byte) bool {
 	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
-// Empty reports whether the registry contains no notes.
-func (nr NoteRegistry) Empty() bool {
-	return len(nr.Functions) == 0
+// Empty reports whether the registry contains no functions.
+func (nr KELFunctionRegistry) Empty() bool {
+	return len(nr.Definitions) == 0
 }
 
 // find returns the function named name, if present.
-func (nr NoteRegistry) find(name string) (UserDefinedNote, bool) {
-	for _, n := range nr.Functions {
+func (nr KELFunctionRegistry) find(name string) (UserDefinedFunction, bool) {
+	for _, n := range nr.Definitions {
 		if n.Name == name {
 			return n, true
 		}
 	}
-	return UserDefinedNote{}, false
+	return UserDefinedFunction{}, false
 }

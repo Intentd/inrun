@@ -424,10 +424,10 @@ type CatalogFile struct {
 	// Distinct from security: — publish: is about supply chain, not runtime admission.
 	Publish *PublishConfig `yaml:"publish,omitempty" json:"publish,omitempty"`
 
-	// Notes declares user-defined note functions available to all CRDs in this Catalog.
-	// Notes are named template expressions that compose built-in notes and Go template
-	// syntax. Once declared, a note is callable by name in any template expression.
-	Notes NoteRegistry `yaml:"notes,omitempty"`
+	// Functions declares user-defined functions available to all CRDs in this Catalog.
+	// Functions are named template expressions that compose built-in functions and Go template
+	// syntax. Once declared, a function is callable by name in any template expression.
+	Functions KELFunctionRegistry `yaml:"functions,omitempty"`
 
 	// Profiles declares named profiles available to all CRDs in this Catalog.
 	// Profiles are resolved before built-in Inrun profiles at both validate

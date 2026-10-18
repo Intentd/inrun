@@ -9,8 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// enrichGroupWithCronJobChildren embeds job references under "_activeJobs",
-// "_lastJob", and "_lastSuccessfulJob" for each CronJob in the group.
+// enrichGroupWithCronJobChildren attaches the CronJob's most recent Job and
+// most recent successful Job (native) under "_lastJob" and
+// "_lastSuccessfulJob". Active jobs are on the CronJob itself (status.active).
 // A no-op when cronjob enrichment is not enabled on the CRD.
 func enrichGroupWithCronJobChildren(ctx context.Context, kube kubeclient.Interface, m map[string]interface{}, crd types.CRDEntry) {
 	if !enrichmentEnabled("cronjob", crd) {
@@ -29,15 +30,6 @@ func enrichGroupWithCronJobChildren(ctx context.Context, kube kubeclient.Interfa
 		uid, _ := meta["uid"].(string)
 		if ns == "" || uid == "" {
 			continue
-		}
-
-		// _activeJobs: Job references listed in status.active.
-		// These are ObjectReferences — {apiVersion, kind, namespace, name, uid}.
-		status, _ := obj["status"].(map[string]interface{})
-		if status != nil {
-			if active, _ := status["active"].([]interface{}); len(active) > 0 {
-				obj["_activeJobs"] = active
-			}
 		}
 
 		// List all Jobs owned by this CronJob for _lastJob and _lastSuccessfulJob.

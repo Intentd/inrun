@@ -30,17 +30,17 @@ package types
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/pkg/utils"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/template/funcs"
+	"github.com/intentd/inrun/pkg/utils"
 	"github.com/robfig/cron/v3"
 )
 
 // TemplateEvaluator evaluates a Go template expression against the current
-// reconcile data map, including all note functions and enriched children.
+// reconcile data map, including all KEL functions and enriched children.
 // Returns (result, true) on success; ("", false) on any error.
 // Implemented by the resolver package and injected at call sites.
 // nil disables template evaluation — all existing callers are backward-compatible.
@@ -239,7 +239,7 @@ func applyOperator(op ConditionOperator, fieldVal, expected string, data map[str
 	case ConditionUnique:
 		return resolveUnique(data, cond.Field, fieldVal)
 	case ConditionTypeOf:
-		return note.TypeOf(NavigateRawPath(data, cond.Field)) == expected
+		return funcs.TypeOf(NavigateRawPath(data, cond.Field)) == expected
 	}
 	return false
 }

@@ -216,7 +216,7 @@ func errRedundantLink(link, crd string) error {
 
 This rule's field is already "spec.%s" — already a clean display name on
 its own. link: only matters when field is a template expression that isn't
-itself a valid display name (e.g. wraps getLabel/getAnnotation, or a notes:
+itself a valid display name (e.g. wraps getLabel/getAnnotation, or a functions:
 function). Consider removing link: here.
 ──────────────────────────────────────────────`, failureMark(), link, crd, link)
 }

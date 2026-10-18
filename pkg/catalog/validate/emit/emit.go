@@ -16,7 +16,7 @@ import (
 //  3. message must be non-empty and a valid Go template when it contains "{{".
 //  4. when/or condition field values are valid Go templates when they contain "{{".
 func (c *checker) validateEmit() error {
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 	for crdName, crd := range c.Cat.EnabledCRDs() {
 		for name, entry := range crd.Box().EmitEntries() {
 			if err := validateEmitEventEntry(crdName, name, entry, funcMap); err != nil {

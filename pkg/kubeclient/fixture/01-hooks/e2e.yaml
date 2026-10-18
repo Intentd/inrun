@@ -5,7 +5,7 @@ metadata:
   description: >
     Run with: inrun e2e --dev-server
 
-    Verifies the hooks external: + notes: pattern end-to-end. The runtime
+    Verifies the hooks external: + functions: pattern end-to-end. The runtime
     evaluates inBusinessHours, conditionally calls the flag service, and
     passes both results to the hook via args. The hook stamps annotation
     and status — no HTTP client in hook code.
@@ -18,8 +18,8 @@ spec:
   valuesFiles:
     - ./values.yaml
 
-  notes:
-    functions:
+  functions:
+    definitions:
       - name: inBusinessHours
         expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
 

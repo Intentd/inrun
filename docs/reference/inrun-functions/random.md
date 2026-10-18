@@ -1,40 +1,46 @@
-# Random Notes
+# Random
 
-Random notes generate cryptographically secure random values. They are designed for one use case: generating secrets that should be created once and never changed.
+Generate cryptographically secure random values: hex, base64 and alphanumeric strings, and UUIDs. They return a different value on every call, so evaluate them once, when a secret is first created, and keep the result; evaluated on every reconcile, a password changes every time.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `uuidv4` | Generate a random UUID v4 string in standard `8-4-4-4-12` hex format. |
-| `randomAlphanumeric` | Generate a cryptographically random alphanumeric string of exactly `n` characters. |
-| `randomHex` | Generate `n` random bytes and return them as a hex-encoded string. |
-| `randomBase64` | Generate `n` random bytes and return them as a URL-safe base64 string. |
+| Function | Description |
+|----------|-------------|
+| [`randomAlphanumeric`](#randomalphanumeric) | Generates a cryptographically random alphanumeric string of exactly `n` characters. |
+| [`randomBase64`](#randombase64) | Generates `n` random bytes and returns them as a URL-safe base64 string. |
+| [`randomHex`](#randomhex) | Generates `n` random bytes and returns them as a hex-encoded string. |
+| [`uuidv4`](#uuidv4) | Generates a random UUID v4 string in standard `8-4-4-4-12` hex format. |
 
-## Examples
+## Functions
 
-```yaml
-# uuidv4
-# value: "{{ uuidv4 }}"
-# → "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+### randomAlphanumeric
 
-# randomAlphanumeric
-# value: "{{ randomAlphanumeric 32 }}"
-# → "k7Xm3pQs9vR2nTwY8cL1jF6bH0dE4gA5"
+`randomAlphanumeric` generates a cryptographically random alphanumeric string of exactly `n` characters. Characters are drawn from `[a-zA-Z0-9]`.
 
-# randomHex
-# value: "{{ randomHex 16 }}"
-# 16 bytes → 32 hex chars
-# → "a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5"
+```text
+{{ randomAlphanumeric 12 }}  → "k7Xm3pQs9vR2"
+```
 
-# randomBase64
-# value: "{{ randomBase64 32 }}"
-# 32 bytes → ~43 base64 chars
-# → "k7Xm3pQs9vR2nTwY8cL1jF6bH0dE4gA5zP..."
-secrets:
-  - name: "{{ .metadata.name }}-api-key"
-    once: true
-    rotateAfter: "90d"
-    data:
-      apiKey: "{{ randomHex 32 }}"
+### randomBase64
+
+`randomBase64` generates `n` random bytes and returns them as a URL-safe base64 string. The output length is approximately `ceil(n * 4/3)` characters.
+
+```text
+{{ randomBase64 16 }}  → "47H1Wtj_DBL6gy0hBE-49w=="
+```
+
+### randomHex
+
+`randomHex` generates `n` random bytes and returns them as a hex-encoded string. The output is `2n` characters long.
+
+```text
+{{ randomHex 8 }}  → "a3f8b2c1d4e5f6a7"
+```
+
+### uuidv4
+
+`uuidv4` generates a random UUID v4 string in standard `8-4-4-4-12` hex format. Same entropy as `randomHex 16`, formatted as a UUID for systems that expect that shape.
+
+```text
+{{ uuidv4 }}  → "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 ```

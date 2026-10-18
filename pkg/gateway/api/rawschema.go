@@ -76,9 +76,9 @@ func rawSchemaHandler(
 	clusters *ClusterRegistry,
 	cat *catalog.Catalog,
 ) http.HandlerFunc {
-	var notes types.NoteRegistry
+	var notes types.KELFunctionRegistry
 	if !cat.Empty() {
-		notes = cat.UserNotes()
+		notes = cat.UserFunctions()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

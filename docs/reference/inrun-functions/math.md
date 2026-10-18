@@ -1,68 +1,92 @@
-# Math Notes
+# Math
 
-Math notes perform arithmetic on numeric values from the CR spec. All math notes accept `int`, `int64`, `float64`, or numeric strings — they handle the mixed types that come out of Kubernetes unstructured objects without requiring explicit conversions.
+Arithmetic on values that may arrive as integers, floats or numeric strings: add, subtract, multiply, divide, modulo, absolute value, minimum, maximum and clamping. Division and modulo by zero are errors.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `add` | Add two numbers. |
-| `sub` | Subtract the second number from the first. |
-| `mul` | Multiply two numbers. |
-| `div` | Divide the first number by the second. |
-| `mod` | Integer modulo. |
-| `min` | Return the smaller of two numbers. |
-| `max` | Return the larger of two numbers. |
-| `clamp` | Constrain a value to the range `[lo, hi]`. |
-| `abs` | Return the absolute value of a number. |
+| Function | Description |
+|----------|-------------|
+| [`abs`](#abs) | Returns the absolute value of a number. |
+| [`add`](#add) | Adds two numbers. |
+| [`clamp`](#clamp) | Constrains a value to the range `[lo, hi]`. |
+| [`div`](#div) | Divides the first number by the second. |
+| [`max`](#max) | Returns the larger of two numbers. |
+| [`min`](#min) | Returns the smaller of two numbers. |
+| [`mod`](#mod) | Returns the remainder of dividing the first number by the second, as an integer (`int64`). |
+| [`mul`](#mul) | Multiplies two numbers. |
+| [`sub`](#sub) | Subtracts the second number from the first. |
 
-## Examples
+## Functions
 
-```yaml
-# add
-# value: "{{ add .spec.basePort 1000 }}"
-# basePort=8080 → 9080
+### abs
 
-# sub
-# value: "{{ sub .spec.replicas 1 }}"
-# replicas=3 → 2
+`abs` returns the absolute value of a number.
 
-# mul
-# value: "{{ mul .spec.replicas 2 }}"
-# replicas=3 → 6
+```text
+{{ abs -300 }}  → 300
+```
 
-# div
-# value: "{{ div .spec.totalWorkers 4 }}"
-# totalWorkers=8 → 2
+### add
 
-# mod
-# value: "{{ mod .spec.port 100 }}"
-# port=8080 → 80
+`add` adds two numbers. Returns `int64` when the result is whole, `float64` otherwise.
 
-# min
-# Cap replicas at 10
-# value: "{{ min .spec.replicas 10 }}"
-# replicas=15 → 10
-# replicas=3  → 3
+```text
+{{ add 8080 1000 }}  → 9080
+```
 
-# max
-# Ensure at least 2 replicas
-# value: "{{ max .spec.replicas 2 }}"
-# replicas=1 → 2
-# replicas=5 → 5
+### clamp
 
-# clamp
-# value: "{{ clamp .spec.replicas 1 20 }}"
-# replicas=0  → 1
-# replicas=5  → 5
-# replicas=25 → 20
+`clamp` constrains a value to the range `[lo, hi]`. Equivalent to `max(lo, min(hi, val))`.
 
-# abs
-# value: "{{ abs .spec.offsetSeconds }}"
-# -300 → 300
-#  300 → 300
-# Total memory limit = replicas × per-pod limit, capped at cluster max
-# value: "{{ clamp (mul .spec.replicas .spec.memoryPerPod) 0 65536 }}"
-# Port = base + index (forEach: as index)
-# value: "{{ add .spec.basePort .index }}"
+```text
+{{ clamp 25 1 20 }}  → 20
+{{ clamp 0 1 20 }}   → 1
+```
+
+### div
+
+`div` divides the first number by the second. Returns an error on division by zero.
+
+```text
+{{ div 8 4 }}  → 2
+```
+
+### max
+
+`max` returns the larger of two numbers. Use to enforce a minimum floor.
+
+```text
+{{ max .deployment.spec.replicas 5 }}  → 5
+```
+
+### min
+
+`min` returns the smaller of two numbers. Use to cap a value at an upper bound.
+
+```text
+{{ min .deployment.spec.replicas 10 }}  → 3
+```
+
+### mod
+
+`mod` returns the remainder of dividing the first number by the second, as an integer (`int64`). An error when the second is zero.
+
+```text
+{{ mod 8080 100 }}  → 80
+```
+
+### mul
+
+`mul` multiplies two numbers.
+
+```text
+{{ mul .deployment.spec.replicas 2 }}  → 6
+```
+
+### sub
+
+`sub` subtracts the second number from the first.
+
+```text
+{{ sub .deployment.spec.replicas 1 }}  → 2
 ```

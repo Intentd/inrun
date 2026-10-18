@@ -56,8 +56,8 @@ func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string,
 
 	// Stage 3: CR construction
 	n.stage(3, "CR construction")
-	notes := c.Notes
-	obj, err := intent.Build(raw, crd, notes)
+	funcs := c.Functions
+	obj, err := intent.Build(raw, crd, funcs)
 	if err != nil {
 		n.fail(err.Error())
 		return nil, nil, "", err
@@ -91,7 +91,7 @@ func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string,
 	// unique: operator is skipped (no live cluster); external: calls are skipped.
 	n.stage(5, "Admission validation")
 	{
-		resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithIntent(raw)
+		resolver := template.NewResolverFromMap(obj.Object).WithUserFunctions(c.Functions).WithIntent(raw)
 		eval := resolver.TemplateEvaluator()
 		r := gate.EvalAdmissionValidation(obj.Object, crd, resolver, eval)
 		for _, v := range r.Violations {
@@ -129,7 +129,7 @@ func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string,
 
 	// Stage 6: Response payload
 	n.stage(6, "Response payload")
-	if payload := api.EvaluatePayload(obj.Object, crd, alias, notes); payload == nil {
+	if payload := api.EvaluatePayload(obj.Object, crd, alias, funcs); payload == nil {
 		n.detail(cmdutil.Gray("no serve.view declared — the full CR is returned"))
 	} else {
 		n.json(payload)
@@ -288,12 +288,12 @@ func RunIntentPlay(catalogPath, intentFile string) (string, error) {
 		return target, fmt.Errorf("intent file must declare a 'token' — token: <name>")
 	}
 
-	obj, err := intent.Build(raw, crd, c.Notes)
+	obj, err := intent.Build(raw, crd, c.Functions)
 	if err != nil {
 		return target, fmt.Errorf("CR construction: %w", err)
 	}
 
-	resolver := template.NewResolverFromMap(obj.Object).WithUserNotes(c.Notes).WithIntent(raw)
+	resolver := template.NewResolverFromMap(obj.Object).WithUserFunctions(c.Functions).WithIntent(raw)
 	eval := resolver.TemplateEvaluator()
 	r := gate.EvalAdmissionValidation(obj.Object, crd, resolver, eval)
 	denied := r.Denied()

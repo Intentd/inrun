@@ -1,120 +1,111 @@
-# Job Notes
+# Job
 
-Job notes read batch Job lifecycle state. They gate dependent resources on Job completion, failure, or active execution — the most common pattern in multi-step workflows where a migration or init job must finish before the main workload starts.
-
----
+Read Jobs and CronJobs: whether a Job succeeded, failed or is running, and when a CronJob last ran, last succeeded and runs next. The functions that look inside a Job's pods take the pods as a list.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `jobSucceeded` | Return `true` when `status. |
-| `jobFailed` | Return `true` when `status. |
-| `jobActive` | Return `true` when `status. |
-| `jobFirstExitCode` | Return the exit code of the first terminated pod in `_pods`. |
-| `jobActivePodNames` | Return a comma-separated list of pod names that are not yet done (phase is not Succeeded or Failed). |
-| `jobSucceededPodNames` | Return a comma-separated list of pod names that completed successfully. |
-| `jobFailedPodNames` | Return a comma-separated list of pod names that failed. |
-| `cronJobActiveCount` | Return the number of currently active Job runs (length of `status. |
-| `cronJobLastScheduleTime` | Return the last time the CronJob was scheduled (`status. |
-| `cronJobNextScheduleTime` | Return the next time the CronJob is scheduled to run (`status. |
-| `cronJobLastSuccessTime` | Return the last time the CronJob completed successfully (`status. |
-| `cronJobLastJobName` | Return the name of the most recently created Job (`_lastJob. |
-| `cronJobLastJobSucceeded` | Return `true` when the most recently created Job has at least one succeeded pod. |
-| `cronJobLastSuccessfulJobName` | Return the name of the most recently successful Job (`_lastSuccessfulJob. |
+| Function | Description |
+|----------|-------------|
+| [`cronJobActiveCount`](#cronjobactivecount) | Returns the number of currently active Job runs (length of `status.active`). |
+| [`cronJobLastScheduleTime`](#cronjoblastscheduletime) | Returns the last time the CronJob was scheduled (`status.lastScheduleTime`). |
+| [`cronJobLastSuccessTime`](#cronjoblastsuccesstime) | Returns the last time the CronJob completed successfully (`status.lastSuccessfulTime`). |
+| [`cronJobNextScheduleTime`](#cronjobnextscheduletime) | Returns when the CronJob runs next, computed from its spec the way the CronJob controller schedules it: spec.schedule in spec.timeZone (the controller's zone, UTC here, when unset). |
+| [`jobActive`](#jobactive) | Returns `true` when `status.active > 0` — at least one pod is currently running. |
+| [`jobActivePodNames`](#jobactivepodnames) | Returns the names of the job's pods that are not done (neither Succeeded nor Failed). |
+| [`jobFailed`](#jobfailed) | Returns `true` when `status.failed > 0` — at least one pod has failed (and not been retried to success). |
+| [`jobFailedPodNames`](#jobfailedpodnames) | Returns the names of the job's pods that failed. |
+| [`jobFirstExitCode`](#jobfirstexitcode) | Returns the exit code of the first terminated container among the job's pods; -1 when none has terminated yet. |
+| [`jobSucceeded`](#jobsucceeded) | Returns `true` when `status.succeeded > 0` — at least one pod has completed successfully. |
+| [`jobSucceededPodNames`](#jobsucceededpodnames) | Returns the names of the job's pods that succeeded. |
 
-## Examples
+## Functions
 
-```yaml
-# jobSucceeded
-# Gate the main deployment on a migration job:
-when:
-  - field: "{{ jobSucceeded .children.migrationjob }}"
-    equals: "true"
+### cronJobActiveCount
 
-# jobFailed
-# Require both: not failed AND succeeded before proceeding:
-when:
-  - field: "{{ jobFailed .children.migrationjob }}"
-    equals: "false"
-  - field: "{{ jobSucceeded .children.migrationjob }}"
-    equals: "true"
+`cronJobActiveCount` returns the number of currently active Job runs (length of `status.active`).
 
-# jobActive
-# Block cleanup until the job is no longer running:
-when:
-  - field: "{{ jobActive .children.cleanupjob }}"
-    equals: "false"
+```text
+{{ cronJobActiveCount .cronjob }}  → 1
+```
 
-# jobFirstExitCode
-- path: exitCode
-  value: "{{ jobFirstExitCode .children.migrationjob }}"
-# → 0
+### cronJobLastScheduleTime
 
-# jobActivePodNames
-- path: runningPods
-  value: "{{ jobActivePodNames .children.migrationjob }}"
-# → "my-job-abc, my-job-def"
+`cronJobLastScheduleTime` returns the last time the CronJob was scheduled (`status.lastScheduleTime`). Returns `""` when not yet scheduled.
 
-# jobSucceededPodNames
-- path: succeededPods
-  value: "{{ jobSucceededPodNames .children.migrationjob }}"
-# → "my-job-abc"
+```text
+{{ cronJobLastScheduleTime .cronjob }}  → "2026-05-19T10:00:00Z"
+```
 
-# jobFailedPodNames
-- path: failedPods
-  value: "{{ jobFailedPodNames .children.migrationjob }}"
-# → "my-job-xyz"
+### cronJobLastSuccessTime
 
-# cronJobActiveCount
-- path: activeRuns
-  value: "{{ cronJobActiveCount .children.cronjob }}"
-# → 1
+`cronJobLastSuccessTime` returns the last time the CronJob completed successfully (`status.lastSuccessfulTime`). Returns `""` when it has never succeeded.
 
-# cronJobLastScheduleTime
-- path: lastScheduled
-  value: "{{ cronJobLastScheduleTime .children.cronjob }}"
-# → "2026-05-19T10:00:00Z"
+```text
+{{ cronJobLastSuccessTime .cronjob }}  → "2026-05-19T10:00:00Z"
+```
 
-# cronJobNextScheduleTime
-- path: nextScheduleTime
-  value: "{{ cronJobNextScheduleTime .children.cronjob }}"
-# → "2026-05-19T11:00:00Z"
+### cronJobNextScheduleTime
 
-# cronJobLastSuccessTime
-- path: lastSuccess
-  value: "{{ cronJobLastSuccessTime .children.cronjob }}"
-# → "2026-05-19T10:00:00Z"
+`cronJobNextScheduleTime` returns when the CronJob runs next, computed from its spec the way the CronJob controller schedules it: spec.schedule in spec.timeZone (the controller's zone, UTC here, when unset). "" when the CronJob is suspended or has no schedule; an error when the schedule or time zone does not parse.
 
-# cronJobLastJobName
-- path: lastJobName
-  value: "{{ cronJobLastJobName .children.cronjob }}"
-# → "my-job-28600000"
+```text
+{{ cronJobNextScheduleTime .cronjob }}  → "2026-05-19T11:00:00Z"
+```
 
-# cronJobLastJobSucceeded
-when:
-  - field: "{{ cronJobLastJobSucceeded .children.cronjob }}"
-    equals: "true"
+See also: [`nextCron`](../time/#nextcron), [`cronJobLastScheduleTime`](#cronjoblastscheduletime)
 
-# cronJobLastSuccessfulJobName
-- path: lastSuccessfulJob
-  value: "{{ cronJobLastSuccessfulJobName .children.cronjob }}"
-# → "my-job-28599900"
-status:
-  fields:
-    - path: migrationSucceeded
-      value: "{{ jobSucceeded .children.migrationjob }}"
-    - path: migrationFailed
-      value: "{{ jobFailed .children.migrationjob }}"
-    - path: migrationRunning
-      value: "{{ jobActive .children.migrationjob }}"
+### jobActive
 
-resources:
-  - kind: Deployment
-    name: app
-    when:
-      - field: status.migrationSucceeded
-        equals: "true"
-      - field: status.migrationFailed
-        equals: "false"
+`jobActive` returns `true` when `status.active > 0` — at least one pod is currently running.
+
+```text
+{{ jobActive .job }}  → false
+```
+
+### jobActivePodNames
+
+`jobActivePodNames` returns the names of the job's pods that are not done (neither Succeeded nor Failed).
+
+```text
+{{ jobActivePodNames .jobPods }}  → [migrate-r2d5m]
+```
+
+### jobFailed
+
+`jobFailed` returns `true` when `status.failed > 0` — at least one pod has failed (and not been retried to success).
+
+```text
+{{ jobFailed .job }}  → false
+```
+
+### jobFailedPodNames
+
+`jobFailedPodNames` returns the names of the job's pods that failed.
+
+```text
+{{ jobFailedPodNames .jobPods }}  → [migrate-x7k2p]
+```
+
+### jobFirstExitCode
+
+`jobFirstExitCode` returns the exit code of the first terminated container among the job's pods; -1 when none has terminated yet.
+
+```text
+{{ jobFirstExitCode .jobPods }}  → 1
+```
+
+### jobSucceeded
+
+`jobSucceeded` returns `true` when `status.succeeded > 0` — at least one pod has completed successfully.
+
+```text
+{{ jobSucceeded .job }}  → true
+```
+
+### jobSucceededPodNames
+
+`jobSucceededPodNames` returns the names of the job's pods that succeeded.
+
+```text
+{{ jobSucceededPodNames .jobPods }}  → [migrate-q9w4z]
 ```

@@ -119,7 +119,7 @@ func validateClusterRef(cat *catalog.Catalog, crdName, value, path string) error
 		return nil
 	}
 
-	funcMap := buildFuncMapForValidation(cat.Notes)
+	funcMap := buildFuncMapForValidation(cat.Functions)
 	if isTemplate(value) {
 		if err := validateTemplate("serve.cluster", crdName, "cluster", path, value, funcMap); err != nil {
 			return err

@@ -42,11 +42,11 @@ type Merger struct {
 	profiles types.ProfileRegistry
 
 	// specImports holds the spec.imports module list from the loaded Catalog.
-	// These are modules whose profiles and notes are merged at the Catalog level.
+	// These are modules whose profiles and functions are merged at the Catalog level.
 	specImports []types.ModuleImport
 
-	// notes holds the Catalog-level user-defined note registry.
-	notes types.NoteRegistry
+	// functions holds the Catalog-level user-defined function registry.
+	functions types.KELFunctionRegistry
 
 	// lifecycle holds the lifecycle policy of the final catalog.
 	lifecycle *types.CatalogLifecycle
@@ -398,11 +398,11 @@ func (m *Merger) ToSpecImports() []types.ModuleImport {
 	return m.specImports
 }
 
-// ToNotes returns the Catalog-level user-defined note registry.
-// Used by BuildRuntimeCatalog to populate Catalog.Notes.
-func (m *Merger) ToNotes() types.NoteRegistry {
+// ToFunctions returns the Catalog-level user-defined function registry.
+// Used by BuildRuntimeCatalog to populate Catalog.Functions.
+func (m *Merger) ToFunctions() types.KELFunctionRegistry {
 	m.mustBeMerged()
-	return m.notes
+	return m.functions
 }
 
 // ToLifecycle returns the lifecycle policy of the merged result.

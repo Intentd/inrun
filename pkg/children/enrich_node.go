@@ -44,33 +44,8 @@ func enrichGroupWithNode(ctx context.Context, kube kubeclient.Interface, m map[s
 		if err != nil {
 			continue
 		}
-		summary := buildNodeSummary(u.Object)
-		nodeCache[nodeName] = summary
-		obj["_node"] = summary
-	}
-}
-
-// buildNodeSummary extracts the fields most useful for status expressions.
-// Topology labels follow the well-known Kubernetes label schema:
-// topology.kubernetes.io/zone and topology.kubernetes.io/region.
-// Instance type comes from node.kubernetes.io/instance-type (cloud providers).
-func buildNodeSummary(nodeObj map[string]interface{}) map[string]interface{} {
-	meta, _ := nodeObj["metadata"].(map[string]interface{})
-	name := ""
-	zone, region, instanceType := "", "", ""
-	if meta != nil {
-		name, _ = meta["name"].(string)
-		labels, _ := meta["labels"].(map[string]interface{})
-		if labels != nil {
-			zone, _ = labels["topology.kubernetes.io/zone"].(string)
-			region, _ = labels["topology.kubernetes.io/region"].(string)
-			instanceType, _ = labels["node.kubernetes.io/instance-type"].(string)
-		}
-	}
-	return map[string]interface{}{
-		"name":         name,
-		"zone":         zone,
-		"region":       region,
-		"instanceType": instanceType,
+		trimmed := trimNode(u.Object)
+		nodeCache[nodeName] = trimmed
+		obj["_node"] = trimmed
 	}
 }

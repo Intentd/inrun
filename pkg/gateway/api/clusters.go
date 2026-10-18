@@ -177,7 +177,7 @@ func resolveClusterTargets(
 	crd *types.CRDEntry,
 	alias string,
 	fields map[string]interface{},
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 	registry *ClusterRegistry,
 	localKube kubeclient.Interface,
 ) ([]clusterTarget, error) {
@@ -202,7 +202,7 @@ func resolveClusterTargets(
 			if fields == nil {
 				return []clusterTarget{{name: "", kube: localKube}}, nil
 			}
-			resolver := template.NewResolverFromMap(fields).WithUserNotes(notes).WithIntent(fields)
+			resolver := template.NewResolverFromMap(fields).WithUserFunctions(notes).WithIntent(fields)
 			resolved, err := resolver.Resolve(expr)
 			if err != nil {
 				return nil, fmt.Errorf("resolving cluster expression %q: %w", expr, err)
@@ -231,7 +231,7 @@ func resolveClusterTargets(
 func resolveReadCluster(
 	crd *types.CRDEntry,
 	alias string,
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 	registry *ClusterRegistry,
 	localKube kubeclient.Interface,
 ) (kubeclient.Interface, error) {

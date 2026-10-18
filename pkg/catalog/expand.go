@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -12,8 +13,8 @@ func (c *Catalog) expandIncludes() error {
 	}
 	// ── Catalog Level ───────────────────────────────────────────────────────────────────
 
-	if err := types.ExpandNotesInclude(&c.Notes, c.catalogDir); err != nil {
-		return fmt.Errorf("notes: %w", err)
+	if err := types.ExpandFunctionsInclude(&c.Functions, c.catalogDir); err != nil {
+		return fmt.Errorf("functions: %w", err)
 	}
 	if err := types.ExpandProfileInclude(&c.Profiles, c.catalogDir); err != nil {
 		return fmt.Errorf("profiles: %w", err)

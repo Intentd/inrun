@@ -124,11 +124,11 @@ func ExpandConversionInclude(co *CRDConversion, baseDir string) error {
 	return nil
 }
 
-// ExpandNotesInclude resolves the notes.include field by reading the referenced
-// file, unmarshaling its "functions:" list, and prepending it to the inline
+// ExpandFunctionsInclude resolves the functions.include field by reading the referenced
+// file, unmarshaling its "definitions:" list, and prepending it to the inline
 // functions. Inline functions append after included ones.
 // The include path is resolved relative to baseDir. Cleared after expansion.
-func ExpandNotesInclude(nr *NoteRegistry, baseDir string) error {
+func ExpandFunctionsInclude(nr *KELFunctionRegistry, baseDir string) error {
 	if nr.Include == "" {
 		return nil
 	}
@@ -138,15 +138,15 @@ func ExpandNotesInclude(nr *NoteRegistry, baseDir string) error {
 	}
 	data, err := readLocal(path)
 	if err != nil {
-		return fmt.Errorf("reading notes.include %q: %w", nr.Include, err)
+		return fmt.Errorf("reading functions.include %q: %w", nr.Include, err)
 	}
 	var f struct {
-		Functions []UserDefinedNote `yaml:"functions"`
+		Definitions []UserDefinedFunction `yaml:"definitions"`
 	}
 	if err := strictUnmarshal(data, &f); err != nil {
-		return fmt.Errorf("parsing notes.include %q: %w", nr.Include, err)
+		return fmt.Errorf("parsing functions.include %q: %w", nr.Include, err)
 	}
-	nr.Functions = append(f.Functions, nr.Functions...)
+	nr.Definitions = append(f.Definitions, nr.Definitions...)
 	nr.Include = ""
 	return nil
 }

@@ -1,63 +1,56 @@
-# Field Notes
+# Fields
 
-Field notes are direct accessors for the common Kubernetes metadata fields that appear on every resource. They eliminate the need to navigate `metadata.*` paths manually and provide a consistent way to identify resources by name, namespace, UID, or version.
-
----
+Read the fields every Kubernetes object has: name, namespace, UID, resource version, creation timestamp, labels and annotations.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `resourceName` | Return `metadata. |
-| `resourceNamespace` | Return `metadata. |
-| `resourceUID` | Return `metadata. |
-| `resourceVersion` | Return `metadata. |
-| `creationTimestamp` | Return `metadata. |
+| Function | Description |
+|----------|-------------|
+| [`creationTimestamp`](#creationtimestamp) | Returns `metadata.creationTimestamp` as an RFC3339 string. |
+| [`resourceName`](#resourcename) | Returns `metadata.name`. |
+| [`resourceNamespace`](#resourcenamespace) | Returns `metadata.namespace`. |
+| [`resourceUID`](#resourceuid) | Returns `metadata.uid` — the unique identifier assigned by the API server. |
+| [`resourceVersion`](#resourceversion) | Returns `metadata.resourceVersion` — the etcd revision string. |
 
-## Examples
+## Functions
 
-```yaml
-# resourceName
-# value: "{{ resourceName .children.deployment }}"  → "my-app"
+### creationTimestamp
 
-# Include child name in a status field:
-- path: deploymentName
-  value: "{{ resourceName .children.deployment }}"
+`creationTimestamp` returns `metadata.creationTimestamp` as an RFC3339 string.
 
-# resourceNamespace
-# value: "{{ resourceNamespace .children.deployment }}"  → "production"
+```text
+{{ creationTimestamp .deployment }}  → "2026-01-15T10:30:00Z"
+{{ timeSince (creationTimestamp .deployment) }}
+```
 
-# Gate on namespace in status:
-- path: deployedNamespace
-  value: "{{ resourceNamespace .children.deployment }}"
+### resourceName
 
-# resourceUID
-# value: "{{ resourceUID .children.deployment }}"
-# → "4b3f8d21-8e3a-4f8c-b9d2-1a2b3c4d5e6f"
+`resourceName` returns `metadata.name`. Returns `""` when absent.
 
-# resourceVersion
-# value: "{{ resourceVersion .children.deployment }}"  → "14872"
+```text
+{{ resourceName .deployment }}  → "web"
+```
 
-# creationTimestamp
-# value: "{{ creationTimestamp .children.deployment }}"  → "2024-01-15T10:30:00Z"
+### resourceNamespace
 
-# Combine with time notes to compute age:
-- path: deploymentAge
-  value: "{{ timeSince (creationTimestamp .children.deployment) }}"
-# Preferred — note syntax works everywhere
-when:
-  - field: "{{ resourceExists .children.deployment }}"
-    equals: "true"
-  - field: "{{ resourceNamespace .children.deployment }}"
-    equals: "production"
+`resourceNamespace` returns `metadata.namespace`. Returns `""` for cluster-scoped resources.
 
-status:
-  fields:
-    - path: childName
-      value: "{{ resourceName .children.deployment }}"
-    - path: childUID
-      value: "{{ resourceUID .children.deployment }}"
+```text
+{{ resourceNamespace .deployment }}  → "payments"
+```
 
-# Avoid — raw path, panics if metadata absent
-# field: children.deployment.metadata.name
+### resourceUID
+
+`resourceUID` returns `metadata.uid` — the unique identifier assigned by the API server. Stable across renames; changes on delete-and-recreate.
+
+```text
+{{ resourceUID .deployment }}  → "4b3f8d21-8e3a-4f8c-b9d2-1a2b3c4d5e6f"
+```
+
+### resourceVersion
+
+`resourceVersion` returns `metadata.resourceVersion` — the etcd revision string. Increments on every write. Useful for detecting whether an object has changed since last observation.
+
+```text
+{{ resourceVersion .deployment }}  → "14872"
 ```

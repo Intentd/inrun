@@ -39,7 +39,7 @@ func enrichGroupWithWarnings(ctx context.Context, kube kubeclient.Interface, m m
 }
 
 // enrichWithWarnings fetches Warning events scoped to the named resource and
-// embeds a list of {reason, message, count, lastTimestamp} maps under _warnings.
+// attaches them (native Events, trimmed) under _warnings.
 //
 // Field selector: involvedObject.name=<name>,type=Warning
 // When kind is non-empty: involvedObject.kind=<kind> is appended.
@@ -66,7 +66,7 @@ func enrichWithWarnings(ctx context.Context, kube kubeclient.Interface, ns, name
 		})
 	if err == nil && list != nil {
 		for i := range list.Items {
-			warnings = append(warnings, buildWarningSummary(list.Items[i].Object))
+			warnings = append(warnings, trimEvent(list.Items[i].Object))
 		}
 	}
 
@@ -116,22 +116,8 @@ func fetchOwnedPodWarnings(ctx context.Context, kube kubeclient.Interface, ns st
 			continue
 		}
 		for j := range evList.Items {
-			warnings = append(warnings, buildWarningSummary(evList.Items[j].Object))
+			warnings = append(warnings, trimEvent(evList.Items[j].Object))
 		}
 	}
 	return warnings
-}
-
-// buildWarningSummary extracts the fields note functions navigate from _warnings.
-func buildWarningSummary(obj map[string]interface{}) map[string]interface{} {
-	reason, _ := obj["reason"].(string)
-	message, _ := obj["message"].(string)
-	lastTimestamp, _ := obj["lastTimestamp"].(string)
-	count := toInt64(obj["count"])
-	return map[string]interface{}{
-		"reason":        reason,
-		"message":       message,
-		"count":         count,
-		"lastTimestamp": lastTimestamp,
-	}
 }

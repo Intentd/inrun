@@ -33,7 +33,7 @@ func (c *Catalog) SerializeExpanded() ([]byte, error) {
 		Security:   c.Security,
 		Gateway:    c.Gateway,
 		Profiles:   c.Profiles,
-		Notes:      c.Notes,
+		Functions:  c.Functions,
 	}
 
 	out, err := yaml.Marshal(kf)

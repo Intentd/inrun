@@ -185,13 +185,13 @@ type StatefulSetTemplateSource struct {
 	//	  scaleUp:
 	//	    conditions:
 	//	      when:
-	//	        - field: "{{ promAboveThreshold \"cpu_usage\" 80 }}"
+	//	        - field: "{{ promAboveThreshold .external.cpu.raw 80 }}"
 	//	          equals: "true"
 	//	    increment: 1
 	//	  scaleDown:
 	//	    conditions:
 	//	      when:
-	//	        - field: "{{ promBelowThreshold \"cpu_usage\" 20 }}"
+	//	        - field: "{{ promBelowThreshold .external.cpu.raw 20 }}"
 	//	          equals: "true"
 	//	    decrement: 1
 	Autoscale *WorkloadAutoscale `yaml:"autoscale,omitempty" json:"autoscale,omitempty"`

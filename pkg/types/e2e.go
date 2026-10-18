@@ -307,7 +307,7 @@ type E2ESpec struct {
 
 	// Notes declares user-defined note functions available in when:/or: expressions.
 	// Same syntax as a Catalog notes block — same FuncMap registration, same functions.
-	Notes NoteRegistry `yaml:"notes,omitempty"`
+	Notes KELFunctionRegistry `yaml:"notes,omitempty"`
 
 	// Expect is the list of expectations to check after each lifecycle event.
 	Expect []E2EExpectation `yaml:"expect"`

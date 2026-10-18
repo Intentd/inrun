@@ -7,7 +7,7 @@ import (
 )
 
 func expandIncludes(m *types.Module, dir string) error {
-	if err := types.ExpandNotesInclude(&m.Notes, dir); err != nil {
+	if err := types.ExpandFunctionsInclude(&m.Functions, dir); err != nil {
 		return err
 	}
 	if err := types.ExpandProfileInclude(&m.Profiles, dir); err != nil {

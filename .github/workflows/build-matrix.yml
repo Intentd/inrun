@@ -47,8 +47,8 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Run note generator
-        run: make generate-notes
+      - name: Run function generator
+        run: make generate-functions
 
       - name: Cache compiled binaries for ${{ matrix.os }}_${{ matrix.arch }}
         id: cache-binaries

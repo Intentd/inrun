@@ -44,9 +44,9 @@ func resourcesHandler(
 	clusters *ClusterRegistry,
 	cat *catalog.Catalog,
 ) http.HandlerFunc {
-	var notes types.NoteRegistry
+	var notes types.KELFunctionRegistry
 	if !cat.Empty() {
-		notes = cat.UserNotes()
+		notes = cat.UserFunctions()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		kind, ns, name, err := parsePath(r.URL.Path)
@@ -135,7 +135,7 @@ func getResource(
 	ns, name string,
 	crd *types.CRDEntry,
 	alias string,
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 ) {
 	// When the CRD declares serve.tokens, the authenticated token must
 	// have permission to perform the operation it is attempting.
@@ -211,7 +211,7 @@ func listResources(
 	ns string,
 	crd *types.CRDEntry,
 	alias string,
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 ) {
 	if !checkServePermission(w, r, crd, types.ServeClassResources, types.ServeOpList, ns, alias) {
 		return

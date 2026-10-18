@@ -8,8 +8,8 @@ metadata:
     - allowedRegistry: the image prefix that all images must come from
     - defaultReplicas: the fallback replica count injected by mutation
 
-notes:
-  functions:
+functions:
+  definitions:
     - name: inBusinessHours
       description: True during Mon–Fri 09:00–18:00 UTC
       expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'

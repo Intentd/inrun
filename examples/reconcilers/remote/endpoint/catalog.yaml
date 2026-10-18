@@ -14,8 +14,8 @@ metadata:
     - migration
     - remote
 
-notes:
-  functions:
+functions:
+  definitions:
     - name: reconcilerEndpoint
       description: Remote reconciler HTTP endpoint — its in-cluster Service, or localhost when inrun runs outside the cluster
       expression: >

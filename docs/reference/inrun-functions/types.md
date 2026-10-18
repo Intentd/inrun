@@ -1,193 +1,169 @@
-# Type Notes
+# Types
 
-Type notes inspect and convert the runtime Go types of values in the CR. Because Kubernetes stores everything as JSON, field types depend on how the API server serialized them — these notes let you branch on that safely.
+Inspect and convert types: what type a value has (map, slice, string, number, bool, null), whether it is empty, and conversion to strings, numbers, booleans, lists and JSON.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `typeOf` | Return the runtime type name of any value. |
-| `typeMap` | Shorthand predicates — return `true` when the value matches that type. |
-| `typeList` | Shorthand predicates — return `true` when the value matches that type. |
-| `typeString` | Shorthand predicates — return `true` when the value matches that type. |
-| `typeNumber` | Shorthand predicates — return `true` when the value matches that type. |
-| `typeBool` | Shorthand predicates — return `true` when the value matches that type. |
-| `typeNull` | Shorthand predicates — return `true` when the value matches that type. |
-| `len` | Return the length of a string, slice, or map. |
-| `toInt` | Convert any value to `int64`. |
-| `toFloat` | Convert any value to `float64`. |
-| `toBool` | Convert a value to `bool`. |
-| `toString` | Convert any value to its string representation. |
-| `toJson` | Convert any value to its JSON representation. |
-| `toList` | Convert a comma-separated string to a list of trimmed strings. |
+| Function | Description |
+|----------|-------------|
+| [`isComposite`](#iscomposite) | Reports whether v holds other values: a map or a slice. |
+| [`isEmpty`](#isempty) | Returns `true` when the value is nil, an empty string, an empty slice, or an empty map. |
+| [`isScalar`](#isscalar) | Reports whether v is a single value: a string, number or bool. |
+| [`len`](#len) | Returns the length of a string, slice, or map. |
+| [`toBool`](#tobool) | Converts a value to `bool`. |
+| [`toFloat`](#tofloat) | Converts any value to `float64`. |
+| [`toInt`](#toint) | Converts any value to `int64`. |
+| [`toJSON`](#tojson) | Marshals any value to a JSON string. |
+| [`toList`](#tolist) | Converts a comma-separated string to a list of trimmed strings. |
+| [`toString`](#tostring) | Converts any value to its string representation. |
+| [`typeBool`](#typebool) | Reports whether v is a boolean; the same as eq (typeOf v) "bool". |
+| [`typeList`](#typelist) | Reports whether v is a list (a YAML array); the same as eq (typeOf v) "slice". |
+| [`typeMap`](#typemap) | Reports whether v is a map (a YAML object); the same as eq (typeOf v) "map". |
+| [`typeNull`](#typenull) | Reports whether v is null or absent; the same as eq (typeOf v) "null". |
+| [`typeNumber`](#typenumber) | Reports whether v is a number; the same as eq (typeOf v) "number". |
+| [`typeOf`](#typeof) | Returns the runtime type name of any value. |
+| [`typeString`](#typestring) | Reports whether v is a string; the same as eq (typeOf v) "string". |
 
-## Examples
+## Functions
 
-```yaml
-# typeOf
-# value: "{{ typeOf .spec.schedule }}"
+### isComposite
 
-# typeMap
-normalize:
-  spec:
-    schedule: >
-      {{ if typeMap .spec.schedule }}
-        {{ cronFromMap .spec.schedule }}
-      {{ else }}
-        {{ cronNormalize .spec.schedule }}
-      {{ end }}
-# value: "{{ typeList .spec.regions }}"
-# spec.regions: [us-east-1, eu-west-1] → true
-# spec.regions: "us-east-1"           → false
-# value: "{{ Empty .spec.annotations }}"
-# {}          → true
-# nil         → true
-# {app: foo}  → false
+`isComposite` reports whether v holds other values: a map or a slice.
 
-# typeList
-normalize:
-  spec:
-    schedule: >
-      {{ if typeMap .spec.schedule }}
-        {{ cronFromMap .spec.schedule }}
-      {{ else }}
-        {{ cronNormalize .spec.schedule }}
-      {{ end }}
-# value: "{{ typeList .spec.regions }}"
-# spec.regions: [us-east-1, eu-west-1] → true
-# spec.regions: "us-east-1"           → false
-# value: "{{ Empty .spec.annotations }}"
-# {}          → true
-# nil         → true
-# {app: foo}  → false
+```text
+{{ isComposite .spec.selector }}  → true
+{{ isComposite .spec.replicas }}  → false
+```
 
-# typeString
-normalize:
-  spec:
-    schedule: >
-      {{ if typeMap .spec.schedule }}
-        {{ cronFromMap .spec.schedule }}
-      {{ else }}
-        {{ cronNormalize .spec.schedule }}
-      {{ end }}
-# value: "{{ typeList .spec.regions }}"
-# spec.regions: [us-east-1, eu-west-1] → true
-# spec.regions: "us-east-1"           → false
-# value: "{{ Empty .spec.annotations }}"
-# {}          → true
-# nil         → true
-# {app: foo}  → false
+### isEmpty
 
-# typeNumber
-normalize:
-  spec:
-    schedule: >
-      {{ if typeMap .spec.schedule }}
-        {{ cronFromMap .spec.schedule }}
-      {{ else }}
-        {{ cronNormalize .spec.schedule }}
-      {{ end }}
-# value: "{{ typeList .spec.regions }}"
-# spec.regions: [us-east-1, eu-west-1] → true
-# spec.regions: "us-east-1"           → false
-# value: "{{ Empty .spec.annotations }}"
-# {}          → true
-# nil         → true
-# {app: foo}  → false
+`isEmpty` returns `true` when the value is nil, an empty string, an empty slice, or an empty map.
 
-# typeBool
-normalize:
-  spec:
-    schedule: >
-      {{ if typeMap .spec.schedule }}
-        {{ cronFromMap .spec.schedule }}
-      {{ else }}
-        {{ cronNormalize .spec.schedule }}
-      {{ end }}
-# value: "{{ typeList .spec.regions }}"
-# spec.regions: [us-east-1, eu-west-1] → true
-# spec.regions: "us-east-1"           → false
-# value: "{{ Empty .spec.annotations }}"
-# {}          → true
-# nil         → true
-# {app: foo}  → false
+```text
+{{ isEmpty .spec.logLevel }}  → true
+{{ isEmpty .spec.regions }}   → false
+```
 
-# typeNull
-normalize:
-  spec:
-    schedule: >
-      {{ if typeMap .spec.schedule }}
-        {{ cronFromMap .spec.schedule }}
-      {{ else }}
-        {{ cronNormalize .spec.schedule }}
-      {{ end }}
-# value: "{{ typeList .spec.regions }}"
-# spec.regions: [us-east-1, eu-west-1] → true
-# spec.regions: "us-east-1"           → false
-# value: "{{ Empty .spec.annotations }}"
-# {}          → true
-# nil         → true
-# {app: foo}  → false
+### isScalar
 
-# len
-# value: "{{ len .spec.regions }}"
-# ["us-east-1", "eu-west-1"] → 2
+`isScalar` reports whether v is a single value: a string, number or bool.
 
-# value: "{{ len .spec.schedule }}"
-# {minute: "*/5", hour: "*", ...} → 5  (map with 5 fields)
+```text
+{{ isScalar .deployment.spec.replicas }}  → true
+{{ isScalar .spec.selector }}  → false
+```
 
-# value: "{{ len .metadata.name }}"
-# "my-app" → 6  (string length)
+### len
 
-# toInt
-# value: "{{ toInt .spec.replicas }}"
-# "3"   → 3
-# 3.7   → 3
-# true  → 1
-# false → 0
+`len` returns the length of a string, slice, or map. Overrides Go's built-in `len` with one that handles all three types uniformly.
 
-# toFloat
-# value: "{{ toFloat .spec.threshold }}"
-# "0.75" → 0.75
-# 3      → 3.0
+```text
+{{ len .spec.regions }}            → 2
+{{ len .deployment.metadata.name }}  → 3
+```
 
-# toBool
-# value: "{{ toBool .spec.enabled }}"
-# "yes"  → true
-# "no"   → false
-# "true" → true
+### toBool
 
-# toString
-# value: "{{ toString .spec.replicas }}"
-# 3     → "3"
-# true  → "true"
-# 3.14  → "3.14"
+`toBool` converts a value to `bool`. Returns an error for unrecognized strings.
 
-# toJson
-# value: "{{ toJson .spec }}"    →  `{"replicas":3,"enabled":true}`
+```text
+{{ toBool "yes" }}  → true
+```
 
-# toList
-# value: "{{ toList .spec.excludeFields }}"
-# "a,b,c"   → ["a", "b", "c"]
-# "a, b, c" → ["a", "b", "c"]  (spaces trimmed)
-# ""        → []
-# "foo"     → ["foo"]
-serve:
-  view:
-    exclude: '{{ toList (getAnnotation . "platform.myorg.io/exclude-fields") }}'
-notes:
-  - name: excludeForExternal
-    expression: |
-      {{ if eq (getLabel . "visibility") "external" }}
-        "metadata.managedFields,status.detailed,spec.internalSecrets"
-      {{ else }}
-        ""
-      {{ end }}
+### toFloat
 
-serve:
-  view:
-    exclude: '{{ toList (excludeForExternal) }}'
-when:
-  - field: spec.schedule
-    typeOf: map       # same string that typeOf returns
+`toFloat` converts any value to `float64`.
+
+```text
+{{ toFloat "0.75" }}  → 0.75
+```
+
+### toInt
+
+`toInt` converts any value to `int64`. Truncates floats.
+
+```text
+{{ toInt "3" }}  → 3
+{{ toInt 3.7 }}  → 3
+```
+
+### toJSON
+
+`toJSON` marshals any value to a JSON string. Useful for embedding structured data in annotations, ConfigMap values, or status fields.
+
+```text
+{{ toJSON .spec.selector }}  → {"app":"web","tier":"frontend"}
+```
+
+### toList
+
+`toList` converts a comma-separated string to a list of trimmed strings. Returns an empty list for empty strings. Use it where a comma-separated value, such as an annotation, needs to be treated as a list.
+
+```text
+{{ toList "a, b, c" }}  → [a b c]
+```
+
+### toString
+
+`toString` converts any value to its string representation. Uses `fmt.Sprintf("%v", v)`.
+
+```text
+{{ toString .deployment.spec.replicas }}  → "3"
+```
+
+### typeBool
+
+`typeBool` reports whether v is a boolean; the same as eq (typeOf v) "bool".
+
+```text
+{{ if typeBool .spec.schedule }}…{{ end }}
+```
+
+### typeList
+
+`typeList` reports whether v is a list (a YAML array); the same as eq (typeOf v) "slice".
+
+```text
+{{ if typeList .spec.schedule }}…{{ end }}
+```
+
+### typeMap
+
+`typeMap` reports whether v is a map (a YAML object); the same as eq (typeOf v) "map".
+
+```text
+{{ if typeMap .spec.schedule }}…{{ end }}
+```
+
+### typeNull
+
+`typeNull` reports whether v is null or absent; the same as eq (typeOf v) "null".
+
+```text
+{{ if typeNull .spec.schedule }}…{{ end }}
+```
+
+### typeNumber
+
+`typeNumber` reports whether v is a number; the same as eq (typeOf v) "number".
+
+```text
+{{ if typeNumber .spec.schedule }}…{{ end }}
+```
+
+### typeOf
+
+`typeOf` returns the runtime type name of any value. The canonical way to branch on field type.
+
+```text
+{{ typeOf .spec.schedule }}  → "map"
+{{ typeOf .spec.regions }}   → "slice"
+```
+
+### typeString
+
+`typeString` reports whether v is a string; the same as eq (typeOf v) "string".
+
+```text
+{{ if typeString .spec.schedule }}…{{ end }}
 ```

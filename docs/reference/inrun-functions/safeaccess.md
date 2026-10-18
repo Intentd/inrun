@@ -1,46 +1,48 @@
-# Safe Access Notes
+# Safe access
 
-Safe access notes return a typed value with a fallback default. They remove the need to combine `typeOf` + `default` + type conversion for the common pattern of "get this field or use a default if it's absent or the wrong type".
+Read a nested field and fall back to a default when it is absent or of the wrong type, typed as a string, an integer or a boolean.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `getOr` | Return `val` if non-empty, otherwise `def`. |
-| `getStringOr` | Return `val` as a string if it is a non-empty string, otherwise return `def`. |
-| `getIntOr` | Return `val` as `int` if it is a numeric type (`int`, `int64`, `float64`), otherwise return `def`. |
-| `getBoolOr` | Return `val` as `bool` if it is a `bool`, otherwise return `def`. |
+| Function | Description |
+|----------|-------------|
+| [`getBoolOr`](#getboolor) | Returns `val` as `bool` if it is a `bool`, otherwise returns `def`. |
+| [`getIntOr`](#getintor) | Returns `val` as `int` if it is a numeric type (`int`, `int64`, `float64`), otherwise returns `def`. |
+| [`getOr`](#getor) | Returns `val` if non-empty, otherwise `def`. |
+| [`getStringOr`](#getstringor) | Returns `val` as a string if it is a non-empty string, otherwise returns `def`. |
 
-## Examples
+## Functions
 
-```yaml
-# getOr
-# value: "{{ getOr .spec.replicas 1 }}"
-# replicas=3       → 3
-# replicas absent  → 1
+### getBoolOr
 
-# getStringOr
-# value: "{{ getStringOr .spec.image \"nginx:latest\" }}"
-# spec.image="busybox:1.35" → "busybox:1.35"
-# spec.image absent         → "nginx:latest"
-# spec.image=3 (number)     → "nginx:latest"  (not a string — use def)
+`getBoolOr` returns `val` as `bool` if it is a `bool`, otherwise returns `def`.
 
-# getIntOr
-# value: "{{ getIntOr .spec.replicas 1 }}"
-# spec.replicas=3      → 3
-# spec.replicas=3.0    → 3  (float64 → int)
-# spec.replicas absent → 1
-# spec.replicas="3"    → 1  (string not accepted — use def)
+```text
+{{ getBoolOr .spec.debug false }}    → true
+{{ getBoolOr .spec.suspend false }}  → false
+```
 
-# getBoolOr
-# value: "{{ getBoolOr .spec.enabled false }}"
-# spec.enabled=true   → true
-# spec.enabled=false  → false
-# spec.enabled absent → false
-# spec.enabled="true" → false  (string not accepted — use boolDefault)
-# Clamp replicas to [1, 20] with a default of 2
-# value: "{{ clamp (getIntOr .spec.replicas 2) 1 20 }}"
+### getIntOr
 
-# Use replicas or a field-based default
-# value: "{{ getIntOr .spec.replicas (getIntOr .spec.defaultReplicas 1) }}"
+`getIntOr` returns `val` as `int` if it is a numeric type (`int`, `int64`, `float64`), otherwise returns `def`.
+
+```text
+{{ getIntOr .deployment.spec.replicas 1 }}  → 3
+{{ getIntOr .spec.workers 1 }}             → 1
+```
+
+### getOr
+
+`getOr` returns `val` if non-empty, otherwise `def`. The generic version — same semantics as `default` but reads more naturally when chaining with other functions.
+
+```text
+{{ getOr .spec.workers 4 }}  → 4
+```
+
+### getStringOr
+
+`getStringOr` returns `val` as a string if it is a non-empty string, otherwise returns `def`.
+
+```text
+{{ getStringOr .spec.sidecarImage "envoyproxy/envoy:v1.30" }}  → "envoyproxy/envoy:v1.30"
 ```

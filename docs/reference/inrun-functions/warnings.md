@@ -1,44 +1,56 @@
-# Warning Event Notes
+# Warnings
 
-Warning event notes navigate the `_warnings` enrichment embedded by the enrichment layer into Deployment, StatefulSet, Job, Service, and any other resource type. They let templates surface Kubernetes Warning events without hooks or custom Go code. All require `enrich: [events]` (or `enrichAll: true`) on the CRD.
-
----
+Answer questions about Kubernetes Events, as the API returns them (core/v1 or events.k8s.io/v1), passed as a list or an EventList. Only Warning events count, so a caller can pass all of an object's events.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `hasWarnings` | Returns `true` when `_warnings` contains at least one event. |
-| `warningCount` | Returns the number of warning events as `int`. |
-| `firstWarning` | Returns the message of the first warning event, or `""` when there are no warnings. |
-| `warningMessages` | Returns a comma-separated list of all warning messages. |
-| `warningReasons` | Returns a comma-separated list of all warning reasons (de-duplicated). |
+| Function | Description |
+|----------|-------------|
+| [`firstWarning`](#firstwarning) | Returns the message of the first Warning event; "" when there is none. |
+| [`hasWarnings`](#haswarnings) | Reports whether any of the events is a Warning. |
+| [`warningCount`](#warningcount) | Returns the number of Warning events. |
+| [`warningMessages`](#warningmessages) | Returns the message of each Warning event, in order. |
+| [`warningReasons`](#warningreasons) | Returns the reason of each Warning event, in order. |
 
-## Examples
+## Functions
 
-```yaml
-# hasWarnings
-when:
-  - field: "{{ hasWarnings .children.deployment }}"
-    equals: "false"
+### firstWarning
 
-# warningCount
-- path: warningCount
-  value: "{{ warningCount .children.deployment }}"
-# → 3
+`firstWarning` returns the message of the first Warning event; "" when there is none.
 
-# firstWarning
-- path: lastWarning
-  value: "{{ firstWarning .children.deployment }}"
-# → "Back-off restarting failed container"
+```text
+{{ firstWarning .events }}  → "Failed to pull image registry.example.com/web:2.0: not found"
+```
 
-# warningMessages
-- path: warningMessages
-  value: "{{ warningMessages .children.deployment }}"
-# → "OOMKilled, CrashLoopBackOff"
+### hasWarnings
 
-# warningReasons
-- path: warningReasons
-  value: "{{ warningReasons .children.deployment }}"
-# → "OOMKilled, BackOff"
+`hasWarnings` reports whether any of the events is a Warning.
+
+```text
+{{ hasWarnings .events }}
+```
+
+### warningCount
+
+`warningCount` returns the number of Warning events.
+
+```text
+{{ warningCount .events }}  → 2
+```
+
+### warningMessages
+
+`warningMessages` returns the message of each Warning event, in order.
+
+```text
+{{ warningMessages .events }}
+→ [Back-off restarting failed container Liveness probe failed]
+```
+
+### warningReasons
+
+`warningReasons` returns the reason of each Warning event, in order.
+
+```text
+{{ warningReasons .events }}  → [Failed BackOff]
 ```

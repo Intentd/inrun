@@ -31,7 +31,7 @@ func (m *Migrator) Run(ctx context.Context, cat *catalog.Catalog) ([]*KindMigrat
 // Returns an error on the first kind-level failure; the caller decides whether
 // to fatal or continue.
 func Apply(ctx context.Context, cat *catalog.Catalog, kube kubeclient.Interface) error {
-	m := New(ctx, kube, cat.UserNotes(), ModeForward, MigratorOpts{Strict: true})
+	m := New(ctx, kube, cat.UserFunctions(), ModeForward, MigratorOpts{Strict: true})
 	results, err := m.Run(ctx, cat)
 	for _, r := range results {
 		logMigrationResult(ctx, r)

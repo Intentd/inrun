@@ -68,8 +68,8 @@ security:
   deletionProtection:
     enabled: false
 
-notes:
-  functions:
+functions:
+  definitions:
     - name: teamName
       expression: |
         team-{{ repoSlug .spec.repoURL }}

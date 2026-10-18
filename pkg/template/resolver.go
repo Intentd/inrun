@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -25,20 +25,13 @@ import (
 //	"{{ .spec.image }}"           → spec.image field value
 //	"{{ .spec.replicas }}"        → spec.replicas field value
 //	"{{ .metadata.name }}-app"    → CR name with a static suffix
-//
-// For *unstructured.Unstructured (unstructured mode) the full CR map including
-// all spec fields is available.
-//
-// TYPED:
-// For typed objects only metadata fields were accessible — and used Go mode hooks for full spec access.
-// Until 'objectToMap' breakthrough
 type Resolver struct {
 	data           map[string]interface{}
 	ownerName      string
 	ownerNamespace string
 	profiles       *types.ProfileRegistry
-	// mergedFuncs is set by WithUserNotes and contains inrunNotes + user-defined notes.
-	// When nil, Resolve() uses the package-level inrunNotes FuncMap directly.
+	// mergedFuncs is set by WithUserFunctions and contains kelFunctions + user-defined notes.
+	// When nil, Resolve() uses the package-level kelFunctions FuncMap directly.
 	mergedFuncs template.FuncMap
 }
 
@@ -55,7 +48,7 @@ func (r *Resolver) WithSentinels(declared []string, values map[string]string) *R
 	if len(declared) == 0 {
 		return r
 	}
-	base := inrunNotes
+	base := kelFunctions
 	if r.mergedFuncs != nil {
 		base = r.mergedFuncs
 	}
@@ -90,23 +83,23 @@ func (r *Resolver) WithProfiles(reg *types.ProfileRegistry) *Resolver {
 	return r
 }
 
-// WithUserNotes registers user-defined notes from the Catalog's NoteRegistry.
-// Each note's Expression is compiled as a Go template and registered under its
-// Name in the resolver's FuncMap. Calling {{ noteName }} in any template
+// WithUserFunctions registers user-defined notes from the Catalog's KELFunctionRegistry.
+// Each function's Expression is compiled as a Go template and registered under its
+// Name in the resolver's FuncMap. Calling {{ functionName }} in any template
 // evaluates the expression against the current CR's data.
-// Built-in notes remain available; user notes may call built-in notes and
+// Built-in functions remain available; user functions may call built-in functions and
 // each other inside their expressions.
-func (r *Resolver) WithUserNotes(reg types.NoteRegistry) *Resolver {
+func (r *Resolver) WithUserFunctions(reg types.KELFunctionRegistry) *Resolver {
 	if reg.Empty() {
 		return r
 	}
-	// merged holds built-ins + user notes. Closures capture it by reference
-	// so all user notes see the complete FuncMap (including each other) at eval time.
-	merged := make(template.FuncMap, len(inrunNotes)+len(reg.Functions))
-	for k, v := range inrunNotes {
+	// merged holds built-ins + user functions. Closures capture it by reference
+	// so all user functions see the complete FuncMap (including each other) at eval time.
+	merged := make(template.FuncMap, len(kelFunctions)+len(reg.Definitions))
+	for k, v := range kelFunctions {
 		merged[k] = v
 	}
-	for _, n := range reg.Functions {
+	for _, n := range reg.Definitions {
 		expr := n.Expression // capture by value, not loop variable
 		merged[n.Name] = func() interface{} {
 			tmpl, err := template.New("").Option("missingkey=zero").Funcs(merged).Parse(expr)
@@ -177,7 +170,7 @@ func NewResolverFromMap(data map[string]interface{}) *Resolver {
 }
 
 // Built-in KEL functions
-var inrunNotes = note.Map()
+var kelFunctions = funcs.WithKEL()
 
 // Resolve evaluates a single field value against the CR.
 //
@@ -214,7 +207,7 @@ func (r *Resolver) resolve(value string) (string, bool, error) {
 		return value, false, nil
 	}
 
-	funcs := inrunNotes
+	funcs := kelFunctions
 	if r.mergedFuncs != nil {
 		funcs = r.mergedFuncs
 	}

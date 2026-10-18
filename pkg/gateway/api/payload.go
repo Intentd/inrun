@@ -28,14 +28,14 @@ func EvaluatePayload(
 	obj map[string]interface{},
 	crd *types.CRDEntry,
 	alias string,
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 ) map[string]interface{} {
 	cfg := crd.ServeViewFor(alias)
 	if cfg == nil || !cfg.HasPayload() {
 		return nil
 	}
 
-	resolver := template.NewResolverFromMap(obj).WithUserNotes(notes)
+	resolver := template.NewResolverFromMap(obj).WithUserFunctions(notes)
 
 	// ── Build payload map ─────────────────────────────────────────────────────
 	// The payload is ALWAYS a flat map of only the declared fields.

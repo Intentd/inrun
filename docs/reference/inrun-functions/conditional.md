@@ -1,72 +1,83 @@
-# Conditional Notes
+# Conditional
 
-Conditional notes express branching logic inside a single template expression, removing the need for `{{ if }}...{{ else }}...{{ end }}` blocks in field values.
+Choose between values inside an expression: defaults for empty values, the first non-empty of several, and ternaries, so a template does not need an if block for a one-line choice.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `ternary` | Return `trueVal` when `condition` is truthy, `falseVal` otherwise. |
-| `boolTernary` | Like `ternary` but requires a strict `bool` argument. |
-| `boolDefault` | Return the field's boolean value if it is a `bool`, otherwise return `def`. |
-| `eqTernary` | Return `trueVal` when `val` equals `target` (string comparison), `falseVal` otherwise. |
-| `default` | Return `val` if non-empty, otherwise return `def`. |
-| `coalesce` | Return the first non-empty value from a variadic list. |
-| `empty` | Return `true` when the value is empty (nil, `""`, `0`, `false`, empty slice, empty map, or `"<no value>"`). |
-| `notEmpty` | Return `true` when the value is non-empty. |
+| Function | Description |
+|----------|-------------|
+| [`boolDefault`](#booldefault) | Returns the field's boolean value if it is a `bool`, otherwise returns `def`. |
+| [`boolTernary`](#boolternary) | Is like `ternary` but requires a strict `bool` argument. |
+| [`coalesce`](#coalesce) | Returns the first non-empty value from a variadic list. |
+| [`default`](#default) | Returns `val` if non-empty, otherwise returns `def`. |
+| [`empty`](#empty) | Returns `true` when the value is empty (nil, `""`, `0`, `false`, empty slice, empty map, or `"<no value>"`). |
+| [`eqTernary`](#eqternary) | Returns `trueVal` when `val` equals `target` (string comparison), `falseVal` otherwise. |
+| [`notEmpty`](#notempty) | Returns `true` when the value is non-empty. |
+| [`ternary`](#ternary) | Returns `trueVal` when `condition` is truthy, `falseVal` otherwise. |
 
-## Examples
+## Functions
 
-```yaml
-# ternary
-# value: "{{ ternary .spec.debug \"debug\" \"info\" }}"
-# spec.debug=true  → "debug"
-# spec.debug=false → "info"
+### boolDefault
 
-# value: "{{ ternary .spec.image \"custom\" \"default\" }}"
-# spec.image set   → "custom"
-# spec.image empty → "default"
+`boolDefault` returns the field's boolean value if it is a `bool`, otherwise returns `def`. Useful when a boolean field may be absent (nil).
 
-# boolTernary
-# value: "{{ boolTernary .spec.suspend \"Suspended\" \"Active\" }}"
-# spec.suspend=true  → "Suspended"
-# spec.suspend=false → "Active"
+```text
+{{ boolDefault .spec.suspend false }}  → false
+```
 
-# boolDefault
-# value: "{{ boolTernary (boolDefault .spec.suspend false) \"Suspended\" \"Active\" }}"
-# spec.suspend absent → boolDefault returns false → "Active"
-# spec.suspend=true   → boolDefault returns true  → "Suspended"
+### boolTernary
 
-# eqTernary
-# value: '{{ eqTernary .cross.db.found "true" "ready" "waiting" }}'
-# found="true"  → "ready"
-# found="false" → "waiting"
+`boolTernary` is like `ternary` but requires a strict `bool` argument. Use this when the field is declared as a boolean in the CRD schema — it avoids the truthiness ambiguity of `ternary` for values like `0`, `""`, or `[]`.
 
-# value: '{{ eqTernary .spec.mode "production" "strict" "permissive" }}'
-# mode="production" → "strict"
-# mode="staging"    → "permissive"
+```text
+{{ boolTernary .spec.debug "debug" "info" }}  → "debug"
+```
 
-# default
-# value: "{{ default .spec.replicas 2 }}"
-# spec.replicas absent  → 2
-# spec.replicas=0       → 2   (zero is Empty()
-# spec.replicas=5       → 5
+### coalesce
 
-# value: "{{ default .spec.logLevel \"info\" }}"
-# spec.logLevel absent  → "info"
-# spec.logLevel="debug" → "debug"
+`coalesce` returns the first non-empty value from a variadic list. Useful when a field can come from multiple sources with a final fallback.
 
-# coalesce
-# value: "{{ coalesce .spec.image .spec.defaultImage \"nginx:latest\" }}"
-# spec.image set        → spec.image
-# spec.image absent, spec.defaultImage set → spec.defaultImage
-# both absent           → "nginx:latest"
+```text
+{{ coalesce .spec.sidecarImage .spec.defaultSidecarImage "envoyproxy/envoy:v1.30" }}  → "envoyproxy/envoy:v1.30"
+```
 
-# empty
-# Use in a conditional:
-# value: "{{ if empty .spec.image }}nginx:latest{{ else }}{{ .spec.image }}{{ end }}"
+### default
 
-# notEmpty
-# Use in when: conditions via template expression:
-# value: "{{ notEmpty .spec.image }}"
+`default` returns `val` if non-empty, otherwise returns `def`. "Empty" means nil, `""`, `0`, `false`, empty slice, or empty map.
+
+```text
+{{ default "info" .spec.logLevel }}  → "info"
+{{ .spec.logLevel | default "info" }}  → "info"
+```
+
+### empty
+
+`empty` returns `true` when the value is empty (nil, `""`, `0`, `false`, empty slice, empty map, or `"<no value>"`).
+
+```text
+{{ empty .spec.logLevel }}  → true
+```
+
+### eqTernary
+
+`eqTernary` returns `trueVal` when `val` equals `target` (string comparison), `falseVal` otherwise. Shorthand for the `boolTernary (eq val target) trueVal falseVal` pattern — useful when branching on a string field value such as a status string, a mode flag, or a cross-CRD `found` result.
+
+```text
+{{ eqTernary .spec.mode "production" "strict" "permissive" }}  → "strict"
+```
+
+### notEmpty
+
+`notEmpty` returns `true` when the value is non-empty. The inverse of `empty`.
+
+```text
+{{ notEmpty .spec.mode }}  → true
+```
+
+### ternary
+
+`ternary` returns `trueVal` when `condition` is truthy, `falseVal` otherwise. Condition truthiness follows Go rules: non-empty string, non-zero number, non-empty slice/map, `true` bool.
+
+```text
+{{ ternary .spec.debug "debug" "info" }}  → "debug"
 ```

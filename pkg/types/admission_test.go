@@ -261,20 +261,20 @@ func TestMutationConfig_MutateFirstDefault(t *testing.T) {
 // ── ValidationConfig.References ──────────────────────────────────────────────
 //
 // Both plain dot-path forms and Go template expression forms are detected.
-// When a rule's field is a user-defined note reference ({{ noteName }}), the
-// note's expression body is scanned for .health.* / .metrics.* so the webhook
+// When a rule's field is a user-defined function reference ({{ functionName }}), the
+// function's expression body is scanned for .health.* / .metrics.* so the webhook
 // correctly fetches runtime data even when the reference is indirect.
 
-func noteReg(fns ...types.UserDefinedNote) types.NoteRegistry {
-	return types.NoteRegistry{Functions: fns}
+func funcReg(fns ...types.UserDefinedFunction) types.KELFunctionRegistry {
+	return types.KELFunctionRegistry{Definitions: fns}
 }
 
-func note(name, expr string) types.UserDefinedNote {
-	return types.UserDefinedNote{Name: name, Expression: expr}
+func function(name, expr string) types.UserDefinedFunction {
+	return types.UserDefinedFunction{Name: name, Expression: expr}
 }
 
 func TestValidationConfig_ReferencesHealth(t *testing.T) {
-	empty := types.NoteRegistry{}
+	empty := types.KELFunctionRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.ValidationConfig
@@ -314,45 +314,45 @@ func TestValidationConfig_ReferencesHealth(t *testing.T) {
 		assert.False(t, cfg.References(empty, "health"))
 	})
 
-	t.Run("note whose body references .health triggers fetch", func(t *testing.T) {
+	t.Run("function whose body references .health triggers fetch", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ inBusinessHours }}", Equals: "true"}},
 		}
-		nr := noteReg(note("inBusinessHours", `{{ eq .health.status "healthy" }}`))
+		nr := funcReg(function("inBusinessHours", `{{ eq .health.status "healthy" }}`))
 		assert.True(t, cfg.References(nr, "health"))
 	})
 
-	t.Run("transitive — note calls another note that references .health", func(t *testing.T) {
+	t.Run("transitive — function calls another function that references .health", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ canAccept }}", Equals: "true"}},
 		}
-		nr := noteReg(
-			note("isHealthy", `{{ eq .health.status "healthy" }}`),
-			note("canAccept", `{{ and isHealthy (lt .metrics.queueDepth 500) }}`),
+		nr := funcReg(
+			function("isHealthy", `{{ eq .health.status "healthy" }}`),
+			function("canAccept", `{{ and isHealthy (lt .metrics.queueDepth 500) }}`),
 		)
 		assert.True(t, cfg.References(nr, "health"))
 		assert.True(t, cfg.References(nr, "metrics"))
 	})
 
-	t.Run("note whose body does not reference .health returns false", func(t *testing.T) {
+	t.Run("function whose body does not reference .health returns false", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ inBusinessHours }}", Equals: "true"}},
 		}
-		nr := noteReg(note("inBusinessHours", `{{ isWithinHours 9 17 }}`))
+		nr := funcReg(function("inBusinessHours", `{{ isWithinHours 9 17 }}`))
 		assert.False(t, cfg.References(nr, "health"))
 	})
 
-	t.Run("sentinel in field is not a note ref", func(t *testing.T) {
+	t.Run("sentinel in field is not a function ref", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ generationChanged }}", Equals: "true"}},
 		}
-		nr := noteReg(note("generationChanged", `{{ eq .health.status "healthy" }}`))
+		nr := funcReg(function("generationChanged", `{{ eq .health.status "healthy" }}`))
 		assert.False(t, cfg.References(nr, "health"))
 	})
 
-	t.Run("note not in registry returns false", func(t *testing.T) {
+	t.Run("function not in registry returns false", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
-			Rules: []types.ValidationRule{{Field: "{{ unknownNote }}", Equals: "true"}},
+			Rules: []types.ValidationRule{{Field: "{{ unknownFunction }}", Equals: "true"}},
 		}
 		assert.False(t, cfg.References(empty, "health"))
 	})
@@ -369,7 +369,7 @@ func TestValidationConfig_ReferencesHealth(t *testing.T) {
 }
 
 func TestValidationConfig_ReferencesMetrics(t *testing.T) {
-	empty := types.NoteRegistry{}
+	empty := types.KELFunctionRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.ValidationConfig
@@ -397,19 +397,19 @@ func TestValidationConfig_ReferencesMetrics(t *testing.T) {
 		assert.False(t, cfg.References(empty, "metrics"))
 	})
 
-	t.Run("note whose body references .metrics triggers fetch", func(t *testing.T) {
+	t.Run("function whose body references .metrics triggers fetch", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ inBusinessHours }}", Equals: "false"}},
 		}
-		nr := noteReg(note("inBusinessHours", `{{ gt .metrics.workersBusyPercent 80 }}`))
+		nr := funcReg(function("inBusinessHours", `{{ gt .metrics.workersBusyPercent 80 }}`))
 		assert.True(t, cfg.References(nr, "metrics"))
 	})
 
-	t.Run("note composing both .health and .metrics — both detected", func(t *testing.T) {
+	t.Run("function composing both .health and .metrics — both detected", func(t *testing.T) {
 		cfg := &types.ValidationConfig{
 			Rules: []types.ValidationRule{{Field: "{{ combinedCheck }}", Equals: "true"}},
 		}
-		nr := noteReg(note("combinedCheck", `{{ and (eq .health.status "healthy") (lt .metrics.queueDepth 100) }}`))
+		nr := funcReg(function("combinedCheck", `{{ and (eq .health.status "healthy") (lt .metrics.queueDepth 100) }}`))
 		assert.True(t, cfg.References(nr, "health"))
 		assert.True(t, cfg.References(nr, "metrics"))
 	})
@@ -421,7 +421,7 @@ func TestValidationConfig_ReferencesMetrics(t *testing.T) {
 // the Field path, because the live value may be used on the right-hand side.
 
 func TestMutationConfig_ReferencesHealth(t *testing.T) {
-	empty := types.NoteRegistry{}
+	empty := types.KELFunctionRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.MutationConfig
@@ -435,11 +435,11 @@ func TestMutationConfig_ReferencesHealth(t *testing.T) {
 		assert.True(t, cfg.References(empty, "health"))
 	})
 
-	t.Run("field is note ref whose body references .health", func(t *testing.T) {
+	t.Run("field is function ref whose body references .health", func(t *testing.T) {
 		cfg := &types.MutationConfig{
 			Rules: []types.MutationRule{{Field: "{{ isHealthy }}", Default: "false"}},
 		}
-		nr := noteReg(note("isHealthy", `{{ eq .health.status "healthy" }}`))
+		nr := funcReg(function("isHealthy", `{{ eq .health.status "healthy" }}`))
 		assert.True(t, cfg.References(nr, "health"))
 	})
 
@@ -472,7 +472,7 @@ func TestMutationConfig_ReferencesHealth(t *testing.T) {
 }
 
 func TestMutationConfig_ReferencesMetrics(t *testing.T) {
-	empty := types.NoteRegistry{}
+	empty := types.KELFunctionRegistry{}
 
 	t.Run("nil config returns false", func(t *testing.T) {
 		var cfg *types.MutationConfig
@@ -486,11 +486,11 @@ func TestMutationConfig_ReferencesMetrics(t *testing.T) {
 		assert.True(t, cfg.References(empty, "metrics"))
 	})
 
-	t.Run("field is note ref whose body references .metrics", func(t *testing.T) {
+	t.Run("field is function ref whose body references .metrics", func(t *testing.T) {
 		cfg := &types.MutationConfig{
 			Rules: []types.MutationRule{{Field: "{{ isBusy }}", Default: "false"}},
 		}
-		nr := noteReg(note("isBusy", `{{ gt .metrics.workersBusyPercent 80 }}`))
+		nr := funcReg(function("isBusy", `{{ gt .metrics.workersBusyPercent 80 }}`))
 		assert.True(t, cfg.References(nr, "metrics"))
 	})
 
@@ -503,10 +503,10 @@ func TestMutationConfig_ReferencesMetrics(t *testing.T) {
 		assert.True(t, cfg.References(empty, "metrics"))
 	})
 
-	t.Run("note not in registry returns false", func(t *testing.T) {
+	t.Run("function not in registry returns false", func(t *testing.T) {
 		cfg := &types.MutationConfig{
 			Rules: []types.MutationRule{
-				{Field: "{{ unknownNote }}", Default: "false"},
+				{Field: "{{ unknownFunction }}", Default: "false"},
 			},
 		}
 		assert.False(t, cfg.References(empty, "metrics"))

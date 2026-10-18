@@ -98,7 +98,7 @@ func postJSON(t *testing.T, path string, body interface{}) *http.Request {
 }
 
 // noopNotes
-func noopNotes() types.NoteRegistry { return types.NoteRegistry{} }
+func noopNotes() types.KELFunctionRegistry { return types.KELFunctionRegistry{} }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // schemaHandler
@@ -191,7 +191,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
 
 	t.Run("method not allowed", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodPut, "/api/v1/resources/app/default/x", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -200,7 +200,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("bad path — only one segment", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/resources/onlyone", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -209,7 +209,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("unknown kind returns 404", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/resources/unknown/default", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -218,7 +218,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("DELETE without name returns 400", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.NoteRegistry{})
+		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodDelete, "/api/v1/resources/app/default", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -238,7 +238,7 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 	scheme.AddKnownTypeWithName(appGVK.GroupVersion().WithKind("AppList"), &unstructured.UnstructuredList{})
 
 	kube := simulate.NewFakeKubeclient(scheme)
-	h := ExportedResourcesHandler(kube, cat, types.NoteRegistry{})
+	h := ExportedResourcesHandler(kube, cat, types.KELFunctionRegistry{})
 
 	cases := []struct {
 		name     string
@@ -284,7 +284,7 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 
 func TestApplyHandler_Format(t *testing.T) {
 	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	h := ExportedApplyHandler(nil, cat, types.NoteRegistry{})
+	h := ExportedApplyHandler(nil, cat, types.KELFunctionRegistry{})
 
 	t.Run("method not allowed", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/apply", nil)
@@ -393,7 +393,7 @@ func TestApplyHandler_Permissions(t *testing.T) {
 	// whether the token is allowed, even for a token that will be denied
 	// outright regardless of operation.
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
-	h := ExportedApplyHandler(kube, cat, types.NoteRegistry{})
+	h := ExportedApplyHandler(kube, cat, types.KELFunctionRegistry{})
 
 	t.Run("unknown token denied before SSA", func(t *testing.T) {
 		r := postJSON(t, "/api/v1/apply", map[string]interface{}{

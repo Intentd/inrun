@@ -197,7 +197,7 @@ func (c *checker) validatePreReconcileGateTemplates(crdName string, crd types.CR
 	}
 
 	// Build the FuncMap: notes (built-ins + user) + declared sentinel stubs.
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 	for name, fn := range template.SentinelFuncMap(pr.DeclaredSentinels()) {
 		funcMap[name] = fn
 	}

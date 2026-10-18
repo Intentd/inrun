@@ -130,7 +130,7 @@ func TestValidateValidationRuleLinks_MatchesAdditionalAnnotationField(t *testing
 func TestValidateValidationRuleLinks_SpecFieldWithWrappingExpression(t *testing.T) {
 	// link: pointing at a spec field is valid when Field wraps it in
 	// something other than the plain "spec.<name>" path — e.g. a format
-	// check built on a notes: function.
+	// check built on a KEL function.
 	serve := &types.ServeConfig{
 		Enabled: true, Fields: map[string]types.ServeFieldConfig{
 			"repoURL": {Label: "Repository URL"},

@@ -1,82 +1,118 @@
-# HPA Notes
+# HPA
 
-HPA notes surface replica counts, scaling state, and scale-target details from HorizontalPodAutoscaler objects.
-
----
+Read a HorizontalPodAutoscaler: current, desired, minimum and maximum replicas, whether it is scaling or at its limit, its conditions, its scale target and the types of metric it reports.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `hpaCurrentReplicas` | Returns `status. |
-| `hpaDesiredReplicas` | Returns `status. |
-| `hpaMinReplicas` | Returns `spec. |
-| `hpaMaxReplicas` | Returns `spec. |
-| `hpaScaling` | Returns `true` when the HPA has a valid metric (`ScalingActive=True`) **and** `currentReplicas != desiredReplicas` — a real scale-out or scale-in is in progress. |
-| `hpaScalingActive` | Returns `true` when the `ScalingActive` condition is `True` — the HPA can read its metric and is permitted to scale. |
-| `hpaAbleToScale` | Returns `true` when the `AbleToScale` condition is `True` — the scale target exists and is reachable. |
-| `hpaScalingLimited` | Returns `true` when the `ScalingLimited` condition is `True` — the desired replica count was clamped by the min or max bound. |
-| `hpaAtMax` | Returns `true` when `currentReplicas >= maxReplicas` — the HPA has hit its ceiling. |
-| `hpaScaleTargetName` | Returns `_scaleTarget. |
-| `hpaScaleTargetKind` | Returns `_scaleTarget. |
-| `hpaMetricTypes` | Returns a comma-separated list of metric source types from `_currentMetrics`. |
+| Function | Description |
+|----------|-------------|
+| [`hpaAbleToScale`](#hpaabletoscale) | Returns `true` when the `AbleToScale` condition is `True` — the scale target exists and is reachable. |
+| [`hpaAtMax`](#hpaatmax) | Returns `true` when `currentReplicas >= maxReplicas` — the HPA has hit its ceiling. |
+| [`hpaCurrentReplicas`](#hpacurrentreplicas) | Returns `status.currentReplicas` as `int64`. |
+| [`hpaDesiredReplicas`](#hpadesiredreplicas) | Returns `status.desiredReplicas` as `int64`. |
+| [`hpaMaxReplicas`](#hpamaxreplicas) | Returns `spec.maxReplicas` as `int64`. |
+| [`hpaMetricTypes`](#hpametrictypes) | Returns the type of each metric the HPA currently reports (status.currentMetrics): Resource, Pods, Object, External, ContainerResource. |
+| [`hpaMinReplicas`](#hpaminreplicas) | Returns `spec.minReplicas` as `int64`, defaulting to `1` when not set (matching the Kubernetes default). |
+| [`hpaScaleTargetKind`](#hpascaletargetkind) | Returns the kind of the workload the HPA scales (spec.scaleTargetRef.kind). |
+| [`hpaScaleTargetName`](#hpascaletargetname) | Returns the name of the workload the HPA scales (spec.scaleTargetRef.name). |
+| [`hpaScaling`](#hpascaling) | Returns `true` when the HPA has a valid metric (`ScalingActive=True`) **and** `currentReplicas != desiredReplicas` — a real scale-out or scale-in is in progress. |
+| [`hpaScalingActive`](#hpascalingactive) | Returns `true` when the `ScalingActive` condition is `True` — the HPA can read its metric and is permitted to scale. |
+| [`hpaScalingLimited`](#hpascalinglimited) | Returns `true` when the `ScalingLimited` condition is `True` — the desired replica count was clamped by the min or max bound. |
 
-## Examples
+## Functions
 
-```yaml
-# hpaCurrentReplicas
-- path: currentReplicas
-  value: "{{ hpaCurrentReplicas .children.hpa }}"
-# → 3
+### hpaAbleToScale
 
-# hpaDesiredReplicas
-- path: desiredReplicas
-  value: "{{ hpaDesiredReplicas .children.hpa }}"
-# → 5
+`hpaAbleToScale` returns `true` when the `AbleToScale` condition is `True` — the scale target exists and is reachable.
 
-# hpaMinReplicas
-- path: minReplicas
-  value: "{{ hpaMinReplicas .children.hpa }}"
-# → 2
+```text
+{{ hpaAbleToScale .hpa }}  → true
+```
 
-# hpaMaxReplicas
-- path: maxReplicas
-  value: "{{ hpaMaxReplicas .children.hpa }}"
-# → 10
+### hpaAtMax
 
-# hpaScaling
-when:
-  - field: "{{ hpaScaling .children.hpa }}"
-    equals: "false"
+`hpaAtMax` returns `true` when `currentReplicas >= maxReplicas` — the HPA has hit its ceiling.
 
-# hpaScalingActive
-- path: metricsReady
-  value: "{{ hpaScalingActive .children.hpa }}"
+```text
+{{ hpaAtMax .hpa }}  → false
+```
 
-# hpaAbleToScale
-- path: targetReachable
-  value: "{{ hpaAbleToScale .children.hpa }}"
+### hpaCurrentReplicas
 
-# hpaScalingLimited
-- path: atBound
-  value: "{{ hpaScalingLimited .children.hpa }}"
+`hpaCurrentReplicas` returns `status.currentReplicas` as `int64`.
 
-# hpaAtMax
-- path: atCapacity
-  value: "{{ hpaAtMax .children.hpa }}"
+```text
+{{ hpaCurrentReplicas .hpa }}  → 3
+```
 
-# hpaScaleTargetName
-- path: scaleTargetName
-  value: "{{ hpaScaleTargetName .children.hpa }}"
-# → "my-app"
+### hpaDesiredReplicas
 
-# hpaScaleTargetKind
-- path: scaleTargetKind
-  value: "{{ hpaScaleTargetKind .children.hpa }}"
-# → "Deployment"
+`hpaDesiredReplicas` returns `status.desiredReplicas` as `int64`.
 
-# hpaMetricTypes
-- path: metricTypes
-  value: "{{ hpaMetricTypes .children.hpa }}"
-# → "Resource, External"
+```text
+{{ hpaDesiredReplicas .hpa }}  → 5
+```
+
+### hpaMaxReplicas
+
+`hpaMaxReplicas` returns `spec.maxReplicas` as `int64`.
+
+```text
+{{ hpaMaxReplicas .hpa }}  → 10
+```
+
+### hpaMetricTypes
+
+`hpaMetricTypes` returns the type of each metric the HPA currently reports (status.currentMetrics): Resource, Pods, Object, External, ContainerResource.
+
+```text
+{{ hpaMetricTypes .hpa }}  → [Resource External]
+```
+
+### hpaMinReplicas
+
+`hpaMinReplicas` returns `spec.minReplicas` as `int64`, defaulting to `1` when not set (matching the Kubernetes default).
+
+```text
+{{ hpaMinReplicas .hpa }}  → 2
+```
+
+### hpaScaleTargetKind
+
+`hpaScaleTargetKind` returns the kind of the workload the HPA scales (spec.scaleTargetRef.kind).
+
+```text
+{{ hpaScaleTargetKind .hpa }}  → "Deployment"
+```
+
+### hpaScaleTargetName
+
+`hpaScaleTargetName` returns the name of the workload the HPA scales (spec.scaleTargetRef.name).
+
+```text
+{{ hpaScaleTargetName .hpa }}  → "web"
+```
+
+### hpaScaling
+
+`hpaScaling` returns `true` when the HPA has a valid metric (`ScalingActive=True`) **and** `currentReplicas != desiredReplicas` — a real scale-out or scale-in is in progress. Returns `false` when the metric source is unknown, which would otherwise cause a misleading `true` due to `desiredReplicas=0`.
+
+```text
+{{ hpaScaling .hpa }}  → true
+```
+
+### hpaScalingActive
+
+`hpaScalingActive` returns `true` when the `ScalingActive` condition is `True` — the HPA can read its metric and is permitted to scale. `False` when the metric source is unknown (`<unknown>/80%`) or the HPA is otherwise disabled.
+
+```text
+{{ hpaScalingActive .hpa }}  → true
+```
+
+### hpaScalingLimited
+
+`hpaScalingLimited` returns `true` when the `ScalingLimited` condition is `True` — the desired replica count was clamped by the min or max bound.
+
+```text
+{{ hpaScalingLimited .hpa }}  → false
 ```

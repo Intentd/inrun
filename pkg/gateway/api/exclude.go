@@ -24,7 +24,7 @@ func ApplyExclusions(
 	response map[string]interface{},
 	crd *types.CRDEntry,
 	alias string,
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 ) {
 	if crd == nil {
 		return
@@ -34,7 +34,7 @@ func ApplyExclusions(
 		return
 	}
 
-	resolver := template.NewResolverFromMap(response).WithUserNotes(notes)
+	resolver := template.NewResolverFromMap(response).WithUserFunctions(notes)
 
 	for _, expr := range cfg.Exclude {
 		if expr == "" {

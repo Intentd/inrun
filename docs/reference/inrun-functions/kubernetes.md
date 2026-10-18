@@ -1,195 +1,283 @@
-# Kubernetes Notes
+# Kubernetes
 
-Kubernetes notes safely navigate the unstructured objects that Inrun exposes through the template context — especially child resources available under `.children.*` and cross-CRD observations under `.cross.*`.
+Answer the questions about any Kubernetes object that every controller asks: its conditions and their reasons, whether it is ready, synced, terminating or exists, and the fields of its spec and status, read safely.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `meta` | Return the `metadata` map of a Kubernetes object. |
-| `labels` | Return the `metadata. |
-| `annotations` | Return the `metadata. |
-| `getLabel` | Return the value of a single label key from `metadata. |
-| `getLabelInt` | Return a label value parsed as `int64`. |
-| `hasLabel` | Return `true` when the object has the given label key with a non-empty value. |
-| `getAnnotation` | Return the value of a single annotation key from `metadata. |
-| `getAnnotationInt` | Return an annotation value parsed as `int64`. |
-| `hasAnnotation` | Return `true` when the object has the given annotation key with a non-empty value. |
-| `labelMatches` | Return `true` when the object's labels contain every key/value pair given as arguments. |
-| `spec` | Return the `spec` map of a Kubernetes object. |
-| `status` | Return the `status` map of a Kubernetes object. |
-| `getStatus` | Return the string value of a specific key from `status`. |
-| `hasStatus` | Return `true` when the given status field exists and is non-empty. |
-| `phase` | Return `status. |
-| `get` | Navigate a nested path through a Kubernetes object using variadic string segments. |
-| `ownerKind` | Return the `kind` of the first `ownerReference`. |
-| `ownerName` | Return the `name` of the first `ownerReference`. |
-| `hasCondition` | Return `true` if `status. |
-| `conditionReason` | Return the `reason` field of a named condition. |
-| `conditionMessage` | Return the `message` field of a named condition. |
-| `resourceExists` | Return `true` when the object is a non-nil `map[string]interface{}`. |
-| `isTerminating` | Return `true` when `metadata. |
-| `generation` | Return `metadata. |
-| `observedGeneration` | Return `status. |
-| `isSynced` | Return `true` when `metadata. |
-| `resourceCPU` | Return `spec. |
-| `resourceMemory` | Return `spec. |
+| Function | Description |
+|----------|-------------|
+| [`annotations`](#annotations) | Returns the `metadata.annotations` map. |
+| [`conditionMessage`](#conditionmessage) | Returns the `message` field of a named condition. |
+| [`conditionReason`](#conditionreason) | Returns the `reason` field of a named condition. |
+| [`generation`](#generation) | Returns `metadata.generation` as int64. |
+| [`get`](#get) | Navigates a nested path through a Kubernetes object using variadic string segments. |
+| [`getAnnotation`](#getannotation) | Returns the value of a single annotation key from `metadata.annotations`. |
+| [`getAnnotationInt`](#getannotationint) | Returns an annotation value parsed as `int64`. |
+| [`getLabel`](#getlabel) | Returns the value of a single label key from `metadata.labels`. |
+| [`getLabelInt`](#getlabelint) | Returns a label value parsed as `int64`. |
+| [`getStatus`](#getstatus) | Returns the string value of a specific key from `status`. |
+| [`hasAnnotation`](#hasannotation) | Returns `true` when the object has the given annotation key with a non-empty value. |
+| [`hasCondition`](#hascondition) | Returns `true` if `status.conditions` contains a condition of the given type with `status: "True"`. |
+| [`hasLabel`](#haslabel) | Returns `true` when the object has the given label key with a non-empty value. |
+| [`hasStatus`](#hasstatus) | Returns `true` when the given status field exists and is non-empty. |
+| [`isSynced`](#issynced) | Returns `true` when `metadata.generation == status.observedGeneration`, meaning the controller has fully processed the current spec. |
+| [`isTerminating`](#isterminating) | Returns `true` when `metadata.deletionTimestamp` is set — the object exists but is being deleted. |
+| [`labelMatches`](#labelmatches) | Returns `true` when the object's labels contain every key/value pair given as arguments. |
+| [`labels`](#labels) | Returns the `metadata.labels` map. |
+| [`meta`](#meta) | Returns the `metadata` map of a Kubernetes object. |
+| [`name`](#name) | Returns metadata.name or an empty string. |
+| [`namespace`](#namespace) | Returns metadata.namespace or an empty string. |
+| [`observedGeneration`](#observedgeneration) | Returns `status.observedGeneration` as int64. |
+| [`ownerKind`](#ownerkind) | Returns the `kind` of the first `ownerReference`. |
+| [`ownerName`](#ownername) | Returns the `name` of the first `ownerReference`. |
+| [`phase`](#phase) | Returns `status.phase` as a string. |
+| [`resourceCPU`](#resourcecpu) | Returns `spec.resources.requests.cpu` from any object. |
+| [`resourceExists`](#resourceexists) | Reports whether obj is a Kubernetes object: a map with a metadata.name. |
+| [`resourceMemory`](#resourcememory) | Returns `spec.resources.requests.memory` from any object. |
+| [`spec`](#spec) | Returns the `spec` map of a Kubernetes object. |
+| [`status`](#status) | Returns the `status` map of a Kubernetes object. |
 
-## Examples
+## Functions
 
-```yaml
-# meta
-# value: "{{ meta .children.cronjob }}"
-# Useful as an intermediate value when chaining with mapGet:
-# value: "{{ mapGet (meta .children.cronjob) \"resourceVersion\" }}"
+### annotations
 
-# labels
-# value: "{{ mapGet (labels .children.deployment) \"app\" }}"
-# {app: frontend, tier: web} → "frontend"
+`annotations` returns the `metadata.annotations` map. Returns an empty map if absent.
 
-# annotations
-# value: "{{ mapGet (annotations .children.deployment) \"inrun.dev/phase\" }}"
+```text
+{{ mapGet (annotations .deployment) "example.com/owner" }}  → "team-payments"
+```
 
-# getLabel
-# value: "{{ getLabel .children.deployment \"app.kubernetes.io/name\" }}"
-# → "my-app"
+### conditionMessage
 
-# Drive logic from a label without a spec field:
-# value: '{{ getLabel . "inrun.dev/resource-profile" | default "medium" }}'
+`conditionMessage` returns the `message` field of a named condition. Returns `""` when absent.
 
-# getLabelInt
-# value: "{{ getLabelInt .children.deployment \"replica-count\" }}"
-# → 3
+```text
+{{ conditionMessage .deployment "Available" }}  → "Deployment has minimum availability."
+```
 
-# hasLabel
-# when:
-#   - field: '{{ hasLabel .children.deployment "app.kubernetes.io/managed-by" }}'
-#     equals: "true"
+### conditionReason
 
-# getAnnotation
-# value: '{{ getAnnotation . "autoscale/min-replicas" | default "2" }}'
-# → "2"
+`conditionReason` returns the `reason` field of a named condition. Returns `""` when absent.
 
-# getAnnotationInt
-# autoscale:
-#   scaleDown:
-#     target: '{{ getAnnotationInt . "autoscale/min-replicas" | default 2 }}'
+```text
+{{ conditionReason .deployment "Available" }}  → "MinimumReplicasAvailable"
+```
 
-# hasAnnotation
-# when:
-#   - field: '{{ hasAnnotation . "autoscale/enabled" }}'
-#     equals: "true"
+### generation
 
-# labelMatches
-# value: '{{ labelMatches .children.deployment "app" "frontend" "env" "prod" }}'
-# → true when the deployment carries both labels
+`generation` returns `metadata.generation` as int64. Increments on every spec change. Returns `0` when absent.
 
-# spec
-# value: "{{ mapGet (spec .children.cronjob) \"schedule\" }}"
-# Equivalent to: .children.cronjob.spec.schedule
+```text
+{{ generation .deployment }}  → 3
+```
 
-# status
-# value: "{{ mapGet (status .children.deployment) \"readyReplicas\" }}"
-# Equivalent to: .children.deployment.status.readyReplicas
+### get
 
-# getStatus
-# value: "{{ getStatus .children.deployment \"readyReplicas\" }}"
-# → "3"
+`get` navigates a nested path through a Kubernetes object using variadic string segments. Returns `nil` if any segment is missing. Nil-safe at every level.
 
-# when:
-#   - field: '{{ getStatus .children.pod "phase" }}'
-#     equals: "Running"
+```text
+{{ get .cronjob "status" "lastScheduleTime" }}  → "2026-05-19T10:00:00Z"
+```
 
-# hasStatus
-# value: '{{ hasStatus .children.service "loadBalancer" }}'
-# → true when loadBalancer is set in status
+### getAnnotation
 
-# when:
-#   - field: '{{ hasStatus .children.deployment "readyReplicas" }}'
-#     equals: "true"
+`getAnnotation` returns the value of a single annotation key from `metadata.annotations`. Returns `""` when the key is absent or the object has no annotations.
 
-# phase
-# value: "{{ phase .children.pod }}"
-# → "Running", "Pending", "Succeeded", "Failed", or ""
+```text
+{{ getAnnotation .deployment "example.com/owner" }}  → "team-payments"
+```
 
-# when:
-#   - field: "{{ phase .children.pod }}"
-#     equals: "Running"
+### getAnnotationInt
 
-# get
-# value: "{{ get .children.cronjob \"status\" \"lastScheduleTime\" }}"
-# value: "{{ get .children.deployment \"spec\" \"template\" \"spec\" \"containers\" }}"
+`getAnnotationInt` returns an annotation value parsed as `int64`. Returns `0` when the key is absent or the value is non-numeric. Use with autoscale targets and thresholds stored in annotations.
 
-# ownerKind
-# value: "{{ ownerKind .children.replicaset }}"
-# → "Deployment"
+```text
+{{ getAnnotationInt .deployment "deployment.kubernetes.io/revision" }}  → 2
+```
 
-# ownerName
-# value: "{{ ownerName .children.replicaset }}"
-# → "my-app"
+### getLabel
 
-# hasCondition
-# value: "{{ hasCondition .children.deployment \"Available\" }}"
-# Standard types: Available, Progressing, Degraded, Ready, Complete
+`getLabel` returns the value of a single label key from `metadata.labels`. Returns `""` when the key is absent or the object has no labels.
 
-# conditionReason
-# value: "{{ conditionReason .children.deployment \"Available\" }}"
-# → "MinimumReplicasAvailable" or ""
+```text
+{{ getLabel .deployment "app" }}                     → "web"
+{{ getLabel .deployment "profile" | default "medium" }}  → "medium"
+```
 
-# conditionMessage
-# value: "{{ conditionMessage .children.deployment \"Progressing\" }}"
-# → "ReplicaSet has successfully progressed." or ""
+### getLabelInt
 
-# resourceExists
-# value: "{{ resourceExists .children.deployment }}"
+`getLabelInt` returns a label value parsed as `int64`. Returns `0` when the key is absent or the value is non-numeric.
 
-# Gate dependent resources on child existence:
-# when:
-#   - field: "{{ resourceExists .children.secret }}"
-#     equals: "true"
+```text
+{{ getLabelInt .deployment "example.com/shards" }}  → 4
+```
 
-# isTerminating
-# Gate traffic routing away from terminating pods:
-# when:
-#   - field: "{{ isTerminating .children.deployment }}"
-#     equals: "false"
+### getStatus
 
-# generation
-# value: "{{ generation .children.deployment }}"
-# → 3
+`getStatus` returns the string value of a specific key from `status`. Numeric and boolean values are converted to their string form. Returns `""` when the field is absent, nil, or a structured value (map, slice) — use `get` or `status` for those.
 
-# observedGeneration
-# value: "{{ observedGeneration .children.deployment }}"
-# → 3
+```text
+{{ getStatus .pod "phase" }}  → "Running"
+```
 
-# isSynced
-# Gate dependent resources on rollout completion:
-# when:
-#   - field: "{{ isSynced .children.deployment }}"
-#     equals: "true"
-status:
-  fields:
-    - path: lastScheduleTime
-      value: "{{ get .children.cronjob \"status\" \"lastScheduleTime\" }}"
-    - path: deploymentReady
-      value: "{{ hasCondition .children.deployment \"Available\" }}"
-    - path: phase
-      value: "{{ phase .children.pod }}"
+### hasAnnotation
 
-when:
-  - field: "{{ isSynced .children.deployment }}"
-    equals: "true"
-  - field: "{{ resourceExists .children.secret }}"
-    equals: "true"
+`hasAnnotation` returns `true` when the object has the given annotation key with a non-empty value.
 
-# resourceCPU
-# normalize block — default resource requests without nil pointer panics
-normalize:
-  spec:
-    resources.requests.cpu:    '{{ resourceCPU . | default "100m" }}'
-    resources.requests.memory: '{{ resourceMemory . | default "128Mi" }}'
+```text
+{{ hasAnnotation .deployment "example.com/owner" }}  → true
+```
 
-# resourceMemory
-- path: memoryRequest
-  value: "{{ resourceMemory .children.deployment }}"
+### hasCondition
+
+`hasCondition` returns `true` if `status.conditions` contains a condition of the given type with `status: "True"`.
+
+```text
+{{ hasCondition .deployment "Available" }}  → true
+```
+
+### hasLabel
+
+`hasLabel` returns `true` when the object has the given label key with a non-empty value.
+
+```text
+{{ hasLabel .deployment "app" }}  → true
+```
+
+### hasStatus
+
+`hasStatus` returns `true` when the given status field exists and is non-empty. Works for both scalar and structured (map, slice) fields.
+
+```text
+{{ hasStatus .service "loadBalancer" }}  → true
+```
+
+### isSynced
+
+`isSynced` returns `true` when `metadata.generation == status.observedGeneration`, meaning the controller has fully processed the current spec. Returns `true` for resources without generation tracking (both 0).
+
+```text
+{{ isSynced .deployment }}  → true
+```
+
+### isTerminating
+
+`isTerminating` returns `true` when `metadata.deletionTimestamp` is set — the object exists but is being deleted.
+
+```text
+{{ isTerminating .deployment }}  → false
+```
+
+### labelMatches
+
+`labelMatches` returns `true` when the object's labels contain every key/value pair given as arguments. Extra labels on the object are ignored. Useful for checking if a resource would be selected by a label selector.
+
+```text
+{{ labelMatches .deployment "app" "web" "tier" "frontend" }}  → true
+```
+
+### labels
+
+`labels` returns the `metadata.labels` map. Returns an empty map if absent.
+
+```text
+{{ mapGet (labels .deployment) "tier" }}  → "frontend"
+```
+
+### meta
+
+`meta` returns the `metadata` map of a Kubernetes object. Returns an empty map if metadata is absent — never nil.
+
+```text
+{{ (meta .deployment).name }}  → "web"
+```
+
+### name
+
+`name` returns metadata.name or an empty string.
+
+```text
+{{ name .deployment }}  → "web"
+```
+
+### namespace
+
+`namespace` returns metadata.namespace or an empty string.
+
+```text
+{{ namespace .deployment }}  → "payments"
+```
+
+### observedGeneration
+
+`observedGeneration` returns `status.observedGeneration` as int64. This is the generation the controller last acted on.
+
+```text
+{{ observedGeneration .deployment }}  → 3
+```
+
+### ownerKind
+
+`ownerKind` returns the `kind` of the first `ownerReference`.
+
+```text
+{{ ownerKind .replicaset }}  → "Deployment"
+```
+
+### ownerName
+
+`ownerName` returns the `name` of the first `ownerReference`.
+
+```text
+{{ ownerName .replicaset }}  → "web"
+```
+
+### phase
+
+`phase` returns `status.phase` as a string. Returns `""` when absent.
+
+```text
+{{ phase .pod }}  → "Running"
+```
+
+### resourceCPU
+
+`resourceCPU` returns `spec.resources.requests.cpu` from any object. Returns `""` when spec, resources, requests, or cpu is absent — no nil pointer panic at any level.
+
+```text
+{{ resourceCPU . }}  → "250m"
+{{ resourceCPU .pod | default "100m" }}  → "100m"
+```
+
+### resourceExists
+
+`resourceExists` reports whether obj is a Kubernetes object: a map with a metadata.name. A child that was never created, a nil, or an empty map is not.
+
+```text
+{{ resourceExists .deployment }}  → true
+{{ resourceExists .missing }}     → false
+```
+
+### resourceMemory
+
+`resourceMemory` returns `spec.resources.requests.memory` from any object. Returns `""` when any level is absent.
+
+```text
+{{ resourceMemory . }}  → "256Mi"
+```
+
+### spec
+
+`spec` returns the `spec` map of a Kubernetes object. Returns an empty map if absent.
+
+```text
+{{ (spec .cronjob).schedule }}  → "0 * * * *"
+```
+
+### status
+
+`status` returns the `status` map of a Kubernetes object. Returns an empty map if absent.
+
+```text
+{{ (status .deployment).readyReplicas }}  → 3
 ```

@@ -63,7 +63,6 @@ These are imported by more than one binary.
 | `pkg/metrics` | Prometheus metrics stubs. |
 | `pkg/registry` | Runtime-level type and hook registries. |
 | `pkg/registry/simulate` | Test harness for reconciler unit tests. |
-| `pkg/note` | Template note functions — Go helpers exposed as template variables so operators can surface replica counts, pod health, scaling state, and more in status fields without writing code. Every new note makes Inrun more declarative. |
 
 ---
 

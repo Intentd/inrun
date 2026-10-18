@@ -1,4 +1,4 @@
-# Inrun Notes
+# inrun functions
 
 Notes are pure transformation functions available in every `{{ }}` expression across a Catalog — status fields, `when:` conditions, resource names, `onCreate`, `onReconcile`, mutation rules, conversion paths. They are the vocabulary of declarative operator behavior.
 
@@ -46,23 +46,23 @@ The api deployment is not created or updated until `status.succeeded > 0` on the
 
 ---
 
-## inrun notes — explore from your terminal
+## inrun functions — explore from your terminal
 
-`inrun notes` is the fastest way to discover and learn about every note available in your version of Inrun.
+`inrun functions` is the fastest way to discover and learn about every note available in your version of Inrun.
 
-**List all notes:**
+**List all functions:**
 ```bash
-inrun notes
+inrun functions
 ```
 
 **Search by keyword:**
 ```bash
-inrun notes search job
+inrun functions search job
 ```
 
 **Show full detail and an example for one note:**
 ```bash
-inrun notes show jobSucceeded
+inrun functions show jobSucceeded
 ```
 
 ---
@@ -77,7 +77,7 @@ inrun notes show jobSucceeded
 | Math | `add` `sub` `mul` `div` `mod` `min` `max` `clamp` `abs` |
 | Conditional | `ternary` `boolTernary` `boolDefault` `coalesce` `default` `empty` `notEmpty` |
 | Type | `toInt` `toFloat` `toBool` `toString` `typeOf` `typeMap` `typeList` `typeString` `typeNumber` `typeBool` `typeNull` `len` `Empty` `isScalar` `isComposite` |
-| Data | `toBase64` `fromBase64` `toJSON` `sha256sum` `slugify` `truncateName` |
+| Data | `toBase64` `fromBase64` `toJSON` `sha256sum` `slugify` `truncate` |
 | Random | `randomAlphanumeric` `randomHex` `randomBase64` |
 | Time | `timeAgo` `timeSince` `timeFormat` `isExpired` `durationSeconds` `durationAdd` `durationValid` |
 | Network | `cidrContains` `ipValid` `ipIsPrivate` |

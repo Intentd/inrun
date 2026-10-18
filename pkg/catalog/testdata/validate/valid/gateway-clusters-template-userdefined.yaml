@@ -4,8 +4,8 @@ metadata:
   name: gateway-clusters-template-userdefined
   version: 1.0.0
   description: Valid serve.clusters template using a user-defined note function and a builtin.
-notes:
-  functions:
+functions:
+  definitions:
     - name: targetCluster
       description: Resolves cluster name from request context.
       expression: '{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}'

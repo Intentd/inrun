@@ -21,7 +21,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
 	"gopkg.in/yaml.v3"
 )
@@ -36,9 +36,9 @@ type ExpandedModule struct {
 	OnReconcile *types.HookTemplates
 	Status      *types.StatusConfig
 	Admission   *types.Admission
-	// Notes carries user-defined notes declared in the module.
-	// Merged into the Catalog's NoteRegistry during expandCatalogImports.
-	Notes types.NoteRegistry
+	// NotFunctionses carries user-defined functions declared in the module.
+	// Merged into the Catalog's KELFunctionRegistry during expandCatalogImports.
+	Functions types.KELFunctionRegistry
 	// Profiles carries user-defined profiles declared in the module.
 	// Merged into the Catalog's ProfileRegistry during expandCatalogImports.
 	Profiles types.ProfileRegistry
@@ -145,7 +145,7 @@ func Expand(m *types.Module, bindings map[string]string) (*ExpandedModule, error
 		OnReconcile: onReconcile,
 		Status:      status,
 		Admission:   admission,
-		Notes:       m.Notes,
+		Functions:   m.Functions,
 		Profiles:    m.Profiles,
 	}, nil
 }
@@ -208,10 +208,8 @@ func resolveDefaults(m *types.Module, bindings map[string]string) map[string]str
 // replacement cannot handle.
 var inputsExprRe = regexp.MustCompile(`\{\{-?\s*[^}]*\binputs\b[^}]*-?\}\}`)
 
-// This is a safe optimisation — note.Map() is a pure function that always
-// returns the same map. The template engine does not modify the FuncMap
-// after registration.
-var inrunNotes = note.Map()
+// Built-in KEL functions
+var kelFunctions = funcs.WithKEL()
 
 // renderInputs is the module preprocessor: it fully resolves all {{ .inputs.* }}
 // expressions so that only runtime expressions ({{ .metadata.* }}, {{ .spec.* }},
@@ -219,7 +217,7 @@ var inrunNotes = note.Map()
 //
 // Two passes:
 //  1. Fast exact-match replacement for the simple {{ .inputs.KEY }} pattern.
-//  2. Go template evaluation (using the inrunNotes FuncMap) for any remaining
+//  2. Go template evaluation (using the kelFunctions FuncMap) for any remaining
 //     expressions that reference inputs — e.g. {{ .inputs.key | default .inputs.fallback }}.
 //     Only blocks containing "inputs" are evaluated; all other template expressions
 //     are left untouched for the runtime resolver.
@@ -269,7 +267,7 @@ func renderInputs(resourceYAML string, resolved map[string]string, inputs []type
 		}
 		tmpl, err := template.New("").
 			Option("missingkey=zero").
-			Funcs(inrunNotes).Parse(expr)
+			Funcs(kelFunctions).Parse(expr)
 
 		if err != nil {
 			return expr // malformed — leave as-is

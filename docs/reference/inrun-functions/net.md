@@ -1,48 +1,38 @@
-# Network Notes
+# Net
 
-Network notes work with IP addresses and CIDR blocks. They provide safe, zero-panic helpers for the common network-policy and routing decisions an operator needs to make — whether an IP belongs to a subnet, whether a string is a valid address, and whether an address is internal.
-
----
+Check IP addresses and CIDR ranges: whether an address is valid, private, or inside a range.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `cidrContains` | Report whether an IP address falls within a CIDR block. |
-| `ipValid` | Report whether a string is a valid IPv4 or IPv6 address. |
-| `ipIsPrivate` | Report whether an IP address falls within a private (RFC 1918 / RFC 4193) range. |
+| Function | Description |
+|----------|-------------|
+| [`cidrContains`](#cidrcontains) | Reports whether an IP address falls within a CIDR block. |
+| [`ipIsPrivate`](#ipisprivate) | Reports whether an IP address falls within a private (RFC 1918 / RFC 4193) range. |
+| [`ipValid`](#ipvalid) | Reports whether a string is a valid IPv4 or IPv6 address. |
 
-## Examples
+## Functions
 
-```yaml
-# cidrContains
-# Allow ingress only from the internal pod CIDR
-when:
-  - field: "{{ cidrContains \"10.0.0.0/8\" .spec.clientIP }}"
-    equals: "true"
-{{ cidrContains "10.0.0.0/8"      "10.1.2.3"   }}  → true
-{{ cidrContains "192.168.0.0/16"  "10.0.0.1"   }}  → false
-{{ cidrContains "bad-cidr"        "10.0.0.1"   }}  → false
+### cidrContains
 
-# ipValid
-validation:
-  rules:
-    - field: "{{ ipValid .spec.clientIP }}"
-      equals: "true"
-      message: "spec.clientIP must be a valid IP address"
-      action: deny
-{{ ipValid "10.0.0.1"     }}  → true
-{{ ipValid "2001:db8::1"  }}  → true
-{{ ipValid "not-an-ip"    }}  → false
-{{ ipValid ""             }}  → false
+`cidrContains` reports whether an IP address falls within a CIDR block. Returns `false` for malformed input rather than an error.
 
-# ipIsPrivate
-# Route traffic differently based on whether the source is internal
-- path: trafficClass
-  value: "{{ if ipIsPrivate .spec.sourceIP }}internal{{ else }}external{{ end }}"
-{{ ipIsPrivate "10.0.0.1"       }}  → true
-{{ ipIsPrivate "192.168.1.100"  }}  → true
-{{ ipIsPrivate "172.20.0.5"     }}  → true
-{{ ipIsPrivate "8.8.8.8"        }}  → false
-{{ ipIsPrivate "2001:db8::1"    }}  → false
+```text
+{{ cidrContains "10.0.0.0/8" "10.4.2.7" }}  → true
+```
+
+### ipIsPrivate
+
+`ipIsPrivate` reports whether an IP address falls within a private (RFC 1918 / RFC 4193) range. Covers `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and `fc00::/7`.
+
+```text
+{{ ipIsPrivate "192.168.1.20" }}  → true
+```
+
+### ipValid
+
+`ipValid` reports whether a string is a valid IPv4 or IPv6 address.
+
+```text
+{{ ipValid "10.4.2.7" }}  → true
+{{ ipValid "10.4.2" }}    → false
 ```

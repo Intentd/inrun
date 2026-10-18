@@ -9,7 +9,7 @@ metadata:
     flag value comes from the target surface rather than a live HTTP call.
     "v2-enabled" forces featureEnabled=true; "v2-disabled" forces it false.
 
-notes:
+functions:
   include: ../include/functions.yaml
 
 gateway:

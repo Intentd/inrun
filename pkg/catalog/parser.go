@@ -75,7 +75,7 @@ func (c *Catalog) BuildRuntimeCatalog(
 	c.Gateway = m.ToGateway()
 	c.Publish = m.ToPublish()
 	c.Profiles = m.ToProfiles()
-	c.Notes = m.ToNotes()
+	c.Functions = m.ToFunctions()
 	c.enabledCRDs = m.Enabled()           // Enabled CRDs for all operations
 	c.metadata = m.APIMetadata().Metadata // Metadata for CLI and health endpoints
 	c.lifecycle = m.ToLifecycle()

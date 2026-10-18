@@ -66,7 +66,7 @@ type PreparedRequest struct {
 	// Always non-nil when Prepared is non-nil.
 	Object Object
 
-	// Context is the enriched resolver: profiles, notes, cross, intent.
+	// Context is the enriched resolver: profiles, functions, cross, intent.
 	Context PreparedContext
 
 	// Target is the resolved serve target name. Empty for the primary surface.

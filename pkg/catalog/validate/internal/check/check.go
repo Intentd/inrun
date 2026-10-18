@@ -5,15 +5,16 @@ package check
 
 import (
 	"fmt"
+	"strings"
+	texttemplate "text/template"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/template/funcs"
 	"k8s.io/apimachinery/pkg/api/validate/content"
-	"strings"
-	texttemplate "text/template"
 
-	"github.com/intentd/inrun/pkg/note"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -51,13 +52,13 @@ var (
 
 func BoolPtr(b bool) *bool { return &b }
 
-func FuncMap(notes types.NoteRegistry) texttemplate.FuncMap {
-	builtins := note.Map()
-	funcMap := make(texttemplate.FuncMap, len(builtins)+len(notes.Functions))
+func FuncMap(registry types.KELFunctionRegistry) texttemplate.FuncMap {
+	builtins := funcs.WithKEL()
+	funcMap := make(texttemplate.FuncMap, len(builtins)+len(registry.Definitions))
 	for k, v := range builtins {
 		funcMap[k] = v
 	}
-	for _, n := range notes.Functions {
+	for _, n := range registry.Definitions {
 		funcMap[n.Name] = func() interface{} { return "" }
 	}
 	return funcMap

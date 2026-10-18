@@ -36,7 +36,7 @@
 //	      when:
 //	        - field: external.health-check.status
 //	          equals: "200"
-//	        - field: "{{ promAboveThreshold .external.queueDepth 1000 }}"
+//	        - field: "{{ promAboveThreshold .external.queueDepth.raw 1000 }}"
 //	          equals: "false"
 //
 // Calls run sequentially in declaration order. Each call can reference earlier

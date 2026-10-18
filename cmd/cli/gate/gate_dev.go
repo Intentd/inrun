@@ -172,7 +172,7 @@ func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 		fmt.Printf("  %s external: calls — skipped (no endpoint)\n", cmdutil.Dim("note:"))
 	}
 
-	resolver := template.NewResolverFromMap(obj).WithUserNotes(cat.Notes)
+	resolver := template.NewResolverFromMap(obj).WithUserFunctions(cat.Functions)
 	eval := resolver.TemplateEvaluator()
 
 	// When mutateFirst is set the real webhook applies mutations before
@@ -183,7 +183,7 @@ func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 		mutResult = EvalAdmissionMutation(obj, crd, resolver, eval)
 		if len(mutResult.Previews) > 0 {
 			validationObj = applyMutationPreviews(obj, mutResult.Previews)
-			validationResolver := template.NewResolverFromMap(validationObj).WithUserNotes(cat.Notes)
+			validationResolver := template.NewResolverFromMap(validationObj).WithUserFunctions(cat.Functions)
 			resolver = validationResolver
 			eval = resolver.TemplateEvaluator()
 		}

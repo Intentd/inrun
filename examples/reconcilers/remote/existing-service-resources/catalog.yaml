@@ -15,8 +15,8 @@ metadata:
     - existing-service
     - templates
 
-notes:
-  functions:
+functions:
+  definitions:
     - name: bucketAPI
       description: The bucket API — the dev server in the cluster, or on localhost when inrun runs outside it
       expression: >

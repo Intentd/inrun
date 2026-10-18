@@ -18,8 +18,8 @@ spec:
   valuesFiles:
     - ./values.yaml
 
-  notes:
-    functions:
+  functions:
+    definitions:
       - name: inBusinessHours
         expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
 

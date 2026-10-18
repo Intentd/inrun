@@ -54,7 +54,7 @@ func declarativeRequeue(ctx context.Context, d Deps, in Input, prepared *domain.
 		resolver = prepared.Context.(*template.Resolver)
 	} else if obj != nil {
 		if r, err := template.NewResolver(ctx, obj); err == nil {
-			resolver = r.WithUserNotes(d.Cat.UserNotes()).
+			resolver = r.WithUserFunctions(d.Cat.UserFunctions()).
 				WithProfiles(d.Cat.UserProfiles()).
 				WithHealth(in.Health.HealthAsMap()).
 				WithMetrics(in.Health.GetAutoMetrics())

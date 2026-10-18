@@ -1,8 +1,8 @@
 //go:build !runtime && !gateway
 
-// Package notes implements the notes command for browsing and searching the
+// package function implements the functions command for browsing and searching the
 // template functions available in Catalog expressions.
-package notes
+package function
 
 import (
 	"fmt"
@@ -14,122 +14,122 @@ import (
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"github.com/intentd/inrun/pkg/merger"
-	"github.com/intentd/inrun/pkg/note"
+	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/kel"
 	"github.com/spf13/cobra"
 )
 
-var notesCmd = &cobra.Command{
-	Use:   "notes",
-	Short: "Browse and search Inrun note functions",
-	Long: `List, search, and inspect Inrun notes — the template functions available
+var functionsCmd = &cobra.Command{
+	Use:   "functions",
+	Short: "Browse and search Inrun functions",
+	Long: `List, search, and inspect Inrun functions — the template functions available
 in every Catalog expression.
 
-  inrun notes                    list all notes
-  inrun notes --domain strings   filter by domain
-  inrun notes search <term>      full-text search
-  inrun notes show <name>        show full detail for one note`,
+  inrun functions                    list all functions
+  inrun functions --domain strings   filter by domain
+  inrun functions search <term>      full-text search
+  inrun functions show <name>        show full detail for one function`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		domain, _ := cmd.Flags().GetString("domain")
 		noPager, _ := cmd.Flags().GetBool("no-pager")
 		files, _ := cmd.Flags().GetStringSlice("file")
 		expanded := cmdutil.ParseFilePaths(files)
 
-		// When -f is provided, show user-defined notes from the Catalog.
+		// When -f is provided, show user-defined functions from the Catalog.
 		if len(expanded) > 0 {
 			m := merger.New(expanded...)
 			if err := m.Merge(); err != nil {
 				return fmt.Errorf("loading catalog: %w", err)
 			}
-			reg := m.ToNotes()
+			reg := m.ToFunctions()
 			if reg.Empty() {
-				fmt.Println("No user-defined notes declared in this Catalog.")
+				fmt.Println("No user-defined functions declared in this Catalog.")
 				return nil
 			}
-			return printUserNoteTable(reg, noPager)
+			return printUserFunctionTable(reg, noPager)
 		}
 
-		var notes []note.NoteInfo
+		var fns []kel.FunctionInfo
 		if domain != "" {
-			notes = note.ListByDomain(domain)
-			if len(notes) == 0 {
-				return fmt.Errorf("no notes found for domain %q — run `inrun notes` to see available domains", domain)
+			fns = funcs.Registry().ByDomain(domain)
+			if len(fns) == 0 {
+				return fmt.Errorf("no functions found for domain %q — run `inrun functions` to see available domains", domain)
 			}
 		} else {
-			notes = note.ListNotes()
+			fns = funcs.Registry().Functions
 		}
-		return printNoteTable(notes, noPager)
+		return printFunctionTable(fns, noPager)
 	},
 }
 
-var notesSearchCmd = &cobra.Command{
+var functionsSearchCmd = &cobra.Command{
 	Use:   "search <term>",
-	Short: "Search notes by name, description, or example",
+	Short: "Search functions by name, description, or example",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		noPager, _ := cmd.Flags().GetBool("no-pager")
-		results := note.SearchNotes(args[0])
+		results := funcs.Registry().Search(args[0])
 		if len(results) == 0 {
-			fmt.Printf("no notes match %q\n", args[0])
+			fmt.Printf("no functions match %q\n", args[0])
 			return nil
 		}
-		fmt.Printf("Found %d note(s) matching %q:\n\n", len(results), args[0])
-		return printNoteTable(results, noPager)
+		fmt.Printf("Found %d function(s) matching %q:\n\n", len(results), args[0])
+		return printFunctionTable(results, noPager)
 	},
 }
 
-var notesShowCmd = &cobra.Command{
+var functionsShowCmd = &cobra.Command{
 	Use:   "show <name>",
-	Short: "Show full documentation for a single note",
+	Short: "Show full documentation for a single function",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		noPager, _ := cmd.Flags().GetBool("no-pager")
-		n, ok := note.GetNote(args[0])
+		n, ok := funcs.Registry().Get(args[0])
 		if !ok {
-			return fmt.Errorf("note %q not found — run `inrun notes search %s` to find similar notes", args[0], args[0])
+			return fmt.Errorf("function %q not found — run `inrun functions search %s` to find similar functions", args[0], args[0])
 		}
-		return printNoteDetail(n, noPager)
+		return printFunctionDetail(n, noPager)
 	},
 }
 
-var notesDomainCmd = &cobra.Command{
+var functionsDomainCmd = &cobra.Command{
 	Use:   "domains",
-	Short: "List available note domains",
+	Short: "List available function domains",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		domains := note.Domains()
+		reg := funcs.Registry()
 		fmt.Println("Available domains:")
 		fmt.Println()
-		for _, d := range domains {
-			notes := note.ListByDomain(d)
-			fmt.Printf("  %-16s  %d notes\n", d, len(notes))
+		for _, d := range reg.Domains {
+			fmt.Printf("  %-16s  %-22s  %d functions\n", d.Name, d.Title, len(reg.ByDomain(d.Name)))
 		}
 		return nil
 	},
 }
 
 func init() {
-	notesCmd.Flags().StringP("domain", "d", "", "Filter by domain (e.g. strings, cron, kubernetes)")
-	notesCmd.Flags().Bool("no-pager", false, "Print directly without paging")
-	notesSearchCmd.Flags().Bool("no-pager", false, "Print directly without paging")
-	notesShowCmd.Flags().Bool("no-pager", false, "Print directly without paging")
+	functionsCmd.Flags().StringP("domain", "d", "", "Filter by domain (e.g. strings, cron, kubernetes)")
+	functionsCmd.Flags().Bool("no-pager", false, "Print directly without paging")
+	functionsSearchCmd.Flags().Bool("no-pager", false, "Print directly without paging")
+	functionsShowCmd.Flags().Bool("no-pager", false, "Print directly without paging")
 
-	notesCmd.AddCommand(notesSearchCmd)
-	notesCmd.AddCommand(notesShowCmd)
-	notesCmd.AddCommand(notesDomainCmd)
-	cmdutil.RootCmd.AddCommand(notesCmd)
+	functionsCmd.AddCommand(functionsSearchCmd)
+	functionsCmd.AddCommand(functionsShowCmd)
+	functionsCmd.AddCommand(functionsDomainCmd)
+	cmdutil.RootCmd.AddCommand(functionsCmd)
 
 	// Shadow global flags
-	cmdutil.ShadowGlobalCommandFlags(notesCmd)
+	cmdutil.ShadowGlobalCommandFlags(functionsCmd)
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
-func printNoteTable(notes []note.NoteInfo, noPager bool) error {
+func printFunctionTable(functions []kel.FunctionInfo, noPager bool) error {
 	var sb strings.Builder
 	w := tabwriter.NewWriter(&sb, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "DOMAIN\tNAME\tDESCRIPTION")
 	fmt.Fprintln(w, "──────\t────\t───────────")
-	for _, n := range notes {
+	for _, n := range functions {
 		desc := n.Description
 		if len(desc) > 72 {
 			desc = desc[:69] + "..."
@@ -140,7 +140,7 @@ func printNoteTable(notes []note.NoteInfo, noPager bool) error {
 	return page(sb.String(), noPager)
 }
 
-func printNoteDetail(n note.NoteInfo, noPager bool) error {
+func printFunctionDetail(n kel.FunctionInfo, noPager bool) error {
 	sep := strings.Repeat("─", 64)
 	var sb strings.Builder
 	fmt.Fprintln(&sb, sep)
@@ -183,12 +183,12 @@ func page(content string, noPager bool) error {
 	return nil
 }
 
-func printUserNoteTable(reg types.NoteRegistry, noPager bool) error {
+func printUserFunctionTable(reg types.KELFunctionRegistry, noPager bool) error {
 	var sb strings.Builder
 	w := tabwriter.NewWriter(&sb, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "NAME\tEXPRESSION\tDESCRIPTION")
 	fmt.Fprintln(w, "────\t──────────\t───────────")
-	for _, n := range reg.Functions {
+	for _, n := range reg.Definitions {
 		expr := n.Expression
 		if len(expr) > 60 {
 			expr = expr[:57] + "..."

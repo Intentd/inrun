@@ -67,7 +67,7 @@ type BuiltInKind struct {
 // enrichmentEntry defines how a resource kind participates in context enrichment.
 // Target marks the kind as a valid enrich: target. EnrichKeys lists any synthetic
 // enrichment identifiers the resource provides beyond its own name/plural/shorthands
-// (e.g. "replicasets" on a Deployment, "owner" on a ReplicaSet).
+// (e.g. "replicasets" on a Deployment).
 type enrichmentEntry struct {
 	Target     bool
 	EnrichKeys []string
@@ -85,7 +85,7 @@ var enrichmentMeta = map[string]enrichmentEntry{
 	"node":                    {Target: true},
 	"deployment":              {Target: true, EnrichKeys: []string{"replicasets"}},
 	"statefulset":             {Target: true, EnrichKeys: []string{"pvcs"}},
-	"replicaset":              {Target: true, EnrichKeys: []string{"owner"}},
+	"replicaset":              {Target: true},
 	"job":                     {Target: true},
 	"cronjob":                 {Target: true},
 	"ingress":                 {Target: true},

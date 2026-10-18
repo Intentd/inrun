@@ -13,14 +13,14 @@ import (
 // Structs
 // -----------------------------------------------------------------------------
 type Catalog struct {
-	APIVersion string                `yaml:"apiVersion"`
-	Kind       string                `yaml:"kind"`
-	Spec       types.CatalogSpec     `yaml:"spec"`
-	Security   types.CatalogSecurity `yaml:"security"`
-	Notes      types.NoteRegistry    `yaml:"notes,omitempty"`
-	Profiles   types.ProfileRegistry `yaml:"profiles,omitempty"`
-	Gateway    *types.GatewayConfig  `yaml:"gateway,omitempty"`
-	Publish    *types.PublishConfig  `yaml:"publish,omitempty"`
+	APIVersion string                    `yaml:"apiVersion"`
+	Kind       string                    `yaml:"kind"`
+	Spec       types.CatalogSpec         `yaml:"spec"`
+	Security   types.CatalogSecurity     `yaml:"security"`
+	Functions  types.KELFunctionRegistry `yaml:"functions,omitempty"`
+	Profiles   types.ProfileRegistry     `yaml:"profiles,omitempty"`
+	Gateway    *types.GatewayConfig      `yaml:"gateway,omitempty"`
+	Publish    *types.PublishConfig      `yaml:"publish,omitempty"`
 
 	StackMetadata types.CatalogMeta `yaml:"metadata"`
 
@@ -117,11 +117,11 @@ func (c *Catalog) AllCRDs() map[string]types.CRDEntry {
 }
 
 // UserNotes returns all user defined notes in the catalog
-func (c *Catalog) UserNotes() types.NoteRegistry {
+func (c *Catalog) UserFunctions() types.KELFunctionRegistry {
 	if c == nil {
-		return types.NoteRegistry{}
+		return types.KELFunctionRegistry{}
 	}
-	return c.Notes
+	return c.Functions
 }
 
 // UserProfiles returns all user defined profiles in the catalog

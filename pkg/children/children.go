@@ -103,7 +103,6 @@ func ReadChildren(
 		dNames := replicaSetNames(resolver, templates.ReplicaSets)
 		m := readResourceGroup(ctx, kube, obj, resolver, ReplicaSetGVR, dNames)
 		enrichGroupWithPods(ctx, kube, m, crd, "ReplicaSet")
-		enrichGroupWithOwner(ctx, kube, m, crd)
 		enrichGroupWithWarnings(ctx, kube, m, crd, "ReplicaSet")
 		children["replicasets"] = m
 		children["replicaset"] = firstValue(m)
@@ -217,7 +216,6 @@ func ReadChildren(
 	if len(templates.HorizontalPodAutoscalers) > 0 {
 		m := readResourceGroup(ctx, kube, obj, resolver, HorizontalPodAutoscalerGVR,
 			hpaNames(resolver, templates.HorizontalPodAutoscalers))
-		enrichGroupWithHPAData(ctx, kube, m, crd)
 		enrichGroupWithWarnings(ctx, kube, m, crd, "HorizontalPodAutoscaler")
 		children["hpas"] = m
 		children["hpa"] = firstValue(m)
@@ -335,7 +333,6 @@ func applySecondPhaseEnrichments(
 	}
 	if m, ok := children["replicasets"].(map[string]interface{}); ok {
 		enrichGroupWithPods(ctx, kube, m, crd, "ReplicaSet")
-		enrichGroupWithOwner(ctx, kube, m, crd)
 		enrichGroupWithWarnings(ctx, kube, m, crd, "ReplicaSet")
 	}
 	if m, ok := children["customs"].(map[string]interface{}); ok {
@@ -375,7 +372,6 @@ func applySecondPhaseEnrichments(
 		enrichGroupWithWarnings(ctx, kube, m, crd, "Ingress")
 	}
 	if m, ok := children["hpas"].(map[string]interface{}); ok {
-		enrichGroupWithHPAData(ctx, kube, m, crd)
 		enrichGroupWithWarnings(ctx, kube, m, crd, "HorizontalPodAutoscaler")
 	}
 	if m, ok := children["persistentvolumeclaims"].(map[string]interface{}); ok {

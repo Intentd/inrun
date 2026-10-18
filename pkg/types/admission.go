@@ -358,7 +358,7 @@ func (c *ValidationConfig) HasUniqueRule() bool {
 // References reports whether any rule's field reads the data root (for
 // example "health" or "metrics"), directly or through a note. Used by
 // validators and also the webhook to fetch data only when a rule needs it.
-func (c *ValidationConfig) References(nr NoteRegistry, root string) bool {
+func (c *ValidationConfig) References(nr KELFunctionRegistry, root string) bool {
 	if c == nil {
 		return false
 	}
@@ -581,7 +581,7 @@ func (c *MutationConfig) HasUniqueRule() bool {
 // References reports whether any rule's field, default or override reads
 // the data root (for example "health" or "metrics"), directly or through a
 // note.
-func (c *MutationConfig) References(nr NoteRegistry, root string) bool {
+func (c *MutationConfig) References(nr KELFunctionRegistry, root string) bool {
 	if c == nil {
 		return false
 	}

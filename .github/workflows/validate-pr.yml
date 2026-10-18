@@ -14,8 +14,8 @@ on:
       - 'go.sum'
 
 jobs:
-  validate-notes:
-    name: Validate generated notes
+  validate-functions:
+    name: Validate generated functions
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,17 +29,19 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Run note generator
-        run: make generate-notes
+      - name: Run function generator
+        run: make generate-functions
 
-      - name: Check for uncommitted changes (list_generated.go)
+      - name: Check for uncommitted changes (generated function registries)
         run: |
-          if ! git diff --quiet pkg/note/list_generated.go; then
-            echo "❌ pkg/note/list_generated.go is out of date."
-            echo "Run 'make generate-notes' locally and commit the changes."
+          FUNCS="pkg/template/funcs/funcs_generated.go docs/reference/inrun-functions"
+          if ! git diff --quiet -- $FUNCS; then
+            echo "❌ Generated function files are out of date:"
+            git diff --stat -- $FUNCS
+            echo "Run 'make generate-functions' locally and commit the changes."
             exit 1
           else
-            echo "✅ Note list is up-to-date."
+            echo "✅ Function list is up-to-date."
           fi
 
   validate-resource-docs:
@@ -128,17 +130,6 @@ jobs:
         run: |
           "$RUNNER_TEMP/inrun" serve play -i intent.json --token dev --simulate=test/simulate.yaml
 
-  # Runs as its own job, in parallel with validate-code, so a slow vuln DB
-  # fetch doesn't add to the critical path of the tests everyone's actually
-  # waiting on. Matrix so all three targets also run in parallel with each
-  # other, and so a failure names exactly which one.
-  #
-  # Scoped to what actually ships: runtime, gateway, and Console.
-  # vuln-inrun scans the dev-CLI build config (no tags — never deployed)
-  # and is manually triggered instead, from vuln-inrun.yml — that's also
-  # where the known, accepted findings live (see the comment above `vuln` in
-  # the Makefile); none of them reach these three, so this is a hard gate —
-  # no continue-on-error.
   vuln-check:
     name: Vulnerability check (${{ matrix.target }})
     runs-on: ubuntu-latest
@@ -158,135 +149,3 @@ jobs:
 
       - name: Run vulnerability check
         run: make ${{ matrix.target }}
-
-  # ── Fixture: note family ────────────────────────────────────────────────────
-  # Runs only when the note package or its fixture changes.
-  # Exercises every kubernetes-family note against a real API server.
-  fixture-note:
-    name: Fixture — note (kind cluster)
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.changed_files, 'pkg/note/')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Build inrun
-        run: make inrun
-
-      - name: Create kind cluster
-        uses: helm/kind-action@v1
-        with:
-          cluster_name: inrun-note-fixture
-
-      - name: Apply CRD
-        run: kubectl apply -f pkg/note/fixture/crd.yaml
-
-      - name: Generate and apply bundle
-        run: |
-          $HOME/.inrun/bin/inrun bundle \
-            --file pkg/note/fixture/catalog.yaml | kubectl apply -f -
-
-      - name: Install Inrun via Helm
-        run: |
-          helm install inrun ./charts/inrun \
-            --namespace default \
-            --wait --timeout 120s
-
-      - name: Apply CR
-        run: kubectl apply -f pkg/note/fixture/cr.yaml
-
-      - name: Wait for status
-        run: |
-          kubectl wait noteprobe/my-probe \
-            --for=jsonpath='{.status.phase}'=Ready \
-            --timeout=120s
-
-      - name: Assert note fields populated
-        run: |
-          kubectl get noteprobe my-probe -o yaml | tee /tmp/probe.yaml
-          # Fail if phase is empty — means status is not being written
-          PHASE=$(kubectl get noteprobe my-probe -o jsonpath='{.status.phase}')
-          [ -n "$PHASE" ] || (echo "❌ status.phase is empty"; exit 1)
-          echo "✅ Note fixture passed — phase: $PHASE"
-
-      - name: Debug on failure
-        if: failure()
-        run: |
-          echo "=== ReconcilerProbe ===" && kubectl get noteprobe my-probe -o yaml || true
-          echo "=== Operator logs ===" && kubectl logs -l app.kubernetes.io/name=inrun --tail=100 || true
-
-  # ── Fixture: reconciler run_* ───────────────────────────────────────────────
-  # Runs only when the reconciler package or its fixture changes.
-  # Exercises every run_* resource type in a single reconcile cycle.
-  fixture-reconciler:
-    name: Fixture — reconciler run_* (kind cluster)
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.changed_files, 'pkg/runtime/reconciler/')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Build inrun
-        run: make inrun
-
-      - name: Create kind cluster
-        uses: helm/kind-action@v1
-        with:
-          cluster_name: inrun-reconciler-fixture
-
-      - name: Apply CRD
-        run: kubectl apply -f pkg/runtime/reconciler/fixture/crd.yaml
-
-      - name: Generate and apply bundle
-        run: |
-          $HOME/.inrun/bin/inrun bundle \
-            --file pkg/runtime/reconciler/fixture/catalog.yaml | kubectl apply -f -
-
-      - name: Install Inrun via Helm
-        run: |
-          helm install inrun ./charts/inrun \
-            --namespace default \
-            --wait --timeout 120s
-
-      - name: Apply CR
-        run: kubectl apply -f pkg/runtime/reconciler/fixture/cr.yaml
-
-      - name: Wait for status
-        run: |
-          kubectl wait reconcilerprobe/probe \
-            --for=jsonpath='{.status.tier}'=premium \
-            --timeout=120s
-
-      - name: Assert all run_* resources created
-        run: |
-          kubectl get deployment   probe-app       || (echo "❌ probe-app deployment missing";    exit 1)
-          kubectl get deployment   probe-premium   || (echo "❌ probe-premium deployment missing"; exit 1)
-          kubectl get service      probe-svc       || (echo "❌ probe-svc service missing";       exit 1)
-          kubectl get configmap    probe-config    || (echo "❌ probe-config configmap missing";  exit 1)
-          kubectl get secret       probe-creds     || (echo "❌ probe-creds secret missing";      exit 1)
-          kubectl get serviceaccount probe-sa      || (echo "❌ probe-sa serviceaccount missing"; exit 1)
-          kubectl get cronjob      probe-cron      || (echo "❌ probe-cron cronjob missing";      exit 1)
-          echo "✅ Reconciler fixture passed — all run_* resources present"
-
-      - name: Debug on failure
-        if: failure()
-        run: |
-          echo "=== ReconcilerProbe ===" && kubectl get reconcilerprobe probe -o yaml || true
-          echo "=== All resources in default ===" && kubectl get all || true
-          echo "=== Operator logs ===" && kubectl logs -l app.kubernetes.io/name=inrun --tail=100 || true

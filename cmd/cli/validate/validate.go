@@ -118,13 +118,13 @@ Examples:
 		}
 
 		full, _ := cmd.Flags().GetBool("full")
-		showNotes, _ := cmd.Flags().GetBool("notes")
+		showFunctions, _ := cmd.Flags().GetBool("functions")
 		showProfiles, _ := cmd.Flags().GetBool("profiles")
 
-		// --notes / --profiles: quiet mode — skip full validate output, print only that registry.
-		if showNotes || showProfiles {
-			if showNotes {
-				printValidateNotes(cat.Notes)
+		// --functions / --profiles: quiet mode — skip full validate output, print only that registry.
+		if showFunctions || showProfiles {
+			if showFunctions {
+				printValidateFunctions(cat.Functions)
 			}
 			if showProfiles {
 				printValidateProfiles(cat.Profiles)
@@ -199,7 +199,7 @@ Examples:
 		}
 
 		// Always print non-empty registries inline.
-		printValidateNotes(cat.Notes)
+		printValidateFunctions(cat.Functions)
 		printValidateProfiles(cat.Profiles)
 
 		return nil
@@ -778,19 +778,19 @@ func printRuntimeContext() {
 	fmt.Printf("  %s   %s\n", cmdutil.PadRight(cmdutil.Cyan(".inrun.version"), 16), cmdutil.Gray("running Inrun version string"))
 }
 
-func printValidateNotes(reg types.NoteRegistry) {
+func printValidateFunctions(reg types.KELFunctionRegistry) {
 	if reg.Empty() {
 		return
 	}
 	maxLen := 0
-	for _, n := range reg.Functions {
+	for _, n := range reg.Definitions {
 		if l := len(n.Name); l > maxLen {
 			maxLen = l
 		}
 	}
 	fmt.Println()
-	fmt.Printf("%s\n", cmdutil.Bold(fmt.Sprintf("Notes (%d)", len(reg.Functions))))
-	for _, n := range reg.Functions {
+	fmt.Printf("%s\n", cmdutil.Bold(fmt.Sprintf("Functions (%d)", len(reg.Definitions))))
+	for _, n := range reg.Definitions {
 		fmt.Printf("  %s   %s\n", cmdutil.PadRight(cmdutil.Cyan(n.Name), maxLen), cmdutil.Gray(n.Expression))
 	}
 }
@@ -800,7 +800,7 @@ func init() {
 
 	validateCmd.Flags().StringSliceP("file", "f", nil, "Path to an Inrun pattern (repeatable or comma-separated)")
 	validateCmd.Flags().Bool("full", false, "Show per-CRD permissions, dependency graph, and system-level RBAC")
-	validateCmd.Flags().Bool("notes", false, "Quiet mode: print only the merged note registry, skip full validate output")
+	validateCmd.Flags().Bool("functions", false, "Quiet mode: print only the merged function registry, skip full validate output")
 	validateCmd.Flags().Bool("profiles", false, "Quiet mode: print only the merged profile registry, skip full validate output")
 
 	// Shadow global flags so they don't appear under `inrun validate`

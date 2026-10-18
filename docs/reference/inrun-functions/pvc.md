@@ -1,68 +1,91 @@
-# PVC Notes
+# PVC
 
-PVC notes read PersistentVolumeClaim phase, capacity, storage class, and access modes. Enriched notes navigate the bound PV (via `enrich: [pvc]`) or the StorageClass object (via `enrich: [storageclass]`).
-
----
+Read a PersistentVolumeClaim (whether it is bound, its phase, capacity, storage class and access modes), the PersistentVolume bound to it, and its StorageClass.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `pvcBound` | Returns `true` when `status. |
-| `pvcPhase` | Returns `status. |
-| `pvcCapacity` | Returns `spec. |
-| `pvcStorageClass` | Returns `spec. |
-| `pvcAccessModes` | Returns a comma-separated list of `spec. |
-| `pvcProvisioner` | Returns the provisioner annotation from the bound PV (`pv. |
-| `pvcVolumeMode` | Returns the `volumeMode` of the bound PV — `"Filesystem"` or `"Block"`. |
-| `pvcStorageClassProvisioner` | Returns `_storageClass. |
-| `pvcStorageClassReclaimPolicy` | Returns `_storageClass. |
+| Function | Description |
+|----------|-------------|
+| [`pvProvisioner`](#pvprovisioner) | Returns the provisioner that created a PersistentVolume (annotation pv.kubernetes.io/provisioned-by). |
+| [`pvVolumeMode`](#pvvolumemode) | Returns a PersistentVolume's volumeMode: Filesystem or Block. |
+| [`pvcAccessModes`](#pvcaccessmodes) | Returns the PVC's spec.accessModes. |
+| [`pvcBound`](#pvcbound) | Returns `true` when `status.phase == "Bound"`. |
+| [`pvcCapacity`](#pvccapacity) | Returns `spec.resources.requests.storage`. |
+| [`pvcPhase`](#pvcphase) | Returns `status.phase` — `"Bound"`, `"Pending"`, `"Released"`, or `"Lost"`. |
+| [`pvcStorageClass`](#pvcstorageclass) | Returns `spec.storageClassName`, or `""` when not set (cluster default applies). |
+| [`storageClassProvisioner`](#storageclassprovisioner) | Returns a StorageClass's provisioner. |
+| [`storageClassReclaimPolicy`](#storageclassreclaimpolicy) | Returns a StorageClass's reclaimPolicy: Delete or Retain. |
 
-## Examples
+## Functions
 
-```yaml
-# pvcBound
-when:
-  - field: "{{ pvcBound .children.pvc }}"
-    equals: "true"
+### pvProvisioner
 
-# pvcPhase
-- path: pvcPhase
-  value: "{{ pvcPhase .children.pvc }}"
-# → "Bound"
+`pvProvisioner` returns the provisioner that created a PersistentVolume (annotation pv.kubernetes.io/provisioned-by).
 
-# pvcCapacity
-- path: capacity
-  value: "{{ pvcCapacity .children.pvc }}"
-# → "10Gi"
+```text
+{{ pvProvisioner .pv }}  → "ebs.csi.aws.com"
+```
 
-# pvcStorageClass
-- path: storageClass
-  value: "{{ pvcStorageClass .children.pvc }}"
-# → "standard"
+### pvVolumeMode
 
-# pvcAccessModes
-- path: accessModes
-  value: "{{ pvcAccessModes .children.pvc }}"
-# → "ReadWriteOnce"
+`pvVolumeMode` returns a PersistentVolume's volumeMode: Filesystem or Block.
 
-# pvcProvisioner
-- path: provisioner
-  value: "{{ pvcProvisioner .children.pvc }}"
-# → "ebs.csi.aws.com"
+```text
+{{ pvVolumeMode .pv }}  → "Filesystem"
+```
 
-# pvcVolumeMode
-- path: volumeMode
-  value: "{{ pvcVolumeMode .children.pvc }}"
-# → "Filesystem"
+### pvcAccessModes
 
-# pvcStorageClassProvisioner
-- path: scProvisioner
-  value: "{{ pvcStorageClassProvisioner .children.pvc }}"
-# → "ebs.csi.aws.com"
+`pvcAccessModes` returns the PVC's spec.accessModes.
 
-# pvcStorageClassReclaimPolicy
-- path: reclaimPolicy
-  value: "{{ pvcStorageClassReclaimPolicy .children.pvc }}"
-# → "Delete"
+```text
+{{ pvcAccessModes .pvc }}  → [ReadWriteOnce]
+```
+
+### pvcBound
+
+`pvcBound` returns `true` when `status.phase == "Bound"`.
+
+```text
+{{ pvcBound .pvc }}  → true
+```
+
+### pvcCapacity
+
+`pvcCapacity` returns `spec.resources.requests.storage`.
+
+```text
+{{ pvcCapacity .pvc }}  → "10Gi"
+```
+
+### pvcPhase
+
+`pvcPhase` returns `status.phase` — `"Bound"`, `"Pending"`, `"Released"`, or `"Lost"`.
+
+```text
+{{ pvcPhase .pvc }}  → "Bound"
+```
+
+### pvcStorageClass
+
+`pvcStorageClass` returns `spec.storageClassName`, or `""` when not set (cluster default applies).
+
+```text
+{{ pvcStorageClass .pvc }}  → "standard"
+```
+
+### storageClassProvisioner
+
+`storageClassProvisioner` returns a StorageClass's provisioner.
+
+```text
+{{ storageClassProvisioner .storageClass }}  → "ebs.csi.aws.com"
+```
+
+### storageClassReclaimPolicy
+
+`storageClassReclaimPolicy` returns a StorageClass's reclaimPolicy: Delete or Retain.
+
+```text
+{{ storageClassReclaimPolicy .storageClass }}  → "Delete"
 ```

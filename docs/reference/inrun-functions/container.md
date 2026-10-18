@@ -1,40 +1,74 @@
-# Container Notes
+# Container
 
-Container notes extract information from Kubernetes Deployment or Pod objects — specifically from the `spec.template.spec.containers` array. They are designed to read data from child resources available under `.children.*`.
+Read the containers of a workload (a Deployment, StatefulSet, Job, Pod, …, through its pod template): images, environment variables, ports and counts, by container index or name.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `containerImage` | Return the container image at the given index. |
-| `containerEnv` | Return the value of a named environment variable from the container at the given index. |
-| `containerPort` | Return `true` when the container at the given index exposes the specified port number. |
+| Function | Description |
+|----------|-------------|
+| [`containerCount`](#containercount) | Returns the number of containers in the pod spec. |
+| [`containerEnv`](#containerenv) | Returns the value of a named environment variable from the container at the given index. |
+| [`containerImage`](#containerimage) | Returns the container image at the given index. |
+| [`containerPort`](#containerport) | Returns a containerPort number: by default the first port of the first container; an optional container index and port index choose another. |
+| [`containerPortByName`](#containerportbyname) | Returns the port number for a named container port. |
+| [`containerPorts`](#containerports) | Returns the containerPort numbers the container at index exposes. |
+| [`hasContainerPort`](#hascontainerport) | Reports whether the container exposes a specific port number. |
 
-## Examples
+## Functions
 
-```yaml
-# containerImage
-# value: "{{ containerImage .children.deployment 0 }}"
-# → "nginx:1.25"  (image of the first container)
-status:
-  fields:
-    - path: runningImage
-      value: "{{ containerImage .children.deployment 0 }}"
+### containerCount
 
-# containerEnv
-# value: "{{ containerEnv .children.deployment 0 \"APP_ENV\" }}"
-# → "production"
-status:
-  fields:
-    - path: deployedEnvironment
-      value: "{{ containerEnv .children.deployment 0 \"APP_ENV\" }}"
+`containerCount` returns the number of containers in the pod spec.
 
-# containerPort
-# value: "{{ containerPort .children.deployment 0 8080 }}"
-# → true   (if container[0].ports contains containerPort: 8080)
-# → false  (otherwise)
-status:
-  fields:
-    - path: port8080Exposed
-      value: "{{ containerPort .children.deployment 0 8080 }}"
+```text
+{{ containerCount .deployment }}  → 2
+```
+
+### containerEnv
+
+`containerEnv` returns the value of a named environment variable from the container at the given index.
+
+```text
+{{ containerEnv .deployment "APP_ENV" }}  → "production"
+```
+
+### containerImage
+
+`containerImage` returns the container image at the given index.
+
+```text
+{{ containerImage .deployment }}    → "nginx:1.25"
+{{ containerImage .deployment 1 }}  → "envoyproxy/envoy:v1.30"
+```
+
+### containerPort
+
+`containerPort` returns a containerPort number: by default the first port of the first container; an optional container index and port index choose another. 0 when there is no such port.
+
+```text
+{{ containerPort .deployment }}  → 8080
+```
+
+### containerPortByName
+
+`containerPortByName` returns the port number for a named container port. Returns 0 when not found.
+
+```text
+{{ containerPortByName .deployment 0 "metrics" }}  → 9090
+```
+
+### containerPorts
+
+`containerPorts` returns the containerPort numbers the container at index exposes.
+
+```text
+{{ containerPorts .deployment 0 }}  → [8080 9090]
+```
+
+### hasContainerPort
+
+`hasContainerPort` reports whether the container exposes a specific port number.
+
+```text
+{{ hasContainerPort .deployment 0 9090 }}  → true
 ```

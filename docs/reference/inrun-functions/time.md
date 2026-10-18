@@ -1,161 +1,134 @@
-# Time Notes
+# Time
 
-Parse timestamps, measure elapsed time, and validate duration strings in Catalog templates. Primarily used in `status.fields` to surface human-readable time values and in `when:` conditions to drive time-based rotation and expiry logic.
-
-All timestamp notes accept RFC3339, RFC3339Nano, `2006-01-02T15:04:05Z`, and `YYYY-MM-DD` formats. Safe zero values are returned for unparseable input.
+Reason about timestamps (RFC3339) and durations (Go units plus d, w, mo and y): elapsed and remaining time, formatting, time windows and weekdays, duration arithmetic, and the next run of a cron schedule.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `timeAgo` | Return a human-readable elapsed-time string from a timestamp. |
-| `timeSince` | Return the number of seconds elapsed since a timestamp as an integer. |
-| `timeUntil` | Return a Go duration string representing the time remaining until a timestamp. |
-| `isExpired` | Return `true` when a timestamp plus a duration is in the past. |
-| `timeFormat` | Reformat a timestamp string using Go's time format layout. |
-| `durationSeconds` | Parse an extended duration string (Go units plus `d`/`w`/`mo`/`y`) and return the total number of seconds as an integer. |
-| `durationAdd` | Add two extended duration strings (Go units plus `d`/`w`/`mo`/`y`) and return the result as a canonical Go duration string. |
-| `durationValid` | Return `true` when the string is a valid extended duration (Go units plus `d`/`w`/`mo`/`y`). |
-| `weekday` | Return `true` when the current UTC day is Monday through Friday. |
-| `weekend` | Return `true` when the current UTC day is Saturday or Sunday. |
-| `timeInWindow` | Return `true` when the current UTC time falls within the window `[after, before)`. |
-| `timeNotInWindow` | Return `true` when the current UTC time is outside the window `[after, before)`. |
-| `nextCron` | Return the next scheduled fire time for a standard 5-field cron expression as an RFC3339 string. |
+| Function | Description |
+|----------|-------------|
+| [`durationAdd`](#durationadd) | Adds two extended duration strings (Go units plus d/w/mo/y) and returns the result as a canonical Go duration string. |
+| [`durationSeconds`](#durationseconds) | Parses an extended duration string (Go units plus d/w/mo/y) and returns the total seconds. |
+| [`durationValid`](#durationvalid) | Returns `true` when the string is a valid extended duration (Go units plus `d`/`w`/`mo`/`y`). |
+| [`isExpired`](#isexpired) | Returns `true` when a timestamp plus a duration is in the past. |
+| [`nextCron`](#nextcron) | Returns the next scheduled fire time for a standard 5-field cron expression as an RFC3339 string. |
+| [`timeAgo`](#timeago) | Returns a human-readable elapsed-time string from a timestamp. |
+| [`timeFormat`](#timeformat) | Reformats a timestamp string using Go's time format layout. |
+| [`timeInWindow`](#timeinwindow) | Returns `true` when the current UTC time falls within the window `[after, before)`. |
+| [`timeNotInWindow`](#timenotinwindow) | Returns `true` when the current UTC time is outside the window `[after, before)`. |
+| [`timeSince`](#timesince) | Returns the number of seconds elapsed since a timestamp as an integer, for comparing against a threshold. |
+| [`timeUntil`](#timeuntil) | Returns a Go duration string representing the time remaining until a timestamp. |
+| [`weekday`](#weekday) | Returns `true` when the current UTC day is Monday through Friday. |
+| [`weekend`](#weekend) | Returns `true` when the current UTC day is Saturday or Sunday. |
 
-## Examples
+## Functions
 
-```yaml
-# timeAgo
-status:
-  fields:
-    - path: lastSyncAgo
-      value: "{{ timeAgo .children.cronjob.status.lastScheduleTime }}"
-      # → "5s ago" / "12m ago" / "3h ago" / "2d ago"
+### durationAdd
 
-    - path: createdAgo
-      value: "{{ timeAgo .metadata.creationTimestamp }}"
+`durationAdd` adds two extended duration strings (Go units plus d/w/mo/y) and returns the result as a canonical Go duration string. An error when either does not parse.
 
-# timeSince
-# Gate rotation on time elapsed (30 days = 2592000 seconds)
-when:
-  - field: "{{ timeSince (index .metadata.annotations \"myorg.io/last-rotated\") }}"
-    min: "2592000"
+```text
+{{ durationAdd "5m" "30s" }}  → "5m30s"
+{{ durationAdd "1h" "90m" }}  → "2h30m0s"
+{{ durationAdd "1d" "12h" }}  → "36h0m0s"
+```
 
-# timeUntil
-operatorBox:
-  reconcile:
-    requeue:
-      after: "{{ timeUntil .status.certExpiry }}"
-      when:
-        - field: status.certExpiry
-          exists: true
+### durationSeconds
 
-status:
-  fields:
-    - path: timeUntilExpiry
-      value: "{{ timeUntil .status.certExpiry }}"
-      # → "719h43m12s"  (about 30 days)
-      # → "0s"          (already expired)
+`durationSeconds` parses an extended duration string (Go units plus d/w/mo/y) and returns the total seconds. 0 for an empty string; an error for one that does not parse.
 
-# isExpired
-# Recreate the secret when the rotation annotation says it is due
-onCreate:
-  secrets:
-    - name: "{{ .metadata.name }}-token"
-      once: true
-      rotateAfter: 30d
+```text
+{{ durationSeconds "5m" }}    → 300
+{{ durationSeconds "1h30m" }} → 5400
+{{ durationSeconds "7d" }}    → 604800
+```
 
-# Gate a resource on whether a timestamp annotation is past its TTL
-when:
-  - field: "{{ isExpired (index .metadata.annotations \"myorg.io/generated-at\") \"30d\" }}"
-    equals: "true"
+### durationValid
 
-# timeFormat
-status:
-  fields:
-    - path: createdDate
-      value: "{{ timeFormat .metadata.creationTimestamp \"Jan 2, 2006\" }}"
-      # → "Apr 13, 2026"
+`durationValid` returns `true` when the string is a valid extended duration (Go units plus `d`/`w`/`mo`/`y`). Use in validation rules to reject malformed duration fields.
 
-    - path: expiresAt
-      value: "{{ timeFormat .status.expirationTime \"2006-01-02\" }}"
+```text
+{{ durationValid "30d" }}    → true
+{{ durationValid "thirty" }}  → false
+```
 
-# durationSeconds
-status:
-  fields:
-    - path: resyncIntervalSeconds
-      value: "{{ durationSeconds .spec.resyncInterval }}"
-      # "5m" → 300  |  "1h30m" → 5400  |  "7d" → 604800
+### isExpired
 
-# durationAdd
-# Compute the total window from base + buffer
-status:
-  fields:
-    - path: totalWindow
-      value: "{{ durationAdd .spec.baseWindow .spec.buffer }}"
-      # "5m" + "30s" → "5m30s"
+`isExpired` returns `true` when a timestamp plus a duration is in the past. Use it to decide when something is due for rotation or cleanup. Duration is an extended duration string — Go's units (`"30m"`, `"24h"`) plus `d`/`w`/`mo`/`y` (`"30d"`, `"1y"`).
 
-# durationValid
-spec:
-  crds:
-    myApp:
-      validate:
-        - message: "spec.rotationPeriod must be a valid duration (e.g. 30d, 90m, 1y)"
-          deny:
-            - field: "{{ durationValid .spec.rotationPeriod }}"
-              equals: "false"
+```text
+{{ isExpired "2026-01-15T10:30:00Z" "30d" }}  → true
+```
 
-# weekday
-status:
-  fields:
-    - path: phase
-      value: "Active"
-      when:
-        - field: "{{ weekday }}"
-          equals: "true"
-    - path: phase
-      value: "Suspended"
+### nextCron
 
-# weekend
-status:
-  fields:
-    - path: phase
-      value: "Weekend"
-      when:
-        - field: "{{ weekend }}"
-          equals: "true"
+`nextCron` returns the next scheduled fire time for a standard 5-field cron expression as an RFC3339 string. An error for an expression that does not parse.
 
-# timeInWindow
-status:
-  fields:
-    - path: phase
-      value: "Active"
-      when:
-        - field: "{{ timeInWindow \"09:00\" \"18:00\" }}"
-          equals: "true"
-    - path: phase
-      value: "Suspended"
+```text
+{{ nextCron "0 9 * * 1" }}  → "2026-07-14T09:00:00Z"  (next Monday 09:00 UTC)
+{{ nextCron "0 2 * * 0" }}  → next Sunday 02:00 UTC
+```
 
-# Combine with weekday for a full business-hours check:
-# {{ and (timeInWindow "09:00" "18:00") weekday }}
+### timeAgo
 
-# timeNotInWindow
-status:
-  fields:
-    - path: maintenanceActive
-      value: "true"
-      when:
-        - field: "{{ timeNotInWindow \"02:00\" \"04:00\" }}"
-          equals: "false"
+`timeAgo` returns a human-readable elapsed-time string from a timestamp. Outputs seconds, minutes, hours, or days depending on magnitude.
 
-# nextCron
-status:
-  fields:
-    - path: nextMaintenance
-      value: "{{ nextCron \"0 2 * * 0\" }}"
-      # → "2026-07-19T02:00:00Z"  (next Sunday 02:00 UTC)
+```text
+{{ timeAgo .deployment.metadata.creationTimestamp }}  → "3d ago"
+```
 
-    - path: nextDeploy
-      value: "{{ nextCron \"0 9 * * 1\" }}"
-      # → next Monday 09:00 UTC
+### timeFormat
+
+`timeFormat` reformats a timestamp string using Go's time format layout. Returns `""` for unparseable input.
+
+```text
+{{ timeFormat "2026-04-13T09:30:00Z" "Jan 2, 2006" }}  → "Apr 13, 2026"
+```
+
+### timeInWindow
+
+`timeInWindow` returns `true` when the current UTC time falls within the window `[after, before)`. Both arguments must be `"HH:MM"` strings. Returns `false` for malformed input.
+
+```text
+{{ timeInWindow "09:00" "18:00" }}
+{{ and (timeInWindow "09:00" "18:00") weekday }}
+```
+
+### timeNotInWindow
+
+`timeNotInWindow` returns `true` when the current UTC time is outside the window `[after, before)`. The exact complement of `timeInWindow`. Useful for maintenance-window logic where the resource should exist only when the window is closed.
+
+```text
+{{ timeNotInWindow "02:00" "04:00" }}
+```
+
+### timeSince
+
+`timeSince` returns the number of seconds elapsed since a timestamp as an integer, for comparing against a threshold.
+
+```text
+{{ timeSince .deployment.metadata.creationTimestamp }}  → 259200
+```
+
+### timeUntil
+
+`timeUntil` returns a Go duration string representing the time remaining until a timestamp. Returns `"0s"` when the timestamp is in the past or unparseable. Useful as a requeue delay, so a controller wakes up exactly when the timestamp passes.
+
+```text
+{{ timeUntil .certificate.status.notAfter }}  → "719h43m12s"
+```
+
+### weekday
+
+`weekday` returns `true` when the current UTC day is Monday through Friday. Use it to act only on business days.
+
+```text
+{{ if weekday }}business day{{ end }}
+```
+
+### weekend
+
+`weekend` returns `true` when the current UTC day is Saturday or Sunday. The exact complement of `weekday`.
+
+```text
+{{ if weekend }}scaled down for the weekend{{ end }}
 ```

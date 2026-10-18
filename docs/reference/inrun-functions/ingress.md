@@ -1,62 +1,73 @@
-# Ingress Notes
+# Ingress
 
-Ingress notes surface routing rules, TLS configuration, and load-balancer assignment from Ingress objects.
-
----
+Read an Ingress: whether it has a load balancer address, its host and IP, its class, the hosts in its rules and TLS section, and every load balancer address.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `ingressReady` | Returns `true` when at least one load-balancer entry has been assigned — either an IP or hostname. |
-| `ingressIP` | Returns `status. |
-| `ingressHost` | Returns `status. |
-| `ingressClassName` | Returns `spec. |
-| `ingressRules` | Returns a comma-separated list of hostnames from `spec. |
-| `ingressTLSHosts` | Returns a comma-separated list of TLS hostnames from `spec. |
-| `ingressLoadBalancerIPs` | Returns a comma-joined list of all IPs and hostnames from `_loadBalancerIPs`. |
-| `ingressTLSSecretCount` | Returns the number of TLS secrets fetched into `_tlsSecrets`. |
+| Function | Description |
+|----------|-------------|
+| [`ingressClassName`](#ingressclassname) | Returns `spec.ingressClassName`, or `""` when not set. |
+| [`ingressHost`](#ingresshost) | Returns `status.loadBalancer.ingress[0].hostname` — cloud providers such as AWS ALB and GCP assign a hostname rather than an IP. |
+| [`ingressIP`](#ingressip) | Returns `status.loadBalancer.ingress[0].ip`, or `""` while the LB is provisioning. |
+| [`ingressLoadBalancerIPs`](#ingressloadbalancerips) | Returns each load balancer address in status.loadBalancer.ingress: its IP, or its hostname when it has no IP. |
+| [`ingressReady`](#ingressready) | Returns `true` when at least one load-balancer entry has been assigned — either an IP or hostname. |
+| [`ingressRules`](#ingressrules) | Returns the hostnames in spec.rules, in order. |
+| [`ingressTLSHosts`](#ingresstlshosts) | Returns the distinct TLS hostnames in spec.tls. |
 
-## Examples
+## Functions
 
-```yaml
-# ingressReady
-when:
-  - field: "{{ ingressReady .children.ingress }}"
-    equals: "true"
+### ingressClassName
 
-# ingressIP
-- path: externalIP
-  value: "{{ ingressIP .children.ingress }}"
-# → "34.123.45.67"
+`ingressClassName` returns `spec.ingressClassName`, or `""` when not set.
 
-# ingressHost
-- path: externalHost
-  value: "{{ ingressHost .children.ingress }}"
-# → "abc123.us-east-1.elb.amazonaws.com"
+```text
+{{ ingressClassName .ingress }}  → "nginx"
+```
 
-# ingressClassName
-- path: ingressClass
-  value: "{{ ingressClassName .children.ingress }}"
-# → "nginx"
+### ingressHost
 
-# ingressRules
-- path: hosts
-  value: "{{ ingressRules .children.ingress }}"
-# → "api.example.com, www.example.com"
+`ingressHost` returns `status.loadBalancer.ingress[0].hostname` — cloud providers such as AWS ALB and GCP assign a hostname rather than an IP.
 
-# ingressTLSHosts
-- path: tlsHosts
-  value: "{{ ingressTLSHosts .children.ingress }}"
-# → "api.example.com, www.example.com"
+```text
+{{ ingressHost .ingress }}  → "abc123.us-east-1.elb.amazonaws.com"
+```
 
-# ingressLoadBalancerIPs
-- path: lbAddresses
-  value: "{{ ingressLoadBalancerIPs .children.ingress }}"
-# → "1.2.3.4, abc.elb.amazonaws.com"
+### ingressIP
 
-# ingressTLSSecretCount
-- path: tlsSecretCount
-  value: "{{ ingressTLSSecretCount .children.ingress }}"
-# → 1
+`ingressIP` returns `status.loadBalancer.ingress[0].ip`, or `""` while the LB is provisioning.
+
+```text
+{{ ingressIP .ingress }}  → "34.123.45.67"
+```
+
+### ingressLoadBalancerIPs
+
+`ingressLoadBalancerIPs` returns each load balancer address in status.loadBalancer.ingress: its IP, or its hostname when it has no IP.
+
+```text
+{{ ingressLoadBalancerIPs .ingress }}  → [34.123.45.67]
+```
+
+### ingressReady
+
+`ingressReady` returns `true` when at least one load-balancer entry has been assigned — either an IP or hostname.
+
+```text
+{{ ingressReady .ingress }}  → true
+```
+
+### ingressRules
+
+`ingressRules` returns the hostnames in spec.rules, in order. Empty hosts (catch-all rules) are omitted.
+
+```text
+{{ ingressRules .ingress }}  → [api.example.com www.example.com]
+```
+
+### ingressTLSHosts
+
+`ingressTLSHosts` returns the distinct TLS hostnames in spec.tls.
+
+```text
+{{ ingressTLSHosts .ingress }}  → [api.example.com]
 ```

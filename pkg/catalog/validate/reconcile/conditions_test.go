@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func reconcileWithConditions(when []types.Condition, notes ...types.UserDefinedNote) error {
+func reconcileWithConditions(when []types.Condition, notes ...types.UserDefinedFunction) error {
 	rc := &types.ReconcileConfig{
 		Args: map[string]interface{}{
 			"quotaGB": "{{ .spec.quotaGB }}",
@@ -17,7 +17,7 @@ func reconcileWithConditions(when []types.Condition, notes ...types.UserDefinedN
 		External: []types.ExternalCallSpec{{Name: "plan", URL: "http://plans/{{ .metadata.name }}"}},
 		When:     when,
 	}
-	return checkReconcileConditions(`CRD "bucket"`, rc, types.NoteRegistry{Functions: notes})
+	return checkReconcileConditions(`CRD "bucket"`, rc, types.KELFunctionRegistry{Definitions: notes})
 }
 
 func TestReconcileConditions_CRAndArgsFromTheCR(t *testing.T) {
@@ -41,7 +41,7 @@ func TestReconcileConditions_ExternalInAnOperandRejected(t *testing.T) {
 func TestReconcileConditions_ExternalThroughANoteRejected(t *testing.T) {
 	err := reconcileWithConditions(
 		[]types.Condition{{Field: "{{ planReady }}", Equals: "true"}},
-		types.UserDefinedNote{Name: "planReady", Expression: `{{ eq .external.plan.status "200" }}`},
+		types.UserDefinedFunction{Name: "planReady", Expression: `{{ eq .external.plan.status "200" }}`},
 	)
 	assert.ErrorContains(t, err, "reads .external")
 }

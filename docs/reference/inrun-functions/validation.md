@@ -1,85 +1,76 @@
-# Validation Notes
+# Validation
 
-General-purpose input-format checks. An Serve form field is free text until something checks it — these are the checks a catalog author reaches for most often: is this actually an email, a git repository, a URL, a container image reference, well-formed JSON, a valid port number. Catching a malformed value at admission time, with a message built from the field's `label:`, beats the developer discovering it three steps downstream when ArgoCD or cert-manager fails to reconcile.
+Check that free text is the kind of value it claims to be: an email address, a URL, JSON, a port number. A form field is free text until something checks it; catching a malformed value early, with a clear message, beats finding out downstream.
 
----
+Check references to artifacts the tools around Kubernetes consume: a git repository (Argo CD, Flux) and a container image reference (registries). Catching a malformed one early beats finding out when the tool fails to reconcile it.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `isValidEmail` | Report whether a string is a single, bare email address — `user@example. |
-| `isValidGitRepository` | Report whether a string looks like a git repository URL — `https://`, `git://`, `ssh://`, or the SCP-like `git@host:org/repo. |
-| `isValidURL` | Report whether a string is an absolute `http` or `https` URL with a non-empty host. |
-| `isValidImageRef` | Report whether a string looks like a valid container image reference: optional registry (with optional port), lowercase repo path, optional `:tag` or `@digest`. |
-| `isValidJSON` | Report whether a string is syntactically valid JSON. |
-| `isValidPort` | Report whether a string parses as an integer in the valid TCP/UDP port range, 1–65535. |
+| Function | Description |
+|----------|-------------|
+| [`isValidEmail`](#isvalidemail) | Reports whether s is a single, bare email address — "user@example.com", not a display-name form like "User &lt;user@example.com&gt;". |
+| [`isValidGitRepository`](#isvalidgitrepository) | Reports whether s looks like a git repository URL — https://, git://, ssh://, or the SCP-like "git@host:org/repo.git" shorthand. |
+| [`isValidImageRef`](#isvalidimageref) | Reports whether s looks like a valid container image reference: optional registry, lowercase repo path, optional :tag or @digest. |
+| [`isValidJSON`](#isvalidjson) | Reports whether s is syntactically valid JSON. |
+| [`isValidPort`](#isvalidport) | Reports whether s parses as an integer in the valid TCP/UDP port range, 1–65535. |
+| [`isValidURL`](#isvalidurl) | Reports whether s is an absolute http or https URL with a non-empty host. |
 
-## Examples
+## Functions
 
-```yaml
-# isValidEmail
-validation:
-  rules:
-    - field: "{{ isValidEmail .spec.ownerEmail }}"
-      equals: "true"
-      message: "Owner Email must be a valid email address"
-      action: deny
-{{ isValidEmail "team@myorg.io"        }}  → true
-{{ isValidEmail "Team <team@myorg.io>" }}  → false
-{{ isValidEmail "not-an-email"         }}  → false
+### isValidEmail
 
-# isValidGitRepository
-validation:
-  rules:
-    - field: "{{ isValidGitRepository .spec.repoURL }}"
-      equals: "true"
-      message: "Repository URL must be a valid git repository"
-      action: deny
-{{ isValidGitRepository "https://github.com/myorg/payments" }}  → true
-{{ isValidGitRepository "git@github.com:myorg/payments.git" }}  → true
-{{ isValidGitRepository "not a repo"                          }}  → false
+`isValidEmail` reports whether s is a single, bare email address — "user@example.com", not a display-name form like "User &lt;user@example.com&gt;".
 
-# isValidURL
-validation:
-  rules:
-    - field: "{{ isValidURL .spec.webhookUrl }}"
-      equals: "true"
-      message: "Webhook URL must be a valid http(s) URL"
-      action: deny
-{{ isValidURL "https://example.com/webhook" }}  → true
-{{ isValidURL "ftp://example.com"            }}  → false
-{{ isValidURL "not a url"                     }}  → false
+```text
+{{ isValidEmail "team@myorg.io" }}  → true
+{{ isValidEmail "not-an-email"  }}  → false
+```
 
-# isValidImageRef
-validation:
-  rules:
-    - field: "{{ isValidImageRef .spec.image }}"
-      equals: "true"
-      message: "Container Image must be a valid image reference"
-      action: deny
-{{ isValidImageRef "myorg/app:v1.2.3"                       }}  → true
+### isValidGitRepository
+
+`isValidGitRepository` reports whether s looks like a git repository URL — https://, git://, ssh://, or the SCP-like "git@host:org/repo.git" shorthand. This is a shape check, not a reachability check — it doesn't dial the host.
+
+```text
+{{ isValidGitRepository "https://github.com/myorg/payments"    }}  → true
+{{ isValidGitRepository "git@github.com:myorg/payments.git"    }}  → true
+{{ isValidGitRepository "not a repo"                            }}  → false
+```
+
+### isValidImageRef
+
+`isValidImageRef` reports whether s looks like a valid container image reference: optional registry, lowercase repo path, optional :tag or @digest.
+
+```text
+{{ isValidImageRef "myorg/app:v1.2.3"                    }}  → true
 {{ isValidImageRef "registry.myorg.io:5000/team/app:latest" }}  → true
-{{ isValidImageRef "MyOrg/App"                               }}  → false
+{{ isValidImageRef "MyOrg/App"                            }}  → false
+```
 
-# isValidJSON
-validation:
-  rules:
-    - field: "{{ isValidJSON .spec.serviceSelector }}"
-      equals: "true"
-      message: "Service Selector must be valid JSON"
-      action: deny
+### isValidJSON
+
+`isValidJSON` reports whether s is syntactically valid JSON.
+
+```text
 {{ isValidJSON "{\"app\": \"payments-api\"}" }}  → true
 {{ isValidJSON "{not json"                    }}  → false
+```
 
-# isValidPort
-validation:
-  rules:
-    - field: "{{ isValidPort .spec.port }}"
-      equals: "true"
-      message: "Port must be between 1 and 65535"
-      action: deny
+### isValidPort
+
+`isValidPort` reports whether s parses as an integer in the valid TCP/UDP port range, 1–65535.
+
+```text
 {{ isValidPort "8080"  }}  → true
 {{ isValidPort "0"     }}  → false
 {{ isValidPort "70000" }}  → false
+```
+
+### isValidURL
+
+`isValidURL` reports whether s is an absolute http or https URL with a non-empty host.
+
+```text
+{{ isValidURL "https://example.com/webhook" }}  → true
+{{ isValidURL "ftp://example.com"            }}  → false
+{{ isValidURL "not a url"                     }}  → false
 ```

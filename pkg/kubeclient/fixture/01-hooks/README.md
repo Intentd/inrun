@@ -8,8 +8,8 @@ The Catalog declares a user-defined note for business hours and an external call
 for the feature flag. The runtime evaluates both before invoking the hook:
 
 ```yaml
-notes:
-  functions:
+functions:
+  definitions:
     - name: inBusinessHours
       expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
 

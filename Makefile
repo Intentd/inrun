@@ -1,4 +1,4 @@
-.PHONY: build inrun-console clean test test-unit test-console test-race test-integration test-all test-coverage test-coverage-text vet vuln vuln-inrun vuln-console vuln-runtime vuln-gateway certs docs docs-sync docs-build docs-serve hugo-install generate-notes generate-e2e-example generate-resource-docs test-fixture-note test-fixture-reconciler inrun-gateway-linux docker-gateway gateway-reload runtime-reload console-reload reload docker-devserver release-devserver devserver-reload
+.PHONY: build inrun-console clean test test-unit test-console test-race test-integration test-all test-coverage test-coverage-text vet vuln vuln-inrun vuln-console vuln-runtime vuln-gateway certs docs docs-sync docs-build docs-serve hugo-install generate-functions generate-e2e-example generate-resource-docs test-fixture-reconciler inrun-gateway-linux docker-gateway gateway-reload runtime-reload console-reload reload docker-devserver release-devserver devserver-reload
 
 # ── Configuration ────────────────────────────────────────────────────────────
 INRUN_DIR := .
@@ -20,10 +20,10 @@ CONSOLE_LDFLAGS  := -X github.com/intentd/inrun/console/version.Version=$(GIT_VE
                -X github.com/intentd/inrun/console/version.Date=$(GIT_DATE)
 
 # ── Local build ───────────────────────────────────────────────────────────
-generate-notes:
-	@echo "Generating note list..."
-	go run ./hack/generate-notes
-	@echo "✅ Note list generated at pkg/note/list_generated.go"
+generate-functions:
+	@echo "Generating Inrun function registry and reference pages..."
+	go run ./hack/generate-functions
+	@echo "✅ Generated pkg/template/funcs/funcs_generated.go and docs/reference/inrun-functions"
 
 generate-e2e-example:
 	@echo "Generating e2e complete example doc..."
@@ -35,7 +35,7 @@ generate-resource-docs:
 	go run ./hack/generate-resource-docs
 	@echo "✅ docs/reference/schema/06-resources/*.md updated"
 
-inrun: generate-notes generate-e2e-example generate-resource-docs
+inrun: generate-functions generate-e2e-example generate-resource-docs
 	@echo "Building Inrun..."
 	@mkdir -p $(OUTPUT_DIR)
 	cd $(INRUN_DIR) && gofmt -w .
@@ -108,7 +108,7 @@ BIN := $(OUTPUT_DIR)/inrun
 
 # ── Linux Build Targets (for Docker) ──────────────────────────────────────────
 
-inrun-linux: generate-notes
+inrun-linux: generate-functions
 	@echo "Building Inrun (Linux amd64)..."
 	@mkdir -p $(OUTPUT_DIR)
 	gofmt -w . && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
@@ -123,7 +123,7 @@ inrun-console-linux:
 	cd $(CONSOLE_DIR) && gofmt -w . && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(OUTPUT_DIR)/inrun-console .
 	@echo "✅ Linux Console binary built: $(OUTPUT_DIR)/inrun-console"
 
-inrun-gateway-linux: generate-notes
+inrun-gateway-linux: generate-functions
 	@echo "Building Inrun Gateway (Linux amd64)..."
 	@mkdir -p $(OUTPUT_DIR)
 	gofmt -w . && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
@@ -136,7 +136,7 @@ inrun-gateway-linux: generate-notes
 # These targets build Linux binaries to DOCKER_TMP (not OUTPUT_DIR) so they
 # never overwrite the developer's local inrun CLI binary in ~/.inrun/bin.
 
-docker: generate-notes
+docker: generate-functions
 	@mkdir -p $(DOCKER_TMP)
 	@echo "Building Inrun runtime (Linux amd64) → $(DOCKER_TMP)/inrun..."
 	gofmt -w . && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
@@ -161,7 +161,7 @@ docker-console:
 	@rm -f $(DOCKER_TMP)/inrun-console
 	@echo "✔ Docker image built: $(INRUN_CONSOLE_IMAGE)"
 
-docker-gateway: generate-notes
+docker-gateway: generate-functions
 	@mkdir -p $(DOCKER_TMP)
 	@echo "Building Inrun gateway (Linux amd64) → $(DOCKER_TMP)/inrun-gateway..."
 	gofmt -w . && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
@@ -364,29 +364,6 @@ test-coverage-text:
 	@echo "Coverage summary..."
 	go test ./pkg/... -coverprofile=coverage.out -covermode=atomic -count=1
 	@go tool cover -func=coverage.out | tail -5
-
-# ── Fixture tests (kind cluster required) ────────────────────────────────────
-# Each target spins up a dedicated kind cluster, installs Inrun via Helm,
-# applies the fixture catalog + CR, asserts resources exist, then tears down.
-# Requires: kind, helm, kubectl, inrun — all on $PATH.
-
-FIXTURE_NOTE_CLUSTER      := inrun-note-fixture
-FIXTURE_RECONCILER_CLUSTER := inrun-reconciler-fixture
-HELM_CHART                := ./charts/inrun
-
-test-fixture-note:
-	@echo "── Note fixture test ──────────────────────────────────────────"
-	@bash scripts/setup-kind.sh $(FIXTURE_NOTE_CLUSTER)
-	@kubectl apply -f pkg/note/fixture/crd.yaml
-	@inrun generate bundle --file pkg/note/fixture/catalog.yaml | kubectl apply -f -
-	@helm install inrun $(HELM_CHART) --namespace inrun-system --wait --timeout 120s
-	@kubectl apply -f pkg/note/fixture/cr.yaml
-	@kubectl wait reconcilerprobe/my-probe --for=jsonpath='{.status.phase}'=Ready \
-	    --timeout=120s 2>/dev/null || kubectl wait noteprobe/my-probe \
-	    --for=condition=Ready=true --timeout=120s || \
-	    kubectl get noteprobe my-probe -o yaml
-	@echo "✅ Note fixture passed"
-	@bash scripts/setup-kind.sh delete $(FIXTURE_NOTE_CLUSTER)
 
 test-fixture-reconciler:
 	@echo "── Reconciler fixture test ────────────────────────────────────"

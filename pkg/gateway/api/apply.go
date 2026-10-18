@@ -152,9 +152,9 @@ func applyHandler(
 	clusters *ClusterRegistry,
 	cat *catalog.Catalog,
 ) http.HandlerFunc {
-	var notes types.NoteRegistry
+	var notes types.KELFunctionRegistry
 	if !cat.Empty() {
-		notes = cat.UserNotes()
+		notes = cat.UserFunctions()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -497,7 +497,7 @@ func applyHandler(
 				return
 			}
 
-			resolver := template.NewResolverFromMap(raw).WithUserNotes(notes)
+			resolver := template.NewResolverFromMap(raw).WithUserFunctions(notes)
 			pollURL := resolvePollURL(result.GetKind(), result.GetNamespace(), result.GetName(), crd.GetServePollingConfig(), resolver)
 			writeJSON(w, http.StatusOK, ApplyResponse{
 				Accepted:   true,
@@ -518,7 +518,7 @@ func applyHandler(
 		if incomingSurface == "" && crd != nil {
 			incomingSurface = crd.ServeTarget()
 		}
-		resolver := template.NewResolverFromMap(raw).WithUserNotes(notes)
+		resolver := template.NewResolverFromMap(raw).WithUserFunctions(notes)
 
 		var clusterResults []ClusterApplyResult
 		for _, t := range targets {
@@ -618,7 +618,7 @@ func applyHandler(
 func resolveServeMeta(
 	obj *unstructured.Unstructured,
 	crd *types.CRDEntry,
-	notes types.NoteRegistry,
+	notes types.KELFunctionRegistry,
 ) error {
 	if crd.Serve == nil {
 		return nil
@@ -640,7 +640,7 @@ func resolveServeMeta(
 			data["annotations"] = annotations
 		}
 	}
-	resolver := template.NewResolverFromMap(data).WithUserNotes(notes)
+	resolver := template.NewResolverFromMap(data).WithUserFunctions(notes)
 
 	if crd.HasServeName() {
 		name, err := resolver.Resolve(crd.Serve.Name)

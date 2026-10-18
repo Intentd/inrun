@@ -207,7 +207,7 @@ func (c *checker) validateRemote(name string, crd *types.CRDEntry) error {
 		return fmt.Errorf("%s CRD %q: reconcile.remote.endpoint is required", failureMark(), name)
 	}
 
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 	// If the endpoint contains template expressions, validate them.
 	if isTemplate(remote.Endpoint) {
 		if err := validateTemplate("reconcile.remote", name, name, "endpoint", remote.Endpoint, funcMap); err != nil {
@@ -332,7 +332,7 @@ func (c *checker) validateManagedResources(name string, crd *types.CRDEntry) err
 	// Template syntax in args values. The mapping itself is free: it is not
 	// checked against the CR schema.
 	if rec != nil {
-		funcMap := buildFuncMapForValidation(c.Cat.Notes)
+		funcMap := buildFuncMapForValidation(c.Cat.Functions)
 		for k, v := range rec.Args {
 			str, ok := v.(string)
 			if !ok || !isTemplate(str) {

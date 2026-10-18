@@ -3,7 +3,7 @@
 // Two import paths:
 //
 //	spec.imports (Catalog-wide) — expandCatalogImports
-//	  Merges profiles: and notes: from each Module into the Catalog-wide registries.
+//	  Merges profiles: and functions: from each Module into the Catalog-wide registries.
 //	  Resources, status, and admission in the Module are ignored at this level.
 //
 //	spec.crds[name].imports (CRD-scoped) — expandModuleImports
@@ -21,8 +21,8 @@ import (
 )
 
 // expandCatalogImports resolves spec.imports entries on the Catalog.
-// For each import, profiles: and notes: from the expanded Module are merged
-// into the Catalog-wide ProfileRegistry and NoteRegistry respectively.
+// For each import, profiles: and functions: from the expanded Module are merged
+// into the Catalog-wide ProfileRegistry and KELFunctionRegistry respectively.
 // Resources, status, and admission are ignored at this level.
 func (c *Catalog) expandCatalogImports() error {
 	seen := make(map[string]string) // note name → module label, for conflict detection
@@ -39,12 +39,12 @@ func (c *Catalog) expandCatalogImports() error {
 			}
 			c.Profiles = merged
 		}
-		if !expanded.Notes.Empty() {
-			merged, err := c.Notes.MergeImport(expanded.Notes, label, seen)
+		if !expanded.Functions.Empty() {
+			merged, err := c.Functions.MergeImport(expanded.Functions, label, seen)
 			if err != nil {
 				return fmt.Errorf("spec.imports[%d]: merging notes from module %q: %w", i, expanded.Name, err)
 			}
-			c.Notes = merged
+			c.Functions = merged
 		}
 	}
 	return nil
@@ -79,8 +79,8 @@ func (c *Catalog) expandModuleImports() error {
 				entry.Warnings.AddWarning(warning)
 				c.Warnings.AddWarning(warning)
 			}
-			if !expanded.Notes.Empty() {
-				warning := fmt.Sprintf("CRD %q: import[%d] module %q: notes: are ignored at CRD-level imports — use spec.imports to apply notes Catalog-wide",
+			if !expanded.Functions.Empty() {
+				warning := fmt.Sprintf("CRD %q: import[%d] module %q: functions: are ignored at CRD-level imports — use spec.imports to apply notes Catalog-wide",
 					name, i, expanded.Name)
 				entry.Warnings.AddWarning(warning)
 				c.Warnings.AddWarning(warning)

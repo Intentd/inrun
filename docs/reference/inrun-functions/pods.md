@@ -1,179 +1,200 @@
-# Pod Notes
+# Pods
 
-Pod notes navigate the `_pods` enrichment embedded by `children.go` into Deployment, StatefulSet, and ReplicaSet resource maps. They let templates surface pod names, IPs, counts, and health without hooks or custom Go code.
-
-Pod enrichment is opt-in at the CRD level:
-
-```yaml
-spec:
-  crds:
-    my-operator:
-      enrich: [pods]   # or enrichAll: true
-      operatorBox:
-        ...
-```
-
-Without enrichment, `_pods` is absent and all pod notes return their zero values (`""`, `0`, `false`) — safe to use in templates regardless.
-
----
+Answer questions about a set of Pods, as the API returns them, passed as a list or a PodList: names, IPs, phases, nodes, readiness, restarts, and why containers are waiting or failed (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …).
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `podNames` | Return a comma-separated string of pod names owned by the enriched resource. |
-| `podIPs` | Return a comma-separated string of pod IP addresses. |
-| `podPhases` | Return a comma-separated string of pod phases in order. |
-| `podNodes` | Return a comma-separated list of node names the pods are scheduled on. |
-| `podCount` | Return the total number of pods as `int`. |
-| `readyPodCount` | Return the number of pods whose `Ready` condition is `True`. |
-| `podMaxRestarts` | Return the highest restart count across all pods as `int64`. |
-| `hasCrashingPod` | Return `true` when any pod has restarted more than twice — the first declarative signal of a crash loop. |
-| `podByOrdinal` | Return the pod summary map at the given ordinal index. |
-| `podCrashLoopDetected` | Return `true` when any container across any pod is in `CrashLoopBackOff`. |
-| `podImagePullBackOffDetected` | Return `true` when any container across any pod has reason `ImagePullBackOff` (image could not be pulled due to authentication, network, or missing image). |
-| `podErrImagePullDetected` | Return `true` when any container has reason `ErrImagePull` (a transient image pull failure, usually preceding `ImagePullBackOff`). |
-| `podErrorDetected` | Return `true` when any container has reason `Error` (the container process exited with a non‑zero code or was terminated by the system). |
-| `podOOMKilledDetected` | Return `true` when any container has reason `OOMKilled` (the container was terminated because it exhausted its memory limit). |
-| `podRunContainerErrorDetected` | Return `true` when any container across any pod has reason `RunContainerError` (container failed to start, e. |
-| `podCreateContainerErrorDetected` | Return `true` when any container has reason `CreateContainerError` (container creation failed, typically due to volume mount issues or resource constraints). |
-| `podInvalidImageNameDetected` | Return `true` when any container has reason `InvalidImageName` (the image name could not be parsed by the container runtime). |
-| `podPreStartHookErrorDetected` | Return `true` when any container has reason `PreStartHookError` (the pre‑start lifecycle hook failed). |
-| `podPostStartHookErrorDetected` | Return `true` when any container has reason `PostStartHookError` (the post‑start lifecycle hook failed). |
-| `podContainerReasons` | Return a comma-separated list of unique waiting or terminated reasons across all containers in all pods. |
-| `podContainerState` | Return the state of a named container within the pod at the given ordinal. |
+| Function | Description |
+|----------|-------------|
+| [`hasCrashingPod`](#hascrashingpod) | Reports whether any pod is unhealthy: restarted more than twice, or a container waiting or terminated with a failure reason (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …). |
+| [`podByOrdinal`](#podbyordinal) | Returns the pod whose name ends in -&lt;ordinal&gt;, as StatefulSet pods are named (web-0, web-1, …); nil when none does. |
+| [`podContainerReasons`](#podcontainerreasons) | Returns the distinct reasons containers are waiting or terminated with, across all pods, in first-seen order. |
+| [`podContainerState`](#podcontainerstate) | Returns the state (Running, Waiting, Terminated) of a named container in the pod at ordinal; "" when either is not found. |
+| [`podCount`](#podcount) | Returns the number of pods. |
+| [`podCrashLoopDetected`](#podcrashloopdetected) | Reports whether any container in the pods is waiting or terminated with reason CrashLoopBackOff. |
+| [`podCreateContainerErrorDetected`](#podcreatecontainererrordetected) | Reports whether any container in the pods is waiting or terminated with reason CreateContainerError. |
+| [`podErrImagePullDetected`](#poderrimagepulldetected) | Reports whether any container in the pods is waiting or terminated with reason ErrImagePull. |
+| [`podErrorDetected`](#poderrordetected) | Reports whether any container in the pods is waiting or terminated with reason Error. |
+| [`podIPs`](#podips) | Returns the pods' IP addresses; pods without one yet are skipped. |
+| [`podImagePullBackOffDetected`](#podimagepullbackoffdetected) | Reports whether any container in the pods is waiting or terminated with reason ImagePullBackOff. |
+| [`podInvalidImageNameDetected`](#podinvalidimagenamedetected) | Reports whether any container in the pods is waiting or terminated with reason InvalidImageName. |
+| [`podMaxRestarts`](#podmaxrestarts) | Returns the highest restart count of any pod (the sum over its containers). |
+| [`podNames`](#podnames) | Returns the pods' names, in order. |
+| [`podNodes`](#podnodes) | Returns the nodes the pods are scheduled on; pending pods are skipped. |
+| [`podOOMKilledDetected`](#podoomkilleddetected) | Reports whether any container in the pods is waiting or terminated with reason OOMKilled. |
+| [`podPhases`](#podphases) | Returns each pod's phase, in order. |
+| [`podPostStartHookErrorDetected`](#podpoststarthookerrordetected) | Reports whether any container in the pods is waiting or terminated with reason PostStartHookError. |
+| [`podPreStartHookErrorDetected`](#podprestarthookerrordetected) | Reports whether any container in the pods is waiting or terminated with reason PreStartHookError. |
+| [`podRunContainerErrorDetected`](#podruncontainererrordetected) | Reports whether any container in the pods is waiting or terminated with reason RunContainerError. |
+| [`readyPodCount`](#readypodcount) | Returns the number of pods whose Ready condition is True. |
 
-## Examples
+## Functions
 
-```yaml
-# podNames
-status:
-  fields:
-    - path: pods
-      value: "{{ podNames .children.deployment }}"
-# → "web-abc, web-def"
+### hasCrashingPod
 
-# podIPs
-- path: podIPs
-  value: "{{ podIPs .children.statefulset }}"
-# → "10.0.0.1, 10.0.0.2, 10.0.0.3"
+`hasCrashingPod` reports whether any pod is unhealthy: restarted more than twice, or a container waiting or terminated with a failure reason (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …).
 
-# podPhases
-- path: podPhases
-  value: "{{ podPhases .children.statefulset }}"
-# → "Running, Running, Pending"
+```text
+{{ hasCrashingPod .pods }}  → true
+```
 
-# podNodes
-- path: podNodes
-  value: "{{ podNodes .children.deployment }}"
-# → "node-1, node-2"
+### podByOrdinal
 
-# podCount
-- path: podCount
-  value: "{{ podCount .children.deployment }}"
-# → 3
+`podByOrdinal` returns the pod whose name ends in -&lt;ordinal&gt;, as StatefulSet pods are named (web-0, web-1, …); nil when none does.
 
-# readyPodCount
-- path: readyPods
-  value: "{{ readyPodCount .children.deployment }}"
-# → 2
+```text
+{{ (podByOrdinal .pods 0).status.podIP }}  → "10.0.0.1"
+```
 
-# podMaxRestarts
-- path: maxRestarts
-  value: "{{ podMaxRestarts .children.deployment }}"
-# → 3
+### podContainerReasons
 
-# hasCrashingPod
-when:
-  - field: "{{ hasCrashingPod .children.deployment }}"
-    equals: "false"
+`podContainerReasons` returns the distinct reasons containers are waiting or terminated with, across all pods, in first-seen order.
 
-status:
-  fields:
-    - path: crashDetected
-      value: "{{ hasCrashingPod .children.deployment }}"
-    - path: maxRestarts
-      value: "{{ podMaxRestarts .children.deployment }}"
+```text
+{{ podContainerReasons .pods }}  → [ImagePullBackOff]
+```
 
-# podByOrdinal
-# Surface the primary StatefulSet member:
-- path: primaryPod
-  value: "{{ (podByOrdinal .children.statefulset 0).name }}"
-- path: primaryIP
-  value: "{{ (podByOrdinal .children.statefulset 0).ip }}"
+### podContainerState
 
-# All fields available on the returned map:
-# .name, .ip, .phase, .ready, .node, .restartCount, .ordinal
+`podContainerState` returns the state (Running, Waiting, Terminated) of a named container in the pod at ordinal; "" when either is not found.
 
-# podCrashLoopDetected
-- path: crashLoop
-  value: "{{ podCrashLoopDetected .children.deployment }}"
+```text
+{{ podContainerState .pods 0 "app" }}  → "Running"
+```
 
-# podImagePullBackOffDetected
-- path: imagePullBackOff
-  value: "{{ podImagePullBackOffDetected .children.deployment }}"
+### podCount
 
-# podErrImagePullDetected
-- path: errImagePull
-  value: "{{ podErrImagePullDetected .children.deployment }}"
+`podCount` returns the number of pods.
 
-# podErrorDetected
-- path: containerError
-  value: "{{ podErrorDetected .children.deployment }}"
+```text
+{{ podCount .pods }}  → 3
+```
 
-# podOOMKilledDetected
-- path: oomKilled
-  value: "{{ podOOMKilledDetected .children.deployment }}"
+### podCrashLoopDetected
 
-# podRunContainerErrorDetected
-- path: runContainerError
-  value: "{{ podRunContainerErrorDetected .children.deployment }}"
+`podCrashLoopDetected` reports whether any container in the pods is waiting or terminated with reason CrashLoopBackOff.
 
-# podCreateContainerErrorDetected
-- path: createContainerError
-  value: "{{ podCreateContainerErrorDetected .children.deployment }}"
+```text
+{{ podCrashLoopDetected .pods }}  → false
+```
 
-# podInvalidImageNameDetected
-- path: invalidImageName
-  value: "{{ podInvalidImageNameDetected .children.deployment }}"
+### podCreateContainerErrorDetected
 
-# podPreStartHookErrorDetected
-- path: preStartHookError
-  value: "{{ podPreStartHookErrorDetected .children.deployment }}"
+`podCreateContainerErrorDetected` reports whether any container in the pods is waiting or terminated with reason CreateContainerError.
 
-# podPostStartHookErrorDetected
-- path: postStartHookError
-  value: "{{ podPostStartHookErrorDetected .children.deployment }}"
+```text
+{{ podCreateContainerErrorDetected .pods }}  → false
+```
 
-# podContainerReasons
-- path: containerReasons
-  value: "{{ podContainerReasons .children.deployment }}"
-# → "CrashLoopBackOff, ImagePullBackOff"
+### podErrImagePullDetected
 
-# podContainerState
-- path: appContainerState
-  value: "{{ podContainerState .children.statefulset 0 \"app\" }}"
-# → "Running"
-# → "Waiting"
-spec:
-  crds:
-    memcached:
-      enrich: [pods]
-      operatorBox:
-        onCreate:
-          deployments:
-            - name: "{{ .metadata.name }}"
-              image: "memcache:{{ .spec.version }}"
-              replicas: "{{ .spec.size }}"
+`podErrImagePullDetected` reports whether any container in the pods is waiting or terminated with reason ErrImagePull.
 
-        status:
-          fields:
-            - path: pods
-              value: "{{ podNames .children.deployment }}"
-            - path: podIPs
-              value: "{{ podIPs .children.deployment }}"
-            - path: size
-              value: "{{ podCount .children.deployment }}"
-            - path: ready
-              value: "{{ readyPodCount .children.deployment }}"
+```text
+{{ podErrImagePullDetected .pods }}  → false
+```
+
+### podErrorDetected
+
+`podErrorDetected` reports whether any container in the pods is waiting or terminated with reason Error.
+
+```text
+{{ podErrorDetected .pods }}  → false
+```
+
+### podIPs
+
+`podIPs` returns the pods' IP addresses; pods without one yet are skipped.
+
+```text
+{{ podIPs .pods }}  → [10.0.0.1 10.0.0.2]
+```
+
+### podImagePullBackOffDetected
+
+`podImagePullBackOffDetected` reports whether any container in the pods is waiting or terminated with reason ImagePullBackOff.
+
+```text
+{{ podImagePullBackOffDetected .pods }}  → true
+```
+
+### podInvalidImageNameDetected
+
+`podInvalidImageNameDetected` reports whether any container in the pods is waiting or terminated with reason InvalidImageName.
+
+```text
+{{ podInvalidImageNameDetected .pods }}  → false
+```
+
+### podMaxRestarts
+
+`podMaxRestarts` returns the highest restart count of any pod (the sum over its containers). 0 when there are no pods.
+
+```text
+{{ podMaxRestarts .pods }}  → 1
+```
+
+### podNames
+
+`podNames` returns the pods' names, in order.
+
+```text
+{{ podNames .pods }}  → [web-0 web-1 web-2]
+{{ join (podNames .pods) ", " }}  → "web-0, web-1, web-2"
+```
+
+### podNodes
+
+`podNodes` returns the nodes the pods are scheduled on; pending pods are skipped.
+
+```text
+{{ podNodes .pods }}  → [node-1 node-2]
+```
+
+### podOOMKilledDetected
+
+`podOOMKilledDetected` reports whether any container in the pods is waiting or terminated with reason OOMKilled.
+
+```text
+{{ podOOMKilledDetected .pods }}  → false
+```
+
+### podPhases
+
+`podPhases` returns each pod's phase, in order.
+
+```text
+{{ podPhases .pods }}  → [Running Running Pending]
+```
+
+### podPostStartHookErrorDetected
+
+`podPostStartHookErrorDetected` reports whether any container in the pods is waiting or terminated with reason PostStartHookError.
+
+```text
+{{ podPostStartHookErrorDetected .pods }}  → false
+```
+
+### podPreStartHookErrorDetected
+
+`podPreStartHookErrorDetected` reports whether any container in the pods is waiting or terminated with reason PreStartHookError.
+
+```text
+{{ podPreStartHookErrorDetected .pods }}  → false
+```
+
+### podRunContainerErrorDetected
+
+`podRunContainerErrorDetected` reports whether any container in the pods is waiting or terminated with reason RunContainerError.
+
+```text
+{{ podRunContainerErrorDetected .pods }}  → false
+```
+
+### readyPodCount
+
+`readyPodCount` returns the number of pods whose Ready condition is True.
+
+```text
+{{ readyPodCount .pods }}  → 2
 ```

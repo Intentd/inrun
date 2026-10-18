@@ -2,12 +2,11 @@
 package webhook
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/note"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/inrun/pkg/utils"
 )
@@ -81,16 +80,17 @@ func resolveValue(r *template.Resolver, v interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		// cronToMap returns CronMapSentinel + JSON so that the conversion spec
-		// can use {{ cronToMap .spec.schedule }} as a one-liner shorthand.
-		// Detect the sentinel and parse back to map[string]interface{}.
-		if strings.HasPrefix(resolved, note.CronMapSentinel) {
-			payload := resolved[len(note.CronMapSentinel):]
-			var m map[string]interface{}
-			if err := json.Unmarshal([]byte(payload), &m); err != nil {
-				return nil, fmt.Errorf("cronToMap: invalid JSON payload: %w", err)
+		// A template function that produces a structured value returns the sentinel
+		// followed by JSON, since the resolver path only yields strings. Detect the
+		// prefix and decode the payload back to map[string]interface{} so it lands as
+		// a nested object rather than a JSON string. cronToMap is the current
+		// producer; the mechanism is available to any function that needs it.
+		if funcs.HasJSONValueSentinel(resolved) {
+			var v interface{}
+			if err := funcs.DecodeJSONValueSentinel(resolved, &v); err != nil {
+				return nil, fmt.Errorf("invalid JSON payload: %w", err)
 			}
-			return m, nil
+			return v, nil
 		}
 		if types.IsTemplate(tv) {
 			if resolved == "" {

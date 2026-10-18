@@ -10,7 +10,7 @@ metadata:
     window and the flag URL are Catalog configuration; the hook binary is identical
     across environments and schedules.
 
-notes:
+functions:
   include: ../include/functions.yaml
 
 spec:

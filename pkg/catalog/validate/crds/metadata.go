@@ -26,7 +26,7 @@ func (c *checker) validateCRDEntryMetadata() error {
 //  2. Label values must be valid Go templates (they are resolved at reconcile time
 //     against the CR object, so {{ .metadata.name }} etc. are allowed).
 func (c *checker) validateCRDEntryLabels() error {
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 	for crdName, crd := range c.Cat.Enabled() {
 		if !crd.HasUserLabels() {
 			continue
@@ -64,7 +64,7 @@ func (c *checker) validateCRDEntryLabels() error {
 //  2. Annotation values must be valid Go templates (they are resolved at reconcile time
 //     against the CR object, so {{ .metadata.name }} etc. are allowed).
 func (c *checker) validateCRDEntryAnnotations() error {
-	funcMap := buildFuncMapForValidation(c.Cat.Notes)
+	funcMap := buildFuncMapForValidation(c.Cat.Functions)
 
 	for crdName, crd := range c.Cat.Enabled() {
 		if !crd.HasUserAnnotations() {

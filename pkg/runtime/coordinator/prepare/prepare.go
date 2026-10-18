@@ -92,8 +92,8 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 		if !in.Cat.Profiles.Empty() {
 			resolver = resolver.WithProfiles(&in.Cat.Profiles)
 		}
-		if !in.Cat.Notes.Empty() {
-			resolver = resolver.WithUserNotes(in.Cat.UserNotes())
+		if !in.Cat.Functions.Empty() {
+			resolver = resolver.WithUserFunctions(in.Cat.UserFunctions())
 		}
 	}
 	if req := intent.FromObject(resolver.Data()); req != nil {

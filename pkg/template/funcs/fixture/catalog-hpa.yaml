@@ -1,0 +1,113 @@
+apiVersion: inrun.dev/v1
+kind: Catalog
+metadata:
+  name: hpa-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    HPAProbe — living integration test for HPA notes.
+    Creates a Deployment + HPA.
+    Apply the CR and inspect: kubectl get hpaprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    hpa-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - hpa
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-app"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  profile: '{{ .spec.resourceProfile | default "burst" }}'
+                reconcile: true
+
+            hpa:
+              - name: "{{ .metadata.name }}-hpa"
+                scaleTargetRef:
+                  apiVersion: apps/v1
+                  kind: Deployment
+                  name: "{{ .metadata.name }}-app"
+                minReplicas: "{{ .spec.minReplicas }}"
+                maxReplicas: "{{ .spec.maxReplicas }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              # ── Phase state machine ─────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Scaling"
+                when:
+                  - field: "{{ hpaScaling .children.hpa }}"
+                    equals: "true"
+
+              - path: phase
+                value: "AtCapacity"
+                when:
+                  - field: "{{ hpaAtMax .children.hpa }}"
+                    equals: "true"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+                  - field: "{{ hpaScaling .children.hpa }}"
+                    equals: "false"
+
+              # ── HPA notes ────────────────────────────────────────────────────
+              - path: hpaCurrentReplicas
+                value: "{{ hpaCurrentReplicas .children.hpa }}"
+
+              - path: hpaDesiredReplicas
+                value: "{{ hpaDesiredReplicas .children.hpa }}"
+
+              - path: hpaMinReplicas
+                value: "{{ hpaMinReplicas .children.hpa }}"
+
+              - path: hpaMaxReplicas
+                value: "{{ hpaMaxReplicas .children.hpa }}"
+
+              - path: hpaScaling
+                value: "{{ hpaScaling .children.hpa }}"
+
+              - path: hpaAtMax
+                value: "{{ hpaAtMax .children.hpa }}"
+
+              # ── HPA condition notes ─────────────────────────────────────────
+              - path: hpaScalingActive
+                value: "{{ hpaScalingActive .children.hpa }}"
+
+              - path: hpaAbleToScale
+                value: "{{ hpaAbleToScale .children.hpa }}"
+
+              - path: hpaScalingLimited
+                value: "{{ hpaScalingLimited .children.hpa }}"
+
+              # ── enriched HPA notes (require enrich: [hpa]) ──────────────────
+              - path: hpaScaleTargetName
+                value: "{{ hpaScaleTargetName .children.hpa }}"
+
+              - path: hpaScaleTargetKind
+                value: "{{ hpaScaleTargetKind .children.hpa }}"
+
+              - path: hpaMetricTypes
+                value: '{{ join (hpaMetricTypes .children.hpa) ", " }}'
+

@@ -8,12 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// enrichGroupWithIngressData embeds load-balancer IPs and TLS secret objects
-// for each Ingress in the group. A no-op when ingress enrichment is not enabled
-// on the CRD.
-//
-// _loadBalancerIPs: flat list of IP/hostname strings from status.loadBalancer.ingress.
-// _tlsSecrets: list of full Secret objects named in spec.tls[*].secretName.
+// enrichGroupWithIngressData attaches, for each Ingress in the group, the TLS
+// Secrets named in spec.tls[*].secretName (native) under _tlsSecrets. A
+// no-op when ingress enrichment is not enabled on the CRD. Load-balancer
+// addresses are on the Ingress itself (status.loadBalancer.ingress).
 func enrichGroupWithIngressData(ctx context.Context, kube kubeclient.Interface, m map[string]interface{}, crd types.CRDEntry) {
 	if !enrichmentEnabled("ingress", crd) {
 		return
@@ -29,30 +27,6 @@ func enrichGroupWithIngressData(ctx context.Context, kube kubeclient.Interface, 
 			continue
 		}
 		ns, _ := meta["namespace"].(string)
-
-		// _loadBalancerIPs from status.loadBalancer.ingress
-		status, _ := obj["status"].(map[string]interface{})
-		if status != nil {
-			lb, _ := status["loadBalancer"].(map[string]interface{})
-			if lb != nil {
-				ingressList, _ := lb["ingress"].([]interface{})
-				var ips []interface{}
-				for _, entry := range ingressList {
-					em, _ := entry.(map[string]interface{})
-					if em == nil {
-						continue
-					}
-					if ip, _ := em["ip"].(string); ip != "" {
-						ips = append(ips, ip)
-					} else if host, _ := em["hostname"].(string); host != "" {
-						ips = append(ips, host)
-					}
-				}
-				if len(ips) > 0 {
-					obj["_loadBalancerIPs"] = ips
-				}
-			}
-		}
 
 		// _tlsSecrets from spec.tls[*].secretName
 		if ns == "" {

@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ── IsNoteRef ─────────────────────────────────────────────────────────────────
+// ── IsKelFuncRef ─────────────────────────────────────────────────────────────────
 
-func TestIsNoteRef(t *testing.T) {
+func TestIsKelFuncRef(t *testing.T) {
 	tests := []struct {
 		field string
 		want  bool
@@ -40,23 +40,23 @@ func TestIsNoteRef(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.field, func(t *testing.T) {
-			assert.Equal(t, tc.want, types.IsNoteRef(tc.field))
+			assert.Equal(t, tc.want, types.IsKelFuncRef(tc.field))
 		})
 	}
 }
 
-// ── NoteRefName ───────────────────────────────────────────────────────────────
+// ── FuncRefName ───────────────────────────────────────────────────────────────
 
-func TestNoteRefName(t *testing.T) {
-	assert.Equal(t, "inBusinessHours", types.NoteRefName("{{ inBusinessHours }}"))
-	assert.Equal(t, "isBusy", types.NoteRefName("{{isBusy}}"))
-	assert.Equal(t, "myNote", types.NoteRefName("{{  myNote  }}"))
+func TestFuncRefName(t *testing.T) {
+	assert.Equal(t, "inBusinessHours", types.FuncRefName("{{ inBusinessHours }}"))
+	assert.Equal(t, "isBusy", types.FuncRefName("{{isBusy}}"))
+	assert.Equal(t, "myNote", types.FuncRefName("{{  myNote  }}"))
 }
 
-// ── NoteRegistry.ExpressionFor ────────────────────────────────────────────────
+// ── KELFunctionRegistry.ExpressionFor ────────────────────────────────────────────────
 
-func TestNoteRegistry_ExpressionFor(t *testing.T) {
-	nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+func TestKELFunctionRegistry_ExpressionFor(t *testing.T) {
+	nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 		{Name: "isHealthy", Expression: `{{ eq .health.status "healthy" }}`},
 		{Name: "isBusy", Expression: `{{ gt .metrics.workersBusyPercent 80 }}`},
 	}}
@@ -66,11 +66,11 @@ func TestNoteRegistry_ExpressionFor(t *testing.T) {
 	assert.Equal(t, "", nr.ExpressionFor("unknown"))
 }
 
-// ── NoteRegistry.References ──────────────────────────────────────────────────
+// ── KELFunctionRegistry.References ──────────────────────────────────────────────────
 
-func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
+func TestKELFunctionRegistry_References_ThroughNotes(t *testing.T) {
 	t.Run("direct reference to .health in expression", func(t *testing.T) {
-		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 			{Name: "isHealthy", Expression: `{{ eq .health.status "healthy" }}`},
 		}}
 		assert.True(t, nr.References("{{ isHealthy }}", "health"))
@@ -78,7 +78,7 @@ func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
 	})
 
 	t.Run("transitive — note calls another note that references .health", func(t *testing.T) {
-		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 			{Name: "isHealthy", Expression: `{{ eq .health.status "healthy" }}`},
 			{Name: "isReady", Expression: `{{ and isHealthy (gt .metrics.readyCount 0) }}`},
 			{Name: "canAccept", Expression: `{{ and isReady (lt .metrics.queueDepth 500) }}`},
@@ -88,14 +88,14 @@ func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
 	})
 
 	t.Run("word boundary — note named 'is' does not match inside 'isHealthy'", func(t *testing.T) {
-		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 			{Name: "is", Expression: `{{ eq .health.status "healthy" }}`},
 			{Name: "isHealthy", Expression: `{{ gt .metrics.workersBusyPercent 80 }}`},
 		}}
 		// canAccept calls isHealthy (whole word), not is (which is a prefix of isHealthy)
 		assert.False(t, nr.References("{{ isHealthy }}", "health"))
 		// "is" is a whole word in a plain expression
-		nr2 := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		nr2 := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 			{Name: "is", Expression: `{{ eq .health.status "healthy" }}`},
 			{Name: "outer", Expression: `{{ is }}`},
 		}}
@@ -103,7 +103,7 @@ func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
 	})
 
 	t.Run("cycle — mutual recursion does not loop", func(t *testing.T) {
-		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 			{Name: "alpha", Expression: `{{ beta }}`},
 			{Name: "beta", Expression: `{{ alpha }}`},
 		}}
@@ -111,12 +111,12 @@ func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
 	})
 
 	t.Run("note not in registry returns false", func(t *testing.T) {
-		nr := types.NoteRegistry{}
+		nr := types.KELFunctionRegistry{}
 		assert.False(t, nr.References("{{ unknown }}", "health"))
 	})
 
 	t.Run("note composing both .health and .metrics", func(t *testing.T) {
-		nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+		nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 			{Name: "combined", Expression: `{{ and (eq .health.status "healthy") (lt .metrics.queueDepth 100) }}`},
 		}}
 		assert.True(t, nr.References("{{ combined }}", "health"))
@@ -124,8 +124,8 @@ func TestNoteRegistry_References_ThroughNotes(t *testing.T) {
 	})
 }
 
-func TestNoteRegistry_References_Forms(t *testing.T) {
-	nr := types.NoteRegistry{Functions: []types.UserDefinedNote{
+func TestKELFunctionRegistry_References_Forms(t *testing.T) {
+	nr := types.KELFunctionRegistry{Definitions: []types.UserDefinedFunction{
 		{Name: "bigQuota", Expression: `{{ gt .args.quota 100 }}`},
 	}}
 	cases := []struct {

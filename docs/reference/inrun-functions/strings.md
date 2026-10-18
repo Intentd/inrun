@@ -1,101 +1,154 @@
-# String Notes
+# Strings
 
-String notes manipulate text values. They cover the cases that come up constantly when building resource names, labels, and field values from CR data.
+The string operations expressions need most: case, trimming, prefixes and suffixes, splitting and joining, concatenation, case conversion between camelCase and kebab-case, and shortening text for display.
 
 ## Reference
 
-| Note | Description |
-|------|-------------|
-| `toLower` | Convert a string to all lowercase. |
-| `toUpper` | Convert a string to all uppercase. |
-| `trimSpace` | Remove leading and trailing whitespace. |
-| `trim` | Remove all leading and trailing occurrences of a cutset string. |
-| `trimPrefix` | Remove a specific prefix if present. |
-| `trimSuffix` | Remove a specific suffix if present. |
-| `hasPrefix` | Return `true` if the string starts with the given substring. |
-| `hasSuffix` | Return `true` if the string ends with the given substring. |
-| `contains` | Return `true` if the string contains the substring. |
-| `replace` | Replace all occurrences of `old` with `new` in `s`. |
-| `split` | Split a string by a separator into a slice. |
-| `join` | Join a slice of strings into a single string with a separator. |
-| `repeat` | Repeat a string n times. |
-| `camelToKebab` | Convert CamelCase or PascalCase to kebab-case. |
-| `concat` | Join any number of strings together with no separator. |
-| `truncate` | Truncate a string to at most `n` characters. |
+| Function | Description |
+|----------|-------------|
+| [`camelToKebab`](#cameltokebab) | Converts CamelCase or PascalCase to kebab-case. |
+| [`concat`](#concat) | Joins any number of strings together with no separator. |
+| [`contains`](#contains) | Reports whether substr is within s. |
+| [`ellipsis`](#ellipsis) | Shortens s to at most n characters, ending in "..." when it was cut. |
+| [`hasPrefix`](#hasprefix) | Reports whether s starts with prefix. |
+| [`hasSuffix`](#hassuffix) | Reports whether s ends with suffix. |
+| [`join`](#join) | Joins the elements of a list with sep between them. |
+| [`repeat`](#repeat) | Returns s repeated count times. |
+| [`replace`](#replace) | Returns s with every occurrence of old replaced by new. |
+| [`split`](#split) | Splits a string by a separator into a slice. |
+| [`toLower`](#tolower) | Returns s in lower case. |
+| [`toUpper`](#toupper) | Returns s in upper case. |
+| [`trim`](#trim) | Returns s without the leading and trailing characters in cutset. |
+| [`trimPrefix`](#trimprefix) | Returns s without prefix, if it starts with it. |
+| [`trimSpace`](#trimspace) | Returns s without leading and trailing white space. |
+| [`trimSuffix`](#trimsuffix) | Returns s without suffix, if it ends with it. |
 
-## Examples
+## Functions
 
-```yaml
-# toLower
-# value: "{{ toLower .spec.environment }}"
-# production → production
-# PRODUCTION → production
+### camelToKebab
 
-# toUpper
-# value: "{{ toUpper .spec.tier }}"
-# PREMIUM → PREMIUM
-# premium → PREMIUM
+`camelToKebab` converts CamelCase or PascalCase to kebab-case. Useful when deriving Kubernetes resource names from Go type names.
 
-# trimSpace
-# value: "{{ trimSpace .spec.domain }}"
-# "  example.com  " → "example.com"
+```text
+{{ camelToKebab "WebsiteOperator" }}  → "website-operator"
+```
 
-# trim
-# value: "{{ trim .spec.tag \"/\" }}"
-# "/images/nginx/" → "images/nginx"
+### concat
 
-# trimPrefix
-# value: "{{ trimPrefix .metadata.name \"app-\" }}"
-# "app-frontend" → "frontend"
+`concat` joins any number of strings together with no separator. Useful for building domain names, resource name prefixes, or any value assembled from multiple parts.
 
-# trimSuffix
-# value: "{{ trimSuffix .spec.image \":latest\" }}"
-# "nginx:latest" → "nginx"
+```text
+{{ concat "*." .spec.domain }}  → "*.api.example.com"
+```
 
-# hasPrefix
-# value: '{{ hasPrefix .spec.image "gcr.io/" }}'
-# "gcr.io/myproject/app:v1" → true
+### contains
 
-# hasSuffix
-# value: '{{ hasSuffix .spec.image "v1" }}'
-# "gcr.io/myproject/app:v1" → true
+`contains` reports whether substr is within s.
 
-# contains
-# value: "{{ contains .spec.environment \"prod\" }}"
-# "production" → true
-# "staging"    → false
+```text
+{{ contains .spec.image ":latest" }}  → true
+```
 
-# replace
-# value: "{{ replace .spec.domain \".\" \"-\" }}"
-# "my.app.example.com" → "my-app-example-com"
+### ellipsis
 
-# split
-# Extract the first tag from a comma-separated list
-# value: "{{ index (split .spec.tags \",\") 0 }}"
-# spec.tags: "latest,stable,v2" → "latest"
+`ellipsis` shortens s to at most n characters, ending in "..." when it was cut. For text people read (messages, descriptions); not for names or label values, which may not end in a dot: use truncate there.
 
-# join
-# value: "{{ join .spec.hosts \", \" }}"
-# ["api.example.com", "admin.example.com"] → "api.example.com, admin.example.com"
+```text
+{{ ellipsis .status.message 80 }}
+```
 
-# repeat
-# value: "{{ repeat \"ha\" 3 }}"
-# → "hahaha"
+### hasPrefix
 
-# camelToKebab
-# value: "{{ camelToKebab .spec.controllerName }}"
-# "WebsiteOperator" → "website-operator"
-# "myAppName"       → "my-app-name"
+`hasPrefix` reports whether s starts with prefix.
 
-# concat
-# value: "{{ concat \"*.\" .spec.domain }}"
-# spec.domain: "api.example.com" → "*.api.example.com"
+```text
+{{ hasPrefix .spec.image "docker.io/" }}  → true
+```
 
-# value: "{{ concat .metadata.name \"-\" .spec.tier }}"
-# name: "webapp", tier: "prod" → "webapp-prod"
+### hasSuffix
 
-# truncate
-# value: "{{ truncate .metadata.name 63 }}"
-# Names longer than 63 chars are clipped and get "..." appended.
-# Names at or under 63 chars are returned unchanged.
+`hasSuffix` reports whether s ends with suffix.
+
+```text
+{{ hasSuffix .spec.host ".local" }}  → true
+```
+
+### join
+
+`join` joins the elements of a list with sep between them.
+
+```text
+{{ join (podNames .pods) ", " }}  → "web-0, web-1, web-2"
+```
+
+### repeat
+
+`repeat` returns s repeated count times.
+
+```text
+{{ repeat "-" 3 }}  → "---"
+```
+
+### replace
+
+`replace` returns s with every occurrence of old replaced by new.
+
+```text
+{{ replace "payments-api" "-" "_" }}  → "payments_api"
+```
+
+### split
+
+`split` splits a string by a separator into a slice. Combine with `index` to extract a specific element.
+
+```text
+{{ index (split "latest,stable,v2" ",") 0 }}  → "latest"
+```
+
+### toLower
+
+`toLower` returns s in lower case.
+
+```text
+{{ toLower "Payments-API" }}  → "payments-api"
+```
+
+### toUpper
+
+`toUpper` returns s in upper case.
+
+```text
+{{ toUpper .spec.env }}  → "PROD"
+```
+
+### trim
+
+`trim` returns s without the leading and trailing characters in cutset.
+
+```text
+{{ trim .spec.path "/" }}  → "api"
+```
+
+### trimPrefix
+
+`trimPrefix` returns s without prefix, if it starts with it.
+
+```text
+{{ trimPrefix .spec.image "docker.io/" }}
+```
+
+### trimSpace
+
+`trimSpace` returns s without leading and trailing white space.
+
+```text
+{{ trimSpace .spec.name }}
+```
+
+### trimSuffix
+
+`trimSuffix` returns s without suffix, if it ends with it.
+
+```text
+{{ trimSuffix .spec.host ".local" }}
 ```

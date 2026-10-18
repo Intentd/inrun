@@ -5,10 +5,10 @@ import (
 	"github.com/intentd/inrun/pkg/catalog/validate/admission"
 	"github.com/intentd/inrun/pkg/catalog/validate/crds"
 	"github.com/intentd/inrun/pkg/catalog/validate/emit"
+	"github.com/intentd/inrun/pkg/catalog/validate/function"
 	"github.com/intentd/inrun/pkg/catalog/validate/gateway"
 	"github.com/intentd/inrun/pkg/catalog/validate/internal/check"
 	"github.com/intentd/inrun/pkg/catalog/validate/metadata"
-	"github.com/intentd/inrun/pkg/catalog/validate/notes"
 	"github.com/intentd/inrun/pkg/catalog/validate/observe"
 	"github.com/intentd/inrun/pkg/catalog/validate/profiles"
 	"github.com/intentd/inrun/pkg/catalog/validate/publish"
@@ -31,7 +31,7 @@ var blocks = []func(*catalog.Catalog, *config.Config) error{
 	emit.Check,
 	admission.Check,
 	security.Check,
-	notes.Check,
+	function.Check,
 	profiles.Check,
 	serve.Check,
 	gateway.Check,

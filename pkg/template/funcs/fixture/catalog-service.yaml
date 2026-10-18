@@ -1,0 +1,93 @@
+apiVersion: inrun.dev/v1
+kind: Catalog
+metadata:
+  name: service-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    ServiceProbe — integration test for enriched endpoint notes.
+    Creates a Deployment + Service with enrich: [endpoints].
+    Apply the CR and inspect: kubectl get serviceprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    service-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - endpoints
+        - backingpods
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-app"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+
+            services:
+              - name: "{{ .metadata.name }}-svc"
+                port: "80"
+                targetPort: "{{ .spec.port }}"
+                type: LoadBalancer
+                reconcile: true
+        emit:
+          status:
+            fields:
+              # ── Phase state machine ─────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Deploying"
+                when:
+                  - field: "{{ resourceExists .children.deployment }}"
+                    equals: "true"
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "false"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+                  - field: "{{ hasEndpoints .children.service._endpoints }}"
+                    equals: "true"
+
+              # ── service notes ───────────────────────────────────────────────
+              - path: serviceClusterIP
+                value: "{{ serviceClusterIP .children.service }}"
+
+              - path: endpointsReady
+                value: "{{ endpointsReady .children.endpointslice }}"
+
+              # ── enriched endpoint notes (require enrich: [endpoints]) ───────
+              - path: hasEndpoints
+                value: "{{ hasEndpoints .children.service._endpoints }}"
+
+              - path: endpointCount
+                value: "{{ serviceEndpointCount .children.service._endpoints }}"
+
+              - path: endpoints
+                value: '{{ join (serviceEndpoints .children.service._endpoints) ", " }}'
+
+              - path: firstEndpoint
+                value: "{{ serviceFirstEndpoint .children.service._endpoints }}"
+
+              # ── enriched backing-pod notes (require enrich: [backingpods]) ──
+              - path: backingPodCount
+                value: "{{ podCount .children.service._backingPods }}"
+
+              - path: backingPodNames
+                value: '{{ join (podNames .children.service._backingPods) ", " }}'
+

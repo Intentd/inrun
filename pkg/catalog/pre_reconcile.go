@@ -186,8 +186,8 @@ func (c *Catalog) effectiveResolver(ctx context.Context, obj domain.Object, pr *
 	if !c.Profiles.Empty() {
 		resolver = resolver.WithProfiles(c.UserProfiles())
 	}
-	if !c.Notes.Empty() {
-		resolver = resolver.WithUserNotes(c.UserNotes())
+	if !c.Functions.Empty() {
+		resolver = resolver.WithUserFunctions(c.UserFunctions())
 	}
 	// .request context
 	if req := intent.FromObject(resolver.Data()); req != nil {

@@ -4,8 +4,8 @@ metadata:
   name: bad-gateway-cluster-undefined-func
   version: 1.0.0
   description: Tests that a template calling an undefined function in serve.clusters fails validation.
-notes:
-  functions:
+functions:
+  definitions:
     - name: targetCluster
       description: Resolves cluster name from request context.
       expression: '{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}'
