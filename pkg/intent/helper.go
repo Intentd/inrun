@@ -1,15 +1,18 @@
 package intent
 
-import "github.com/intentd/inrun/pkg/utils"
+import (
+	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/structured"
+)
 
 var (
-	validateK8sName = utils.ValidKubernetesName
-	isNestedPath    = utils.IsNestedPath
-	setNestedPath   = utils.SetNestedPath
+	validateK8sName = kube.ValidKubernetesName
+	isNestedPath    = structured.IsNestedPath
+	setNestedPath   = structured.SetNestedPath
 )
 
 // mapContains is a nil-safe map membership check.
-// Wraps utils.MapContains for local convenience.
+// Wraps structured.MapContains for local convenience.
 func mapContains[V any](m map[string]V, key string) bool {
-	return utils.MapContains(m, key)
+	return structured.MapContains(m, key)
 }

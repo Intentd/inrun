@@ -3,7 +3,7 @@ package funcs
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/structured"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +33,7 @@ func TestJSONValueSentinel_RoundTrip(t *testing.T) {
 			// got is JSON-native by construction (it came out of
 			// json.Unmarshal); normalize in so both sides share the same
 			// numeric types — e.g. int(42) → float64(42).
-			assert.Equal(t, utils.JSONNormalize(tc.in), got)
+			assert.Equal(t, structured.JSONNormalize(tc.in), got)
 		})
 	}
 }

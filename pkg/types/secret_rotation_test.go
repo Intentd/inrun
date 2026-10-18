@@ -1,5 +1,5 @@
-// Tests for NeedsRotation (secret_rotation.go). ParseTimeDuration itself now
-// lives in pkg/utils — see pkg/utils/duration_test.go.
+// Tests for NeedsRotation (secret_rotation.go). Duration parsing itself is
+// KEL's core.ParseTimeDuration, tested there.
 package types_test
 
 import (

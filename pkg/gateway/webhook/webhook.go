@@ -8,13 +8,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -329,7 +330,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 	if cat.IsNamespaceProtectionEnabled() && len(cat.NamespaceProtectionGVRs()) > 0 {
 		ws.namespaceProtection.Store(true)
 	}
-	if cat.IsStrictModeEnabled() && utils.IsRunningInPod() {
+	if cat.IsStrictModeEnabled() && kube.IsRunningInPod() {
 		ws.strictMode.Store(true)
 	}
 
@@ -340,7 +341,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 		Bool("webhooks", ws.webhooksEnabled).
 		Msg("webhook server configured")
 
-	if !utils.IsRunningInPod() {
+	if !kube.IsRunningInPod() {
 		logger.Debug().Msg("not running in cluster — skipping webhook HTTPS setup")
 		return nil
 	}

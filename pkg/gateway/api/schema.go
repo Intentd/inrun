@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // SchemaResponse is returned by GET /api/v1/schema?target=<t>.
@@ -121,8 +122,8 @@ func handleSchemaList(
 		})
 	}
 
-	page, total := utils.PageItems(entries, p)
-	writeJSON(w, http.StatusOK, utils.PaginatedResponse[ServiceEntry]{
+	page, total := httpapi.PageItems(entries, p)
+	writeJSON(w, http.StatusOK, httpapi.PaginatedResponse[ServiceEntry]{
 		Total:  total,
 		Limit:  p.Limit,
 		Offset: p.Offset,

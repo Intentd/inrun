@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // startupHandler — GET /startup
@@ -15,14 +16,14 @@ import (
 // Prevents liveness/readiness from running until the process is initialized.
 func (h *HealthServer) startupHandler(w http.ResponseWriter, r *http.Request) {
 	if !h.StartupComplete() {
-		utils.WriteJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+		httpapi.WriteJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
 			"status":  "starting",
 			"service": h.client,
 		})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]interface{}{
+	httpapi.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"status":  "started",
 		"service": h.client,
 		"uptime":  h.Uptime(),
@@ -35,14 +36,14 @@ func (h *HealthServer) startupHandler(w http.ResponseWriter, r *http.Request) {
 // Standard Kubernetes liveness probe endpoint.
 func (h *HealthServer) healthHandler(w http.ResponseWriter, r *http.Request) {
 	if !h.healthy.Load() {
-		utils.WriteJSON(w, http.StatusInternalServerError, map[string]interface{}{
+		httpapi.WriteJSON(w, http.StatusInternalServerError, map[string]interface{}{
 			"status":  "unhealthy",
 			"service": h.client,
 		})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]interface{}{
+	httpapi.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"status":  "healthy",
 		"service": h.client,
 		"uptime":  h.Uptime(),
@@ -56,14 +57,14 @@ func (h *HealthServer) healthHandler(w http.ResponseWriter, r *http.Request) {
 // Not ready during startup (before informer caches sync) and during shutdown.
 func (h *HealthServer) readyHandler(w http.ResponseWriter, r *http.Request) {
 	if !h.ready.Load() {
-		utils.WriteJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+		httpapi.WriteJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
 			"status":  "not ready",
 			"service": h.client,
 		})
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]interface{}{
+	httpapi.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"status":  "ready",
 		"service": h.client,
 		"uptime":  h.Uptime(),

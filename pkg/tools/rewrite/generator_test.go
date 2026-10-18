@@ -4,8 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // The generated Catalog must decode strictly: an unknown or misplaced key
@@ -22,7 +23,7 @@ func TestGenerateCatalog_DecodesStrictly(t *testing.T) {
 	out := generateCatalog(res, opts, "webapp", "NewWebAppReconciler")
 
 	var cat catalog.Catalog
-	if err := utils.StrictUnmarshal([]byte(out), &cat); err != nil {
+	if err := structured.StrictUnmarshal([]byte(out), &cat); err != nil {
 		t.Fatalf("generated catalog does not decode:\n%v\n\n%s", err, out)
 	}
 	for _, want := range []string{"reconcile:", "managedResources:", "constructor:", "observe:", "allowedNamespaces:"} {

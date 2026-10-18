@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/pkg/config"
 	client "github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -162,7 +163,7 @@ func (m *Migrator) runFor(ctx context.Context, crd *types.CRDEntry) (*KindMigrat
 	// Pre-flight: the CRD must be installed before anything else. If it isn't,
 	// every subsequent List and Patch will fail with a misleading error; fail
 	// here with a message that names the CRD.
-	if _, err := utils.CheckCRDExists(m.Kube.RestConfig(), &gvk); err != nil {
+	if _, err := kubeutil.CheckCRDExists(m.Kube.RestConfig(), &gvk); err != nil {
 		return nil, err
 	}
 

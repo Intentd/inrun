@@ -3,10 +3,10 @@ package shared
 import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 )
 
 // ResolveNamespace — priority: spec.Namespace → owner namespace → "default"
@@ -49,8 +49,8 @@ func ResolveOwnerReferences(owner domain.Object) []metav1.OwnerReference {
 			Kind:               kind,
 			Name:               owner.GetName(),
 			UID:                owner.GetUID(),
-			Controller:         utils.BoolPtr(true),
-			BlockOwnerDeletion: utils.BoolPtr(true),
+			Controller:         ptr.To(true),
+			BlockOwnerDeletion: ptr.To(true),
 		},
 	}
 }

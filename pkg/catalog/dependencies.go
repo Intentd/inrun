@@ -6,8 +6,10 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // DependencyGraph represents the CRD dependency DAG for a Catalog.
@@ -59,7 +61,7 @@ func NewDependencyGraph(catalog *Catalog) *DependencyGraph {
 	for name, crd := range crds {
 		for dep := range crd.DependsOn {
 			if _, exists := g.nodes[dep]; !exists {
-				utils.Exit(fmt.Errorf("dependency %s not found for %s", dep, name))
+				term.Exit(fmt.Errorf("dependency %s not found for %s", dep, name))
 			}
 			g.edges[dep] = append(g.edges[dep], name)
 			g.nodes[name].InDegree++
@@ -125,7 +127,7 @@ func (g *DependencyGraph) StartupOrder() []string {
 		}
 
 		if len(order) != len(g.nodes) {
-			utils.Exit(fmt.Errorf("circular dependency detected"))
+			term.Exit(fmt.Errorf("circular dependency detected"))
 		}
 
 		g.startupOrder = order
@@ -138,7 +140,7 @@ func (g *DependencyGraph) StartupOrder() []string {
 // This ensures CRDs are stopped only after all dependents have been drained.
 func (g *DependencyGraph) ShutdownOrder() []string {
 	// Reverse it
-	return utils.Reversed(g.StartupOrder())
+	return structured.Reversed(g.StartupOrder())
 }
 
 // GetNode returns the node for a CRD name.

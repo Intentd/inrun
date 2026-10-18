@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/structured"
 	"gopkg.in/yaml.v3"
 )
 
 // Helpers
-var readLocal = utils.ReadLocal
+var readLocal = fileio.ReadLocal
 
 // ToString returns the underlying string value.
 func (k PatternKind) ToString() string {
@@ -73,7 +74,7 @@ func PersistMetadataVersion(dir, primaryFile, newVersion string) error {
 	}
 
 	// Write and then format the file for consistent layout
-	if err := utils.WriteFileAndFormat(path, out, 0o644); err != nil {
+	if err := structured.WriteFileAndFormat(path, out, 0o644); err != nil {
 		return fmt.Errorf("writing/formatting %s: %w", primaryFile, err)
 	}
 	return nil

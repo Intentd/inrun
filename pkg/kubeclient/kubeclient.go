@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"errors"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,7 +87,7 @@ var _ domain.Component = (*Kubeclient)(nil)
 // NewKubeclient returns a new Kubeclient with the correct scheme
 func NewKubeclient(cfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 	if scheme == nil {
-		utils.Exit(errors.New("scheme cannot be nil"))
+		term.Exit(errors.New("scheme cannot be nil"))
 	}
 
 	return &Kubeclient{

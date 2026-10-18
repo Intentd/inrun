@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/kube"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -237,7 +237,7 @@ func (c *CRDEntry) ServeTargetForFieldSelector(obj map[string]interface{}) strin
 		if !cfg.HasServeTargetFieldSelector() {
 			continue
 		}
-		if utils.MatchesAllServeTargetFieldSelectors(obj, cfg.FieldSelector) {
+		if kube.MatchesAllServeTargetFieldSelectors(obj, cfg.FieldSelector) {
 			return targetName
 		}
 	}

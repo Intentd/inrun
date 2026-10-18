@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +25,7 @@ func TestIsDeletionProtectionEnabled(t *testing.T) {
 
 	t.Run("block declared, enabled: false — disabled", func(t *testing.T) {
 		cat := &Catalog{Security: types.CatalogSecurity{
-			DeletionProtection: &types.DeletionProtectionConfig{Enabled: boolPtr(false)},
+			DeletionProtection: &types.DeletionProtectionConfig{Enabled: ptr.To(false)},
 		}}
 		assert.False(t, cat.IsDeletionProtectionEnabled())
 	})
@@ -86,7 +88,7 @@ func TestIsNamespaceProtectionEnabled(t *testing.T) {
 
 	t.Run("block declared, enabled: false — disabled", func(t *testing.T) {
 		cat := &Catalog{Security: types.CatalogSecurity{
-			NamespaceProtection: &types.NamespaceProtectionConfig{Enabled: boolPtr(false)},
+			NamespaceProtection: &types.NamespaceProtectionConfig{Enabled: ptr.To(false)},
 		}}
 		assert.False(t, cat.IsNamespaceProtectionEnabled())
 	})
@@ -137,7 +139,7 @@ func TestIsAdmissionEnabled(t *testing.T) {
 
 	t.Run("explicitly enabled", func(t *testing.T) {
 		cat := &Catalog{Security: types.CatalogSecurity{
-			Webhooks: &types.WebhooksConfig{Admission: &types.AdmissionWebhookToggle{Enabled: boolPtr(true)}},
+			Webhooks: &types.WebhooksConfig{Admission: &types.AdmissionWebhookToggle{Enabled: ptr.To(true)}},
 		}}
 		assert.True(t, cat.IsAdmissionEnabled())
 	})
@@ -155,7 +157,7 @@ func TestIsConversionEnabled(t *testing.T) {
 	})
 
 	t.Run("explicitly enabled", func(t *testing.T) {
-		cat := &Catalog{Security: types.CatalogSecurity{Conversion: &types.ConversionConfig{Enabled: boolPtr(true)}}}
+		cat := &Catalog{Security: types.CatalogSecurity{Conversion: &types.ConversionConfig{Enabled: ptr.To(true)}}}
 		assert.True(t, cat.IsConversionEnabled())
 	})
 }
@@ -398,7 +400,7 @@ func TestHousekeeperSyncInterval(t *testing.T) {
 
 func TestCertAutoRotate(t *testing.T) {
 	t.Run("YAML declared, autoRotate: false", func(t *testing.T) {
-		cat := &Catalog{Security: types.CatalogSecurity{CertManager: &types.CertManagerConfig{AutoRotate: boolPtr(false)}}}
+		cat := &Catalog{Security: types.CatalogSecurity{CertManager: &types.CertManagerConfig{AutoRotate: ptr.To(false)}}}
 		assert.False(t, cat.CertAutoRotate())
 	})
 

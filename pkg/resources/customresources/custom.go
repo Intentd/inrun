@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"reflect"
 
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
@@ -14,7 +16,6 @@ import (
 	"github.com/intentd/inrun/pkg/resources/shared"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -90,7 +91,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 	}
 
 	// Build GVR from APIVersion/Kind
-	gvk, err := utils.GVKFromFields(spec.APIVersion, spec.Kind)
+	gvk, err := kubeutil.GVKFromFields(spec.APIVersion, spec.Kind)
 	if err != nil {
 		return fmt.Errorf("custom.Create: invalid GVK: %w", err)
 	}
@@ -147,7 +148,7 @@ func Update(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 		return err
 	}
 
-	gvk, err := utils.GVKFromFields(spec.APIVersion, spec.Kind)
+	gvk, err := kubeutil.GVKFromFields(spec.APIVersion, spec.Kind)
 	if err != nil {
 		return fmt.Errorf("custom.Update: invalid GVK: %w", err)
 	}
@@ -253,7 +254,7 @@ func Update(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 // Skips deletion if Inrun is not the owner.
 func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface, owner domain.Object, name, namespace, apiVersion, kind string) error {
 	// Build GVK and resolve GVR
-	gvk, err := utils.GVKFromFields(apiVersion, kind)
+	gvk, err := kubeutil.GVKFromFields(apiVersion, kind)
 	if err != nil {
 		return fmt.Errorf("custom.DeleteIfOwned: invalid GVK: %w", err)
 	}

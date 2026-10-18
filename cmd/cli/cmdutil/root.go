@@ -5,11 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/spf13/cobra"
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 var (
@@ -28,7 +29,7 @@ func Execute(k *config.Config, c context.Context) {
 	Ctx = c
 
 	if err := RootCmd.Execute(); err != nil {
-		utils.Exit(err)
+		term.Exit(err)
 	}
 }
 

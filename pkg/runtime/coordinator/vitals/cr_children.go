@@ -6,11 +6,12 @@ package vitals
 import (
 	"context"
 	"fmt"
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/kubeclient"

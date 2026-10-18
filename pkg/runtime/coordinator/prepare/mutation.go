@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/intentd/inrun/pkg/utils"
 	"strconv"
+
+	"github.com/intentd/inrun/pkg/util/structured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"
@@ -262,10 +263,10 @@ func resolveTypedValue(val interface{}, valueType string, resolver *template.Res
 	}
 }
 
-// setNestedPatch sets value at a dot-notation path (see utils.SplitField) in a
+// setNestedPatch sets value at a dot-notation path (see structured.SplitField) in a
 // merge patch.
 func setNestedPatch(patch map[string]interface{}, path string, value interface{}) {
-	parts := utils.SplitField(path)
+	parts := structured.SplitField(path)
 	current := patch
 	for i, part := range parts {
 		if i == len(parts)-1 {

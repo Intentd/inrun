@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -96,7 +97,7 @@ func TestPrepareField_ScalarReturnsValueAndDeletes(t *testing.T) {
 	if val != "0 2 * * 1-5" {
 		t.Errorf("val = %v, want %q", val, "0 2 * * 1-5")
 	}
-	if _, found := utils.GetNestedPath(spec, "schedule"); found {
+	if _, found := structured.GetNestedPath(spec, "schedule"); found {
 		t.Error("expected migrate.from to be deleted from spec")
 	}
 }
@@ -147,7 +148,7 @@ func TestPrepareField_RelocationScalarMigratesEveryTime(t *testing.T) {
 	if val != 3 {
 		t.Errorf("val = %v, want 3", val)
 	}
-	if _, found := utils.GetNestedPath(spec, "replicas"); found {
+	if _, found := structured.GetNestedPath(spec, "replicas"); found {
 		t.Error("expected migrate.from deleted after prepareField")
 	}
 }
@@ -714,7 +715,7 @@ func TestPrepareField_AbortedAfterDelete(t *testing.T) {
 
 	prepareField(spec, f) // simulates the delete half of a crashed migration
 
-	if _, found := utils.GetNestedPath(spec, "schedule"); found {
+	if _, found := structured.GetNestedPath(spec, "schedule"); found {
 		t.Fatal("expected migrate.from absent after prepare")
 	}
 	_, ok := prepareField(spec, f) // re-run

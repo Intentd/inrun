@@ -3,8 +3,10 @@ package types
 import (
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -98,8 +100,8 @@ func (m CRDMode) String() string {
 }
 
 var (
-	readLocal       = utils.ReadLocal
-	strictUnmarshal = utils.StrictUnmarshal
+	readLocal       = fileio.ReadLocal
+	strictUnmarshal = structured.StrictUnmarshal
 )
 
 // ── APITypes ──────────────────────────────────────────────────────────────────

@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -30,7 +31,7 @@ func (c *postgresClient) Fetch(ctx context.Context, spec types.ExternalCallSpec,
 
 	timeout := defaultExternalTimeout
 	if spec.Timeout != "" {
-		if d, err := utils.ParseTimeDuration(spec.Timeout); err == nil {
+		if d, err := core.ParseTimeDuration(spec.Timeout); err == nil {
 			timeout = d
 		}
 	}

@@ -4,15 +4,16 @@ package merger
 import (
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // loadImportFileWithAuth loads a Catalog import file with optional authentication.
 // Imports must be Catalogs — a Stack cannot import another Stack.
-func (m *Merger) loadImportFileWithAuth(stackPath, importPath string, auth *utils.FileAuth) (map[string]types.CRDEntry, error) {
+func (m *Merger) loadImportFileWithAuth(stackPath, importPath string, auth *fileio.FileAuth) (map[string]types.CRDEntry, error) {
 	data, err := loadFileWithAuth(importPath, auth)
 	if err != nil {
 		return nil, fmt.Errorf("reading %q: %w", importPath, err)

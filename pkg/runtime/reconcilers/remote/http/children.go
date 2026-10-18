@@ -3,10 +3,11 @@ package http
 import (
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8stypes "k8s.io/apimachinery/pkg/types"
@@ -142,7 +143,7 @@ func (r *Reconciler) applyChildrenConfig(cm childrenMap) childrenMap {
 				cp[k] = v
 			}
 			for _, path := range paths {
-				utils.DeleteNestedPath(cp, path)
+				structured.DeleteNestedPath(cp, path)
 			}
 			stripped[name] = cp
 		}

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
+	"github.com/intentd/kel/core"
 
-	"github.com/intentd/inrun/pkg/utils"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // ParseBool interprets common boolean representations from template expressions.
@@ -47,7 +47,7 @@ func SleepIfNeeded(s string) error {
 		return nil
 	}
 
-	d, err := utils.ParseTimeDuration(s)
+	d, err := core.ParseTimeDuration(s)
 	if err != nil {
 		return err
 	}

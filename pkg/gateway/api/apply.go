@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 
+	"k8s.io/utils/ptr"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,7 +36,6 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils/common"
 )
 
 // ApplyResponse is returned for every POST /api/v1/apply request.
@@ -389,7 +390,7 @@ func applyHandler(
 
 		patchOpts := metav1.PatchOptions{
 			FieldManager: config.FieldManagerGateway,
-			Force:        boolPtr(overwrite),
+			Force:        ptr.To(overwrite),
 		}
 		if dryRun {
 			patchOpts.DryRun = []string{metav1.DryRunAll}
@@ -697,8 +698,6 @@ func resolveServeMeta(
 	return nil
 }
 
-func boolPtr(b bool) *bool { return &b }
-
 // InjectProvenanceAnnotations stamps the three serve provenance annotations onto
 // obj before SSA. Empty strings are skipped — callers pass "" for fields that
 // don't apply to the current request path (e.g. alias is "" on primary targets).
@@ -720,7 +719,7 @@ func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias s
 // annotation so the admission webhook can bind it as .request in validation
 // rules, enabling intent-level gates before field translation.
 func InjectServeIntentAnnotation(obj *unstructured.Unstructured, raw map[string]interface{}) {
-	common.InjectAnnotationToObject(obj, raw, labels.AnnotationServeIntent)
+	labels.InjectAnnotationToObject(obj, raw, labels.AnnotationServeIntent)
 }
 
 // InjectFieldSelectorAnnotations adds the field selector target and selectors to the CR.

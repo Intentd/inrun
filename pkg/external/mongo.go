@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -37,7 +38,7 @@ func (c *mongoClient) Fetch(ctx context.Context, spec types.ExternalCallSpec, re
 
 	timeout := defaultExternalTimeout
 	if spec.Timeout != "" {
-		if d, err := utils.ParseTimeDuration(spec.Timeout); err == nil {
+		if d, err := core.ParseTimeDuration(spec.Timeout); err == nil {
 			timeout = d
 		}
 	}

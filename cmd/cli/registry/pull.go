@@ -7,12 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/registry/module"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -231,9 +232,9 @@ func pullFromFile(cmd *cobra.Command, filePath string, refresh bool) error {
 		for _, url := range helmImports.RemoteFiles {
 			spin := cmdutil.StartSpinner(url)
 			if refresh {
-				utils.InvalidateFileCache(url)
+				fileio.InvalidateFileCache(url)
 			}
-			if _, fetchErr := utils.LoadFileWithAuthRefresh(url, nil, refresh); fetchErr != nil {
+			if _, fetchErr := fileio.LoadFileWithAuthRefresh(url, nil, refresh); fetchErr != nil {
 				spin.Failure()
 				errs = append(errs, fmt.Sprintf("file %s: %v", url, fetchErr))
 			} else {

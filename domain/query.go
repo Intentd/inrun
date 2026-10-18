@@ -5,7 +5,7 @@ package domain
 // "Runtime" is the component topic, not a generic qualifier; a future GatewayQuery would
 // serve the same role for the gateway component.
 //
-// Implemented by pkg/utils/common/query.runtimeQuery.
+// Implemented by pkg/runtimeapi (NewClient).
 type RuntimeQuery interface {
 	// IsUnique reports whether no other CR of this kind currently has field == value.
 	// selfNamespace/selfName identify the CR under evaluation so it is excluded from
@@ -14,13 +14,13 @@ type RuntimeQuery interface {
 	// can both pass; authoritative enforcement is in pkg/runtime/reconciler.
 	IsUnique(field, value, selfNamespace, selfName string) (bool, error)
 
-	// ForHealth returns the CRD's health summary as reported by the runtime's
+	// Health returns the CRD's health summary as reported by the runtime's
 	// /catalog/{crd}/health endpoint. Keys match the fields observable via .health.*
 	// in preReconcile gate conditions.
-	ForHealth() map[string]interface{}
+	Health() map[string]interface{}
 
-	// ForMetrics returns the CRD's metrics as reported by the runtime's
+	// Metrics returns the CRD's metrics as reported by the runtime's
 	// /catalog/{crd} endpoint (metrics key). Keys match the fields observable via
 	// .metrics.* in preReconcile gate conditions.
-	ForMetrics() map[string]interface{}
+	Metrics() map[string]interface{}
 }

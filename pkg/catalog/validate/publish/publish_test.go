@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/catalog"
 
 	"github.com/intentd/inrun/pkg/types"
@@ -39,14 +41,14 @@ func TestValidatePublish_Tests_IntentNil(t *testing.T) {
 
 func TestValidatePublish_Tests_IntentFalse(t *testing.T) {
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(false)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(false)},
 	})
 	assert.NoError(t, e.validatePublish())
 }
 
 func TestValidatePublish_Tests_IntentTrue_NoGateway(t *testing.T) {
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(true)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(true)},
 	})
 	err := e.validatePublish()
 	require.Error(t, err)
@@ -56,7 +58,7 @@ func TestValidatePublish_Tests_IntentTrue_NoGateway(t *testing.T) {
 
 func TestValidatePublish_Tests_IntentTrue_GatewayNoAPIBlock(t *testing.T) {
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(true)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(true)},
 	})
 	e.Cat.Gateway = &types.GatewayConfig{}
 	err := e.validatePublish()
@@ -66,7 +68,7 @@ func TestValidatePublish_Tests_IntentTrue_GatewayNoAPIBlock(t *testing.T) {
 
 func TestValidatePublish_Tests_IntentTrue_GatewayAPIDisabled(t *testing.T) {
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(true)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(true)},
 	})
 	e.Cat.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{Enabled: false},
@@ -79,7 +81,7 @@ func TestValidatePublish_Tests_IntentTrue_GatewayAPIDisabled(t *testing.T) {
 func TestValidatePublish_Tests_IntentTrue_NoIntentFiles(t *testing.T) {
 	dir := t.TempDir()
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(true)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(true)},
 	})
 	e.Cat.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{Enabled: true},
@@ -95,7 +97,7 @@ func TestValidatePublish_Tests_IntentTrue_WithIntentYAML(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "intent.yaml"), []byte("{}"), 0o644))
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(true)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(true)},
 	})
 	e.Cat.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{Enabled: true},
@@ -108,7 +110,7 @@ func TestValidatePublish_Tests_IntentTrue_WithIntentJSON(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "intent.json"), []byte("{}"), 0o644))
 	e := catalogWithPublish(&types.PublishConfig{
-		Tests: &types.PublishTestsConfig{Intent: boolPtr(true)},
+		Tests: &types.PublishTestsConfig{Intent: ptr.To(true)},
 	})
 	e.Cat.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{Enabled: true},

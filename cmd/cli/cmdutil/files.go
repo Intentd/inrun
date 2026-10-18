@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/fileio"
 )
 
 const (
@@ -112,8 +112,8 @@ func ResolveCatalogFile(flagValue string) (string, error) {
 	return flagValue, nil
 }
 
-// File helpers live in pkg/utils; these names keep existing callers unchanged.
+// File helpers live in pkg/util/fileio; these names keep existing callers unchanged.
 var (
-	FileExists = utils.FileExists
-	IsDir      = utils.IsDir
+	FileExists = fileio.FileExists
+	IsDir      = fileio.IsDir
 )

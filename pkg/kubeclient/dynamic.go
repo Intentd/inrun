@@ -4,7 +4,7 @@ package kubeclient
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -52,11 +52,11 @@ func (d *DynamicListerWatcher) List(options metav1.ListOptions) (runtime.Object,
 
 	// Inject label selector
 	if d.labelSelector != "" {
-		utils.Merge(&options.LabelSelector, d.labelSelector, ",")
+		kube.Merge(&options.LabelSelector, d.labelSelector, ",")
 	}
 	// Inject field selector
 	if d.fieldSelector != "" {
-		utils.Merge(&options.FieldSelector, d.fieldSelector, ",")
+		kube.Merge(&options.FieldSelector, d.fieldSelector, ",")
 	}
 
 	// Namespaced
@@ -77,11 +77,11 @@ func (d *DynamicListerWatcher) Watch(options metav1.ListOptions) (watch.Interfac
 
 	// Inject label selector
 	if d.labelSelector != "" {
-		utils.Merge(&options.LabelSelector, d.labelSelector, ",")
+		kube.Merge(&options.LabelSelector, d.labelSelector, ",")
 	}
 	// Inject field selector
 	if d.fieldSelector != "" {
-		utils.Merge(&options.FieldSelector, d.fieldSelector, ",")
+		kube.Merge(&options.FieldSelector, d.fieldSelector, ",")
 	}
 
 	// Namespaced

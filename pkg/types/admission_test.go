@@ -8,6 +8,8 @@ package types_test
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -145,8 +147,6 @@ func TestValidationConfig_HasWarnRules(t *testing.T) {
 
 // ── AdmissionWebhookConfig.WebhookValidationEnabled ──────────────────────────
 
-func boolPtr(v bool) *bool { return &v }
-
 func TestWebhookValidationEnabled(t *testing.T) {
 	tests := []struct {
 		name string
@@ -165,12 +165,12 @@ func TestWebhookValidationEnabled(t *testing.T) {
 		},
 		{
 			name: "Validation = true — enabled",
-			cfg:  &types.AdmissionWebhookConfig{Validation: boolPtr(true)},
+			cfg:  &types.AdmissionWebhookConfig{Validation: ptr.To(true)},
 			want: true,
 		},
 		{
 			name: "Validation = false — disabled",
-			cfg:  &types.AdmissionWebhookConfig{Validation: boolPtr(false)},
+			cfg:  &types.AdmissionWebhookConfig{Validation: ptr.To(false)},
 			want: false,
 		},
 	}
@@ -201,12 +201,12 @@ func TestWebhookMutationEnabled(t *testing.T) {
 		},
 		{
 			name: "Mutation = true — enabled",
-			cfg:  &types.AdmissionWebhookConfig{Mutation: boolPtr(true)},
+			cfg:  &types.AdmissionWebhookConfig{Mutation: ptr.To(true)},
 			want: true,
 		},
 		{
 			name: "Mutation = false — disabled",
-			cfg:  &types.AdmissionWebhookConfig{Mutation: boolPtr(false)},
+			cfg:  &types.AdmissionWebhookConfig{Mutation: ptr.To(false)},
 			want: false,
 		},
 	}

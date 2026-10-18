@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // HTTPTransport is the http.RoundTripper used for all external: HTTP calls.
@@ -38,7 +39,7 @@ func executeHTTPCall(
 ) types.ExternalCallResult {
 	timeout := defaultExternalTimeout
 	if spec.Timeout != "" {
-		if d, err := utils.ParseTimeDuration(spec.Timeout); err == nil {
+		if d, err := core.ParseTimeDuration(spec.Timeout); err == nil {
 			timeout = d
 		}
 	}

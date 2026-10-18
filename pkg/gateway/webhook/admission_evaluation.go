@@ -5,12 +5,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils/common/query"
 )
 
 // ── Validation evaluation ─────────────────────────────────────────────────────
@@ -62,15 +63,15 @@ func (ws *WebhookServer) evaluateValidationRules(
 		result := ws.catalog.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
-			q := query.NewRuntimeQuery(ctx, ws.runtimeEndpoint(), crdName)
+			q := runtimeapi.NewClient(ctx, ws.runtimeEndpoint(), crdName)
 			if cfg.HasUniqueRule() {
 				resolver = resolver.WithUniquenessChecker(q)
 			}
 			if cfg.References(notes, "health") {
-				resolver = resolver.WithHealth(q.ForHealth())
+				resolver = resolver.WithHealth(q.Health())
 			}
 			if cfg.References(notes, "metrics") {
-				resolver = resolver.WithMetrics(q.ForMetrics())
+				resolver = resolver.WithMetrics(q.Metrics())
 			}
 		}
 	}
@@ -145,15 +146,15 @@ func (ws *WebhookServer) applyMutationRules(
 		result := cat.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
-			q := query.NewRuntimeQuery(ctx, ws.runtimeEndpoint(), crdName)
+			q := runtimeapi.NewClient(ctx, ws.runtimeEndpoint(), crdName)
 			if cfg.HasUniqueRule() {
 				resolver = resolver.WithUniquenessChecker(q)
 			}
 			if cfg.References(notes, "health") {
-				resolver = resolver.WithHealth(q.ForHealth())
+				resolver = resolver.WithHealth(q.Health())
 			}
 			if cfg.References(notes, "metrics") {
-				resolver = resolver.WithMetrics(q.ForMetrics())
+				resolver = resolver.WithMetrics(q.Metrics())
 			}
 		}
 	}

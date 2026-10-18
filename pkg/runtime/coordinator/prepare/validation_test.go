@@ -1,8 +1,9 @@
 package prepare
 
 import (
-	"github.com/intentd/inrun/pkg/utils"
 	"testing"
+
+	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -75,7 +76,7 @@ func TestRunValidation_Exists_FieldPresent_Passes(t *testing.T) {
 	obj := validationObj(map[string]interface{}{"image": "nginx:1.25"})
 	cfg := &types.ValidationConfig{
 		Rules: []types.ValidationRule{
-			{Field: "spec.image", Exists: utils.BoolPtr(true), Message: "image is required"},
+			{Field: "spec.image", Exists: ptr.To(true), Message: "image is required"},
 		},
 	}
 	result := runValidation(obj, nil, cfg, "Website")
@@ -88,7 +89,7 @@ func TestRunValidation_Exists_FieldAbsent_Fails(t *testing.T) {
 	obj := validationObj(map[string]interface{}{})
 	cfg := &types.ValidationConfig{
 		Rules: []types.ValidationRule{
-			{Field: "spec.image", Exists: utils.BoolPtr(true), Message: "image is required"},
+			{Field: "spec.image", Exists: ptr.To(true), Message: "image is required"},
 		},
 	}
 	result := runValidation(obj, nil, cfg, "Website")
@@ -217,7 +218,7 @@ func TestRunValidation_MultipleViolations_AllCollected(t *testing.T) {
 	cfg := &types.ValidationConfig{
 		Rules: []types.ValidationRule{
 			{Field: "spec.env", Equals: "production", Message: "env must be production"},
-			{Field: "spec.image", Exists: utils.BoolPtr(true), Message: "image required"},
+			{Field: "spec.image", Exists: ptr.To(true), Message: "image required"},
 		},
 	}
 	result := runValidation(obj, nil, cfg, "Website")
@@ -276,7 +277,7 @@ func TestValidationResult_ViolationSummary_NonEmpty(t *testing.T) {
 	obj := validationObj(map[string]interface{}{})
 	cfg := &types.ValidationConfig{
 		Rules: []types.ValidationRule{
-			{Field: "spec.image", Exists: utils.BoolPtr(true), Message: "image required"},
+			{Field: "spec.image", Exists: ptr.To(true), Message: "image required"},
 		},
 	}
 	result := runValidation(obj, nil, cfg, "Website")

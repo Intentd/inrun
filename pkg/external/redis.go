@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -34,7 +35,7 @@ func (c *redisClient) Fetch(ctx context.Context, spec types.ExternalCallSpec, re
 
 	timeout := defaultExternalTimeout
 	if spec.Timeout != "" {
-		if d, err := utils.ParseTimeDuration(spec.Timeout); err == nil {
+		if d, err := core.ParseTimeDuration(spec.Timeout); err == nil {
 			timeout = d
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/kube"
 	"github.com/rs/zerolog/log"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -175,7 +175,7 @@ func (a *ctrlClientAdapter) listFromStore(listGVK schema.GroupVersionKind, lo *s
 					continue
 				}
 
-				if !utils.MatchesFieldRequirements(u, remaining) {
+				if !kube.MatchesFieldRequirements(u, remaining) {
 					continue
 				}
 				result = append(result, u.DeepCopy())

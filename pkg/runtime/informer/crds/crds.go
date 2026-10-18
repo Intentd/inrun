@@ -33,7 +33,7 @@ func NewFactory(
 	// Associates each CRD type with a constructor that builds a typed REST
 	// client. The constructor is deferred — called on first informer use.
 	// Dynamic CRDs skip this — they use the dynamic client directly.
-	provider := kube.NewClientProvider()
+	provider := NewClientProvider(kube)
 
 	for _, crd := range cat.Enabled() {
 		crd := crd

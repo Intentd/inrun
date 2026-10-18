@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
@@ -20,7 +22,6 @@ import (
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/inrun/pkg/process"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // Gateway is the assembled gateway. Start it with Process.Start.
@@ -58,7 +59,7 @@ func New(ctx context.Context, cfg *config.Config, m *merger.Merger, opts Gateway
 	// HTTP: probes, metrics, the /catalog API and the Gateway API.
 	hs := health.NewHealthServer(cfg)
 
-	if !utils.IsRunningInPod() {
+	if !kubeutil.IsRunningInPod() {
 		logger.Warn().Msg("not in a pod — admission and conversion webhooks are disabled (TLS not available)")
 
 		api, err := newAPI(ctx, cfg, cat, kube)

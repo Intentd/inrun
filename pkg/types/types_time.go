@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/retry"
+	"github.com/intentd/kel/core"
 	"gopkg.in/yaml.v3"
 )
 
@@ -48,7 +49,7 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		d.Duration = 0
 		return nil
 	}
-	parsed, err := utils.ParseTimeDuration(s)
+	parsed, err := core.ParseTimeDuration(s)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ type RetryBackoffConfig struct {
 //	  maxAttempts: 5
 func (r *RetryBackoffConfig) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
-		d, err := utils.ParseTimeDuration(value.Value)
+		d, err := core.ParseTimeDuration(value.Value)
 		if err != nil {
 			return fmt.Errorf("retryBackoff: %w", err)
 		}
@@ -97,12 +98,12 @@ func (r *RetryBackoffConfig) UnmarshalYAML(value *yaml.Node) error {
 	return value.Decode((*plain)(r))
 }
 
-// ToRetryDoOptions converts the declaration into utils.RetryDoOptions, applying defaults.
-func (r *RetryBackoffConfig) ToRetryDoOptions() utils.RetryDoOptions {
+// ToRetryDoOptions converts the declaration into retry.DoOptions, applying defaults.
+func (r *RetryBackoffConfig) ToRetryDoOptions() retry.DoOptions {
 	if r == nil {
-		return utils.RetryDoOptions{}
+		return retry.DoOptions{}
 	}
-	return utils.RetryDoOptions{
+	return retry.DoOptions{
 		Base:        r.Initial.Duration,
 		Max:         r.Max.Duration,
 		Multiplier:  r.Multiplier,

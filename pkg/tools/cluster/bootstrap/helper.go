@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/fileio"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-var readLocal = utils.ReadLocal
+var readLocal = fileio.ReadLocal
 
 func waitForToken(ctx context.Context, cs kubernetes.Interface, ns, name string, log func(string)) (string, error) {
 	for i := 0; i < 10; i++ {

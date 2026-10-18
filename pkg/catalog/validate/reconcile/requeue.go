@@ -5,7 +5,7 @@ import (
 )
 
 // validateRequeue checks that requeue.after is either a template expression
-// or a valid duration string accepted by utils.ParseTimeDuration.
+// or a valid duration string accepted by core.ParseTimeDuration (KEL).
 // Empty string is allowed — it means no requeue.
 func (c *checker) validateRequeue() error {
 	for crdName, crd := range c.Cat.EnabledCRDs() {
@@ -21,7 +21,7 @@ func (c *checker) validateRequeue() error {
 }
 
 // checkRequeueAfter checks one requeue.after value: empty (no requeue), a
-// template, or a duration utils.ParseTimeDuration accepts. where names it in
+// template, or a duration core.ParseTimeDuration (KEL) accepts. where names it in
 // the error.
 func checkRequeueAfter(where, after string) error {
 	if after == "" || isTemplate(after) {

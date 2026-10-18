@@ -5,15 +5,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"gopkg.in/yaml.v3"
 )
 
 // IsE2EDoc returns true when the file's kind is "E2E".
 func IsE2EDoc(path string) bool {
-	data, err := utils.ReadLocal(path)
+	data, err := fileio.ReadLocal(path)
 	if err != nil {
 		return false
 	}

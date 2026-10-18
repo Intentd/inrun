@@ -3,6 +3,8 @@ package validate
 import (
 	"fmt"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/catalog/validate/internal/check"
 	"github.com/intentd/inrun/pkg/catalog/validate/runtime"
@@ -57,7 +59,7 @@ func applyDefaults(cat *catalog.Catalog) error {
 
 		if q := crd.QueueConfig(); !q.Empty() && q.HasBehaviour() {
 			if cfg := q.Behaviour(); cfg.HasOnThreshold() {
-				cfg.OnThreshold.Drop = check.BoolPtr(true)
+				cfg.OnThreshold.Drop = ptr.To(true)
 			}
 		}
 

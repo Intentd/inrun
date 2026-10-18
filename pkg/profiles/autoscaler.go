@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -110,7 +112,7 @@ func expandBurst(b types.AutoscaleBaseline, cfg profileConfig) *types.AutoscaleS
 		Conditions: types.AutoscaleConditions{
 			When: []types.Condition{{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)}},
 		},
-		Do: types.AutoscaleAction{Workers: intPtr(workers), QueueDepth: intPtr(queue)},
+		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
 	}
 }
 
@@ -127,7 +129,7 @@ func expandSteady(b types.AutoscaleBaseline, cfg profileConfig) *types.Autoscale
 				{Field: "metrics.workersBusyPercent", GreaterThan: "70"},
 			},
 		},
-		Do: types.AutoscaleAction{Workers: intPtr(workers), QueueDepth: intPtr(queue)},
+		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
 	}
 }
 
@@ -140,7 +142,7 @@ func expandBatch(b types.AutoscaleBaseline, cfg profileConfig) *types.AutoscaleS
 		Conditions: types.AutoscaleConditions{
 			Or: []types.Condition{{Cron: "0 23 * * *", Duration: types.Duration{Duration: 3 * time.Hour}}},
 		},
-		Do: types.AutoscaleAction{Workers: intPtr(workers), QueueDepth: intPtr(queue)},
+		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
 	}
 }
 
@@ -152,7 +154,7 @@ func expandLatencySensitive(b types.AutoscaleBaseline, cfg profileConfig) *types
 		Conditions: types.AutoscaleConditions{
 			When: []types.Condition{{Field: "metrics.reconcileDurationP95Ms", GreaterThan: "200"}},
 		},
-		Do: types.AutoscaleAction{Workers: intPtr(workers)},
+		Do: types.AutoscaleAction{Workers: ptr.To(workers)},
 	}
 }
 
@@ -169,8 +171,6 @@ func expandCostOptimized(b types.AutoscaleBaseline, cfg profileConfig) *types.Au
 				{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)},
 			},
 		},
-		Do: types.AutoscaleAction{Workers: intPtr(workers), QueueDepth: intPtr(queue)},
+		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
 	}
 }
-
-func intPtr(v int) *int { return &v }

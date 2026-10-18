@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/pkg/sentinel"
 )
 
 // ── FailPolicy ────────────────────────────────────────────────────────────────────

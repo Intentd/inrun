@@ -37,8 +37,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -134,7 +135,7 @@ func ResolveCrossMetric(
 // extracts the named metric from the "metrics" key in the JSON response.
 // This mirrors how readCross uses source.endpoint for CR observation.
 func fetchCrossMetricHTTP(cs kubernetes.Interface, source *types.CrossSource, metricName string) string {
-	body, _ := common.FetchCrossViaHTTP(context.TODO(), cs, source)
+	body, _ := runtimeapi.FetchCrossViaHTTP(context.TODO(), cs, source)
 
 	if body == nil {
 		return ""

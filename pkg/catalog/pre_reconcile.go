@@ -3,12 +3,13 @@ package catalog
 import (
 	"context"
 
+	"github.com/intentd/inrun/pkg/labels"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
 )
@@ -194,11 +195,11 @@ func (c *Catalog) effectiveResolver(ctx context.Context, obj domain.Object, pr *
 		resolver = resolver.WithIntent(req)
 	}
 	// .metrics context
-	if metrics := common.ResolveResourceMetricFromObject(resolver.Data()); metrics != nil {
+	if metrics := labels.ResolveResourceMetricFromObject(resolver.Data()); metrics != nil {
 		resolver = resolver.WithMetrics(metrics)
 	}
 	// .health context
-	if health := common.ResolveResourceHealthFromObject(resolver.Data()); health != nil {
+	if health := labels.ResolveResourceHealthFromObject(resolver.Data()); health != nil {
 		resolver = resolver.WithHealth(health)
 	}
 	// .events context

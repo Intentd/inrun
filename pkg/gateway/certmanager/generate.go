@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/kel/core"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ func GenerateClusterBundle(svcName, namespace string, opts BundleOpts) (*TLSBund
 func GenerateTLSBundle(commonName string, dnsNames []string, validFor string) (*TLSBundle, error) {
 	validity := 365 * 24 * time.Hour // default: 1 year
 	if validFor != "" {
-		if d, err := utils.ParseTimeDuration(validFor); err == nil {
+		if d, err := core.ParseTimeDuration(validFor); err == nil {
 			validity = d
 		}
 	}

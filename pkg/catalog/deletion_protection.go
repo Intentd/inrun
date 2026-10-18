@@ -24,9 +24,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -52,7 +53,7 @@ func (c *Catalog) DeletionProtectionGVRs() []GVREntry {
 	if !c.IsDeletionProtectionEnabled() {
 		return nil
 	}
-	if !utils.IsRunningInPod() {
+	if !kube.IsRunningInPod() {
 		return nil
 	}
 
@@ -219,7 +220,7 @@ func (c *Catalog) DeletionProtectedCRDNames() map[string]struct{} {
 	if !c.IsDeletionProtectionEnabled() {
 		return nil
 	}
-	if !utils.IsRunningInPod() {
+	if !kube.IsRunningInPod() {
 		return nil
 	}
 	names := make(map[string]struct{}, c.Len())

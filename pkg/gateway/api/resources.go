@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/pkg/catalog"
@@ -29,7 +31,6 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // resourcesHandler returns the http.HandlerFunc for /api/v1/resources/... routes.
@@ -284,7 +285,7 @@ func listResources(
 	}
 
 	// ── Return paginated response ───────────────────────────────────────
-	writeJSON(w, http.StatusOK, utils.PaginatedResponse[responseItem]{
+	writeJSON(w, http.StatusOK, httpapi.PaginatedResponse[responseItem]{
 		Total:    len(items),
 		Limit:    p.Limit,
 		Offset:   p.Offset,

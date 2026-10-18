@@ -6,9 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // serveEntryCatalog builds a single-CRD catalog for kind "Platform" — its
@@ -141,7 +142,7 @@ func TestSchemaHandler_ServiceList_ListsServeEnabledEntries(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rr.Code)
 	}
-	var page utils.PaginatedResponse[ServiceEntry]
+	var page httpapi.PaginatedResponse[ServiceEntry]
 	if err := json.NewDecoder(rr.Body).Decode(&page); err != nil {
 		t.Fatalf("decode: %v", err)
 	}

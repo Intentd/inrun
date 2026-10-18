@@ -3,8 +3,9 @@ package template
 import (
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ResolveCustomResourceTemplate resolves all template expressions in a
@@ -124,7 +125,7 @@ func (r *Resolver) resolveValueTemplates(v any) (any, error) {
 		// When a template expression was resolved, try to coerce the result to a
 		// native type so integer/boolean/JSON CRD fields pass API server validation.
 		if types.IsTemplate(vv) {
-			return utils.TryCoerceString(res), nil
+			return structured.TryCoerceString(res), nil
 		}
 		return res, nil
 

@@ -6,7 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"k8s.io/utils/ptr"
+
+	"github.com/intentd/inrun/pkg/util/structured"
 )
 
 // serveFieldRef is one serve.fields, serve.labels or serve.annotations entry
@@ -20,9 +22,11 @@ type serveFieldRef struct {
 }
 
 // labelPath and annotationPath are the paths of a label or annotation key;
-// dots in the key are escaped (see utils.SplitField).
-func labelPath(key string) string      { return "metadata.labels." + utils.EscapePathKey(key) }
-func annotationPath(key string) string { return "metadata.annotations." + utils.EscapePathKey(key) }
+// dots in the key are escaped (see structured.SplitField).
+func labelPath(key string) string { return "metadata.labels." + structured.EscapePathKey(key) }
+func annotationPath(key string) string {
+	return "metadata.annotations." + structured.EscapePathKey(key)
+}
 
 // allServeFieldRefs returns one serveFieldRef per serve field, label and
 // annotation, sorted like the console form: by order (0 last), then name. The
@@ -108,7 +112,7 @@ func (c *CRDEntry) RequiredServeFieldRules() []ValidationRule {
 		rules = append(rules, ValidationRule{
 			Field:   ref.field,
 			Link:    ref.link,
-			Exists:  boolPtr(true),
+			Exists:  ptr.To(true),
 			Message: ref.label + " is required",
 			Action:  ValidationActionDeny,
 			When:    ref.cfg.When,
@@ -128,7 +132,7 @@ func (c *CRDEntry) EnumServeFieldRules() []ValidationRule {
 		if cfgType != "enum" || len(ref.cfg.Enum) == 0 {
 			continue
 		}
-		when := append([]Condition{{Field: ref.field, Exists: boolPtr(true)}}, ref.cfg.When...)
+		when := append([]Condition{{Field: ref.field, Exists: ptr.To(true)}}, ref.cfg.When...)
 		rules = append(rules, ValidationRule{
 			Field:   ref.field,
 			Link:    ref.link,

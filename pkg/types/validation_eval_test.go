@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"testing"
+
+	"k8s.io/utils/ptr"
 )
 
 // ── ScalarToString ──────────────────────────────────────────────────────────
@@ -152,14 +154,14 @@ func TestEvaluateValidationRule_Operators(t *testing.T) {
 		wantPass bool
 	}{
 		// ── exists ──────────────────────────────────────────────────────────
-		{"exists: field present with value — passes", specData(map[string]interface{}{"image": "myorg/app:v1"}), ValidationRule{Field: "spec.image", Exists: boolPtr(true), Message: "required"}, true},
-		{"exists: field missing — fails", specData(map[string]interface{}{}), ValidationRule{Field: "spec.image", Exists: boolPtr(true), Message: "required"}, false},
-		{"exists: field present but empty string — fails", specData(map[string]interface{}{"image": ""}), ValidationRule{Field: "spec.image", Exists: boolPtr(true), Message: "required"}, false},
+		{"exists: field present with value — passes", specData(map[string]interface{}{"image": "myorg/app:v1"}), ValidationRule{Field: "spec.image", Exists: ptr.To(true), Message: "required"}, true},
+		{"exists: field missing — fails", specData(map[string]interface{}{}), ValidationRule{Field: "spec.image", Exists: ptr.To(true), Message: "required"}, false},
+		{"exists: field present but empty string — fails", specData(map[string]interface{}{"image": ""}), ValidationRule{Field: "spec.image", Exists: ptr.To(true), Message: "required"}, false},
 
 		// ── notExists ───────────────────────────────────────────────────────
-		{"notExists: field absent — passes", specData(map[string]interface{}{}), ValidationRule{Field: "spec.debug", NotExists: boolPtr(true), Message: "debug not allowed"}, true},
-		{"notExists: field present with value — fails", specData(map[string]interface{}{"debug": "true"}), ValidationRule{Field: "spec.debug", NotExists: boolPtr(true), Message: "debug not allowed"}, false},
-		{"notExists: field present but empty — passes", specData(map[string]interface{}{"debug": ""}), ValidationRule{Field: "spec.debug", NotExists: boolPtr(true), Message: "debug not allowed"}, true},
+		{"notExists: field absent — passes", specData(map[string]interface{}{}), ValidationRule{Field: "spec.debug", NotExists: ptr.To(true), Message: "debug not allowed"}, true},
+		{"notExists: field present with value — fails", specData(map[string]interface{}{"debug": "true"}), ValidationRule{Field: "spec.debug", NotExists: ptr.To(true), Message: "debug not allowed"}, false},
+		{"notExists: field present but empty — passes", specData(map[string]interface{}{"debug": ""}), ValidationRule{Field: "spec.debug", NotExists: ptr.To(true), Message: "debug not allowed"}, true},
 
 		// ── equals ──────────────────────────────────────────────────────────
 		{"equals: exact match — passes", specData(map[string]interface{}{"env": "production"}), ValidationRule{Field: "spec.env", Equals: "production", Message: "must be production"}, true},
@@ -282,7 +284,7 @@ func withUniqueChecker(data map[string]interface{}, checker UniquenessChecker) m
 }
 
 func TestEvaluateValidationRule_Unique(t *testing.T) {
-	rule := ValidationRule{Field: "spec.domain", Unique: boolPtr(true), Message: "must be unique"}
+	rule := ValidationRule{Field: "spec.domain", Unique: ptr.To(true), Message: "must be unique"}
 	data := specData(map[string]interface{}{"domain": "a.example.com"})
 
 	t.Run("no checker injected — always passes", func(t *testing.T) {
@@ -365,7 +367,7 @@ func TestEvaluateValidationRule_LinkOverridesDisplayField(t *testing.T) {
 	rule := ValidationRule{
 		Field:   `{{ getLabel . "team" }}`,
 		Link:    "team",
-		Exists:  boolPtr(true),
+		Exists:  ptr.To(true),
 		Message: "team is required",
 		Action:  ValidationActionDeny,
 	}
@@ -384,7 +386,7 @@ func TestEvaluateValidationRule_NoLinkUsesFieldAsDisplayField(t *testing.T) {
 	data := specData(map[string]interface{}{})
 	rule := ValidationRule{
 		Field:   `{{ getLabel . "team" }}`,
-		Exists:  boolPtr(true),
+		Exists:  ptr.To(true),
 		Message: "team is required",
 		Action:  ValidationActionDeny,
 	}

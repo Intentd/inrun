@@ -9,10 +9,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/stretchr/testify/assert/yaml"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -156,7 +157,7 @@ func opsMatch(a, b []Op) bool {
 
 // IsSimulateDoc returns true when the file's kind is "Simulate".
 func IsSimulateDoc(path string) bool {
-	data, err := utils.ReadLocal(path)
+	data, err := fileio.ReadLocal(path)
 	if err != nil {
 		return false
 	}
@@ -202,7 +203,7 @@ func setupObjects(crd *types.CRDEntry) ([]*unstructured.Unstructured, error) {
 	}
 	var objs []*unstructured.Unstructured
 	for _, entry := range crd.Setup.Apply {
-		data, err := utils.ReadLocal(entry.Path)
+		data, err := fileio.ReadLocal(entry.Path)
 		if err != nil {
 			return nil, fmt.Errorf("setup %s: %w", entry.Path, err)
 		}

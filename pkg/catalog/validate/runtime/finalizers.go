@@ -7,7 +7,7 @@ import (
 )
 
 // validateFinalizerTimeout checks runtime.finalizers.timeout on each CRD and
-// serve target: a duration accepted by utils.ParseTimeDuration, greater than
+// serve target: a duration accepted by core.ParseTimeDuration (KEL), greater than
 // zero. Empty is allowed — no timeout.
 func (c *checker) validateFinalizerTimeout() error {
 	for crdName, crd := range c.Cat.EnabledCRDs() {

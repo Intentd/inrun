@@ -3,6 +3,8 @@ package profiles_test
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/profiles"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -20,22 +22,22 @@ func TestContainerSecurityProfiles(t *testing.T) {
 		{
 			name:             "baseline",
 			profile:          "baseline",
-			allowPrivEsc:     boolPtr(false),
+			allowPrivEsc:     ptr.To(false),
 			dropCapabilities: []string{"NET_RAW"},
 		},
 		{
 			name:             "restricted",
 			profile:          "restricted",
-			allowPrivEsc:     boolPtr(false),
-			runAsNonRoot:     boolPtr(true),
+			allowPrivEsc:     ptr.To(false),
+			runAsNonRoot:     ptr.To(true),
 			dropCapabilities: []string{"ALL"},
 		},
 		{
 			name:             "hardened",
 			profile:          "hardened",
-			allowPrivEsc:     boolPtr(false),
-			runAsNonRoot:     boolPtr(true),
-			readOnlyRootFS:   boolPtr(true),
+			allowPrivEsc:     ptr.To(false),
+			runAsNonRoot:     ptr.To(true),
+			readOnlyRootFS:   ptr.To(true),
 			dropCapabilities: []string{"ALL"},
 		},
 		{
@@ -92,21 +94,21 @@ func TestPodSecurityProfiles(t *testing.T) {
 		{
 			name:         "baseline",
 			profile:      "baseline",
-			runAsNonRoot: boolPtr(false),
+			runAsNonRoot: ptr.To(false),
 		},
 		{
 			name:         "restricted",
 			profile:      "restricted",
-			runAsNonRoot: boolPtr(true),
-			runAsUser:    int64Ptr(1000),
+			runAsNonRoot: ptr.To(true),
+			runAsUser:    ptr.To[int64](1000),
 		},
 		{
 			name:         "hardened",
 			profile:      "hardened",
-			runAsNonRoot: boolPtr(true),
-			runAsUser:    int64Ptr(65534),
-			runAsGroup:   int64Ptr(65534),
-			fsGroup:      int64Ptr(65534),
+			runAsNonRoot: ptr.To(true),
+			runAsUser:    ptr.To[int64](65534),
+			runAsGroup:   ptr.To[int64](65534),
+			fsGroup:      ptr.To[int64](65534),
 		},
 		{
 			name:      "unknown profile fails fast",
@@ -149,9 +151,9 @@ func TestContainerSecurityProfileUserDefined(t *testing.T) {
 		ContainerSecurity: []types.ContainerSecurityProfileDef{
 			{
 				Name:                     "strict-readonly",
-				AllowPrivilegeEscalation: boolPtr(false),
-				ReadOnlyRootFilesystem:   boolPtr(true),
-				RunAsNonRoot:             boolPtr(true),
+				AllowPrivilegeEscalation: ptr.To(false),
+				ReadOnlyRootFilesystem:   ptr.To(true),
+				RunAsNonRoot:             ptr.To(true),
 				Capabilities:             &types.CapabilitiesConfig{Drop: []string{"ALL"}},
 			},
 		},
@@ -161,7 +163,7 @@ func TestContainerSecurityProfileUserDefined(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !ptrBoolEqual(sc.ReadOnlyRootFilesystem, boolPtr(true)) {
+	if !ptrBoolEqual(sc.ReadOnlyRootFilesystem, ptr.To(true)) {
 		t.Errorf("ReadOnlyRootFilesystem: want true got %v", sc.ReadOnlyRootFilesystem)
 	}
 	if sc.Capabilities == nil || len(sc.Capabilities.Drop) == 0 || sc.Capabilities.Drop[0] != "ALL" {
@@ -173,7 +175,7 @@ func TestPodSecurityProfileUserDefined(t *testing.T) {
 	uid := int64(2000)
 	reg := types.ProfileRegistry{
 		PodSecurity: []types.PodSecurityProfileDef{
-			{Name: "ci-runner", RunAsNonRoot: boolPtr(true), RunAsUser: &uid},
+			{Name: "ci-runner", RunAsNonRoot: ptr.To(true), RunAsUser: &uid},
 		},
 	}
 
@@ -181,7 +183,7 @@ func TestPodSecurityProfileUserDefined(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !ptrBoolEqual(ps.RunAsNonRoot, boolPtr(true)) {
+	if !ptrBoolEqual(ps.RunAsNonRoot, ptr.To(true)) {
 		t.Errorf("RunAsNonRoot: want true got %v", ps.RunAsNonRoot)
 	}
 	if !ptrInt64Equal(ps.RunAsUser, &uid) {
@@ -210,9 +212,6 @@ func TestIsValidSecurityProfile(t *testing.T) {
 		}
 	}
 }
-
-func boolPtr(v bool) *bool    { return &v }
-func int64Ptr(v int64) *int64 { return &v }
 
 func ptrBoolEqual(a, b *bool) bool {
 	if a == nil && b == nil {

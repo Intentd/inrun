@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/term"
 )
 
 const (
@@ -66,11 +66,11 @@ func EnsureKindCluster(name string, workers int, version string) error {
 	if err := create.Run(); err != nil {
 		return fmt.Errorf("kind create cluster: %w", err)
 	}
-	fmt.Printf("  %s Cluster '%s' ready\n", utils.SuccessMark(), name)
+	fmt.Printf("  %s Cluster '%s' ready\n", term.SuccessMark(), name)
 
 	total := workers + 1 // workers + control-plane
 	ready := 0
-	spin := utils.StartSpinner("   → Waiting for nodes to be ready...")
+	spin := term.StartSpinner("   → Waiting for nodes to be ready...")
 	defer spin.Failure()
 	if err := waitForNodesReady(5*time.Minute, func(_ string) {
 		ready++
@@ -159,7 +159,7 @@ func downloadKind(dest, version string) (string, error) {
 	}
 	f.Close()
 
-	fmt.Printf("  %s kind %s installed (%s)\n", utils.SuccessMark(), version, dest)
+	fmt.Printf("  %s kind %s installed (%s)\n", term.SuccessMark(), version, dest)
 	return dest, nil
 }
 

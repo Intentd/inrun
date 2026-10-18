@@ -7,12 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/util/term"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/cmd/cli/validate"
@@ -208,7 +209,7 @@ func SimulateOne(ctx context.Context, cat *catalog.Catalog, crdName string, cr *
 
 	// The reconciler's own logs show only with --verbose; errors always do.
 	// With --verbose there is no spinner, so log lines don't break into it.
-	var spin *utils.Spinner
+	var spin *term.Spinner
 	if cliOpts.Verbose {
 		fmt.Printf("Running %d cycles...\n", maxCycles)
 	} else {

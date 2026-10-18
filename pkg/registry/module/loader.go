@@ -21,16 +21,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 var (
-	readLocal       = utils.ReadLocal
-	strictUnmarshal = utils.StrictUnmarshal
+	readLocal       = fileio.ReadLocal
+	strictUnmarshal = structured.StrictUnmarshal
 )
 
 // Load loads a Module from a local file path.

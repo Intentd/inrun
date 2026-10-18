@@ -3,8 +3,9 @@ package template
 import (
 	"time"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // EvaluateRequeue returns the delay a requeue block asks for against this
@@ -22,7 +23,7 @@ func (r *Resolver) EvaluateRequeue(rq *types.RequeueConfig) time.Duration {
 	if !ok || rendered == "" || rendered == "0s" {
 		return 0
 	}
-	d, err := utils.ParseTimeDuration(rendered)
+	d, err := core.ParseTimeDuration(rendered)
 	if err != nil {
 		return 0
 	}

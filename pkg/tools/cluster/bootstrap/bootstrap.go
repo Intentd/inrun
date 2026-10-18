@@ -14,12 +14,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // RunOptions holds the runtime settings for a bootstrap run.
@@ -167,7 +168,7 @@ func buildClusterRoleRules(cat *catalog.Catalog) []rbacv1.PolicyRule {
 	for group, entry := range groups {
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups: []string{group},
-			Resources: utils.DedupStrings(entry.resources),
+			Resources: structured.DedupStrings(entry.resources),
 			Verbs:     verbs,
 		})
 	}

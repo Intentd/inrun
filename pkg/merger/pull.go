@@ -22,8 +22,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+
 	"github.com/intentd/inrun/pkg/registry"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // noop cleanup used when serving from cache — nothing to remove.
@@ -35,7 +36,7 @@ var noopCleanup = func() {}
 //
 // Returns (dir, cleanup, err). Always call cleanup() when done —
 // for cached hits cleanup is a no-op; for fresh pulls it removes the temp dir.
-func PullToDir(url, version string, oci bool, auth *utils.FileAuth) (dir string, cleanup func(), err error) {
+func PullToDir(url, version string, oci bool, auth *fileio.FileAuth) (dir string, cleanup func(), err error) {
 	if oci {
 		if cached, ok := registry.CachedDir(url, version); ok {
 			return cached, noopCleanup, nil
@@ -54,7 +55,7 @@ func PullToDir(url, version string, oci bool, auth *utils.FileAuth) (dir string,
 // For generic Git: the repo is cloned and module.yaml is copied.
 //
 // Returns (dir, cleanup, err). Always call cleanup() when done.
-func PullModuleToDir(url, version string, oci bool, auth *utils.FileAuth) (dir string, cleanup func(), err error) {
+func PullModuleToDir(url, version string, oci bool, auth *fileio.FileAuth) (dir string, cleanup func(), err error) {
 	if oci {
 		if cached, ok := registry.CachedDir(url, version); ok {
 			return cached, noopCleanup, nil

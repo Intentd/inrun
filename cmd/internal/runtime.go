@@ -3,6 +3,8 @@ package internal
 import (
 	"context"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/labels"
@@ -11,7 +13,6 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/app"
 	"github.com/intentd/inrun/pkg/runtime/leader"
 	"github.com/intentd/inrun/pkg/template"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/intentd/inrun/pkg/version"
 )
 
@@ -28,11 +29,11 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 
 	rt, err := app.New(cfg, m, ctx)
 	if err != nil {
-		utils.FatalExit("runtime startup failed", err)
+		term.FatalExit("runtime startup failed", err)
 	}
 
 	if rt == nil {
-		utils.FatalExit("app.New returned no runtime", nil)
+		term.FatalExit("app.New returned no runtime", nil)
 	}
 
 	for _, f := range onCatalog {
@@ -42,7 +43,7 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 	// ── Start ─────────────────────────────────────────────────────────────────
 	go func() {
 		if err := rt.Process.Start(ctx); err != nil {
-			utils.FatalExit("inrun startup error", err)
+			term.FatalExit("inrun startup error", err)
 		}
 	}()
 

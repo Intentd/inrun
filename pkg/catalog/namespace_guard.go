@@ -3,7 +3,7 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/kube"
 )
 
 // NamespaceRuleEntry holds the raw allowed/restricted namespace lists for one CRD.
@@ -48,7 +48,7 @@ func (c *Catalog) NamespaceProtectionGVRs() []GVREntry {
 	if !c.IsNamespaceProtectionEnabled() {
 		return nil
 	}
-	if !utils.IsRunningInPod() {
+	if !kube.IsRunningInPod() {
 		return nil
 	}
 

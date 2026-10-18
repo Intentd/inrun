@@ -3,6 +3,8 @@ package reconcile
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +32,7 @@ func TestValidateQueue_OnLimitValid(t *testing.T) {
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
-				Drop: boolPtr(true),
+				Drop: ptr.To(true),
 			},
 		},
 	})
@@ -47,7 +49,7 @@ func TestValidateQueue_LimitedValid(t *testing.T) {
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
-				Drop: boolPtr(true),
+				Drop: ptr.To(true),
 			},
 		},
 	})
@@ -59,7 +61,7 @@ func TestValidateQueue_UnLimitedInValid(t *testing.T) {
 		MaxDepth: 0,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
-				Drop: boolPtr(true),
+				Drop: ptr.To(true),
 			},
 		},
 	})
@@ -74,7 +76,7 @@ func TestValidateQueue_OnLimitDropValid(t *testing.T) {
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
-				Drop: boolPtr(false),
+				Drop: ptr.To(false),
 			},
 		},
 	})
@@ -86,7 +88,7 @@ func TestValidateQueue_OnLimitWithValueInValid(t *testing.T) {
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnLimit: &types.QueueBehaviourSetting{
-				Drop:  boolPtr(true),
+				Drop:  ptr.To(true),
 				Value: 5,
 			},
 		},
@@ -102,7 +104,7 @@ func TestValidateQueue_onThresholdWarning(t *testing.T) {
 		MaxDepth: 100,
 		Cfg: &types.QueueBehaviour{
 			OnThreshold: &types.QueueBehaviourSetting{
-				Drop:  boolPtr(false),
+				Drop:  ptr.To(false),
 				Value: 5,
 			},
 		},
@@ -259,7 +261,7 @@ func TestValidateRemote_DefaultFalse_Valid(t *testing.T) {
 	e := newCatalogExec(map[string]types.CRDEntry{
 		"app": {OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
-				Default:          boolPtr(false),
+				Default:          ptr.To(false),
 				ManagedResources: remoteResources(),
 				Remote: &types.RemoteReconcilerDeclaration{
 					Endpoint: "https://svc.internal/reconcile",
@@ -362,7 +364,7 @@ func TestValidateRemoteRequest_Nil(t *testing.T) {
 func TestValidateRemoteRequest_ChildrenDisabled_SkipsChildrenValidation(t *testing.T) {
 	e := catalogWithRemoteRequest(&types.RemoteRequestConfig{
 		Children: &types.RemoteRequestChildrenConfig{
-			Enabled: boolPtr(false),
+			Enabled: ptr.To(false),
 			// invalid paths that would normally error — should be skipped
 			Resources: map[string]*types.RemoteRequestChildrenResourceConfig{
 				"nonexistent": {},

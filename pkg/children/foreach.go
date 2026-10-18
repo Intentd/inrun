@@ -37,8 +37,9 @@
 package children
 
 import (
-	"github.com/intentd/inrun/pkg/utils"
 	"sort"
+
+	"github.com/intentd/inrun/pkg/util/structured"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
@@ -616,9 +617,9 @@ func itemResolver(base *template.Resolver, fi forEachItem, as string, index int)
 	return base.WithItem(fi.key, as, index)
 }
 
-// splitFieldPath splits a dot-notation path into keys (see utils.SplitField).
+// splitFieldPath splits a dot-notation path into keys (see structured.SplitField).
 func splitFieldPath(path string) []string {
-	return utils.SplitField(path)
+	return structured.SplitField(path)
 }
 
 // anyHasForEach returns true if any element has a non-nil ForEach.

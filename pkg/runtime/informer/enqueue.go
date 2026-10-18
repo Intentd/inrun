@@ -12,7 +12,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/queue"
-	"github.com/intentd/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/pkg/sentinel"
 )
 
 // ComputeSentinelsOptions provides sentinel declarations for event evaluation.

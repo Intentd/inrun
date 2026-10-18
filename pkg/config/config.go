@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/kube"
 	"github.com/joho/godotenv"
 )
 
@@ -180,7 +180,7 @@ func resolveNamespace() string {
 	if os.Getenv("INRUN_NAMESPACE") == "" {
 		// Set namespace to default if running outside a pod
 		// This is helpful for quick testing using an 'always available' namespace
-		if !utils.IsRunningInPod() {
+		if !kube.IsRunningInPod() {
 			return "default"
 		}
 	}

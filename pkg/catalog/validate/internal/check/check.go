@@ -8,6 +8,11 @@ import (
 	"strings"
 	texttemplate "text/template"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/kel/core"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
@@ -16,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/validate/content"
 
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -34,23 +38,21 @@ func New(cat *catalog.Catalog, cfg *config.Config) Checker {
 
 // Output marks and the parsers and predicates the blocks share.
 var (
-	Yellow      = utils.Yellow
-	Red         = utils.Red
-	FailureMark = utils.FailureMark
-	WarningMark = utils.WarningMark
+	Yellow      = term.Yellow
+	Red         = term.Red
+	FailureMark = term.FailureMark
+	WarningMark = term.WarningMark
 
-	ParseTimeDuration = utils.ParseTimeDuration
+	ParseTimeDuration = core.ParseTimeDuration
 
-	ToStringSet         = utils.ToStringSet
-	IsNestedPath        = utils.IsNestedPath
+	ToStringSet         = structured.ToStringSet
+	IsNestedPath        = structured.IsNestedPath
 	IsTemplate          = types.IsTemplate
 	IsValidLabelKey     = content.IsLabelKey
 	IsValidLabelValue   = content.IsLabelValue
 	IsValidResolverName = template.ValidResolverName
-	IsValidK8sName      = utils.ValidKubernetesName
+	IsValidK8sName      = kube.ValidKubernetesName
 )
-
-func BoolPtr(b bool) *bool { return &b }
 
 func FuncMap(registry types.KELFunctionRegistry) texttemplate.FuncMap {
 	builtins := funcs.WithKEL()

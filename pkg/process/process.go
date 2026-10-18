@@ -7,10 +7,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 const eventHandler = "event handler"
@@ -70,7 +71,7 @@ func (m *Manager) Start(ctx context.Context) error {
 			logger.Error().Err(err).Msgf("failed to start: %s", name)
 			return err
 		}
-		logger.Debug().Msgf("%s status: %v", name, utils.StatusOnline)
+		logger.Debug().Msgf("%s status: %v", name, "online")
 	}
 
 	// Run post-start hooks (leader election goes here)
@@ -105,7 +106,7 @@ func (m *Manager) gracefulShutdown(ctx context.Context, cancel context.CancelFun
 		defer shutdownCancel()
 
 		// Stop components in reverse start order
-		for _, comp := range utils.Reversed(m.components) {
+		for _, comp := range structured.Reversed(m.components) {
 			// Respect the timeout between iterations
 			select {
 			case <-shutdownCtx.Done():

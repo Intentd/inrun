@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
 	pkgregistry "github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
-
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -180,7 +180,7 @@ func stampRegistryRef(entries map[string]types.CRDEntry, ref string) {
 func (m *Merger) pullPattern(
 	url, version string,
 	oci bool,
-	auth *utils.FileAuth,
+	auth *fileio.FileAuth,
 ) (tmpDir string, cleanup func(), err error) {
 	tmpDir, err = os.MkdirTemp("", "inrun-registry-*")
 	if err != nil {
@@ -205,7 +205,7 @@ func (m *Merger) pullPattern(
 
 // ── OCI pull ──────────────────────────────────────────────────────────────────
 
-func (m *Merger) pullOCIPattern(url, version, tmpDir string, auth *utils.FileAuth) error {
+func (m *Merger) pullOCIPattern(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	ociRef := strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "http://")
 	ociRef = strings.TrimSuffix(ociRef, "/")
 	ociRef = fmt.Sprintf("%s:%s", ociRef, version)
@@ -261,7 +261,7 @@ func copyPatternFilesFromCache(cacheDir, tmpDir string) error {
 	return nil
 }
 
-func orasPull(ref, dst string, auth *utils.FileAuth) error {
+func orasPull(ref, dst string, auth *fileio.FileAuth) error {
 	ctx, cancel := context.WithTimeout(context.Background(), orasPullTimeout)
 	defer cancel()
 
@@ -330,7 +330,7 @@ func orasPull(ref, dst string, auth *utils.FileAuth) error {
 
 // ── Git pull ──────────────────────────────────────────────────────────────────
 
-func (m *Merger) pullGitPattern(url, version, tmpDir string, auth *utils.FileAuth) error {
+func (m *Merger) pullGitPattern(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	switch {
 	case isGitHubURL(url):
 		return m.pullGitHubPattern(url, version, tmpDir, auth)
@@ -344,10 +344,10 @@ func (m *Merger) pullGitPattern(url, version, tmpDir string, auth *utils.FileAut
 // pullGitHubPattern fetches all known pattern files from a GitHub repository.
 // Files that don't exist are silently skipped; validatePatternStructure enforces
 // the kind-specific required set after the pull.
-func (m *Merger) pullGitHubPattern(url, version, tmpDir string, auth *utils.FileAuth) error {
+func (m *Merger) pullGitHubPattern(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	for _, filename := range knownPatternFiles {
 		rawURL := githubRawURL(url, version, filename)
-		data, err := utils.LoadFileWithAuth(rawURL, auth)
+		data, err := fileio.LoadFileWithAuth(rawURL, auth)
 		if err != nil {
 			continue // file not present in this pattern — validated after pull
 		}
@@ -359,10 +359,10 @@ func (m *Merger) pullGitHubPattern(url, version, tmpDir string, auth *utils.File
 }
 
 // pullGitLabPattern fetches all known pattern files from a GitLab repository.
-func (m *Merger) pullGitLabPattern(url, version, tmpDir string, auth *utils.FileAuth) error {
+func (m *Merger) pullGitLabPattern(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	for _, filename := range knownPatternFiles {
 		rawURL := gitlabRawURL(url, version, filename)
-		data, err := utils.LoadFileWithAuth(rawURL, auth)
+		data, err := fileio.LoadFileWithAuth(rawURL, auth)
 		if err != nil {
 			continue
 		}
@@ -374,7 +374,7 @@ func (m *Merger) pullGitLabPattern(url, version, tmpDir string, auth *utils.File
 }
 
 // pullGenericGitPattern clones the repository and copies all known pattern files.
-func pullGenericGitPattern(url, version, tmpDir string, auth *utils.FileAuth) error {
+func pullGenericGitPattern(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	cloneDir, err := os.MkdirTemp("", "inrun-clone-*")
 	if err != nil {
 		return fmt.Errorf("creating clone dir: %w", err)
@@ -401,7 +401,7 @@ func pullGenericGitPattern(url, version, tmpDir string, auth *utils.FileAuth) er
 
 // pullModuleFromGit fetches only module.yaml from a Git host.
 // Used for standalone Module repos (not full patterns).
-func (m *Merger) pullModuleFromGit(url, version, tmpDir string, auth *utils.FileAuth) error {
+func (m *Merger) pullModuleFromGit(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	var rawURL string
 	switch {
 	case isGitHubURL(url):
@@ -412,14 +412,14 @@ func (m *Merger) pullModuleFromGit(url, version, tmpDir string, auth *utils.File
 		return m.fetchModuleFromGenericGit(url, version, tmpDir, auth)
 	}
 
-	data, err := utils.LoadFileWithAuth(rawURL, auth)
+	data, err := fileio.LoadFileWithAuth(rawURL, auth)
 	if err != nil {
 		return fmt.Errorf("fetching module.yaml from %s@%s: %w", url, version, err)
 	}
 	return os.WriteFile(filepath.Join(tmpDir, "module.yaml"), data, 0644)
 }
 
-func (m *Merger) fetchModuleFromGenericGit(url, version, tmpDir string, auth *utils.FileAuth) error {
+func (m *Merger) fetchModuleFromGenericGit(url, version, tmpDir string, auth *fileio.FileAuth) error {
 	cloneDir, err := os.MkdirTemp("", "inrun-module-clone-*")
 	if err != nil {
 		return fmt.Errorf("creating clone dir: %w", err)
@@ -475,7 +475,7 @@ func gitlabRawURL(repoURL, ref, filePath string) string {
 	return fmt.Sprintf("%s/-/raw/%s/%s", u, ref, filePath)
 }
 
-func injectAuthIntoURL(rawURL string, auth *utils.FileAuth) string {
+func injectAuthIntoURL(rawURL string, auth *fileio.FileAuth) string {
 	if auth == nil || strings.ToLower(auth.Type) != "basic" || auth.Username == "" {
 		return rawURL
 	}
@@ -491,7 +491,7 @@ func injectAuthIntoURL(rawURL string, auth *utils.FileAuth) string {
 
 // ── Auth resolution ───────────────────────────────────────────────────────────
 
-func resolveRegistryAuth(auth *types.FileSourceAuth) (*utils.FileAuth, error) {
+func resolveRegistryAuth(auth *types.FileSourceAuth) (*fileio.FileAuth, error) {
 	if auth == nil {
 		return nil, nil
 	}

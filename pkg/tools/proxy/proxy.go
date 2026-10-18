@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/term"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -74,12 +74,12 @@ func forwardWithReconnect(ctx context.Context, cfg *rest.Config, cs kubernetes.I
 
 		// Show reconnecting line once per retry cycle (not on first attempt).
 		if prevPod != "" {
-			fmt.Fprintf(out, "  %s %-14s reconnecting...  (was %s)\n", utils.Yellow("↺"), t.Label, prevPod)
+			fmt.Fprintf(out, "  %s %-14s reconnecting...  (was %s)\n", term.Yellow("↺"), t.Label, prevPod)
 		}
 
 		pod, ns, err := resolveTarget(ctx, cs, t)
 		if err != nil {
-			fmt.Fprintf(out, "  %s %-14s %v\n", utils.Yellow("✗"), t.Label, err)
+			fmt.Fprintf(out, "  %s %-14s %v\n", term.Yellow("✗"), t.Label, err)
 			if isNotDeployed(err) {
 				notDeployed <- struct{}{}
 				return
@@ -106,9 +106,9 @@ func forwardWithReconnect(ctx context.Context, cfg *rest.Config, cs kubernetes.I
 		}
 
 		if prevPod == "" {
-			fmt.Fprintf(out, "  %s %-14s %s://localhost:%d   (%s)\n", utils.Green("✓"), t.Label, t.Scheme, t.LocalPort, pod)
+			fmt.Fprintf(out, "  %s %-14s %s://localhost:%d   (%s)\n", term.Green("✓"), t.Label, t.Scheme, t.LocalPort, pod)
 		} else {
-			fmt.Fprintf(out, "  %s %-14s %s://localhost:%d   (%s)  [reconnected]\n", utils.Green("✓"), t.Label, t.Scheme, t.LocalPort, pod)
+			fmt.Fprintf(out, "  %s %-14s %s://localhost:%d   (%s)  [reconnected]\n", term.Green("✓"), t.Label, t.Scheme, t.LocalPort, pod)
 		}
 		prevPod = pod
 

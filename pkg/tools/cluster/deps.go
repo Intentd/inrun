@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/term"
 )
 
 const (
@@ -39,7 +39,7 @@ func ClusterReachable() bool {
 // EnsureDependencies installs kubectl and helm if they are missing.
 func EnsureDependencies() error {
 	if !KubectlAvailable() {
-		spin := utils.StartSpinner("  → Installing kubectl...")
+		spin := term.StartSpinner("  → Installing kubectl...")
 		if err := installKubectl(); err != nil {
 			spin.Failure()
 			return fmt.Errorf("failed to install kubectl: %w", err)
@@ -48,7 +48,7 @@ func EnsureDependencies() error {
 	}
 
 	if !HelmAvailable() {
-		spin := utils.StartSpinner("  → Installing helm...")
+		spin := term.StartSpinner("  → Installing helm...")
 		if err := installHelm(); err != nil {
 			spin.Failure()
 			return fmt.Errorf("failed to install helm: %w", err)

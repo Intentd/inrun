@@ -7,12 +7,14 @@ import (
 	"context"
 	"sync"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"errors"
+
 	"github.com/intentd/inrun/domain"
 
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -50,7 +52,7 @@ var _ domain.Component = (*Event)(nil)
 
 func NewEvent(kube *kubeclient.Kubeclient) *Event {
 	if kube.Scheme() == nil {
-		utils.Exit(errors.New("scheme cannot be nil"))
+		term.Exit(errors.New("scheme cannot be nil"))
 	}
 
 	return &Event{

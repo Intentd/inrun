@@ -8,7 +8,6 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -31,10 +30,10 @@ func injectRuntimeAnnotations(ctx context.Context, obj domain.Object, in Input) 
 	}
 
 	if in.CRD.CrossAccessEnabled() && len(in.MetricsMap) > 0 {
-		common.InjectMetricsAnnotation(u, in.MetricsMap)
+		labels.InjectMetricsAnnotation(u, in.MetricsMap)
 	}
 	if in.CRD.Endpoints.IsHealthEnabled() && len(in.HealthMap) > 0 {
-		common.InjectHealthAnnotation(u, in.HealthMap)
+		labels.InjectHealthAnnotation(u, in.HealthMap)
 	}
 
 	after := u.GetAnnotations()

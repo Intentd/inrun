@@ -3,8 +3,9 @@ package external
 import (
 	"fmt"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ValidateCalls checks a list of ExternalCallSpecs for name uniqueness and semantic correctness.
@@ -88,14 +89,14 @@ func ValidateCall(location string, call types.ExternalCallSpec) error {
 
 	// cacheFor must parse as a duration
 	if call.CacheFor != "" {
-		if _, err := utils.ParseTimeDuration(call.CacheFor); err != nil {
+		if _, err := core.ParseTimeDuration(call.CacheFor); err != nil {
 			return fmt.Errorf("%s: cacheFor %q is not a valid duration: %w", location, call.CacheFor, err)
 		}
 	}
 
 	// timeout must parse as a duration
 	if call.Timeout != "" {
-		if _, err := utils.ParseTimeDuration(call.Timeout); err != nil {
+		if _, err := core.ParseTimeDuration(call.Timeout); err != nil {
 			return fmt.Errorf("%s: timeout %q is not a valid duration: %w", location, call.Timeout, err)
 		}
 	}

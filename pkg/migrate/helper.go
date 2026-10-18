@@ -6,18 +6,18 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/structured"
 
+	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var (
-	setNested     = utils.SetNestedPath
-	getNested     = utils.GetNestedPath
-	deletetNested = utils.DeleteNestedPath
+	setNested     = structured.SetNestedPath
+	getNested     = structured.GetNestedPath
+	deletetNested = structured.DeleteNestedPath
 )
 
 // jsonNormalize round-trips a value through encoding/json, normalising all

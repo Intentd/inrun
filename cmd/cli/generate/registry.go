@@ -223,7 +223,7 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/term"
 
 	%s
 )
@@ -231,7 +231,7 @@ import (
 func main() {
 	cfg, err := config.Init()
 	if err != nil {
-		utils.FatalExit("failed to load configurations", err)
+		term.FatalExit("failed to load configurations", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

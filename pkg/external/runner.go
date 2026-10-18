@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -114,7 +115,7 @@ func Call(
 		}
 
 		if call.CacheFor != "" {
-			if ttl, err := utils.ParseTimeDuration(call.CacheFor); err == nil {
+			if ttl, err := core.ParseTimeDuration(call.CacheFor); err == nil {
 				key := cacheKey(gvk, call.Name, resolvedURL, resolvedQuery)
 				cacheSet(key, entry, ttl)
 			}

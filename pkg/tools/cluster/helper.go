@@ -9,14 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/term"
 )
 
 var (
-	readLocal    = utils.ReadLocal
-	startSpinner = utils.StartSpinner
-	warningMark  = utils.WarningMark
-	infoMark     = utils.InfoMark
+	readLocal    = fileio.ReadLocal
+	startSpinner = term.StartSpinner
+	warningMark  = term.WarningMark
+	infoMark     = term.InfoMark
 )
 
 // DeploymentHealthChecker handles health checks for any deployment
@@ -71,7 +72,7 @@ func ResourceExists(resourceType, resourceName, namespace string) bool {
 // CheckHealth waits up to timeout for a deployment to have at least one ready replica.
 // Polls every 2 seconds. Returns immediately if a custom failure condition is detected.
 func (d DeploymentHealthChecker) CheckHealth(timeout time.Duration, checkFailure func(ctx context.Context) string) DeploymentStatus {
-	spin := utils.StartSpinner(fmt.Sprintf("  → Checking %s health...", d.Name))
+	spin := term.StartSpinner(fmt.Sprintf("  → Checking %s health...", d.Name))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

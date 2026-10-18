@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ── utils aliases ────────────────────────────────────────────────────────────
@@ -14,14 +17,12 @@ import (
 // directly — no per-file utils import needed.
 
 var (
-	failureMark       = utils.FailureMark
-	warningMark       = utils.WarningMark
-	parseTimeDuration = utils.ParseTimeDuration
+	failureMark       = term.FailureMark
+	warningMark       = term.WarningMark
+	parseTimeDuration = core.ParseTimeDuration
 	isTemplate        = types.IsTemplate
-	readLocal         = utils.ReadLocal
+	readLocal         = fileio.ReadLocal
 )
-
-func boolPtr(b bool) *bool { return &b }
 
 // buildFuncMapForValidation builds a stub FuncMap that includes all registered
 // functions (so cross-function references compile) and all built-in functions.

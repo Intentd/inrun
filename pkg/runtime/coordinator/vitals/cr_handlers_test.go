@@ -2,10 +2,13 @@ package vitals
 
 import (
 	"encoding/json"
-	"github.com/intentd/inrun/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
+	"github.com/intentd/inrun/domain"
 
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -55,7 +58,7 @@ func TestBuildCRListHandler_NoFieldParam(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
-	var resp CRListResponse
+	var resp runtimeapi.CRListResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -79,7 +82,7 @@ func TestBuildCRListHandler_FieldParamResolvesSpecValue(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
-	var resp CRListResponse
+	var resp runtimeapi.CRListResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -104,7 +107,7 @@ func TestBuildCRListHandler_FieldParamMissingOnCR(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
-	var resp CRListResponse
+	var resp runtimeapi.CRListResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}

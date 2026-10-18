@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
@@ -54,7 +53,7 @@ func SetTarget(obj *unstructured.Unstructured, target string) {
 // Used by both the webhook and the reconciler to inject .request into
 // the resolver so validation rules can reference intent-vocabulary fields.
 func FromObject(obj map[string]interface{}) map[string]interface{} {
-	return common.ResolveAnnotationFromObject(obj, labels.AnnotationServeIntent)
+	return labels.ResolveAnnotationFromObject(obj, labels.AnnotationServeIntent)
 }
 
 // Decode parses an intent written as JSON or YAML. YAML is converted to JSON

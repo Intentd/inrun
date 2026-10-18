@@ -3,10 +3,10 @@ package reconcile
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 )
-
-func ptr32(i int32) *int32 { return &i }
 
 func TestValidateWorkloadAutoscaleSpec_MaxRequired(t *testing.T) {
 	err := validateWorkloadAutoscaleSpec("mydb", "app", &types.WorkloadAutoscale{Max: 0})
@@ -17,7 +17,7 @@ func TestValidateWorkloadAutoscaleSpec_MaxRequired(t *testing.T) {
 
 func TestValidateWorkloadAutoscaleSpec_MinLtMax(t *testing.T) {
 	err := validateWorkloadAutoscaleSpec("mydb", "app", &types.WorkloadAutoscale{
-		Min: ptr32(10),
+		Min: ptr.To[int32](10),
 		Max: 5,
 	})
 	if err == nil {
@@ -27,7 +27,7 @@ func TestValidateWorkloadAutoscaleSpec_MinLtMax(t *testing.T) {
 
 func TestValidateWorkloadAutoscaleSpec_MinEqualsMax(t *testing.T) {
 	err := validateWorkloadAutoscaleSpec("mydb", "app", &types.WorkloadAutoscale{
-		Min: ptr32(5),
+		Min: ptr.To[int32](5),
 		Max: 5,
 	})
 	if err == nil {
@@ -37,13 +37,13 @@ func TestValidateWorkloadAutoscaleSpec_MinEqualsMax(t *testing.T) {
 
 func TestValidateWorkloadAutoscaleSpec_Valid(t *testing.T) {
 	err := validateWorkloadAutoscaleSpec("mydb", "app", &types.WorkloadAutoscale{
-		Min: ptr32(2),
+		Min: ptr.To[int32](2),
 		Max: 10,
 		ScaleUp: &types.WorkloadScaleDirection{
-			Target: ptr32(8),
+			Target: ptr.To[int32](8),
 		},
 		ScaleDown: &types.WorkloadScaleDirection{
-			Target: ptr32(2),
+			Target: ptr.To[int32](2),
 		},
 	})
 	if err != nil {
@@ -53,8 +53,8 @@ func TestValidateWorkloadAutoscaleSpec_Valid(t *testing.T) {
 
 func TestValidateScaleDirection_TargetAndIncrementMutuallyExclusive(t *testing.T) {
 	err := validateScaleDirection("scaleUp", &types.WorkloadScaleDirection{
-		Target:    ptr32(8),
-		Increment: ptr32(2),
+		Target:    ptr.To[int32](8),
+		Increment: ptr.To[int32](2),
 	})
 	if err == nil {
 		t.Fatal("expected error when target and increment both set")
@@ -63,8 +63,8 @@ func TestValidateScaleDirection_TargetAndIncrementMutuallyExclusive(t *testing.T
 
 func TestValidateScaleDirection_TargetAndDecrementMutuallyExclusive(t *testing.T) {
 	err := validateScaleDirection("scaleDown", &types.WorkloadScaleDirection{
-		Target:    ptr32(2),
-		Decrement: ptr32(1),
+		Target:    ptr.To[int32](2),
+		Decrement: ptr.To[int32](1),
 	})
 	if err == nil {
 		t.Fatal("expected error when target and decrement both set")
@@ -79,7 +79,7 @@ func TestValidateScaleDirection_NilIsValid(t *testing.T) {
 
 func TestValidateScaleDirection_ScaleUpTargetExceedsMax(t *testing.T) {
 	err := validateScaleDirection("scaleUp", &types.WorkloadScaleDirection{
-		Target: ptr32(80),
+		Target: ptr.To[int32](80),
 	}, 8)
 	if err == nil {
 		t.Fatal("expected error when scaleUp target exceeds max")
@@ -88,7 +88,7 @@ func TestValidateScaleDirection_ScaleUpTargetExceedsMax(t *testing.T) {
 
 func TestValidateScaleDirection_ScaleDownTargetExceedsMax(t *testing.T) {
 	err := validateScaleDirection("scaleDown", &types.WorkloadScaleDirection{
-		Target: ptr32(20),
+		Target: ptr.To[int32](20),
 	}, 8)
 	if err == nil {
 		t.Fatal("expected error when scaleDown target exceeds max")
@@ -97,7 +97,7 @@ func TestValidateScaleDirection_ScaleDownTargetExceedsMax(t *testing.T) {
 
 func TestValidateScaleDirection_NegativeTarget(t *testing.T) {
 	err := validateScaleDirection("scaleDown", &types.WorkloadScaleDirection{
-		Target: ptr32(-1),
+		Target: ptr.To[int32](-1),
 	}, 8)
 	if err == nil {
 		t.Fatal("expected error when target is negative")
@@ -108,7 +108,7 @@ func TestValidateWorkloadAutoscaleSpec_ScaleUpTargetExceedsMax(t *testing.T) {
 	err := validateWorkloadAutoscaleSpec("mydb", "app", &types.WorkloadAutoscale{
 		Max: 8,
 		ScaleUp: &types.WorkloadScaleDirection{
-			Target: ptr32(80),
+			Target: ptr.To[int32](80),
 		},
 	})
 	if err == nil {
@@ -120,7 +120,7 @@ func TestValidateWorkloadAutoscaleSpec_ScaleDownTargetExceedsMax(t *testing.T) {
 	err := validateWorkloadAutoscaleSpec("mydb", "app", &types.WorkloadAutoscale{
 		Max: 8,
 		ScaleDown: &types.WorkloadScaleDirection{
-			Target: ptr32(20),
+			Target: ptr.To[int32](20),
 		},
 	})
 	if err == nil {
@@ -186,7 +186,7 @@ func TestValidateWorkloadAutoscale_OnReconcileOnly(t *testing.T) {
 	autoscale := &types.WorkloadAutoscale{
 		Max: 10,
 		ScaleUp: &types.WorkloadScaleDirection{
-			Increment: ptr32(2),
+			Increment: ptr.To[int32](2),
 		},
 	}
 

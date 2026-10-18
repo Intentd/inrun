@@ -1,8 +1,9 @@
 package e2e
 
 import (
-	"github.com/intentd/inrun/pkg/utils"
 	"testing"
+
+	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -18,7 +19,7 @@ func TestAssertKubectlGetOutput(t *testing.T) {
 }
 
 func TestAssertKubectlGetOutput_Exists(t *testing.T) {
-	e := types.E2EKubectlGet{Kind: "Website", Name: "site-a", E2EAssertions: types.E2EAssertions{NotExists: utils.BoolPtr(true)}}
+	e := types.E2EKubectlGet{Kind: "Website", Name: "site-a", E2EAssertions: types.E2EAssertions{NotExists: ptr.To(true)}}
 	if err := assertKubectlGetOutput("", e); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

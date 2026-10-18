@@ -3,9 +3,10 @@ package children
 import (
 	"reflect"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ExpandForEachCustomResources expands any CustomResource entries that declare a ForEach.
@@ -111,7 +112,7 @@ func resolveValueTemplates(ir *template.Resolver, v any) any {
 		// custom resource's numeric/boolean/JSON fields would be submitted
 		// as literal strings instead of native types.
 		if types.IsTemplate(vv) {
-			return utils.TryCoerceString(rv)
+			return structured.TryCoerceString(rv)
 		}
 		return rv
 	case map[string]any:

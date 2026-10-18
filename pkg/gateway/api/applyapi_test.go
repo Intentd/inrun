@@ -8,10 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -123,7 +124,7 @@ func TestSchemaHandler(t *testing.T) {
 		handler.ServeHTTP(rr, r)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var resp utils.PaginatedResponse[ServiceEntry]
+		var resp httpapi.PaginatedResponse[ServiceEntry]
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 		assert.NotNil(t, resp.Items)
 	})
@@ -479,9 +480,9 @@ func TestWriteKubeError(t *testing.T) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestParsePagination(t *testing.T) {
-	parse := func(query string) utils.PaginationParams {
+	parse := func(query string) httpapi.PaginationParams {
 		r := httptest.NewRequest(http.MethodGet, "/?"+query, nil)
-		return utils.ParsePagination(r)
+		return httpapi.ParsePagination(r)
 	}
 
 	t.Run("defaults", func(t *testing.T) {

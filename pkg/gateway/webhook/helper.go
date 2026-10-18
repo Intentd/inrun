@@ -4,29 +4,28 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 )
 
 var (
-	setFieldPath   = utils.SetNestedPath
+	setFieldPath   = structured.SetNestedPath
 	convertToType  = types.ConvertToType
-	readLocal      = utils.ReadLocal
+	readLocal      = fileio.ReadLocal
 	scalarToString = types.ScalarToString
 	resolveScalar  = types.ResolveScalarField
 )
 
 // ── Pointer helpers ───────────────────────────────────────────────────────────
 
-func int32Ptr(i int32) *int32                                                         { return &i }
-func int64Ptr(i int64) *int64                                                         { return &i }
 func matchPolicyPtr(p admissionv1.MatchPolicyType) *admissionv1.MatchPolicyType       { return &p }
 func failurePolicyPtr(p admissionv1.FailurePolicyType) *admissionv1.FailurePolicyType { return &p }
 func reinvocationPolicyPtr(p admissionv1.ReinvocationPolicyType) *admissionv1.ReinvocationPolicyType {
 	return &p
 }
-func stringPtr(s string) *string { return &s }
 
 // admissionv1FailurePolicyType converts a string failure policy to the typed form.
 // Unrecognised values default to Ignore.

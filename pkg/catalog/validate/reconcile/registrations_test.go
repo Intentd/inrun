@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
@@ -73,7 +75,7 @@ func withTargetDefaultFalse(crd types.CRDEntry, targetName string) types.CRDEntr
 	crd.Serve.Target.Entries[targetName] = &types.ServeTargetConfig{
 		OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
-				Default:         boolPtr(false),
+				Default:         ptr.To(false),
 				ConstructorDecl: &types.ConstructorDeclaration{Location: "github.com/test/rec", Function: "New"},
 			},
 		},
@@ -113,7 +115,7 @@ func TestHookFactory_NotForNonDefaultReconcilers(t *testing.T) {
 	t.Cleanup(func() { delete(types.HookRegistry, testGVK) })
 
 	crd := crdWithGVK(testGVK)
-	crd.OperatorBox.Reconcile.Default = boolPtr(false)
+	crd.OperatorBox.Reconcile.Default = ptr.To(false)
 	if _, ok := crd.HookFactory(); ok {
 		t.Error("a CRD with its own reconciler runs no hooks")
 	}
@@ -159,7 +161,7 @@ func TestConstructor_FoundWhenRegistered(t *testing.T) {
 	t.Cleanup(func() { delete(types.ReconcilerRegistry, testGVK) })
 
 	crd := crdWithGVK(testGVK)
-	crd.OperatorBox.Reconcile.Default = boolPtr(false)
+	crd.OperatorBox.Reconcile.Default = ptr.To(false)
 	if _, ok := crd.Constructor(); !ok {
 		t.Error("expected the registered constructor")
 	}
@@ -172,7 +174,7 @@ func TestValidateRegistrations_ErrorWhenDefaultFalseAndNotRegistered(t *testing.
 	delete(types.ReconcilerRegistry, testGVK)
 
 	crd := crdWithGVK(testGVK)
-	crd.OperatorBox.Reconcile.Default = boolPtr(false)
+	crd.OperatorBox.Reconcile.Default = ptr.To(false)
 	e := catalogWith(map[string]types.CRDEntry{"myapp": crd})
 
 	err := e.validateRegistrations()
@@ -290,7 +292,7 @@ func TestTargetConstructors_SkipsTargetWithDefaultReconciler(t *testing.T) {
 	crd := crdWithGVK(testGVK)
 	crd.Serve = &types.ServeConfig{Enabled: true}
 	crd.Serve.Target.Entries = map[string]*types.ServeTargetConfig{
-		"v2": {OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{Default: boolPtr(true)}}},
+		"v2": {OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{Default: ptr.To(true)}}},
 	}
 
 	got, err := crd.TargetConstructors()

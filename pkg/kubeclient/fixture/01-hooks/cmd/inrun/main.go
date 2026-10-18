@@ -5,17 +5,17 @@ package main
 import (
 	"context"
 
-	"github.com/intentd/inrun/cmd/cli"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/term"
 
 	_ "github.com/intentd/inrun-args-hooks/pkg/typeregistry"
+	"github.com/intentd/inrun/cmd/cli"
+	"github.com/intentd/inrun/pkg/config"
 )
 
 func main() {
 	cfg, err := config.Init()
 	if err != nil {
-		utils.FatalExit("failed to load configurations", err)
+		term.FatalExit("failed to load configurations", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

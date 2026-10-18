@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // HelmInstall installs or upgrades a Helm chart as declared in SetupHelmInstall.
@@ -75,7 +76,7 @@ func HelmUninstall(ctx context.Context, h types.SetupHelmInstall) error {
 func WaitForResource(ctx context.Context, w types.SetupWait) error {
 	timeout := 30 * time.Second
 	if w.Timeout != "" {
-		if d, err := utils.ParseTimeDuration(w.Timeout); err == nil {
+		if d, err := core.ParseTimeDuration(w.Timeout); err == nil {
 			timeout = d
 		}
 	}

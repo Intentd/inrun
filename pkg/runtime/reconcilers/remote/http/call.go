@@ -9,12 +9,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/contract"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -155,7 +156,7 @@ func (r *Reconciler) applyObjectExclusions(obj domain.Object, paths []string) ma
 	}
 	cp := u.DeepCopy().Object
 	for _, path := range paths {
-		utils.DeleteNestedPath(cp, path)
+		structured.DeleteNestedPath(cp, path)
 	}
 	return cp
 }

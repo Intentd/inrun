@@ -4,7 +4,7 @@ package types
 import (
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/kel/core"
 )
 
 // RuntimeConfig governs the operatorBox as a long-lived entity, not a single reconcile cycle.
@@ -105,7 +105,7 @@ func (f *FinalizerConfig) TimeoutDuration() time.Duration {
 	if f == nil || f.Timeout == "" {
 		return 0
 	}
-	d, err := utils.ParseTimeDuration(f.Timeout)
+	d, err := core.ParseTimeDuration(f.Timeout)
 	if err != nil {
 		return 0
 	}

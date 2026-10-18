@@ -4,7 +4,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/structured"
 )
 
 // RenderArgs renders the request's reconcile.args onto prepared.Args, for the
@@ -40,5 +40,5 @@ func renderArgs(box types.OperatorBoxConfig, resolver *template.Resolver) domain
 	if resolver == nil {
 		return domain.Args(box.Reconcile.Args)
 	}
-	return domain.Args(utils.ResolveArgsMap(box.Reconcile.Args, resolver.TemplateEvaluator()))
+	return domain.Args(structured.ResolveArgsMap(box.Reconcile.Args, resolver.TemplateEvaluator()))
 }

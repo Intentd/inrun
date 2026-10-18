@@ -86,7 +86,7 @@ package types
 import (
 	"time"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/kel/core"
 )
 
 const (
@@ -132,7 +132,7 @@ func NeedsRotation(generatedAt, rotateAfter string) bool {
 		return true
 	}
 
-	threshold, err := utils.ParseTimeDuration(rotateAfter)
+	threshold, err := core.ParseTimeDuration(rotateAfter)
 	if err != nil {
 		return false // invalid duration — do not rotate unexpectedly
 	}

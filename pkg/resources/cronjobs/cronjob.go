@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -15,7 +17,6 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/shared"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -310,7 +311,7 @@ func buildCronJob(owner domain.Object, spec ResolvedCronJobSpec, namespace strin
 		},
 		Spec: batchv1.CronJobSpec{
 			Schedule:                   spec.Schedule,
-			Suspend:                    utils.BoolPtr(spec.Suspend),
+			Suspend:                    ptr.To(spec.Suspend),
 			ConcurrencyPolicy:          spec.ConcurrencyPolicy,
 			StartingDeadlineSeconds:    spec.StartingDeadlineSeconds,
 			SuccessfulJobsHistoryLimit: spec.SuccessfulJobsHistoryLimit,

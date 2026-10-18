@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -167,7 +169,7 @@ func TestValidateServeFieldSelector_CRModeDisabledNoSelector(t *testing.T) {
 	entries := map[string]*types.ServeTargetConfig{
 		"kitchen": {
 			Modes: &types.ServeModes{
-				CR: boolPtr(false),
+				CR: ptr.To(false),
 			},
 			FieldSelector: nil,
 		},
@@ -191,7 +193,7 @@ func TestValidateServeFieldSelector_CRModeDisabledWithSelector(t *testing.T) {
 	entries := map[string]*types.ServeTargetConfig{
 		"kitchen": {
 			Modes: &types.ServeModes{
-				CR: boolPtr(false),
+				CR: ptr.To(false),
 			},
 			FieldSelector: map[string]string{
 				"spec.mealPlan": "dinner",

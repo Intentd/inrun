@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // validateLifecycle checks the lifecycle: block when present.
@@ -79,7 +80,7 @@ func validateLifecycleCompatibility(lc *types.CatalogLifecycle) error {
 		return nil
 	}
 	if k8s := lc.Compatibility.Kubernetes; k8s != "" {
-		if _, err := utils.SemverCheck("1.0.0", k8s); err != nil {
+		if _, err := core.SemverConstraint("1.0.0", k8s); err != nil {
 			return fmt.Errorf(
 				"%s lifecycle.compatibility.kubernetes: %q is not a valid semver range",
 				failureMark(), k8s,
@@ -87,7 +88,7 @@ func validateLifecycleCompatibility(lc *types.CatalogLifecycle) error {
 		}
 	}
 	if inrun := lc.Compatibility.Inrun; inrun != "" {
-		if _, err := utils.SemverCheck("1.0.0", inrun); err != nil {
+		if _, err := core.SemverConstraint("1.0.0", inrun); err != nil {
 			return fmt.Errorf(
 				"%s lifecycle.compatibility.inrun: %q is not a valid semver range",
 				failureMark(), inrun,
@@ -178,7 +179,7 @@ func validateLifecycleAcceptPatterns(lc *types.CatalogLifecycle) error {
 		if e.Version == "" {
 			continue
 		}
-		if _, err := utils.SemverCheck("1.0.0", e.Version); err != nil {
+		if _, err := core.SemverConstraint("1.0.0", e.Version); err != nil {
 			return fmt.Errorf(
 				"%s lifecycle.accept.patterns[%q].version: %q is not a valid semver range",
 				failureMark(), e.Name, e.Version,

@@ -6,9 +6,10 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/intentd/inrun/pkg/version"
 )
 
@@ -158,7 +159,7 @@ func BuildGatewayCatalogHandler(cat *catalog.Catalog, ws GatewayStatsProvider) h
 			}
 		}
 
-		utils.WriteJSON(w, http.StatusOK, resp)
+		httpapi.WriteJSON(w, http.StatusOK, resp)
 	}
 }
 
@@ -167,7 +168,7 @@ func BuildGatewayCatalogHandler(cat *catalog.Catalog, ws GatewayStatsProvider) h
 func BuildGatewayCRDHandler(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, cat *catalog.Catalog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey, ws, cat)
-		utils.WriteJSON(w, http.StatusOK, resp)
+		httpapi.WriteJSON(w, http.StatusOK, resp)
 	}
 }
 

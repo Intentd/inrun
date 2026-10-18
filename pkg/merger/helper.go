@@ -10,16 +10,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 var (
-	readLocal        = utils.ReadLocal
-	strictUnmarshal  = utils.StrictUnmarshal
-	loadFile         = utils.LoadFile
-	loadFileWithAuth = utils.LoadFileWithAuth
-	resolveEnvVar    = utils.ResolveEnvVar
+	readLocal        = fileio.ReadLocal
+	strictUnmarshal  = structured.StrictUnmarshal
+	loadFile         = fileio.LoadFile
+	loadFileWithAuth = fileio.LoadFileWithAuth
+	resolveEnvVar    = structured.ResolveEnvVar
 )
 
 // mergeCatalogSecurity merges two CatalogSecurity values.

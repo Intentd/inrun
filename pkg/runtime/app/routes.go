@@ -3,6 +3,8 @@ package app
 import (
 	"strings"
 
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/health"
@@ -55,45 +57,45 @@ func registerRoutes(
 
 		if crd.IsHealthEnabled() {
 			hs.Register(
-				"/catalog/"+crdName+"/health",
+				runtimeapi.HealthPath(crdName),
 				vitals.BuildCRDHealthHandler(crd, cfg, inf, crdHealth, inrunHealth),
 			)
 		}
 
 		if crd.IsInfoEnabled() {
 			hs.Register(
-				"/catalog/"+crdName,
+				runtimeapi.CRDPath(crdName),
 				vitals.BuildCRDInfoHandler(crd, cat.RBACRulesForCRD(crd), cfg, inf, crdHealth, inrunHealth),
 			)
 			hs.Register(
-				"/catalog/"+crdName+"/cr",
+				runtimeapi.CRListPath(crdName),
 				vitals.BuildCRListHandler(crd, inf, inrunHealth),
 			)
 			hs.Register(
-				"/catalog/"+crdName+"/cr/",
+				runtimeapi.CRListPath(crdName)+"/",
 				vitals.BuildCRDetailAndEventsHandler(crd, inf, kube, crd.Box(), inrunHealth),
 			)
 		}
 
 		// Register raw and enriched CRD definition endpoint
 		hs.Register(
-			"/catalog/"+crdName+"/raw",
+			runtimeapi.RawPath(crdName),
 			vitals.BuildCRDRawHandler(m, crd.Name),
 		)
 		hs.Register(
-			"/catalog/"+crdName+"/enriched",
+			runtimeapi.EnrichedPath(crdName),
 			vitals.BuildCRDEnrichedHandler(cat, crd.Name),
 		)
 
 		logger.Debug().
-			Str("health", "/catalog/"+crdName+"/health").
-			Str("info", "/catalog/"+crdName).
-			Str("raw", "/catalog/"+crdName+"/raw").
-			Str("enriched", "/catalog/"+crdName+"/enriched").
+			Str("health", runtimeapi.HealthPath(crdName)).
+			Str("info", runtimeapi.CRDPath(crdName)).
+			Str("raw", runtimeapi.RawPath(crdName)).
+			Str("enriched", runtimeapi.EnrichedPath(crdName)).
 			Msg("registered CRD routes")
 	}
 
-	hs.Register("/catalog/raw", vitals.BuildRawCatalogHandler(m))
-	hs.Register("/catalog/enriched", vitals.BuildEnrichedCatalogHandler(cat))
-	hs.Register("/catalog", vitals.BuildCatalogHandler(cat, cfg, registry, crdHealthMap, inrunHealth))
+	hs.Register(runtimeapi.CatalogPath+"/raw", vitals.BuildRawCatalogHandler(m))
+	hs.Register(runtimeapi.CatalogPath+"/enriched", vitals.BuildEnrichedCatalogHandler(cat))
+	hs.Register(runtimeapi.CatalogPath, vitals.BuildCatalogHandler(cat, cfg, registry, crdHealthMap, inrunHealth))
 }

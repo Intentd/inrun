@@ -13,16 +13,16 @@ package merger
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/fileio"
 )
 
-func PullToDir(url, version string, oci bool, auth *utils.FileAuth) (dir string, cleanup func(), err error) {
+func PullToDir(url, version string, oci bool, auth *fileio.FileAuth) (dir string, cleanup func(), err error) {
 	return "", nil, fmt.Errorf("pulling registry pattern %q@%s is not supported in this build — "+
 		"registry/module imports are authoring-time only; run 'inrun generate bundle' to "+
 		"pre-merge before deploying the runtime or gateway", url, version)
 }
 
-func PullModuleToDir(url, version string, oci bool, auth *utils.FileAuth) (dir string, cleanup func(), err error) {
+func PullModuleToDir(url, version string, oci bool, auth *fileio.FileAuth) (dir string, cleanup func(), err error) {
 	return "", nil, fmt.Errorf("pulling module %q@%s is not supported in this build — "+
 		"registry/module imports are authoring-time only; run 'inrun generate bundle' to "+
 		"pre-merge before deploying the runtime or gateway", url, version)

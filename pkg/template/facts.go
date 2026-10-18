@@ -3,7 +3,7 @@ package template
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/kube"
 )
 
 type inrunContextKey struct{}
@@ -39,7 +39,7 @@ type InrunContext struct {
 // NewInrunContext builds the runtime context. Called once at startup.
 func NewInrunContext(namespace, version string) InrunContext {
 	return InrunContext{
-		InPod:     utils.IsRunningInPod(),
+		InPod:     kube.IsRunningInPod(),
 		Namespace: namespace,
 		Version:   version,
 	}

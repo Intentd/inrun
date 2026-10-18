@@ -5,8 +5,9 @@ package webhook
 import (
 	"context"
 	"encoding/json"
-	"github.com/intentd/inrun/pkg/utils"
 	"testing"
+
+	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -79,7 +80,7 @@ func TestEvaluateValidationRules_MixedDenyAndWarn(t *testing.T) {
 		Rules: []types.ValidationRule{
 			{Field: "spec.image", Prefix: "myorg/", Message: "wrong registry", Action: types.ValidationActionDeny},
 			{Field: "spec.replicas", Max: "10", Message: "too many replicas", Action: types.ValidationActionDeny},
-			{Field: "metadata.labels.team", Exists: utils.BoolPtr(true), Message: "team label required", Action: types.ValidationActionWarn},
+			{Field: "metadata.labels.team", Exists: ptr.To(true), Message: "team label required", Action: types.ValidationActionWarn},
 		},
 	}
 
@@ -108,7 +109,7 @@ func TestEvaluateValidationRules_AllPass(t *testing.T) {
 		Rules: []types.ValidationRule{
 			{Field: "spec.image", Prefix: "myorg/", Message: "wrong registry", Action: types.ValidationActionDeny},
 			{Field: "spec.replicas", Max: "10", Message: "too many", Action: types.ValidationActionDeny},
-			{Field: "metadata.labels.team", Exists: utils.BoolPtr(true), Message: "team required", Action: types.ValidationActionWarn},
+			{Field: "metadata.labels.team", Exists: ptr.To(true), Message: "team required", Action: types.ValidationActionWarn},
 		},
 	}
 

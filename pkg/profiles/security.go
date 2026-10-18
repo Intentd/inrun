@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // SecurityProfile is a named security preset.
@@ -41,20 +42,20 @@ func ApplyContainerSecurityProfile(name string, reg *types.ProfileRegistry) (*ty
 	switch SecurityProfile(strings.ToLower(name)) {
 	case SecurityBaseline:
 		return &types.ContainerSecurityContext{
-			AllowPrivilegeEscalation: utils.BoolPtr(false),
+			AllowPrivilegeEscalation: ptr.To(false),
 			Capabilities:             &types.CapabilitiesConfig{Drop: []string{"NET_RAW"}},
 		}, nil
 	case SecurityRestricted:
 		return &types.ContainerSecurityContext{
-			AllowPrivilegeEscalation: utils.BoolPtr(false),
-			RunAsNonRoot:             utils.BoolPtr(true),
+			AllowPrivilegeEscalation: ptr.To(false),
+			RunAsNonRoot:             ptr.To(true),
 			Capabilities:             &types.CapabilitiesConfig{Drop: []string{"ALL"}},
 		}, nil
 	case SecurityHardened:
 		return &types.ContainerSecurityContext{
-			AllowPrivilegeEscalation: utils.BoolPtr(false),
-			ReadOnlyRootFilesystem:   utils.BoolPtr(true),
-			RunAsNonRoot:             utils.BoolPtr(true),
+			AllowPrivilegeEscalation: ptr.To(false),
+			ReadOnlyRootFilesystem:   ptr.To(true),
+			RunAsNonRoot:             ptr.To(true),
 			Capabilities:             &types.CapabilitiesConfig{Drop: []string{"ALL"}},
 		}, nil
 	default:
@@ -79,19 +80,19 @@ func ApplyPodSecurityProfile(name string, reg *types.ProfileRegistry) (*types.Po
 	switch SecurityProfile(strings.ToLower(name)) {
 	case SecurityBaseline:
 		return &types.PodSecurityContext{
-			RunAsNonRoot: utils.BoolPtr(false),
+			RunAsNonRoot: ptr.To(false),
 		}, nil
 	case SecurityRestricted:
 		return &types.PodSecurityContext{
-			RunAsNonRoot: utils.BoolPtr(true),
-			RunAsUser:    utils.Int64Ptr(1000),
+			RunAsNonRoot: ptr.To(true),
+			RunAsUser:    ptr.To[int64](1000),
 		}, nil
 	case SecurityHardened:
 		return &types.PodSecurityContext{
-			RunAsNonRoot: utils.BoolPtr(true),
-			RunAsUser:    utils.Int64Ptr(65534),
-			RunAsGroup:   utils.Int64Ptr(65534),
-			FSGroup:      utils.Int64Ptr(65534),
+			RunAsNonRoot: ptr.To(true),
+			RunAsUser:    ptr.To[int64](65534),
+			RunAsGroup:   ptr.To[int64](65534),
+			FSGroup:      ptr.To[int64](65534),
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown pod security profile: %q — allowed: baseline, restricted, hardened", name)

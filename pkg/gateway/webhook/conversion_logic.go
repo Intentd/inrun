@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // applyConversion converts obj from its current version to targetAPIVersion.
@@ -96,7 +97,7 @@ func resolveValue(r *template.Resolver, v interface{}) (interface{}, error) {
 			if resolved == "" {
 				return nil, nil
 			}
-			return utils.TryCoerceString(resolved), nil
+			return structured.TryCoerceString(resolved), nil
 		}
 		return resolved, nil
 	case map[string]interface{}:

@@ -40,9 +40,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
+	"github.com/intentd/inrun/pkg/util/httpapi"
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -57,35 +61,6 @@ const (
 // ─────────────────────────────────────────────────────────────────────────────
 // Response types
 // ─────────────────────────────────────────────────────────────────────────────
-
-// CRSummary is one row in the CR list — equivalent to one line of kubectl get.
-type CRSummary struct {
-	Name        string `json:"name"`
-	Namespace   string `json:"namespace,omitempty"`
-	Phase       string `json:"phase,omitempty"` // from status.phase if declared
-	Ready       bool   `json:"ready"`           // from status.conditions[type=Ready]
-	ReadyReason string `json:"readyReason,omitempty"`
-	Age         string `json:"age"`
-	Generation  int64  `json:"generation"`
-
-	// Value is the resolved value of the ?field= dot-path requested on this
-	// list call — e.g. ?field=spec.domain. Empty when no field was
-	// requested, or when the CR doesn't have that field. This is what lets
-	// unique: true check other instances without a live List() call
-	// against the API server: the informer cache already holds full spec
-	// data, this just surfaces one field of it instead of discarding
-	// everything but the summary. See pkg/utils/common/query.
-	Value string `json:"value,omitempty"`
-}
-
-// CRListResponse is returned by GET /catalog/{crd}/cr.
-type CRListResponse struct {
-	CRD      string      `json:"crd"`
-	GVK      string      `json:"gvk"`
-	Total    int         `json:"total"`
-	Items    []CRSummary `json:"items"`
-	IsLeader bool        `json:"isLeader"`
-}
 
 // ChildSummary is a condensed view of one child resource.
 // Only the fields that matter for observability are included — not the full object.
@@ -153,7 +128,7 @@ func BuildCRListHandler(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if inf == nil {
-			utils.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{
+			httpapi.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{
 				"error": "informer not ready — CRD may still be starting",
 			})
 			return
@@ -162,7 +137,7 @@ func BuildCRListHandler(
 		field := r.URL.Query().Get("field")
 
 		objs := inf.GetIndexer().List()
-		items := make([]CRSummary, 0, len(objs))
+		items := make([]runtimeapi.CRSummary, 0, len(objs))
 
 		for _, raw := range objs {
 			objMap, err := rawToMap(raw)
@@ -182,7 +157,7 @@ func BuildCRListHandler(
 			return ki < kj
 		})
 
-		utils.WriteJSON(w, http.StatusOK, CRListResponse{
+		httpapi.WriteJSON(w, http.StatusOK, runtimeapi.CRListResponse{
 			CRD:      crd.Name,
 			GVK:      crd.GVKString(),
 			Total:    len(items),
@@ -213,7 +188,7 @@ func BuildCRDetailHandler(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if inf == nil {
-			utils.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{
+			httpapi.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{
 				"error": "informer not ready",
 			})
 			return
@@ -240,7 +215,7 @@ func BuildCRDetailHandler(
 		}
 		raw, exists, err := inf.GetIndexer().GetByKey(key)
 		if err != nil || !exists {
-			utils.WriteJSON(w, http.StatusNotFound, map[string]string{
+			httpapi.WriteJSON(w, http.StatusNotFound, map[string]string{
 				"error": fmt.Sprintf("CR %q not found", key),
 			})
 			return
@@ -248,7 +223,7 @@ func BuildCRDetailHandler(
 
 		objMap, err := rawToMap(raw)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{
+			httpapi.WriteJSON(w, http.StatusInternalServerError, map[string]string{
 				"error": "unexpected object type in cache",
 			})
 			return
@@ -259,7 +234,7 @@ func BuildCRDetailHandler(
 
 		detail := buildCRDetail(objMap, children, eventsPath, crd.APITypes.Kind)
 		detail.IsLeader = o.IsLeader()
-		utils.WriteJSON(w, http.StatusOK, detail)
+		httpapi.WriteJSON(w, http.StatusOK, detail)
 	}
 }
 
@@ -277,7 +252,7 @@ func BuildCRDetailAndEventsHandler(
 	events := BuildCREventsHandler(crd, kube)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		prefix := "/catalog/" + strings.ToLower(crd.Name) + "/cr/"
+		prefix := runtimeapi.CRListPath(strings.ToLower(crd.Name)) + "/"
 		suffix := strings.TrimPrefix(r.URL.Path, prefix)
 
 		if strings.HasSuffix(suffix, "/events") {
@@ -333,13 +308,13 @@ func BuildCREventsHandler(
 
 		events, err := fetchCREvents(r.Context(), kube, namespace, name, crd.APITypes.Kind)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{
+			httpapi.WriteJSON(w, http.StatusInternalServerError, map[string]string{
 				"error": fmt.Sprintf("listing events: %v", err),
 			})
 			return
 		}
 
-		utils.WriteJSON(w, http.StatusOK, CREventsResponse{
+		httpapi.WriteJSON(w, http.StatusOK, CREventsResponse{
 			Name:      name,
 			Namespace: namespace,
 			Total:     len(events),
@@ -353,7 +328,7 @@ func BuildCREventsHandler(
 // ─────────────────────────────────────────────────────────────────────────────
 
 // summariseCR extracts the summary fields from one CR object.
-func summariseCR(objMap map[string]interface{}, parentKind string) CRSummary {
+func summariseCR(objMap map[string]interface{}, parentKind string) runtimeapi.CRSummary {
 	status, _ := objMap["status"].(map[string]interface{})
 	phase, _ := status["phase"].(string)
 	ready, readyReason, _ := extractParentReady(objMap, parentKind)
@@ -368,7 +343,7 @@ func summariseCR(objMap map[string]interface{}, parentKind string) CRSummary {
 		generation = int64(g)
 	}
 
-	return CRSummary{
+	return runtimeapi.CRSummary{
 		Name:        metaField(objMap, "name"),
 		Namespace:   metaField(objMap, "namespace"),
 		Phase:       phase,
@@ -430,13 +405,13 @@ func buildCRDetail(objMap map[string]interface{}, children map[string]interface{
 	}
 }
 
-// rawToMap and metaField delegate to pkg/utils — single canonical implementation.
+// rawToMap and metaField delegate to pkg/util/structured — single canonical implementation.
 func rawToMap(raw interface{}) (map[string]interface{}, error) {
-	return utils.RawToMap(raw)
+	return structured.RawToMap(raw)
 }
 
 func metaField(objMap map[string]interface{}, field string) string {
-	return utils.MetaField(objMap, field)
+	return structured.MetaField(objMap, field)
 }
 
 // fetchCREvents lists Kubernetes events for a specific CR by name.
@@ -515,7 +490,7 @@ func summariseEvent(ev corev1.Event) CREvent {
 
 // buildEventsPath constructs the events endpoint URL for a CR.
 func buildEventsPath(crd types.CRDEntry, namespace, name string) string {
-	base := "/catalog/" + strings.ToLower(crd.Name) + "/cr"
+	base := runtimeapi.CRListPath(strings.ToLower(crd.Name))
 	if namespace != "" {
 		return fmt.Sprintf("%s/%s/%s/events", base, namespace, name)
 	}

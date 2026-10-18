@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/merger"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,14 +44,14 @@ func BuildCRDRawHandler(m *merger.Merger, crdName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		crd, ok := m.Get(crdName)
 		if !ok {
-			utils.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
+			httpapi.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
 				"error": fmt.Sprintf("CRD %q not found in Catalog", crdName),
 			})
 			return
 		}
 
 		// Use the pruned writer
-		utils.WriteJSONPruned(w, http.StatusOK, crd)
+		httpapi.WriteJSONPruned(w, http.StatusOK, crd)
 	}
 }
 
@@ -96,7 +97,7 @@ func BuildRawCatalogHandler(m *merger.Merger) http.HandlerFunc {
 		uiCatalog := m.ToUI()
 
 		// Use the pruned writer to remove all null/empty values
-		utils.WriteJSONPruned(w, http.StatusOK, uiCatalog)
+		httpapi.WriteJSONPruned(w, http.StatusOK, uiCatalog)
 	}
 }
 
@@ -144,14 +145,14 @@ func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerF
 		// Get the enriched CRD from the validated Catalog
 		crd, err := cat.Get(crdName)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
+			httpapi.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
 				"error": fmt.Sprintf("CRD %q not found in enriched Catalog", crdName),
 			})
 			return
 		}
 
 		// Use the pruned writer to remove all null/empty values
-		utils.WriteJSONPruned(w, http.StatusOK, crd)
+		httpapi.WriteJSONPruned(w, http.StatusOK, crd)
 	}
 }
 
@@ -212,6 +213,6 @@ func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerF
 func BuildEnrichedCatalogHandler(cat *catalog.Catalog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Use the pruned writer to remove all null/empty values
-		utils.WriteJSONPruned(w, http.StatusOK, cat.ToUI())
+		httpapi.WriteJSONPruned(w, http.StatusOK, cat.ToUI())
 	}
 }

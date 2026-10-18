@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -53,8 +55,8 @@ func TestValidateServeModes_BothDefault(t *testing.T) {
 
 func TestValidateServeModes_BothExplicitTrue(t *testing.T) {
 	e := catalogWithServeAndModes("myapp", &types.ServeModes{
-		Target: boolPtr(true),
-		CR:     boolPtr(true),
+		Target: ptr.To(true),
+		CR:     ptr.To(true),
 	})
 	if err := e.validateServeModes(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -63,8 +65,8 @@ func TestValidateServeModes_BothExplicitTrue(t *testing.T) {
 
 func TestValidateServeModes_TargetOnly(t *testing.T) {
 	e := catalogWithServeAndModes("myapp", &types.ServeModes{
-		Target: boolPtr(true),
-		CR:     boolPtr(false),
+		Target: ptr.To(true),
+		CR:     ptr.To(false),
 	})
 	if err := e.validateServeModes(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -73,8 +75,8 @@ func TestValidateServeModes_TargetOnly(t *testing.T) {
 
 func TestValidateServeModes_CROnly(t *testing.T) {
 	e := catalogWithServeAndModes("", &types.ServeModes{
-		Target: boolPtr(false),
-		CR:     boolPtr(true),
+		Target: ptr.To(false),
+		CR:     ptr.To(true),
 	})
 	if err := e.validateServeModes(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -83,8 +85,8 @@ func TestValidateServeModes_CROnly(t *testing.T) {
 
 func TestValidateServeModes_BothFalse(t *testing.T) {
 	e := catalogWithServeAndModes("", &types.ServeModes{
-		Target: boolPtr(false),
-		CR:     boolPtr(false),
+		Target: ptr.To(false),
+		CR:     ptr.To(false),
 	})
 	err := e.validateServeModes()
 	if err == nil {
@@ -97,8 +99,8 @@ func TestValidateServeModes_BothFalse(t *testing.T) {
 
 func TestValidateServeModes_TargetDisabledButTargetSet(t *testing.T) {
 	e := catalogWithServeAndModes("myapp", &types.ServeModes{
-		Target: boolPtr(false),
-		CR:     boolPtr(true),
+		Target: ptr.To(false),
+		CR:     ptr.To(true),
 	})
 	err := e.validateServeModes()
 	if err == nil {

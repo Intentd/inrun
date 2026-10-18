@@ -5,11 +5,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -17,7 +18,7 @@ import (
 // or deferred because dependencies were not ready.
 func (dc *DependencyCoordinator) retryMissingCRDs(ctx context.Context) {
 	retryInterval := postStartRetryInterval
-	if !utils.IsRunningInPod() {
+	if !kube.IsRunningInPod() {
 		retryInterval = postStartRetryIntervalDev
 	}
 	ticker := time.NewTicker(retryInterval)
@@ -389,7 +390,7 @@ func (dc *DependencyCoordinator) deactivateCRD(gvk string) {
 //   - (false, err) — transient failure (network blip, timeout, dial error);
 //     callers must skip all health-state changes and retry next tick
 func (dc *DependencyCoordinator) crdExists(gvk *schema.GroupVersionKind) (bool, error) {
-	_, err := utils.CheckCRDExists(dc.kube.RestConfig(), gvk)
+	_, err := kube.CheckCRDExists(dc.kube.RestConfig(), gvk)
 	if err == nil {
 		return true, nil
 	}

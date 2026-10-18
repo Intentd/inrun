@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -102,7 +103,7 @@ func rawSchemaHandler(
 				crd = cat.LookupByKind(kind).Entry()
 				if crd != nil {
 					// ─── Return the warning as the response ──────────────
-					writeJSON(w, http.StatusBadRequest, utils.H{
+					writeJSON(w, http.StatusBadRequest, httpapi.H{
 						"error":      "apiVersion mismatch",
 						"message":    fmt.Sprintf("kind %q found, but apiVersion %q did not match the stored version %q", kind, apiVersion, crd.APIVersion()),
 						"kind":       kind,

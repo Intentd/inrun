@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
-	"github.com/intentd/inrun/pkg/utils/common"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -111,7 +113,7 @@ func readCross(
 			if decl.Source.HasEndpoint() {
 				src := *decl.Source
 				src.Endpoint, _ = resolver.Resolve(decl.Source.Endpoint)
-				_, data := common.FetchCrossViaHTTP(ctx, cs, &src)
+				_, data := runtimeapi.FetchCrossViaHTTP(ctx, cs, &src)
 				if data != nil {
 					result[as] = data
 					log.Debug().Str("crd", decl.CRD).Str("as", as).Str("endpoint", src.Endpoint).Msg("cross: read via raw endpoint")
@@ -122,7 +124,7 @@ func readCross(
 			if decl.Source.HasHost() {
 				src := *decl.Source
 				src.Endpoint = types.BuildONCOPURL(decl)
-				_, data := common.FetchCrossViaHTTP(ctx, cs, &src)
+				_, data := runtimeapi.FetchCrossViaHTTP(ctx, cs, &src)
 				if data != nil {
 					result[as] = data
 					log.Debug().Str("crd", decl.CRD).Str("as", as).Str("endpoint", src.Endpoint).Msg("cross: read via ONCOP host")
@@ -153,7 +155,7 @@ func readCrossFromInformerByName(indexer cache.Indexer, key string, crossAccess 
 	if err != nil || !exists {
 		return notFoundCrossResult()
 	}
-	objMap, err := utils.RawToMap(raw)
+	objMap, err := structured.RawToMap(raw)
 	if err != nil {
 		return notFoundCrossResult()
 	}
@@ -162,7 +164,7 @@ func readCrossFromInformerByName(indexer cache.Indexer, key string, crossAccess 
 
 func readCrossFromInformerByLabel(indexer cache.Indexer, labelKey, labelValue string) map[string]interface{} {
 	for _, raw := range indexer.List() {
-		objMap, err := utils.RawToMap(raw)
+		objMap, err := structured.RawToMap(raw)
 		if err != nil {
 			continue
 		}
@@ -177,8 +179,8 @@ func readCrossFromInformerByLabel(indexer cache.Indexer, labelKey, labelValue st
 func buildCrossResultFromMap(objMap map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{}, 6)
 	result["found"] = "true"
-	result["name"] = utils.MetaField(objMap, "name")
-	result["namespace"] = utils.MetaField(objMap, "namespace")
+	result["name"] = structured.MetaField(objMap, "name")
+	result["namespace"] = structured.MetaField(objMap, "namespace")
 
 	if spec, ok := objMap["spec"].(map[string]interface{}); ok && spec != nil {
 		result["spec"] = spec

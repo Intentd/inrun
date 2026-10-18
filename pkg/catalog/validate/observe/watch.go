@@ -5,7 +5,7 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/intentd/inrun/pkg/runtime/sentinel"
+	"github.com/intentd/inrun/pkg/sentinel"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )

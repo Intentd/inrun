@@ -16,10 +16,13 @@ import (
 	"reflect"
 	"time"
 
+	"k8s.io/utils/ptr"
+
+	"github.com/intentd/inrun/pkg/util/retry"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,9 +152,9 @@ func UnregisterAdmissionWebhooks(
 	opts WebhookCleanupOptions,
 ) error {
 	if opts.validating {
-		if err := utils.RetryBackoff(func() error {
+		if err := retry.RetryBackoff(func() error {
 			return cleanupValidatingWebhook(ctx, client, validatingWebhookConfigName)
-		}, utils.RetryOptions{
+		}, retry.Options{
 			Attempts: maxAttempts,
 			Delay:    delayBetweenAttempts,
 		}); err != nil {
@@ -161,9 +164,9 @@ func UnregisterAdmissionWebhooks(
 	}
 
 	if opts.mutating {
-		if err := utils.RetryBackoff(func() error {
+		if err := retry.RetryBackoff(func() error {
 			return cleanupMutatingWebhook(ctx, client, mutatingWebhookConfigName)
-		}, utils.RetryOptions{
+		}, retry.Options{
 			Attempts: maxAttempts,
 			Delay:    delayBetweenAttempts,
 		}); err != nil {
@@ -208,7 +211,7 @@ func registerValidatingWebhook(
 				MatchPolicy:             matchPolicyPtr(admissionv1.Exact),
 				AdmissionReviewVersions: []string{"v1"},
 				SideEffects:             &sideEffects,
-				TimeoutSeconds:          int32Ptr(5),
+				TimeoutSeconds:          ptr.To[int32](5),
 			},
 		},
 	}
@@ -249,7 +252,7 @@ func registerMutatingWebhook(
 				MatchPolicy:             matchPolicyPtr(admissionv1.Exact),
 				AdmissionReviewVersions: []string{"v1"},
 				SideEffects:             &sideEffects,
-				TimeoutSeconds:          int32Ptr(5),
+				TimeoutSeconds:          ptr.To[int32](5),
 				ReinvocationPolicy:      reinvocationPolicyPtr(admissionv1.IfNeededReinvocationPolicy),
 			},
 		},
@@ -303,7 +306,7 @@ func registerDeletionProtectionWebhook(
 			MatchPolicy:             matchPolicyPtr(admissionv1.Exact),
 			AdmissionReviewVersions: []string{"v1"},
 			SideEffects:             &sideEffects,
-			TimeoutSeconds:          int32Ptr(5),
+			TimeoutSeconds:          ptr.To[int32](5),
 		})
 	}
 
@@ -325,7 +328,7 @@ func registerDeletionProtectionWebhook(
 			MatchPolicy:             matchPolicyPtr(admissionv1.Exact),
 			AdmissionReviewVersions: []string{"v1"},
 			SideEffects:             &sideEffects,
-			TimeoutSeconds:          int32Ptr(5),
+			TimeoutSeconds:          ptr.To[int32](5),
 		})
 	}
 
@@ -393,7 +396,7 @@ func registerNamespaceProtectionWebhook(
 				MatchPolicy:             matchPolicyPtr(admissionv1.Exact),
 				AdmissionReviewVersions: []string{"v1"},
 				SideEffects:             &sideEffects,
-				TimeoutSeconds:          int32Ptr(5),
+				TimeoutSeconds:          ptr.To[int32](5),
 			},
 		},
 	}
@@ -450,7 +453,7 @@ func registerStrictModeProtectionWebhook(
 				MatchPolicy:             matchPolicyPtr(admissionv1.Equivalent),
 				AdmissionReviewVersions: []string{"v1"},
 				SideEffects:             &sideEffects,
-				TimeoutSeconds:          int32Ptr(5),
+				TimeoutSeconds:          ptr.To[int32](5),
 			},
 		},
 	}
@@ -571,7 +574,7 @@ func cleanupValidatingWebhook(ctx context.Context, client kubernetes.Interface, 
 		return err
 	}
 	return client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(ctx, cfgName,
-		metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(gracePeriodSeconds)})
+		metav1.DeleteOptions{GracePeriodSeconds: ptr.To[int64](gracePeriodSeconds)})
 }
 
 func cleanupMutatingWebhook(ctx context.Context, client kubernetes.Interface, cfgName string) error {
@@ -583,7 +586,7 @@ func cleanupMutatingWebhook(ctx context.Context, client kubernetes.Interface, cf
 		return err
 	}
 	return client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(ctx, cfgName,
-		metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(gracePeriodSeconds)})
+		metav1.DeleteOptions{GracePeriodSeconds: ptr.To[int64](gracePeriodSeconds)})
 }
 
 // readCABundle reads the TLS certificate file and returns it as raw bytes.

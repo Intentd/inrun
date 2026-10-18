@@ -4,6 +4,8 @@ package types
 import (
 	"sort"
 
+	"k8s.io/utils/ptr"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -382,8 +384,8 @@ func (c *CRDEntry) HasServeModes() bool {
 //  3. Default (both true)
 func (c *CRDEntry) effectiveServeModes(target string) *ServeModes {
 	result := &ServeModes{
-		Target: boolPtr(true),
-		CR:     boolPtr(true),
+		Target: ptr.To(true),
+		CR:     ptr.To(true),
 	}
 
 	if !c.ServeEnabled() {
@@ -431,14 +433,12 @@ func (c *CRDEntry) FullCRModeEnabledFor(target string) bool {
 	return *c.effectiveServeModes(target).CR
 }
 
-func boolPtr(b bool) *bool { return &b }
-
 // effectiveServeApplyOverrides returns the effective override
 // for a target, merging target-level and CRD-level settings.
 func (c *CRDEntry) effectiveServeApplyOverrides(target string) *ServeApplyOverrides {
 	result := &ServeApplyOverrides{
-		TargetConflict:   boolPtr(true), // default: allow
-		ResourceConflict: boolPtr(true), // default: allow
+		TargetConflict:   ptr.To(true), // default: allow
+		ResourceConflict: ptr.To(true), // default: allow
 	}
 
 	// 1. Start with CRD-level

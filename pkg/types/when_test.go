@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -220,25 +222,25 @@ func TestEvaluateOneCond_Suffix(t *testing.T) {
 
 func TestEvaluateOneCond_Exists_Present(t *testing.T) {
 	d := data("phase", "Running")
-	c := types.Condition{Field: "phase", Exists: boolPtr(true)}
+	c := types.Condition{Field: "phase", Exists: ptr.To(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Exists_Missing(t *testing.T) {
 	d := map[string]interface{}{}
-	c := types.Condition{Field: "phase", Exists: boolPtr(true)}
+	c := types.Condition{Field: "phase", Exists: ptr.To(true)}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_NotExists_Missing(t *testing.T) {
 	d := map[string]interface{}{}
-	c := types.Condition{Field: "phase", NotExists: boolPtr(true)}
+	c := types.Condition{Field: "phase", NotExists: ptr.To(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_NotExists_Present(t *testing.T) {
 	d := data("phase", "Running")
-	c := types.Condition{Field: "phase", NotExists: boolPtr(true)}
+	c := types.Condition{Field: "phase", NotExists: ptr.To(true)}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -464,7 +466,7 @@ func TestEvaluateOneCond_TypeOf_Explicit(t *testing.T) {
 
 func TestEvaluateOneCond_Unique_AlwaysTrue(t *testing.T) {
 	d := data("name", "foo")
-	c := types.Condition{Field: "name", Unique: boolPtr(true)}
+	c := types.Condition{Field: "name", Unique: ptr.To(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
@@ -570,28 +572,28 @@ func (f *fakeUniqueChecker) IsUnique(field, value, selfNamespace, selfName strin
 
 func TestEvaluateOneCond_Unique_NoCheckerInjected_AlwaysPasses(t *testing.T) {
 	d := data("domain", "a.example.com")
-	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
+	c := types.Condition{Field: "domain", Unique: ptr.To(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_CheckerReportsUnique(t *testing.T) {
 	d := data("domain", "a.example.com")
 	d["_uniquenessChecker"] = &fakeUniqueChecker{unique: true}
-	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
+	c := types.Condition{Field: "domain", Unique: ptr.To(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_CheckerReportsDuplicate(t *testing.T) {
 	d := data("domain", "shared.example.com")
 	d["_uniquenessChecker"] = &fakeUniqueChecker{unique: false}
-	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
+	c := types.Condition{Field: "domain", Unique: ptr.To(true)}
 	assert.False(t, types.EvaluateOneCond(d, c, nil))
 }
 
 func TestEvaluateOneCond_Unique_CheckerErrors_FailsOpen(t *testing.T) {
 	d := data("domain", "a.example.com")
 	d["_uniquenessChecker"] = &fakeUniqueChecker{err: errors.New("list failed")}
-	c := types.Condition{Field: "domain", Unique: boolPtr(true)}
+	c := types.Condition{Field: "domain", Unique: ptr.To(true)}
 	assert.True(t, types.EvaluateOneCond(d, c, nil))
 }
 

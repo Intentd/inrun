@@ -12,15 +12,16 @@ package main
 import (
 	"context"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/intentd/inrun/cmd/cli"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 func main() {
 	cfg, err := config.Init()
 	if err != nil {
-		utils.FatalExit("failed to load configurations", err)
+		term.FatalExit("failed to load configurations", err)
 	}
 
 	// define root context

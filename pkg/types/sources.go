@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/fileio"
 )
 
 // FileSource represents one file source entry.
@@ -83,15 +83,15 @@ func (f *FileSource) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// Resolve resolves the FileSourceAuth to a utils.FileAuth.
+// Resolve resolves the FileSourceAuth to a fileio.FileAuth.
 // Reads environment variables and returns the resolved credentials.
 // Returns nil if the auth block is nil (unauthenticated source).
-func (a *FileSourceAuth) Resolve() (*utils.FileAuth, error) {
+func (a *FileSourceAuth) Resolve() (*fileio.FileAuth, error) {
 	if a == nil {
 		return nil, nil
 	}
 
-	auth := &utils.FileAuth{
+	auth := &fileio.FileAuth{
 		Type: a.Type,
 	}
 

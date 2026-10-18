@@ -3,6 +3,8 @@ package types_test
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -83,10 +85,10 @@ func TestEvaluateConditions_Operators(t *testing.T) {
 		{"gt matches — 5 > 3", types.Condition{Field: "spec.replicas", GreaterThan: "3"}, true},
 		{"gt fails — 5 not > 10", types.Condition{Field: "spec.replicas", GreaterThan: "10"}, false},
 		{"lt matches — 5 < 10", types.Condition{Field: "spec.replicas", LessThan: "10"}, true},
-		{"exists — present field", types.Condition{Field: "spec.image", Exists: boolPtr(true)}, true},
-		{"exists — absent field", types.Condition{Field: "spec.missing", Exists: boolPtr(true)}, false},
-		{"notExists — absent field", types.Condition{Field: "spec.missing", NotExists: boolPtr(true)}, true},
-		{"notExists — present field", types.Condition{Field: "spec.image", NotExists: boolPtr(true)}, false},
+		{"exists — present field", types.Condition{Field: "spec.image", Exists: ptr.To(true)}, true},
+		{"exists — absent field", types.Condition{Field: "spec.missing", Exists: ptr.To(true)}, false},
+		{"notExists — absent field", types.Condition{Field: "spec.missing", NotExists: ptr.To(true)}, true},
+		{"notExists — present field", types.Condition{Field: "spec.image", NotExists: ptr.To(true)}, false},
 		{"in — value in list", types.Condition{Field: "spec.logLevel", In: "debug,info,warn"}, true},
 		{"in — value not in list", types.Condition{Field: "spec.logLevel", In: "debug,warn"}, false},
 	}

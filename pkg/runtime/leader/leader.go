@@ -9,13 +9,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/google/uuid"
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/leaderelection"
@@ -107,8 +108,8 @@ func (ko *LeaderElection) Shutdown(ctx context.Context) {
 	}
 
 	// Give it a moment to release the lease
-	utils.Sleep(2)
-	logger.Info().Msgf("%s Leader election shut down", utils.SuccessMark())
+	time.Sleep(2 * time.Second)
+	logger.Info().Msgf("%s Leader election shut down", term.SuccessMark())
 }
 
 func (ko *LeaderElection) Name() string {

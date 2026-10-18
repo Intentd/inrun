@@ -16,10 +16,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/template/funcs"
-	"github.com/intentd/inrun/pkg/utils"
+	"github.com/intentd/inrun/pkg/util/structured"
 
 	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/template/funcs"
 )
 
 // TemplateResolver resolves a Go-template expression string against CR data
@@ -93,10 +93,10 @@ type RuleViolation struct {
 }
 
 // ResolveScalarField returns the value at a dot-notation path (see
-// utils.SplitField) as a string, and whether it exists. Validation and
+// structured.SplitField) as a string, and whether it exists. Validation and
 // mutation rules use it at reconcile and admission time.
 func ResolveScalarField(data map[string]interface{}, path string) (string, bool) {
-	parts := utils.SplitField(path)
+	parts := structured.SplitField(path)
 	current := data
 
 	for i, part := range parts {

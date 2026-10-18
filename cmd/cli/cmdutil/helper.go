@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -28,61 +32,61 @@ import (
 
 var (
 	// colors / styles
-	Gray    = utils.Gray
-	Bold    = utils.Bold
-	Dim     = utils.Dim
-	Cyan    = utils.Cyan
-	Green   = utils.Green
-	Blue    = utils.Blue
-	White   = utils.White
-	Yellow  = utils.Yellow
-	Red     = utils.Red
-	magenta = utils.Magenta
+	Gray    = term.Gray
+	Bold    = term.Bold
+	Dim     = term.Dim
+	Cyan    = term.Cyan
+	Green   = term.Green
+	Blue    = term.Blue
+	White   = term.White
+	Yellow  = term.Yellow
+	Red     = term.Red
+	magenta = term.Magenta
 
 	// marks and icons
-	SuccessMark     = utils.SuccessMark
-	FailureMark     = utils.FailureMark
-	WarningMark     = utils.WarningMark
-	InfoMark        = utils.InfoMark
-	SecureMark      = utils.SecureMark
-	SomeSecureMark  = utils.SomeSecureMark
-	NoSecurityMark  = utils.NoSecurityMark
-	HealthIcon      = utils.HealthIcon
-	HealthIconReady = utils.HealthIconReady
-	HealthIconWarn  = utils.HealthIconWarning
-	HealthIconInfo  = utils.HealthIconInfo
+	SuccessMark     = term.SuccessMark
+	FailureMark     = term.FailureMark
+	WarningMark     = term.WarningMark
+	InfoMark        = term.InfoMark
+	SecureMark      = term.SecureMark
+	SomeSecureMark  = term.SomeSecureMark
+	NoSecurityMark  = term.NoSecurityMark
+	HealthIcon      = term.HealthIcon
+	HealthIconReady = term.HealthIconReady
+	HealthIconWarn  = term.HealthIconWarning
+	HealthIconInfo  = term.HealthIconInfo
 
 	// other cli utilities
-	IsRunningInPod      = utils.IsRunningInPod
-	WriteFileAndFormat  = utils.WriteFileAndFormat
-	SplitCommaSeparated = utils.SplitCommaSeparated
-	ReadLocal           = utils.ReadLocal
-	StrictUnmarshal     = utils.StrictUnmarshal
-	PruneEmptyYAML      = utils.PruneEmptyYAML
-	CopyFile            = utils.CopyFile
-	CopyDir             = utils.CopyDir
-	JoinPath            = utils.JoinRelative
-	FormatSize          = utils.FormatSize
-	WordWrap            = utils.WordWrap
-	visibleLen          = utils.VisibleLen
-	PadRight            = utils.PadRight
-	OrDefault           = utils.OrDefault
-	ContainsTag         = utils.ContainsFold
-	IsTerminal          = utils.IsTerminal
-	HumanDuration       = utils.FormatDuration
-	DumpCRsJSON         = utils.DumpCRsJSON
-	DumpCRsYAML         = utils.DumpCRsYAML
+	IsRunningInPod      = kube.IsRunningInPod
+	WriteFileAndFormat  = structured.WriteFileAndFormat
+	SplitCommaSeparated = structured.SplitCommaSeparated
+	ReadLocal           = fileio.ReadLocal
+	StrictUnmarshal     = structured.StrictUnmarshal
+	PruneEmptyYAML      = structured.PruneEmptyYAML
+	CopyFile            = fileio.CopyFile
+	CopyDir             = fileio.CopyDir
+	JoinPath            = fileio.JoinRelative
+	FormatSize          = term.FormatSize
+	WordWrap            = term.WordWrap
+	visibleLen          = term.VisibleLen
+	PadRight            = term.PadRight
+	OrDefault           = term.OrDefault
+	ContainsTag         = term.ContainsFold
+	IsTerminal          = term.IsTerminal
+	HumanDuration       = term.FormatDuration
+	DumpCRsJSON         = kube.DumpCRsJSON
+	DumpCRsYAML         = kube.DumpCRsYAML
 )
 
 // SortedKeys returns a sorted slice of all keys from the given map.
 func SortedKeys[V any](m map[string]V) []string {
-	return utils.SortedKeys(m)
+	return structured.SortedKeys(m)
 }
 
 // StartSpinner starts a terminal progress spinner with the given message.
 // Call Success, Failure, or Stop on the returned value when done.
-func StartSpinner(msg string) *utils.Spinner {
-	return utils.StartSpinner(msg)
+func StartSpinner(msg string) *term.Spinner {
+	return term.StartSpinner(msg)
 }
 
 // Shadow global command flags

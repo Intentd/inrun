@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
+	"github.com/intentd/inrun/pkg/util/httpapi"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/runtime/autoscaler"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/intentd/inrun/pkg/version"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/tools/cache"
@@ -98,7 +101,7 @@ func BuildCRDHealthHandler(
 			GatedReason:              h.GatedReason(),
 		}
 
-		utils.WriteJSON(w, status, response)
+		httpapi.WriteJSON(w, status, response)
 	}
 }
 
@@ -296,7 +299,7 @@ func BuildCRDInfoHandler(
 			GatedReason:       h.GatedReason(),
 		}
 
-		utils.WriteJSON(w, http.StatusOK, response)
+		httpapi.WriteJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -515,8 +518,8 @@ func BuildCatalogHandler(
 				Target:           crd.ServeTargetOrEmpty(),
 				Aliases:          crd.AliasNames(),
 				Endpoints: EndpointInfo{
-					Health:        "/catalog/" + strings.ToLower(crd.Name) + "/health",
-					Info:          "/catalog/" + strings.ToLower(crd.Name),
+					Health:        runtimeapi.HealthPath(strings.ToLower(crd.Name)),
+					Info:          runtimeapi.CRDPath(strings.ToLower(crd.Name)),
 					HealthEnabled: crd.Endpoints.IsHealthEnabled(),
 					InfoEnabled:   crd.Endpoints.IsInfoEnabled(),
 				},
@@ -573,7 +576,7 @@ func BuildCatalogHandler(
 			deletionProtection = true
 		}
 
-		utils.WriteJSON(w, status, CatalogResponse{
+		httpapi.WriteJSON(w, status, CatalogResponse{
 			CRDs:               crds,
 			Total:              len(cat.All()),
 			TotalEnabled:       len(cat.Enabled()),

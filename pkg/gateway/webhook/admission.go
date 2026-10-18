@@ -12,10 +12,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gomodules.xyz/jsonpatch/v2"
 	"net/http"
 	"strings"
 	"time"
+
+	"gomodules.xyz/jsonpatch/v2"
+	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/metrics"
@@ -240,7 +242,7 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	resp.Patch = patch
-	resp.PatchType = stringPtr(jsonPatchType)
+	resp.PatchType = ptr.To(jsonPatchType)
 
 	duration := time.Since(start)
 	mutStats.RecordMutationApplied(duration)

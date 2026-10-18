@@ -4,10 +4,10 @@ package merger
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 )
-
-func boolPtr(b bool) *bool { return &b }
 
 // ── mergeCatalogSecurity ──────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ func TestMergeCatalogSecurity_OverrideWinsServiceName(t *testing.T) {
 
 func TestMergeCatalogSecurity_OverrideDeletionProtection(t *testing.T) {
 	base := types.CatalogSecurity{}
-	dp := &types.DeletionProtectionConfig{Enabled: boolPtr(true)}
+	dp := &types.DeletionProtectionConfig{Enabled: ptr.To(true)}
 	override := types.CatalogSecurity{DeletionProtection: dp}
 	result := mergeCatalogSecurity(base, override)
 	if result.DeletionProtection == nil {
@@ -40,7 +40,7 @@ func TestMergeCatalogSecurity_OverrideDeletionProtection(t *testing.T) {
 }
 
 func TestMergeCatalogSecurity_NilOverrideDeletionProtection_KeepsBase(t *testing.T) {
-	dp := &types.DeletionProtectionConfig{Enabled: boolPtr(true)}
+	dp := &types.DeletionProtectionConfig{Enabled: ptr.To(true)}
 	base := types.CatalogSecurity{DeletionProtection: dp}
 	override := types.CatalogSecurity{} // nil DeletionProtection
 	result := mergeCatalogSecurity(base, override)

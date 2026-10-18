@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+
 	"errors"
 
 	"github.com/intentd/inrun/domain"
 
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -19,9 +20,9 @@ import (
 
 // common
 var (
-	gvkFromObj = utils.GvkFromObject
-	crdExists  = utils.CheckCRDExists
-	merge      = utils.Merge
+	gvkFromObj = kube.GvkFromObject
+	crdExists  = kube.CheckCRDExists
+	merge      = kube.Merge
 )
 
 // newListWatch returns a ListWatch for the given object type.

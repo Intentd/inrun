@@ -4,8 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,7 +62,7 @@ func TestValidateAdmissionComparisons_TwoOnARule(t *testing.T) {
 func TestValidateAdmissionComparisons_TwoOnACondition(t *testing.T) {
 	e := catalogWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Prefix: "x", Message: "msg",
-		Or: []types.Condition{{Field: "spec.tier", Equals: "gold", Exists: utils.BoolPtr(true)}},
+		Or: []types.Condition{{Field: "spec.tier", Equals: "gold", Exists: ptr.To(true)}},
 	})
 	err := e.validateAdmissionComparisons()
 	require.Error(t, err)
@@ -148,7 +149,7 @@ func TestValidateValidationRuleLinks_RedundantSpecFieldLink(t *testing.T) {
 			"team": {Label: "Team"},
 		}}
 	e := catalogWithServeValidationRule("app", serve, types.ValidationRule{
-		Field: "spec.team", Link: "team", Exists: utils.BoolPtr(true), Message: "team is required",
+		Field: "spec.team", Link: "team", Exists: ptr.To(true), Message: "team is required",
 	})
 	err := e.validateValidationRuleLinks()
 	require.Error(t, err)

@@ -34,8 +34,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/template/funcs"
-	"github.com/intentd/inrun/pkg/utils"
 	"github.com/robfig/cron/v3"
 )
 
@@ -320,7 +321,7 @@ func ResolveConditionOp(c Condition) (ConditionOperator, string) {
 
 // ── Private string/numeric helpers ───────────────────────────────────────────
 
-func typesSplitDot(s string) []string   { return utils.SplitField(s) }
+func typesSplitDot(s string) []string   { return structured.SplitField(s) }
 func typesSplitComma(s string) []string { return typesSplitOn(s, ',') }
 
 func typesSplitOn(s string, sep byte) []string {

@@ -5,12 +5,15 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/httpapi"
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,26 +25,26 @@ import (
 
 var (
 	// writeJSON writes a JSON response with the given status code and data.
-	writeJSON = utils.WriteJSON
+	writeJSON = httpapi.WriteJSON
 
 	// writeJSONError writes a structured JSON error response.
-	writeJSONError = utils.WriteJSONError
+	writeJSONError = httpapi.WriteJSONError
 
 	// parsePagination extracts limit and offset from request query parameters.
-	parsePagination = utils.ParsePagination
+	parsePagination = httpapi.ParsePagination
 
 	// resolveScalarField resolves a dot-notation path (e.g., "status.phase")
 	// against a map and returns the value as a string.
 	resolveScalarField = types.ResolveScalarField
 
 	// validateK8sName tests that a string is a valid Kubernetes name.
-	validateK8sName = utils.ValidKubernetesName
+	validateK8sName = kubeutil.ValidKubernetesName
 
 	// Others
-	resourceChecker  = utils.NewResourceChecker
-	nestedSlice      = utils.NestedSlice
-	nestedMap        = utils.NestedMap
-	deleteNestedPath = utils.DeleteNestedPath
+	resourceChecker  = kubeutil.NewResourceChecker
+	nestedSlice      = structured.NestedSlice
+	nestedMap        = structured.NestedMap
+	deleteNestedPath = structured.DeleteNestedPath
 	isTargetRequest  = intent.IsTargetRequest
 )
 

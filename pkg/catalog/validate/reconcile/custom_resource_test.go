@@ -3,6 +3,8 @@ package reconcile
 import (
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,7 +103,7 @@ func TestValidateCustomResource_ClusterScopedNoNamespace(t *testing.T) {
 		Kind:       "ClusterWorkflowTemplate",
 		Metadata: types.CustomResourceMetadata{
 			Name:       "my-template",
-			Namespaced: boolPtr(false),
+			Namespaced: ptr.To(false),
 		},
 	}
 	assert.NoError(t, ValidateCustomResource(nil, cr, "test.onCreate.custom[0]"))
@@ -114,7 +116,7 @@ func TestValidateCustomResource_ClusterScopedWithNamespace(t *testing.T) {
 		Metadata: types.CustomResourceMetadata{
 			Name:       "my-template",
 			Namespace:  "should-not-be-here",
-			Namespaced: boolPtr(false),
+			Namespaced: ptr.To(false),
 		},
 	}
 	err := ValidateCustomResource(nil, cr, "test.onCreate.custom[0]")

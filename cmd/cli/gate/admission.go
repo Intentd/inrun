@@ -5,10 +5,11 @@ package gate
 import (
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/util/structured"
+
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // AdmissionViolation is a single fired validation rule — deny or warn.
@@ -64,9 +65,9 @@ type AdmissionMutationResult struct {
 // applyMutationPreviews returns a deep copy of obj with all mutation previews
 // applied. Used to simulate mutateFirst: true behaviour locally.
 func applyMutationPreviews(obj map[string]interface{}, previews []AdmissionMutationPreview) map[string]interface{} {
-	clone := utils.DeepCopyMap(obj)
+	clone := structured.DeepCopyMap(obj)
 	for _, p := range previews {
-		_ = utils.SetNestedPath(clone, p.Field, p.To)
+		_ = structured.SetNestedPath(clone, p.Field, p.To)
 	}
 	return clone
 }

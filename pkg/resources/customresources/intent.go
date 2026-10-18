@@ -3,10 +3,11 @@ package customresources
 import (
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/resources/shared"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // BuildFromIntent converts a flat intent fields map into a full custom resource
@@ -27,7 +28,7 @@ func BuildFromIntent(fields map[string]interface{}, owner domain.Object) (map[st
 		return nil, fmt.Errorf("custom.BuildFromIntent: name is required")
 	}
 
-	gvk, err := utils.GVKFromFields(f.APIVersion, f.Kind)
+	gvk, err := kube.GVKFromFields(f.APIVersion, f.Kind)
 	if err != nil {
 		return nil, fmt.Errorf("custom.BuildFromIntent: %w", err)
 	}

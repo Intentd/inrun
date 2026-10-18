@@ -6,13 +6,14 @@ package pipeline
 import (
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/util/term"
+
 	"github.com/intentd/inrun/pkg/catalog"
 	"github.com/intentd/inrun/pkg/catalog/validate"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/typeregistry"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/utils"
 )
 
 // NewCatalog marks this process as instance (runtime or gateway) and returns
@@ -28,7 +29,7 @@ func NewCatalog(cfg *config.Config, m *merger.Merger, instance config.Instance) 
 
 	entries, err := cat.BuildRuntimeCatalog(cfg, m, paths...)
 	if err != nil {
-		utils.Exit(err)
+		term.Exit(err)
 	}
 
 	// The gateway never runs a reconciler, so it needs none of the project's
@@ -40,23 +41,23 @@ func NewCatalog(cfg *config.Config, m *merger.Merger, instance config.Instance) 
 	}
 
 	if len(entries) == 0 && !cat.IsStandaloneGateway() {
-		utils.Exit(fmt.Errorf("validation error: catalog empty"))
+		term.Exit(fmt.Errorf("validation error: catalog empty"))
 	}
 
 	for _, crd := range entries {
 		if !gateway && len(types.ObjectRegistry) == 0 && !crd.IsDynamic() {
-			utils.Exit(fmt.Errorf(
+			term.Exit(fmt.Errorf(
 				"ObjectRegistry is empty — run 'inrun generate registry --file <my-catalog.yaml>' first",
 			))
 		}
 	}
 
 	if err := validate.Execute(cat, cfg); err != nil {
-		utils.Exit(err)
+		term.Exit(err)
 	}
 
 	if err := cat.CheckDeprecationPolicy(); err != nil {
-		utils.Exit(err)
+		term.Exit(err)
 	}
 
 	return cat
