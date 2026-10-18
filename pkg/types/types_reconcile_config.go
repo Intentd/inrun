@@ -77,58 +77,34 @@ type RemoteResponseConfig struct {
 }
 
 // RemoteRequestConfig controls the outbound request.
+//
+// Its call fields come from CallSpec. For the remote request:
+//   - url defaults to remote.endpoint, method to POST, auth and timeout to
+//     remote.auth and remote.timeout
+//   - body replaces Inrun's request body with the service's own, a template
+//     rendered against the CR with .args and .external in scope; object and
+//     children shape Inrun's body and do not apply when body is set
+//   - expectedStatus, when/or and finalize apply only with a mapped response:
+//     when/or are evaluated after reconcile.external (.external in scope), and
+//     a skipped call leaves no .response to map; response.requeue still
+//     applies. Inrun's own contract reply is always 200.
 type RemoteRequestConfig struct {
-	// Method is the HTTP method. Default: POST.
-	Method string `yaml:"method,omitempty" json:"method,omitempty"`
-
-	// Body replaces Inrun's request body with the service's own, a template
-	// rendered against the CR with .args and .external in scope. Object and
-	// Children shape Inrun's body and do not apply when Body is set.
-	Body string `yaml:"body,omitempty" json:"body,omitempty"`
-
-	// ExpectedStatus lists the HTTP status codes that count as success for
-	// this call. Default: any status below 400; anything else fails the
-	// reconcile. Only with a mapped response; Inrun's own reply is always 200.
-	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
-
-	// When and Or decide whether the call is made this pass, evaluated after
-	// reconcile.external (.external in scope): a service that already has
-	// what was asked needs no write. Skipped, there is no .response to map;
-	// response.requeue still applies. Only with a mapped response.
-	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
-	Or   []Condition `yaml:"or,omitempty" json:"or,omitempty"`
+	CallSpec `yaml:",inline" json:",inline"`
 
 	// Finalize is the call made on the finalizing pass, while the CR is being
-	// deleted, in place of Method and Body. Only with a mapped response;
-	// without it a mapped remote makes no call while finalizing.
-	Finalize *RemoteRequestCall `yaml:"finalize,omitempty" json:"finalize,omitempty"`
+	// deleted, in place of the request. It inherits the request's fields
+	// except body (default none), expectedStatus and when/or, which are its
+	// own: for a delete, 404 usually means done. Skipped by its
+	// when/or, the CR is released: there is nothing to clean up. Only with a
+	// mapped response; without it a mapped remote makes no call while
+	// finalizing.
+	Finalize *CallSpec `yaml:"finalize,omitempty" json:"finalize,omitempty"`
 
 	// Object controls which paths are stripped from the CR object before serialisation.
 	Object *RemoteRequestObjectConfig `yaml:"object,omitempty" json:"object,omitempty"`
 
 	// Children controls which previously-created child resources are injected into the request.
 	Children *RemoteRequestChildrenConfig `yaml:"children,omitempty" json:"children,omitempty"`
-}
-
-// RemoteRequestCall is one call other than the request's: its method, body,
-// endpoint, success codes and conditions.
-type RemoteRequestCall struct {
-	// Method is the HTTP method. Default: the request's method.
-	Method string `yaml:"method,omitempty" json:"method,omitempty"`
-	// Body is a template like request.body. Default: no body.
-	Body string `yaml:"body,omitempty" json:"body,omitempty"`
-	// ExpectedStatus lists the status codes that count as success for this
-	// call, separately from the request's: for a delete, 404 usually means
-	// done. Default: any status below 400.
-	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
-	// Endpoint is this call's URL, a template like remote.endpoint (often
-	// the id the service assigned: .external.<name>.json.id or a status
-	// field). Default: remote.endpoint.
-	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty"`
-	// When and Or decide whether the call is made, after reconcile.external.
-	// Skipped, the CR is released: there is nothing to clean up.
-	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
-	Or   []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 }
 
 // RemoteRequestObjectConfig strips paths from the CR object before it is sent to the reconciler.

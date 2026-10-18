@@ -2,6 +2,9 @@ package reconcile
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/intentd/inrun/pkg/external"
 
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -20,44 +23,30 @@ func (c *checker) validateRemoteMapping(name string, crd *types.CRDEntry, remote
 	}
 
 	if rq := remote.Request; rq != nil {
-		if err := checkMethod(at("request.method"), rq.Method); err != nil {
+		if err := c.checkCall(crd, at, "request", rq.CallSpec, body); err != nil {
 			return err
 		}
-		if err := body("request.body", rq.Body); err != nil {
-			return err
-		}
-		if (len(rq.When) > 0 || len(rq.Or) > 0) && !remote.Mapped() {
-			return fmt.Errorf("%s %s needs reconcile.remote.response: a remote that answers in Inrun's Result is called on every reconcile",
-				failureMark(), at("request.when/or"))
-		}
-		if err := checkCallConditions(at("request"), rq.When, rq.Or); err != nil {
-			return err
-		}
-		if len(rq.ExpectedStatus) > 0 && !remote.Mapped() {
-			return fmt.Errorf("%s %s needs reconcile.remote.response: a remote that answers in Inrun's Result always replies 200",
-				failureMark(), at("request.expectedStatus"))
-		}
-		if err := checkStatusCodes(at("request.expectedStatus"), rq.ExpectedStatus); err != nil {
-			return err
+		if !remote.Mapped() {
+			needsResponse := func(field, why string) error {
+				return fmt.Errorf("%s %s needs reconcile.remote.response: %s", failureMark(), at("request."+field), why)
+			}
+			switch {
+			case len(rq.Conditions) > 0 || len(rq.Or) > 0:
+				return needsResponse("when/or", "a remote that answers in Inrun's Result is called on every reconcile")
+			case len(rq.ExpectedStatus) > 0:
+				return needsResponse("expectedStatus", "a remote that answers in Inrun's Result always replies 200")
+			case rq.URL != "":
+				return needsResponse("url", "a remote that answers in Inrun's Result is called at remote.endpoint")
+			case rq.Timeout != "":
+				return needsResponse("timeout", "a remote that answers in Inrun's Result uses remote.timeout")
+			case rq.Auth != nil:
+				return needsResponse("auth", "a remote that answers in Inrun's Result uses remote.auth")
+			case rq.Finalize != nil:
+				return needsResponse("finalize", "a remote that answers in Inrun's Result handles deletion itself (finalizing: true)")
+			}
 		}
 		if rq.Finalize != nil {
-			if !remote.Mapped() {
-				return fmt.Errorf("%s %s needs reconcile.remote.response: a remote that answers in Inrun's Result handles deletion itself (finalizing: true)",
-					failureMark(), at("request.finalize"))
-			}
-			if err := checkMethod(at("request.finalize.method"), rq.Finalize.Method); err != nil {
-				return err
-			}
-			if err := body("request.finalize.body", rq.Finalize.Body); err != nil {
-				return err
-			}
-			if err := checkStatusCodes(at("request.finalize.expectedStatus"), rq.Finalize.ExpectedStatus); err != nil {
-				return err
-			}
-			if err := body("request.finalize.endpoint", rq.Finalize.Endpoint); err != nil {
-				return err
-			}
-			if err := checkCallConditions(at("request.finalize"), rq.Finalize.When, rq.Finalize.Or); err != nil {
+			if err := c.checkCall(crd, at, "request.finalize", *rq.Finalize, body); err != nil {
 				return err
 			}
 		}
@@ -87,6 +76,45 @@ func (c *checker) validateRemoteMapping(name string, crd *types.CRDEntry, remote
 		}
 	}
 	return nil
+}
+
+// checkCall checks one of the remote's calls (request or finalize): the
+// fields every call has, its templates and conditions. Credentials belong in
+// auth, and an idempotency key on a method HTTP already makes safe to repeat
+// does nothing; both are warnings.
+func (c *checker) checkCall(crd *types.CRDEntry, at func(string) string, field string, call types.CallSpec,
+	template func(field, value string) error) error {
+	if err := external.ValidateCallSpec(at(field), call); err != nil {
+		return fmt.Errorf("%s %w", failureMark(), err)
+	}
+	if call.RetryBackoff != nil {
+		return fmt.Errorf("%s %s does not apply to the remote's calls: a failed call fails the reconcile, which is retried with the reconcile's backoff",
+			failureMark(), at(field+".retryBackoff"))
+	}
+	for _, f := range []struct{ name, value string }{{"url", call.URL}, {"body", call.Body}} {
+		if err := template(field+"."+f.name, f.value); err != nil {
+			return err
+		}
+	}
+	for name, value := range call.Headers {
+		if err := template(field+".headers."+name, value); err != nil {
+			return err
+		}
+		if strings.EqualFold(name, "Authorization") {
+			crd.Warnings.AddWarning(fmt.Sprintf("%s sets Authorization: put credentials in auth, so they are read from a Secret and never rendered into logs",
+				at(field+".headers")))
+		}
+	}
+	if k := call.IdempotencyKey; k != nil && !k.Disabled {
+		if err := template(field+".idempotencyKey.value", k.Value); err != nil {
+			return err
+		}
+		if m := strings.ToUpper(call.Method); m != "" && m != "POST" && m != "PATCH" {
+			crd.Warnings.AddWarning(fmt.Sprintf("%s has no effect on %s: the key is sent only on POST and PATCH",
+				at(field+".idempotencyKey"), m))
+		}
+	}
+	return checkCallConditions(at(field), call.Conditions, call.Or)
 }
 
 // checkCallConditions checks a call's when/or: each condition compares one way.

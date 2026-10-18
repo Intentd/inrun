@@ -40,14 +40,12 @@ func mappedReconciler(endpoint string) *Reconciler {
 		timeout: 5 * time.Second,
 		decl: &types.RemoteReconcilerDeclaration{
 			Endpoint: endpoint + "/buckets/{{ .metadata.name }}",
-			Request: &types.RemoteRequestConfig{
-				Method:         http.MethodPut,
+			Request: &types.RemoteRequestConfig{CallSpec: types.CallSpec{Method: http.MethodPut,
 				Body:           `{"quotaGB": {{ .args.quotaGB }}}`,
-				ExpectedStatus: []int{200},
-				Finalize: &types.RemoteRequestCall{
-					Method:         http.MethodDelete,
-					ExpectedStatus: []int{202, 404},
-				},
+				ExpectedStatus: []int{200}}, Finalize: &types.CallSpec{
+				Method:         http.MethodDelete,
+				ExpectedStatus: []int{202, 404},
+			},
 			},
 			Response: &types.RemoteResponseConfig{
 				Status: &types.StatusConfig{Fields: []types.StatusFieldSpec{
@@ -150,7 +148,7 @@ func TestMapped_FinalizingWithoutFinalizeReleases(t *testing.T) {
 
 func TestBuildBody_DeclaredBodyReplacesInrunsRequest(t *testing.T) {
 	r := newReconcilerForTest("http://svc/reconcile")
-	r.decl.Request = &types.RemoteRequestConfig{Body: `{"size": {{ .args.quotaGB }}}`}
+	r.decl.Request = &types.RemoteRequestConfig{CallSpec: types.CallSpec{Body: `{"size": {{ .args.quotaGB }}}`}}
 	body, err := r.buildBody(mappedRequest(false))
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"size": 50}`, string(body))
@@ -192,7 +190,7 @@ func observed(finalizing bool, status string, id string) domain.Request {
 func TestMapped_RequestSkippedWhenItsConditionFails(t *testing.T) {
 	srv, seen := bucketAPI(t, "ready", 0)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.When = []types.Condition{{Field: "external.current.status", Equals: "404"}}
+	r.decl.Request.Conditions = []types.Condition{{Field: "external.current.status", Equals: "404"}}
 	r.decl.Response.Requeue = &types.RequeueConfig{After: "30s"}
 
 	result, err := r.reconcileMapped(context.Background(), observed(false, "200", "b-1"))
@@ -210,7 +208,7 @@ func TestMapped_RequestSkippedWhenItsConditionFails(t *testing.T) {
 func TestMapped_FinalizeSkippedReleases(t *testing.T) {
 	srv, seen := bucketAPI(t, "", http.StatusAccepted)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.Finalize.When = []types.Condition{{Field: "external.current.status", Equals: "200"}}
+	r.decl.Request.Finalize.Conditions = []types.Condition{{Field: "external.current.status", Equals: "200"}}
 
 	result, err := r.reconcileMapped(context.Background(), observed(true, "404", ""))
 	require.NoError(t, err)
@@ -221,7 +219,7 @@ func TestMapped_FinalizeSkippedReleases(t *testing.T) {
 func TestMapped_FinalizeEndpoint(t *testing.T) {
 	srv, seen := bucketAPI(t, "", http.StatusAccepted)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.Finalize.Endpoint = srv.URL + "/buckets/{{ .external.current.json.id }}"
+	r.decl.Request.Finalize.URL = srv.URL + "/buckets/{{ .external.current.json.id }}"
 
 	_, err := r.reconcileMapped(context.Background(), observed(true, "200", "b-42"))
 	require.NoError(t, err)

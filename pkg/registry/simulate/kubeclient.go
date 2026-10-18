@@ -2,10 +2,13 @@ package simulate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
+
+	jsonpatch "github.com/evanphx/json-patch/v5"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -268,38 +271,6 @@ func (f *FakeKubeclient) MarkDeploymentReady(namespace, name string) {
 		context.Background(), dep, metav1.UpdateOptions{})
 }
 
-// verbFromAction returns "apply" for Server-Side Apply patch operations,
-// "patch" for all other patch types, and the raw verb for everything else.
-func verbFromAction(action k8stesting.Action) string {
-	if pa, ok := action.(k8stesting.PatchAction); ok {
-		if pa.GetPatchType() == k8stypes.ApplyPatchType {
-			return "apply"
-		}
-	}
-	return action.GetVerb()
-}
-
-// nameFromAction extracts the resource name from a test action.
-func nameFromAction(action k8stesting.Action) string {
-	switch a := action.(type) {
-	case k8stesting.GetAction:
-		return a.GetName()
-	case k8stesting.CreateAction:
-		obj := a.GetObject()
-		if acc, ok := obj.(metav1.Object); ok {
-			return acc.GetName()
-		}
-	case k8stesting.UpdateAction:
-		obj := a.GetObject()
-		if acc, ok := obj.(metav1.Object); ok {
-			return acc.GetName()
-		}
-	case k8stesting.DeleteAction:
-		return a.GetName()
-	}
-	return ""
-}
-
 // fakeMapper satisfies meta.RESTMapper for the simulation context.
 // Returns a fixed mapping for standard resource types.
 type fakeMapper struct{}
@@ -361,8 +332,8 @@ func (f fakescope) String() string           { return string(f) }
 // Compile check — *FakeKubeclient must satisfy kubeclient.Interface.
 var _ kubeclient.Interface = (*FakeKubeclient)(nil)
 
-// Patch stubs — record operations but perform no real mutations.
-// The fake dynamic client handles the underlying object storage.
+// Patch methods record each operation and apply it the way the API server
+// would, to the object and to the informer's copy the next cycle reads.
 
 func (f *FakeKubeclient) PatchFinalizers(_ context.Context, obj runtime.Object, finalizers []string, _ metav1.PatchOptions) error {
 	f.shared.mu.Lock()
@@ -419,6 +390,37 @@ func (f *FakeKubeclient) PatchAnnotations(_ context.Context, obj runtime.Object,
 	return nil
 }
 
+func (f *FakeKubeclient) PatchStatus(_ context.Context, obj domain.Object, statusFields map[string]interface{}, _ metav1.PatchOptions) error {
+	if len(statusFields) == 0 {
+		return nil // the real client sends nothing either
+	}
+	f.shared.mu.Lock()
+	f.shared.ops = append(f.shared.ops, Op{
+		Cycle:    f.shared.currentCycle,
+		Verb:     "patch",
+		Resource: "status",
+		Name:     obj.GetName(),
+		At:       time.Now(),
+	})
+	f.shared.mu.Unlock()
+	f.persistMerge(obj, "status", statusFields)
+	return nil
+}
+
+func (f *FakeKubeclient) PatchSpec(_ context.Context, obj domain.Object, specFields map[string]interface{}, _ metav1.PatchOptions) error {
+	f.shared.mu.Lock()
+	f.shared.ops = append(f.shared.ops, Op{
+		Cycle:    f.shared.currentCycle,
+		Verb:     "patch",
+		Resource: "spec",
+		Name:     obj.GetName(),
+		At:       time.Now(),
+	})
+	f.shared.mu.Unlock()
+	f.persistMerge(obj, "spec", specFields)
+	return nil
+}
+
 // persistMeta applies a metadata patch the way the API server would: to obj,
 // and to the copy the informer holds, which the next cycle prepares from.
 // Without it, maintain would find its finalizer and labels missing and patch
@@ -429,7 +431,58 @@ func (f *FakeKubeclient) persistMeta(obj runtime.Object, mutate func(metav1.Obje
 		return
 	}
 	mutate(mo)
-	if f.informer == nil {
+	f.updateStored(obj, func(raw interface{}) {
+		if stored, ok := raw.(metav1.Object); ok {
+			mutate(stored)
+		}
+	})
+}
+
+// persistMerge applies a JSON merge patch of {field: fields} the way the API
+// server would: to obj, and to the informer's copy the next cycle prepares
+// from. Without it, a status a pass wrote (an id the service assigned) is
+// gone on the next pass, and anything that reads it back sees nothing.
+func (f *FakeKubeclient) persistMerge(obj runtime.Object, field string, fields map[string]interface{}) {
+	patch, err := json.Marshal(map[string]interface{}{field: fields})
+	if err != nil {
+		return
+	}
+	apply := func(o runtime.Object) {
+		doc, err := runtime.DefaultUnstructuredConverter.ToUnstructured(o)
+		if err != nil {
+			return
+		}
+		raw, err := json.Marshal(doc)
+		if err != nil {
+			return
+		}
+		merged, err := jsonpatch.MergePatch(raw, patch)
+		if err != nil {
+			return
+		}
+		var out map[string]interface{}
+		if err := json.Unmarshal(merged, &out); err != nil {
+			return
+		}
+		if u, ok := o.(*unstructured.Unstructured); ok {
+			u.Object = out
+			return
+		}
+		_ = runtime.DefaultUnstructuredConverter.FromUnstructured(out, o)
+	}
+	apply(obj)
+	f.updateStored(obj, func(stored interface{}) {
+		if o, ok := stored.(runtime.Object); ok {
+			apply(o)
+		}
+	})
+}
+
+// updateStored applies mutate to the informer's copy of obj, when it holds
+// one that is not obj itself, and stores it back.
+func (f *FakeKubeclient) updateStored(obj runtime.Object, mutate func(interface{})) {
+	mo, ok := obj.(metav1.Object)
+	if !ok || f.informer == nil {
 		return
 	}
 	key := mo.GetName()
@@ -445,61 +498,9 @@ func (f *FakeKubeclient) persistMeta(obj runtime.Object, mutate func(metav1.Obje
 	if !ok || !sameKind(storedObj, obj) {
 		return
 	}
-	stored, ok := raw.(metav1.Object)
-	if !ok || stored == mo {
+	if stored, ok := raw.(metav1.Object); !ok || stored == mo {
 		return
 	}
-	mutate(stored)
+	mutate(raw)
 	_ = idx.Update(raw)
-}
-
-// sameKind reports whether a and b are the same kind, when both say.
-func sameKind(a, b runtime.Object) bool {
-	ka, kb := a.GetObjectKind().GroupVersionKind().Kind, b.GetObjectKind().GroupVersionKind().Kind
-	return ka == "" || kb == "" || ka == kb
-}
-
-func (f *FakeKubeclient) PatchStatus(_ context.Context, obj domain.Object, _ map[string]interface{}, _ metav1.PatchOptions) error {
-	f.shared.mu.Lock()
-	f.shared.ops = append(f.shared.ops, Op{
-		Cycle:    f.shared.currentCycle,
-		Verb:     "patch",
-		Resource: "status",
-		Name:     obj.GetName(),
-		At:       time.Now(),
-	})
-	f.shared.mu.Unlock()
-	return nil
-}
-
-func (f *FakeKubeclient) PatchSpec(_ context.Context, obj domain.Object, _ map[string]interface{}, _ metav1.PatchOptions) error {
-	f.shared.mu.Lock()
-	f.shared.ops = append(f.shared.ops, Op{
-		Cycle:    f.shared.currentCycle,
-		Verb:     "patch",
-		Resource: "spec",
-		Name:     obj.GetName(),
-		At:       time.Now(),
-	})
-	f.shared.mu.Unlock()
-	return nil
-}
-
-func stringMapsEqual(a, b map[string]string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for k, v := range a {
-		if b[k] != v {
-			return false
-		}
-	}
-	return true
-}
-
-func nameFromRuntimeObject(obj runtime.Object) string {
-	if acc, ok := obj.(interface{ GetName() string }); ok {
-		return acc.GetName()
-	}
-	return ""
 }

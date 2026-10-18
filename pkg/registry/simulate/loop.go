@@ -49,7 +49,9 @@ func runLoop(ctx context.Context, deps reconcile.Deps, in reconcile.Input, kube 
 			}
 		}
 
-		if !result.Steady && cycle > 1 && opsMatch(cycleResult.Ops, prevCycleOps) {
+		// Steady: this pass repeats the last one, or writes nothing at all
+		// (status a pass wrote is kept, so a settled CR needs no write).
+		if !result.Steady && cycle > 1 && (noWrites(cycleResult.Ops) || opsMatch(cycleResult.Ops, prevCycleOps)) {
 			result.Steady = true
 			result.SteadyAt = cycle
 		}

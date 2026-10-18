@@ -58,7 +58,7 @@ func TestRun_SuccessfulCall(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "flags", URL: "http://flags.internal/v1"},
+		{CallSpec: types.CallSpec{URL: "http://flags.internal/v1"}, Name: "flags"},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -88,7 +88,7 @@ func TestRun_JSONBodyDecoded(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "cfg", URL: "http://config.internal/v1"},
+		{CallSpec: types.CallSpec{URL: "http://config.internal/v1"}, Name: "cfg"},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -120,7 +120,7 @@ func TestRun_JSONArrayBodyDecoded(t *testing.T) {
 	defer withTransport(t, stubTransport{status: 200, body: `[{"id":"a"},{"id":"b"}]`})()
 
 	r := resolver(map[string]interface{}{})
-	calls := []types.ExternalCallSpec{{Name: "list", URL: "http://api.internal/items"}}
+	calls := []types.ExternalCallSpec{{CallSpec: types.CallSpec{URL: "http://api.internal/items"}, Name: "list"}}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
 	if err != nil {
@@ -138,7 +138,7 @@ func TestRun_ContinueOnError_True(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "svc", URL: "http://svc.internal/health", ContinueOnError: true},
+		{CallSpec: types.CallSpec{URL: "http://svc.internal/health"}, Name: "svc", ContinueOnError: true},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -158,7 +158,7 @@ func TestRun_ContinueOnError_False(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "svc", URL: "http://svc.internal/health", ContinueOnError: false},
+		{CallSpec: types.CallSpec{URL: "http://svc.internal/health"}, Name: "svc", ContinueOnError: false},
 	}
 
 	_, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -178,12 +178,10 @@ func TestRun_WhenConditionSkipsCall(t *testing.T) {
 		"spec": map[string]interface{}{"env": "staging"},
 	})
 	calls := []types.ExternalCallSpec{
-		{
-			Name: "prod-only",
-			URL:  "http://prod.internal/v1",
+		{CallSpec: types.CallSpec{URL: "http://prod.internal/v1",
 			Conditions: []types.Condition{
 				{Field: "spec.env", Equals: "production"},
-			},
+			}}, Name: "prod-only",
 		},
 	}
 
@@ -219,8 +217,8 @@ func TestRun_LaterCallSeesEarlierResult(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "discovery", URL: "http://discovery.internal/v1"},
-		{Name: "data", URL: `{{ index .external "discovery" "endpoint" }}`},
+		{CallSpec: types.CallSpec{URL: "http://discovery.internal/v1"}, Name: "discovery"},
+		{CallSpec: types.CallSpec{URL: `{{ index .external "discovery" "endpoint" }}`}, Name: "data"},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -242,7 +240,7 @@ func TestRun_ExpectedStatusMismatch(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "api", URL: "http://api.internal/v1", ExpectedStatus: []int{200}, ContinueOnError: false},
+		{CallSpec: types.CallSpec{URL: "http://api.internal/v1", ExpectedStatus: []int{200}}, Name: "api", ContinueOnError: false},
 	}
 
 	_, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -258,7 +256,7 @@ func TestRun_JSONStatusKeyStaysReadable(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "health", URL: "http://svc.internal/health"},
+		{CallSpec: types.CallSpec{URL: "http://svc.internal/health"}, Name: "health"},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -281,7 +279,7 @@ func TestRun_NonJSONBodyNotParsed(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "txt", URL: "http://txt.internal/v1"},
+		{CallSpec: types.CallSpec{URL: "http://txt.internal/v1"}, Name: "txt"},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -309,7 +307,7 @@ func TestRun_ExpectedStatusList(t *testing.T) {
 
 	r := resolver(map[string]interface{}{})
 	calls := []types.ExternalCallSpec{
-		{Name: "read", URL: "http://api.internal/v1/item", ExpectedStatus: []int{200, 404}},
+		{CallSpec: types.CallSpec{URL: "http://api.internal/v1/item", ExpectedStatus: []int{200, 404}}, Name: "read"},
 	}
 
 	got, err := external.Run(context.Background(), "test", r, calls, nil)
@@ -323,7 +321,7 @@ func TestRun_ExpectedStatusList(t *testing.T) {
 }
 
 func TestValidateCall_ExpectedStatusRange(t *testing.T) {
-	call := types.ExternalCallSpec{Name: "read", URL: "http://api.internal", ExpectedStatus: []int{200, 99}}
+	call := types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal", ExpectedStatus: []int{200, 99}}, Name: "read"}
 	if err := external.ValidateCall("test", call); err == nil {
 		t.Fatal("99 is not an HTTP status code")
 	}
@@ -338,7 +336,7 @@ func TestCall_OneCall(t *testing.T) {
 	r := resolver(map[string]interface{}{"spec": map[string]interface{}{"ready": "no"}})
 
 	entry, err := external.Call(context.Background(), "test", "remote", r,
-		types.ExternalCallSpec{Name: "ensure", URL: "http://api.internal/buckets/b-1", Method: "PUT"}, nil)
+		types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/buckets/b-1", Method: "PUT"}, Name: "ensure"}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -346,9 +344,8 @@ func TestCall_OneCall(t *testing.T) {
 		t.Errorf("got %v", entry)
 	}
 
-	skipped, err := external.Call(context.Background(), "test", "remote", r, types.ExternalCallSpec{
-		Name: "gated", URL: "http://api.internal/x",
-		Conditions: []types.Condition{{Field: "spec.ready", Equals: "yes"}},
+	skipped, err := external.Call(context.Background(), "test", "remote", r, types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x",
+		Conditions: []types.Condition{{Field: "spec.ready", Equals: "yes"}}}, Name: "gated",
 	}, nil)
 	if err != nil || skipped["called"] != "false" {
 		t.Errorf("a call whose conditions fail is skipped: %v, %v", skipped, err)
@@ -360,7 +357,7 @@ func TestCall_FailureReturnsEntryAndError(t *testing.T) {
 	r := resolver(map[string]interface{}{})
 
 	entry, err := external.Call(context.Background(), "test", "remote", r,
-		types.ExternalCallSpec{Name: "ensure", URL: "http://api.internal/x"}, nil)
+		types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x"}, Name: "ensure"}, nil)
 	if err == nil {
 		t.Fatal("a 503 without continueOnError is an error")
 	}

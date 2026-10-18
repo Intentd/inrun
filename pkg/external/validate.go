@@ -2,6 +2,7 @@ package external
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/intentd/kel/core"
 
@@ -122,7 +123,10 @@ func validateProtocol(location string, p types.ExternalProtocol) error {
 	return fmt.Errorf("%s: unknown protocol %q — valid values: http, prometheus, redis, postgres, mongo, kafka", location, p)
 }
 
-func validateHTTPCall(location string, call types.ExternalCallSpec) error {
+// ValidateCallSpec checks the fields every HTTP call has, for external calls
+// and the remote reconciler's request and finalize alike: method, expected
+// status codes, timeout, header names and the idempotency key.
+func ValidateCallSpec(location string, call types.CallSpec) error {
 	if call.Method != "" {
 		switch call.Method {
 		case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD":
@@ -130,16 +134,40 @@ func validateHTTPCall(location string, call types.ExternalCallSpec) error {
 			return fmt.Errorf("%s: method %q is not a valid HTTP method", location, call.Method)
 		}
 	}
+	for _, code := range call.ExpectedStatus {
+		if code < 100 || code > 599 {
+			return fmt.Errorf("%s: expectedStatus %d is not an HTTP status code (100–599)", location, code)
+		}
+	}
+	if call.Timeout != "" {
+		if _, err := core.ParseTimeDuration(call.Timeout); err != nil {
+			return fmt.Errorf("%s: timeout %q is not a valid duration: %w", location, call.Timeout, err)
+		}
+	}
+	for name := range call.Headers {
+		if !validHeaderName(name) {
+			return fmt.Errorf("%s: header name %q is not valid: no spaces, colons or line breaks", location, name)
+		}
+	}
+	if k := call.IdempotencyKey; k != nil && k.Header != "" && !validHeaderName(k.Header) {
+		return fmt.Errorf("%s: idempotencyKey.header %q is not a valid header name", location, k.Header)
+	}
+	return nil
+}
+
+func validHeaderName(name string) bool {
+	return name != "" && !strings.ContainsAny(name, " \t:\r\n")
+}
+
+func validateHTTPCall(location string, call types.ExternalCallSpec) error {
+	if err := ValidateCallSpec(location, call.CallSpec); err != nil {
+		return err
+	}
 	if call.Query != "" {
 		return fmt.Errorf("%s: query is not used by protocol: http — use url: to encode query parameters", location)
 	}
 	if call.PoolSize != 0 {
 		return fmt.Errorf("%s: poolSize is only meaningful for stateful protocols (redis, postgres, kafka)", location)
-	}
-	for _, code := range call.ExpectedStatus {
-		if code < 100 || code > 599 {
-			return fmt.Errorf("%s: expectedStatus %d is not an HTTP status code (100–599)", location, code)
-		}
 	}
 	return nil
 }

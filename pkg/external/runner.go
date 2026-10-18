@@ -3,6 +3,7 @@ package external
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/intentd/kel/core"
 
@@ -84,6 +85,17 @@ func Call(
 	resolvedBody, err := resolver.Resolve(call.Body)
 	if err != nil {
 		return nil, fmt.Errorf("%s.body: %w", where, err)
+	}
+	if call.Protocol == "" || call.Protocol == types.ProtocolHTTP || call.Protocol == types.ProtocolPrometheus {
+		method := call.Method
+		if method == "" {
+			method = http.MethodGet
+		}
+		headers, err := RequestHeaders(resolver.Resolve, call.CallSpec, ObjectIdentity(resolver.Data()), method, resolvedURL, resolvedBody)
+		if err != nil {
+			return nil, fmt.Errorf("%s.%w", where, err)
+		}
+		call.Headers = headers // call is this function's copy
 	}
 	credential, _, err := ResolveAuth(ctx, call.Auth, cs)
 	if err != nil {

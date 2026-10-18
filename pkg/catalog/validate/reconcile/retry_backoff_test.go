@@ -125,9 +125,10 @@ func TestValidateRetryBackoff_ExternalValidShorthand(t *testing.T) {
 		Reconcile: &types.ReconcileConfig{
 			OnReconcile: &types.HookTemplates{
 				External: []types.ExternalCallSpec{
-					{Name: "health", URL: "http://svc/health", RetryBackoff: &types.RetryBackoffConfig{
+					{CallSpec: types.CallSpec{URL: "http://svc/health", RetryBackoff: &types.RetryBackoffConfig{
 						Initial: dur(1 * time.Second),
-					}},
+					}}, Name: "health",
+					},
 				},
 			},
 		},
@@ -140,9 +141,10 @@ func TestValidateRetryBackoff_ExternalNegativeMultiplierErrors(t *testing.T) {
 		Reconcile: &types.ReconcileConfig{
 			OnReconcile: &types.HookTemplates{
 				External: []types.ExternalCallSpec{
-					{Name: "health", URL: "http://svc/health", RetryBackoff: &types.RetryBackoffConfig{
+					{CallSpec: types.CallSpec{URL: "http://svc/health", RetryBackoff: &types.RetryBackoffConfig{
 						Multiplier: -2.0,
-					}},
+					}}, Name: "health",
+					},
 				},
 			},
 		},
@@ -159,12 +161,13 @@ func TestValidateRetryBackoff_ExternalWorstCaseExceedsResyncWarns(t *testing.T) 
 		Reconcile: &types.ReconcileConfig{
 			OnReconcile: &types.HookTemplates{
 				External: []types.ExternalCallSpec{
-					{Name: "db", URL: "postgres://svc/db", RetryBackoff: &types.RetryBackoffConfig{
+					{CallSpec: types.CallSpec{URL: "postgres://svc/db", RetryBackoff: &types.RetryBackoffConfig{
 						Initial:     dur(3 * time.Second),
 						Max:         dur(1 * time.Minute),
 						Multiplier:  2.0,
 						MaxAttempts: 4,
-					}},
+					}}, Name: "db",
+					},
 				},
 			},
 		},

@@ -14,7 +14,7 @@ func reconcileWithConditions(when []types.Condition, notes ...types.UserDefinedF
 			"quotaGB": "{{ .spec.quotaGB }}",
 			"plan":    map[string]interface{}{"tier": "{{ .external.plan.json.tier }}"},
 		},
-		External: []types.ExternalCallSpec{{Name: "plan", URL: "http://plans/{{ .metadata.name }}"}},
+		External: []types.ExternalCallSpec{{CallSpec: types.CallSpec{URL: "http://plans/{{ .metadata.name }}"}, Name: "plan"}},
 		When:     when,
 	}
 	return checkReconcileConditions(`CRD "bucket"`, rc, types.KELFunctionRegistry{Definitions: notes})

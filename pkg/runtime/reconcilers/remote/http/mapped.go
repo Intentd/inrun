@@ -100,37 +100,65 @@ type mappedPass struct {
 
 // mappedCall is the one call a mapped reconcile makes, as an external call
 // spec with its conditions; false when there is no call to make (finalizing
-// without request.finalize).
+// without request.finalize). The request's CallSpec is used as declared;
+// unset url, method, auth and timeout come from the remote. finalize
+// inherits everything from the request but its body, expectedStatus and
+// when/or.
 func (r *Reconciler) mappedCall(finalizing bool) (mappedPass, bool) {
-	pass := mappedPass{spec: types.ExternalCallSpec{
-		Name:    "response",
-		URL:     r.decl.Endpoint,
-		Method:  http.MethodPost,
-		Auth:    r.effectiveAuth(),
-		Timeout: r.timeout.String(),
-	}}
-	rq := r.decl.Request
-	if rq != nil {
-		if rq.Method != "" {
-			pass.spec.Method = rq.Method
+	var call types.CallSpec
+	if rq := r.decl.Request; rq != nil {
+		call = rq.CallSpec
+	}
+	if finalizing {
+		rq := r.decl.Request
+		if rq == nil || rq.Finalize == nil {
+			return mappedPass{}, false
 		}
-		pass.spec.Body, pass.spec.ExpectedStatus = rq.Body, rq.ExpectedStatus
-		pass.when, pass.or = rq.When, rq.Or
+		f := *rq.Finalize
+		inherit(&f, call)
+		call = f
 	}
-	if !finalizing {
-		return pass, true
+	if call.URL == "" {
+		call.URL = r.decl.Endpoint
 	}
-	if rq == nil || rq.Finalize == nil {
-		return mappedPass{}, false
+	if call.Method == "" {
+		call.Method = http.MethodPost
 	}
-	f := rq.Finalize
-	if f.Method != "" {
-		pass.spec.Method = f.Method
+	if call.Auth == nil {
+		call.Auth = r.decl.Auth
 	}
-	if f.Endpoint != "" {
-		pass.spec.URL = f.Endpoint
+	call.Auth = r.inNamespace(call.Auth)
+	if call.Timeout == "" {
+		call.Timeout = r.timeout.String()
 	}
-	pass.spec.Body, pass.spec.ExpectedStatus = f.Body, f.ExpectedStatus
-	pass.when, pass.or = f.When, f.Or
-	return pass, true
+	// when/or are evaluated by reconcileMapped, not by external.Call.
+	when, or := call.Conditions, call.Or
+	call.Conditions, call.Or = nil, nil
+	return mappedPass{spec: types.ExternalCallSpec{Name: "response", CallSpec: call}, when: when, or: or}, true
+}
+
+// inherit fills f's unset fields from the request's, except body,
+// expectedStatus and when/or, which belong to each call.
+func inherit(f *types.CallSpec, request types.CallSpec) {
+	if f.URL == "" {
+		f.URL = request.URL
+	}
+	if f.Method == "" {
+		f.Method = request.Method
+	}
+	if f.Headers == nil {
+		f.Headers = request.Headers
+	}
+	if f.Timeout == "" {
+		f.Timeout = request.Timeout
+	}
+	if f.Auth == nil {
+		f.Auth = request.Auth
+	}
+	if f.RetryBackoff == nil {
+		f.RetryBackoff = request.RetryBackoff
+	}
+	if f.IdempotencyKey == nil {
+		f.IdempotencyKey = request.IdempotencyKey
+	}
 }

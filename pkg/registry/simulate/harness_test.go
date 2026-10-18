@@ -275,3 +275,30 @@ func TestExtractMetaName_Protobuf(t *testing.T) {
 func TestExtractMetaName_Garbage(t *testing.T) {
 	assert.Equal(t, "", extractMetaName([]byte("not an object")))
 }
+
+func TestPatchStatus_PersistsOnTheObject(t *testing.T) {
+	f := NewFakeKubeclient(runtime.NewScheme())
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "storage.demo.inrun.dev/v1alpha1", "kind": "Volume",
+		"metadata": map[string]interface{}{"name": "data", "namespace": "default"},
+	}}
+	require.NoError(t, f.PatchStatus(context.Background(), obj, map[string]interface{}{"volumeId": "v-1", "sizeGB": 10}, metav1.PatchOptions{}))
+	got, _, _ := unstructured.NestedMap(obj.Object, "status")
+	assert.Equal(t, map[string]interface{}{"volumeId": "v-1", "sizeGB": float64(10)}, got,
+		"stored as the API server stores JSON")
+
+	require.NoError(t, f.PatchStatus(context.Background(), obj, map[string]interface{}{"sizeGB": nil, "state": "ready"}, metav1.PatchOptions{}))
+	got, _, _ = unstructured.NestedMap(obj.Object, "status")
+	assert.Equal(t, map[string]interface{}{"volumeId": "v-1", "state": "ready"}, got,
+		"a merge patch merges keys, and null removes one")
+
+	require.NoError(t, f.PatchStatus(context.Background(), obj, nil, metav1.PatchOptions{}))
+	assert.Len(t, f.Ops(), 2, "an empty patch is not sent, as with the real client")
+}
+
+func TestNoWrites(t *testing.T) {
+	assert.True(t, noWrites(nil), "a pass that does nothing is steady")
+	assert.True(t, noWrites([]Op{{Verb: "get"}, {Verb: "list"}}), "reads change nothing")
+	assert.False(t, noWrites([]Op{{Verb: "get"}, {Verb: "patch", Resource: "status"}}))
+	assert.False(t, noWrites([]Op{{Verb: "apply"}}))
+}

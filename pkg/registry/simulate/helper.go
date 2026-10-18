@@ -16,11 +16,14 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert/yaml"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	k8stesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -142,6 +145,18 @@ func extractMetaName(body []byte) string {
 	return ""
 }
 
+// noWrites reports whether ops contains no write: only reads, or nothing.
+func noWrites(ops []Op) bool {
+	for _, op := range ops {
+		switch op.Verb {
+		case "get", "list", "watch":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // opsMatch returns true when two op slices have the same verb+resource sequence.
 func opsMatch(a, b []Op) bool {
 	if len(a) != len(b) {
@@ -222,4 +237,55 @@ func setupObjects(crd *types.CRDEntry) ([]*unstructured.Unstructured, error) {
 		}
 	}
 	return objs, nil
+}
+
+// verbFromAction returns "apply" for Server-Side Apply patch operations,
+// "patch" for all other patch types, and the raw verb for everything else.
+func verbFromAction(action k8stesting.Action) string {
+	if pa, ok := action.(k8stesting.PatchAction); ok {
+		if pa.GetPatchType() == k8stypes.ApplyPatchType {
+			return "apply"
+		}
+	}
+	return action.GetVerb()
+}
+
+// nameFromAction extracts the resource name from a test action. Actions that
+// name their object (get, delete, patch) satisfy GetAction; actions that carry
+// it (create, update) satisfy CreateAction, so one case covers each.
+func nameFromAction(action k8stesting.Action) string {
+	switch a := action.(type) {
+	case k8stesting.GetAction:
+		return a.GetName()
+	case k8stesting.CreateAction:
+		if acc, ok := a.GetObject().(metav1.Object); ok {
+			return acc.GetName()
+		}
+	}
+	return ""
+}
+
+// sameKind reports whether a and b are the same kind, when both say.
+func sameKind(a, b runtime.Object) bool {
+	ka, kb := a.GetObjectKind().GroupVersionKind().Kind, b.GetObjectKind().GroupVersionKind().Kind
+	return ka == "" || kb == "" || ka == kb
+}
+
+func stringMapsEqual(a, b map[string]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func nameFromRuntimeObject(obj runtime.Object) string {
+	if acc, ok := obj.(interface{ GetName() string }); ok {
+		return acc.GetName()
+	}
+	return ""
 }

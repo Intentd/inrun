@@ -62,6 +62,13 @@ func (r *Reconciler) callRemote(ctx context.Context, req domain.Request) (contra
 		return contract.Result{}, fmt.Errorf("remote reconciler: create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	headers, err := r.requestHeaders(req, method, endpoint, string(body))
+	if err != nil {
+		return contract.Result{}, fmt.Errorf("remote reconciler: request.%w", err)
+	}
+	for name, value := range headers {
+		httpReq.Header.Set(name, value)
+	}
 
 	if err := r.applyAuth(ctx, httpReq); err != nil {
 		return contract.Result{}, fmt.Errorf("remote reconciler: auth: %w", err)
@@ -116,6 +123,22 @@ func (r *Reconciler) resolveEndpoint(req domain.Request) string {
 	return resolved
 }
 
+// requestHeaders returns request.headers rendered against the CR, plus the
+// idempotency key, for the contract call.
+func (r *Reconciler) requestHeaders(req domain.Request, method, endpoint, body string) (map[string]string, error) {
+	var spec types.CallSpec
+	if r.decl.Request != nil {
+		spec = r.decl.Request.CallSpec
+	}
+	render := func(v string) (string, error) { return v, nil }
+	identity := req.Key
+	if resolver, ok := resolverFor(req); ok {
+		render = resolver.Resolve
+		identity = external.ObjectIdentity(resolver.Data())
+	}
+	return external.RequestHeaders(render, spec, identity, method, endpoint, body)
+}
+
 // buildBody serialises the request for the remote endpoint: request.body
 // rendered against the CR when declared, Inrun's request otherwise.
 func (r *Reconciler) buildBody(req domain.Request) ([]byte, error) {
@@ -161,10 +184,15 @@ func (r *Reconciler) applyObjectExclusions(obj domain.Object, paths []string) ma
 	return cp
 }
 
-// effectiveAuth is the declared auth with a secretRef without a namespace
-// resolved in Inrun's own namespace; nil when no auth is declared.
+// effectiveAuth is the declared remote.auth with a secretRef without a
+// namespace resolved in Inrun's own namespace; nil when no auth is declared.
 func (r *Reconciler) effectiveAuth() *types.ExternalAuth {
-	auth := r.decl.Auth
+	return r.inNamespace(r.decl.Auth)
+}
+
+// inNamespace returns auth with a secretRef without a namespace resolved in
+// Inrun's own namespace.
+func (r *Reconciler) inNamespace(auth *types.ExternalAuth) *types.ExternalAuth {
 	if auth == nil || auth.SecretRef == nil || auth.SecretRef.Namespace != "" {
 		return auth
 	}

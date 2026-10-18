@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/intentd/inrun/pkg/logger"
@@ -35,6 +36,9 @@ func registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/slack/notify", handle(slackNotifyHandler))
 	mux.HandleFunc("/slack/messages", handle(slackMessagesHandler))
 	mux.HandleFunc("/buckets/", handle(bucketHandler))
+	mux.HandleFunc("/volumes", handle(recordVolume(volumesHandler)))
+	mux.HandleFunc("/volumes/requests", handle(volumeRequestsHandler))
+	mux.HandleFunc("/volumes/", handle(recordVolume(volumeHandler)))
 }
 
 // handle wraps a handler with debug logging.
@@ -571,4 +575,115 @@ func bucketHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		writePlain(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+// /volumes is a storage API that assigns the id itself: POST creates a
+// volume and answers its id, and later calls address it by that id. A POST
+// carrying an Idempotency-Key it has seen answers the first volume instead
+// of creating another, the way Stripe-style APIs do; without a key, every
+// POST creates a new volume. GET /volumes lists them all, so a test can see
+// whether a create ran twice.
+func volumesHandler(w http.ResponseWriter, r *http.Request) {
+	volumesMu.Lock()
+	defer volumesMu.Unlock()
+
+	switch r.Method {
+	case http.MethodPost:
+		key := r.Header.Get("Idempotency-Key")
+		if id, seen := volumeKeys[key]; key != "" && seen {
+			if v, ok := volumes[id]; ok {
+				writeJSON(w, http.StatusCreated, v)
+				return
+			}
+		}
+		var body struct {
+			Name   string `json:"name"`
+			SizeGB int    `json:"sizeGB"`
+		}
+		json.NewDecoder(r.Body).Decode(&body) //nolint:errcheck
+		volumeSeq++
+		v := &volume{ID: fmt.Sprintf("v-%d", volumeSeq), Name: body.Name, SizeGB: body.SizeGB, Status: "provisioning"}
+		volumes[v.ID] = v
+		if key != "" {
+			volumeKeys[key] = v.ID
+		}
+		writeJSON(w, http.StatusCreated, v)
+
+	case http.MethodGet:
+		items := make([]*volume, 0, len(volumes))
+		for _, v := range volumes {
+			items = append(items, v)
+		}
+		sort.Slice(items, func(i, j int) bool { return items[i].ID < items[j].ID })
+		writeJSON(w, http.StatusOK, map[string]interface{}{"count": len(items), "items": items})
+
+	default:
+		writePlain(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// volumeHandler serves /volumes/{id}: GET answers the volume (provisioning,
+// then ready) or 404; DELETE answers 202 deleting, then 404 once it is gone.
+func volumeHandler(w http.ResponseWriter, r *http.Request) {
+	id := strings.Trim(strings.TrimPrefix(r.URL.Path, "/volumes"), "/")
+	volumesMu.Lock()
+	defer volumesMu.Unlock()
+	v, exists := volumes[id]
+
+	switch r.Method {
+	case http.MethodGet:
+		if !exists {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no volume " + id})
+			return
+		}
+		writeJSON(w, http.StatusOK, v)
+		if v.Status == "provisioning" {
+			v.Status = "ready" // the next read sees it ready
+		}
+
+	case http.MethodDelete:
+		switch {
+		case !exists:
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no volume " + id})
+		case v.Status == "deleting":
+			delete(volumes, id)
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no volume " + id})
+		default:
+			v.Status = "deleting"
+			writeJSON(w, http.StatusAccepted, v)
+		}
+
+	default:
+		writePlain(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// recordVolume records each request to the volume API and the status it got.
+func recordVolume(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		h(rec, r)
+		volumesMu.Lock()
+		volumeRequests = append(volumeRequests, volumeRequest{
+			Method: r.Method, Path: r.URL.Path, IdempotencyKey: r.Header.Get("Idempotency-Key"), Status: rec.status,
+		})
+		volumesMu.Unlock()
+	}
+}
+
+// volumeRequestsHandler answers every request the volume API has received.
+func volumeRequestsHandler(w http.ResponseWriter, r *http.Request) {
+	volumesMu.Lock()
+	defer volumesMu.Unlock()
+	writeJSON(w, http.StatusOK, map[string]interface{}{"count": len(volumeRequests), "items": volumeRequests})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
 }

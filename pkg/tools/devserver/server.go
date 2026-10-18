@@ -67,6 +67,31 @@ var (
 	bucketsMu sync.Mutex
 )
 
+// volumes backs /volumes, keyed by the id the API assigns; volumeKeys maps
+// an Idempotency-Key to the volume its first POST created.
+var (
+	volumes    = map[string]*volume{}
+	volumeKeys = map[string]string{}
+	volumeSeq  int
+	volumesMu  sync.Mutex
+	// volumeRequests records each request to /volumes, for GET /volumes/requests.
+	volumeRequests []volumeRequest
+)
+
+type volumeRequest struct {
+	Method         string `json:"method"`
+	Path           string `json:"path"`
+	IdempotencyKey string `json:"idempotencyKey,omitempty"`
+	Status         int    `json:"status"`
+}
+
+type volume struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	SizeGB int    `json:"sizeGB"`
+	Status string `json:"status"`
+}
+
 type bucket struct {
 	ID       string `json:"id"`
 	Status   string `json:"status"`
@@ -167,5 +192,10 @@ func printDevBanner(port int) {
 	fmt.Printf("  PUT  /buckets/:name             → ensure a bucket (provisioning, then ready)\n")
 	fmt.Printf("  GET  /buckets/:name             → the bucket, or 404\n")
 	fmt.Printf("  DELETE /buckets/:name           → 202 deleting, then 404 once gone\n")
+	fmt.Printf("  POST /volumes                   → create a volume; the API assigns the id (Idempotency-Key honoured)\n")
+	fmt.Printf("  GET  /volumes                   → every volume, with a count\n")
+	fmt.Printf("  GET  /volumes/requests          → every request the volume API received, in order\n")
+	fmt.Printf("  GET  /volumes/:id               → the volume (provisioning, then ready), or 404\n")
+	fmt.Printf("  DELETE /volumes/:id             → 202 deleting, then 404 once gone\n")
 	fmt.Printf("──────────────────────────────────────────\n\n")
 }

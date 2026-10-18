@@ -111,6 +111,10 @@ type ExternalSecretRef struct {
 
 // ExternalCallSpec declares one external call to make before resource reconciliation.
 type ExternalCallSpec struct {
+	// CallSpec holds what every call has: url, method, headers, body,
+	// expectedStatus, when/or, timeout, auth, retryBackoff, idempotencyKey.
+	CallSpec `yaml:",inline" json:",inline"`
+
 	// Name is the identifier used to access the result in template expressions.
 	//   name: health-check → {{ .external.health-check.status }}
 	Name string `yaml:"name" json:"name"`
@@ -120,11 +124,6 @@ type ExternalCallSpec struct {
 	//   protocol: redis
 	//   protocol: postgres
 	Protocol ExternalProtocol `yaml:"protocol,omitempty" json:"protocol,omitempty"`
-
-	// URL is the endpoint or connection string. Template expressions supported.
-	//   url: "{{ .spec.serviceUrl }}/health"
-	//   url: "redis://redis-svc:6379"
-	URL string `yaml:"url" json:"url"`
 
 	// Query is a protocol-specific instruction executed after connection.
 	// HTTP: unused (use body: for request body).
@@ -141,45 +140,15 @@ type ExternalCallSpec struct {
 	// connection establishment is expensive.
 	CacheFor string `yaml:"cacheFor,omitempty" json:"cacheFor,omitempty"`
 
-	// Auth declares the credential for this call.
-	// For HTTP this replaces the deprecated token: field.
-	// For non-HTTP protocols, secretRef or env must be set if authentication
-	// is required by the target.
-	Auth *ExternalAuth `yaml:"auth,omitempty" json:"auth,omitempty"`
-
 	// PoolSize is the maximum connections maintained per url:.
 	// Only meaningful for stateful protocols (postgres, kafka, redis, nats, mqtt).
 	// Default: 2.
 	PoolSize int `yaml:"poolSize,omitempty" json:"poolSize,omitempty"`
 
-	// Method is the HTTP method. Default: GET. HTTP only.
-	Method string `yaml:"method,omitempty" json:"method,omitempty"`
-
-	// Body is the request body for POST/PUT/PATCH. Template expressions supported.
-	//   body: '{"name": "{{ .metadata.name }}"}'
-	// HTTP only.
-	Body string `yaml:"body,omitempty" json:"body,omitempty"`
-
-	// Headers are additional HTTP headers to include. HTTP only.
-	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
-
-	// Timeout is the maximum duration for this call.
-	// Default: 10s. Format: "5s", "1m", "500ms"
-	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
-
-	// ExpectedStatus lists the HTTP status codes that count as success, e.g.
-	// [200, 404] for a read where "not found" is an answer. HTTP only.
-	// Default: any status below 400.
-	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
-
 	// ContinueOnError controls whether a failed call halts reconciliation.
 	// false (default): failure returns an error, halting the reconcile.
 	// true:            failure is logged, result has error set, reconcile continues.
 	ContinueOnError bool `yaml:"continueOnError,omitempty" json:"continueOnError,omitempty"`
-
-	// When conditions gate this call — skipped if conditions fail.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
-	Or         []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// Sleep injects an artificial delay. Useful for testing.
 	// Accepts extended duration units (s, m, h, d, w, mo, y).
@@ -194,11 +163,6 @@ type ExternalCallSpec struct {
 	// When set, this entry is replaced in-place by the listed calls.
 	// Resolved relative to the catalog file's directory. Cleared after expansion.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
-
-	// RetryBackoff configures how many times and how long to wait between
-	// retries for this specific external call before returning an error.
-	// Shorthand ("3s") sets initial only; full form gives full control.
-	RetryBackoff *RetryBackoffConfig `yaml:"retryBackoff,omitempty" json:"retryBackoff,omitempty"`
 }
 
 // ExternalCallResult is the result of one HTTP call, injected into the resolver
