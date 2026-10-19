@@ -65,7 +65,7 @@ func (t *coordinatorTarget) SetResyncInterval(d time.Duration) {
 // Mirrors the resync logic that was previously on generic.Reconciler.
 func (c *Controller) startResyncLoop(ctx context.Context, gvk string) {
 	rt := c.runtimeMap[gvk]
-	entry, ok := c.catalog.Get(gvk)
+	entry, ok := c.blueprint.Get(gvk)
 	if !ok || entry.Informer == nil {
 		return
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
@@ -47,7 +47,7 @@ type Reconciler[PTR domain.Object] struct {
 	operatorBox *types.OperatorBoxConfig
 	newObj      func() PTR
 	crd         types.CRDEntry
-	cat         *catalog.Catalog
+	bp          *blueprint.Blueprint
 }
 
 // New constructs a Reconciler for the given CRD.
@@ -66,7 +66,7 @@ func New[PTR domain.Object](
 	kube kubeclient.Interface,
 	anyHooks domain.AnyReconcileHooks,
 	newObj func() PTR,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 ) *Reconciler[PTR] {
 
 	// Adapt the user's strongly-typed ReconcileHooks[PTR] to the type-erased
@@ -89,7 +89,7 @@ func New[PTR domain.Object](
 
 	// Build per-target hook sets for targets that declare a distinct hook binary.
 	// Targets that share the CRD-level binary only override args and use hooks above.
-	factories, _ := crd.TargetHookFactories() // validated with the Catalog
+	factories, _ := crd.TargetHookFactories() // validated with the Blueprint
 	targetHooks := make(map[string]domain.ObjectHooks, len(factories))
 	for targetName, factory := range factories {
 		anyH := factory()
@@ -108,7 +108,7 @@ func New[PTR domain.Object](
 		hooks:       hooks,
 		targetHooks: targetHooks,
 		newObj:      newObj,
-		cat:         cat,
+		bp:          bp,
 	}
 
 	return r
@@ -187,7 +187,7 @@ func (r *Reconciler[PTR]) reconcileImpl(ctx context.Context, req domain.Request,
 		// Requires: inrun generate registry to register in HookRegistry.
 		//
 		// Order: by default declared templates run first (hybrid 90/10 pattern).
-		// Set hooks.runHooksFirst: true in the Catalog to run the hook first;
+		// Set hooks.runHooksFirst: true in the Blueprint to run the hook first;
 		// a mapped remote's call always runs first.
 		hooksFirst := r.callFirst || r.crd.RunHooksFirst()
 		if !hooksFirst && hasTemplates {

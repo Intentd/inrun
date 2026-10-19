@@ -1,6 +1,6 @@
 # Custom Resource
 
-This declares one arbitrary Kubernetes resource — any Kind not covered by one of Inrun's built-in resource types (a third-party CRD such as cert-manager's Certificate, or your own CRD). It is schema-agnostic: the spec block is written and applied exactly as declared in the Catalog, with no built-in knowledge of its structure. Kubernetes enforces the resource's own CRD schema at apply time.
+This declares one arbitrary Kubernetes resource — any Kind not covered by one of Inrun's built-in resource types (a third-party CRD such as cert-manager's Certificate, or your own CRD). It is schema-agnostic: the spec block is written and applied exactly as declared in the Blueprint, with no built-in knowledge of its structure. Kubernetes enforces the resource's own CRD schema at apply time.
 
 Example:
 

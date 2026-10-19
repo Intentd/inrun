@@ -51,11 +51,11 @@ metadata:
 
 	t.Run("creates metadata and sets version when metadata missing", func(t *testing.T) {
 		dir := t.TempDir()
-		primary := "catalog.yaml"
+		primary := "blueprint.yaml"
 		path := filepath.Join(dir, primary)
 
 		orig := `
-kind: Catalog
+kind: Blueprint
 spec:
   something: true
 `

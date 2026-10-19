@@ -8,7 +8,7 @@ metadata:
     API assigned until ready. Only the CR changes: finalizer and status.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
   # Create, read (provisioning), read (ready), one pass to settle.

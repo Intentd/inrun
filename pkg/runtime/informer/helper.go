@@ -159,7 +159,7 @@ func (f *Factory) WaitForCacheSync(ctx context.Context) bool {
 }
 
 // Status returns a summary of all informers and their sync state.
-// Used by the health server /catalog endpoint.
+// Used by the health server /blueprint endpoint.
 func (f *Factory) Status() string {
 	f.mu.RLock()
 	defer f.mu.RUnlock()

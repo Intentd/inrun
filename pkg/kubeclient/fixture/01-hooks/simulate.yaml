@@ -10,7 +10,7 @@ metadata:
     The hook reads req.Args.String("featureEnabled") — no HTTP client in hook code.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   cycles: 3
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -16,11 +16,11 @@ import (
 
 // Input holds everything Prepare needs from the Controller.
 type Input struct {
-	Entry    contract.RegistryEntry
-	Key      string
-	Cat      *catalog.Catalog
-	Kube     kubeclient.Interface
-	Registry CatalogRegistry
+	Entry     contract.RegistryEntry
+	Key       string
+	Blueprint *blueprint.Blueprint
+	Kube      kubeclient.Interface
+	Registry  BlueprintRegistry
 }
 
 // Prepare builds the PreparedRequest for a single reconcile cycle.
@@ -48,12 +48,12 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 		return nil, nil, nil
 	}
 
-	// Step 1: object from cache
+	// Step 1: object from cache, as a copy the pipeline may modify
 	raw, exists, err := in.Entry.Informer.GetIndexer().GetByKey(in.Key)
 	if err != nil || !exists || raw == nil {
 		return nil, nil, nil
 	}
-	obj, ok := domain.ToUnstructured(raw)
+	obj, ok := domain.FromCache(raw)
 	if !ok {
 		return nil, nil, fmt.Errorf("prepare: unexpected type %T in informer cache for %q", raw, in.Key)
 	}
@@ -88,12 +88,12 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 	}
 
 	// Step 6: enrichment chain
-	if in.Cat != nil {
-		if !in.Cat.Profiles.Empty() {
-			resolver = resolver.WithProfiles(&in.Cat.Profiles)
+	if in.Blueprint != nil {
+		if !in.Blueprint.Profiles.Empty() {
+			resolver = resolver.WithProfiles(&in.Blueprint.Profiles)
 		}
-		if !in.Cat.Functions.Empty() {
-			resolver = resolver.WithUserFunctions(in.Cat.UserFunctions())
+		if !in.Blueprint.Functions.Empty() {
+			resolver = resolver.WithUserFunctions(in.Blueprint.UserFunctions())
 		}
 	}
 	if req := intent.FromObject(resolver.Data()); req != nil {

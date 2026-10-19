@@ -7,7 +7,7 @@ metadata:
     topic metadata (@events) from the WebApp reconciler.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./e2e/cr-e2e.yaml
 

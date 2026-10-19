@@ -2,7 +2,7 @@
 
 A `Pipeline` operator whose reconciler is a full `domain.Reconciler`: it runs
 Jobs in order (build → test → notify) and owns the whole loop. The same
-behaviour can be declared in a Catalog; this shows the constructor pattern for
+behaviour can be declared in a Blueprint; this shows the constructor pattern for
 logic you want to keep in Go.
 
 `reconciler/pipeline_reconciler.go` holds `NewPipelineReconciler` and `Reconcile`;
@@ -54,10 +54,10 @@ Build and push the image:
 make release IMAGE=<registry>/<image>:<tag>
 ```
 
-Apply the RBAC and Catalog bundle:
+Apply the RBAC and Blueprint bundle:
 
 ```bash
-inrun generate bundle -f catalog.yaml -o bundle.yaml
+inrun generate bundle -f blueprint.yaml -o bundle.yaml
 ```
 
 ```bash

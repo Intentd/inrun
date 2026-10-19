@@ -1,5 +1,5 @@
 # Serve field config for the gateway fixture.
-# Included from catalog.yaml via serve.include.
+# Included from blueprint.yaml via serve.include.
 # Tests: category, when (field + time), or, disabled, required indicators, placeholders, defaults.
 
 # ── Basic ─────────────────────────────────────────────────────────────────────

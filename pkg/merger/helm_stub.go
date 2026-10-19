@@ -3,7 +3,7 @@
 // Stand-in for helm.go in the runtime and gateway builds, which exclude the
 // Helm SDK entirely (see the comment at the top of helm.go for why). Keeps
 // file.go's call site compiling in all three build configurations; a
-// production Catalog with an imports.helm: entry gets a clear error instead
+// production Blueprint with an imports.helm: entry gets a clear error instead
 // of a missing-symbol build failure.
 
 //go:build runtime || gateway
@@ -16,7 +16,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// loadHelmSource is unavailable in this build — Helm-chart Catalog imports
+// loadHelmSource is unavailable in this build — Helm-chart Blueprint imports
 // are an authoring-time feature only. Pre-merge with the inrun CLI
 // (inrun generate bundle) before deploying.
 func (m *Merger) loadHelmSource(src types.HelmSource) (map[string]types.CRDEntry, error) {

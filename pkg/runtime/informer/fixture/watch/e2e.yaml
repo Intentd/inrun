@@ -9,7 +9,7 @@ metadata:
     events back to the primary CR without an ownerReference.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./cr.yaml
 
@@ -45,7 +45,7 @@ spec:
             leaderElection:
               lease: inrun-leader
             port: 8080
-            path: /catalog/watch-probe/health
+            path: /blueprint/watch-probe/health
             jq: state
             equals: healthy
 
@@ -79,7 +79,7 @@ spec:
             leaderElection:
               lease: inrun-leader
             port: 8080
-            path: /catalog/watch-probe/health
+            path: /blueprint/watch-probe/health
             jq: state
             equals: healthy
 

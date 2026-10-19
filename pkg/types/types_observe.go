@@ -31,7 +31,7 @@ type Observe struct {
 	// the reconciler template context.
 	Cross []CrossCRDDeclaration `yaml:"cross,omitempty" json:"cross,omitempty"`
 
-	// Include imports watch and event declarations from a local Catalog file.
+	// Include imports watch and event declarations from a local Blueprint file.
 	// The included file may contain "watch:", "events:", and "cross:" declarations.
 	// Inline declarations are merged with the included declarations, with
 	// inline event declarations overriding included events with the same name.
@@ -184,7 +184,7 @@ type WatchEntry struct {
 	//          field: ".metadata.ownerReferences[0].name"
 	Index []WatchIndex `yaml:"index,omitempty" json:"index,omitempty"`
 
-	// Include is a path (relative to the catalog file) to a YAML file whose
+	// Include is a path (relative to the blueprint file) to a YAML file whose
 	// "watch:" list replaces this entry in-place. When set all other fields on
 	// this entry are ignored. Cleared after expansion.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
@@ -356,7 +356,7 @@ type EventEntry struct {
 	// matches. The Event is the observed object used for admission evaluation.
 	EnqueueGate *GateConditions `yaml:"enqueueGate,omitempty" json:"enqueueGate,omitempty"`
 
-	// Include is a path (relative to the catalog file) to a YAML file whose
+	// Include is a path (relative to the blueprint file) to a YAML file whose
 	// "watch:" list replaces this entry in-place. When set all other fields on
 	// this entry are ignored. Cleared after expansion.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`

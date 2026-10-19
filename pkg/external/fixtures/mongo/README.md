@@ -11,7 +11,7 @@ Two calls are declared:
 
 ```sh
 docker compose -f pkg/external/fixtures/mongo/docker-compose.yaml up -d
-inrun -f pkg/external/fixtures/mongo/catalog.yaml
+inrun -f pkg/external/fixtures/mongo/blueprint.yaml
 ```
 
 ## Check the Status

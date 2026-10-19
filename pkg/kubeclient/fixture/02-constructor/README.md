@@ -1,7 +1,7 @@
 # Args via Constructor — BlockchainNode
 
 The constructor owns its full reconcile loop — including the time check and the
-HTTP call. The Catalog declares *what* to check and *when*; the constructor decides
+HTTP call. The Blueprint declares *what* to check and *when*; the constructor decides
 *how*:
 
 ```yaml
@@ -21,11 +21,11 @@ featureEnabled := r.inBusinessHours(start, end) && r.checkFlag(ctx, flagUrl)
 ```
 
 The constructor checks the clock itself and makes the HTTP call itself — but the
-window and the URL pattern come from the Catalog, not from the binary. Change the
+window and the URL pattern come from the Blueprint, not from the binary. Change the
 business-hours window or the flag endpoint in YAML; the binary stays the same.
 
 This is the difference from hooks: the runtime evaluates the note and makes the
-external call for hooks. The constructor owns those steps — the Catalog hands it
+external call for hooks. The constructor owns those steps — the Blueprint hands it
 the configuration to make its own decisions.
 
 **Requirement:** `inrun` CLI — install from [inrun-install](https://github.com/intentd/inrun#getting-started)
@@ -42,7 +42,7 @@ make registry
 
 ```bash
 make clean && make build
-inrun validate catalog.yaml
+inrun validate blueprint.yaml
 inrun simulate --dev-server
 ```
 

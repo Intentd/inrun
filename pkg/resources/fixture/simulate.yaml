@@ -5,7 +5,7 @@ metadata:
   description: Verify the ResourceProbe hook fires — all 23 resource types applied on cycle 1
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   cycles: 3
 

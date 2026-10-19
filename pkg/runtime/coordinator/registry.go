@@ -11,21 +11,21 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type ResourceCatalog struct {
+type ResourceBlueprint struct {
 	mu      sync.Mutex
 	entries map[string]contract.RegistryEntry
 }
 
 // compile time check
-var _ contract.RuntimeResourceCatalog = (*ResourceCatalog)(nil)
+var _ contract.RuntimeResourceBlueprint = (*ResourceBlueprint)(nil)
 
-func NewCoordinatorRegistry() *ResourceCatalog {
-	return &ResourceCatalog{
+func NewCoordinatorRegistry() *ResourceBlueprint {
+	return &ResourceBlueprint{
 		entries: make(map[string]contract.RegistryEntry),
 	}
 }
 
-func (r *ResourceCatalog) Register(
+func (r *ResourceBlueprint) Register(
 	gvk string,
 	crd types.CRDEntry,
 	inf cache.SharedIndexInformer,
@@ -41,14 +41,14 @@ func (r *ResourceCatalog) Register(
 	}
 }
 
-func (r *ResourceCatalog) Unregister(gvk string) {
+func (r *ResourceBlueprint) Unregister(gvk string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	delete(r.entries, gvk)
 }
 
-func (r *ResourceCatalog) Get(gvk string) (contract.RegistryEntry, bool) {
+func (r *ResourceBlueprint) Get(gvk string) (contract.RegistryEntry, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -56,7 +56,7 @@ func (r *ResourceCatalog) Get(gvk string) (contract.RegistryEntry, bool) {
 	return entry, ok
 }
 
-func (r *ResourceCatalog) ListGVKs() []string {
+func (r *ResourceBlueprint) ListGVKs() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -67,7 +67,7 @@ func (r *ResourceCatalog) ListGVKs() []string {
 	return gvkList
 }
 
-func (r *ResourceCatalog) GetWorkers(gvk string, defaultWorkers int) int {
+func (r *ResourceBlueprint) GetWorkers(gvk string, defaultWorkers int) int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -78,7 +78,7 @@ func (r *ResourceCatalog) GetWorkers(gvk string, defaultWorkers int) int {
 	return entry.CRD.SetWorkers(defaultWorkers)
 }
 
-func (r *ResourceCatalog) Entries() map[string]contract.RegistryEntry {
+func (r *ResourceBlueprint) Entries() map[string]contract.RegistryEntry {
 	return r.entries
 }
 
@@ -90,7 +90,7 @@ func (r *ResourceCatalog) Entries() map[string]contract.RegistryEntry {
 // by Kind name match (case-insensitive) so callers use simple names.
 //
 // Returns nil, false when no CRD with that name is registered.
-func (r *ResourceCatalog) GetInformerByName(name string) (cache.SharedIndexInformer, bool) {
+func (r *ResourceBlueprint) GetInformerByName(name string) (cache.SharedIndexInformer, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -117,10 +117,10 @@ func (r *ResourceCatalog) GetInformerByName(name string) (cache.SharedIndexInfor
 //   - Returns the first CRD whose labelSelector contain key=value
 //   - Returns nil, false when no CRD matches
 //
-// This is used by generic.Reconciler via the CatalogRegistry interface
+// This is used by generic.Reconciler via the BlueprintRegistry interface
 // to support cross‑context reads without importing pkg/coordinator
 // directly (avoiding import cycles).
-func (r *ResourceCatalog) GetInformerByLabelSelector(key, value string) (cache.SharedIndexInformer, bool) {
+func (r *ResourceBlueprint) GetInformerByLabelSelector(key, value string) (cache.SharedIndexInformer, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -145,7 +145,7 @@ func (r *ResourceCatalog) GetInformerByLabelSelector(key, value string) (cache.S
 
 // GetCrossAccessByName returns the CrossAccess field of the named CRD.
 // nil means readable (default). *false means the CRD has opted out of cross reads.
-func (r *ResourceCatalog) GetCrossAccessByName(name string) *bool {
+func (r *ResourceBlueprint) GetCrossAccessByName(name string) *bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

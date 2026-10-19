@@ -18,7 +18,7 @@ type Manager struct {
 	standalone bool
 
 	// deletionProtectionEnabled controls whether the deletion‑protection label
-	// is applied. This should reflect the global security setting from Catalog.
+	// is applied. This should reflect the global security setting from Blueprint.
 	deletionProtectionEnabled bool
 
 	deletionProtectionLabel string
@@ -35,7 +35,7 @@ type Config struct {
 	Standalone bool
 
 	// DeletionProtectionEnabled mirrors the global
-	// security.deletionProtection.enabled setting from the Catalog. When true,
+	// security.deletionProtection.enabled setting from the Blueprint. When true,
 	// [Manager.EnsureDeletionProtectionLabel] may add the protection label.
 	DeletionProtectionEnabled bool
 }
@@ -120,7 +120,7 @@ func (m *Manager) EnsureManagedAnnotations(obj domain.Object, operatorName strin
 //
 // The typical caller logic for shouldHave is:
 //
-//	shouldHave = catalog.IsDeletionProtectionEnabled() && crd.ShouldProtectCRs()
+//	shouldHave = blueprint.IsDeletionProtectionEnabled() && crd.ShouldProtectCRs()
 //
 // Returns true if the label map was modified; false if it was already in the
 // desired state. The caller must persist any change via kube.PatchLabels.

@@ -13,15 +13,15 @@ import (
 
 // ── Merge rules ───────────────────────────────────────────────────────────────
 //
-// Catalog  (kind: Catalog)
+// Blueprint  (kind: Blueprint)
 //   Declares CRDs directly in spec.crds.
 //   Must NOT declare imports — imports are a Stack concern.
 //   Error if imports block is present.
 //
 // Stack (kind: Stack)
-//   Composes Catalogs from multiple imports (files, registry, helm).
+//   Composes Blueprints from multiple imports (files, registry, helm).
 //   May declare inline spec.crds as overrides — merged last, win on conflict.
-//   Imports are resolved recursively. Each import must be a Catalog.
+//   Imports are resolved recursively. Each import must be a Blueprint.
 //   A Stack cannot import another Stack.
 //
 // Within one file's import tree:
@@ -36,77 +36,77 @@ import (
 // Inline duplicates inline:
 //   always an error.
 
-// loadCatalogFile parses one file and dispatches to the correct loader
+// loadBlueprintFile parses one file and dispatches to the correct loader
 // based on its kind. Returns the deduplicated CRD map for this file tree.
-func (m *Merger) loadCatalogFile(path string) (map[string]types.CRDEntry, error) {
+func (m *Merger) loadBlueprintFile(path string) (map[string]types.CRDEntry, error) {
 	data, err := loadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading %q: %w", path, err)
 	}
 
-	doc, err := parseCatalogDoc(data, path)
+	doc, err := parseBlueprintDoc(data, path)
 	if err != nil {
 		return nil, err
 	}
 	if doc == nil {
 		if kind := sniffDocumentKind(data); kind != "" {
-			return nil, fmt.Errorf("%q: kind %q cannot be used here — expected kind: Catalog or Stack", path, kind)
+			return nil, fmt.Errorf("%q: kind %q cannot be used here — expected kind: Blueprint or Stack", path, kind)
 		}
 		logger.Debug().
 			Str("path", path).
-			Msg("merger: skipping — not a valid Catalog or Stack document")
+			Msg("merger: skipping — not a valid Blueprint or Stack document")
 		return nil, nil
 	}
 
-	// Dispatch on Kind — Catalog and Stack are handled differently
+	// Dispatch on Kind — Blueprint and Stack are handled differently
 	switch doc.Kind {
-	case config.CatalogKind():
-		return m.loadCatalog(path, doc)
+	case config.BlueprintKind():
+		return m.loadBlueprint(path, doc)
 	case config.StackKind():
 		return m.loadStack(path, doc)
 	default:
-		// Should not reach here — parseCatalogDoc already validates Kind
+		// Should not reach here — parseBlueprintDoc already validates Kind
 		return nil, fmt.Errorf("%q: unexpected kind %q", path, doc.Kind)
 	}
 }
 
-// loadCatalog reads CRD definitions from a Catalog file.
+// loadBlueprint reads CRD definitions from a Blueprint file.
 // Map keys are the CRD names; Name is injected from the key.
-func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]types.CRDEntry, error) {
-	// Guard — imports in a Catalog is a mistake
+func (m *Merger) loadBlueprint(path string, doc *types.BlueprintFile) (map[string]types.CRDEntry, error) {
+	// Guard — imports in a Blueprint is a mistake
 	if doc.LooksLikeStack() {
 		return nil, fmt.Errorf(
-			"%q: kind Catalog cannot declare imports — "+
-				"use kind: Stack to compose multiple Catalogs",
+			"%q: kind Blueprint cannot declare imports — "+
+				"use kind: Stack to compose multiple Blueprints",
 			path,
 		)
 	}
 
 	result := make(map[string]types.CRDEntry, len(doc.Spec.CRDs))
 
-	// Resolve the catalog namespace — "default" when not declared.
-	catalogNamespace := doc.Metadata.Namespace
-	if catalogNamespace == "" {
-		catalogNamespace = "default"
+	// Resolve the blueprint namespace — "default" when not declared.
+	blueprintNamespace := doc.Metadata.Namespace
+	if blueprintNamespace == "" {
+		blueprintNamespace = "default"
 	}
 
-	// catalogDir is used to resolve relative crdFile and crFiles paths.
-	// We resolve them here — while we still have the catalog file's path —
+	// blueprintDir is used to resolve relative crdFile and crFiles paths.
+	// We resolve them here — while we still have the blueprint file's path —
 	// so they become absolute before being merged into the top-level map.
-	// This allows inrun/validate -f /any/path/catalog.yaml to work from
-	// any working directory, even when the catalog is imported by a Stack.
+	// This allows inrun/validate -f /any/path/blueprint.yaml to work from
+	// any working directory, even when the blueprint is imported by a Stack.
 	//
-	// catalogDir must be made genuinely absolute (not just joined once) —
+	// blueprintDir must be made genuinely absolute (not just joined once) —
 	// downstream resolution (e.g. PopulateAPITypesFromCRDFile in
-	// pkg/catalog/crdfile.go) re-checks filepath.IsAbs() on the already-
-	// joined path and re-joins it against catalogDir again if it's still
+	// pkg/blueprint/crdfile.go) re-checks filepath.IsAbs() on the already-
+	// joined path and re-joins it against blueprintDir again if it's still
 	// relative, doubling the directory. A relative -f path with a real
-	// subdirectory (e.g. -f a/b/catalog.yaml run from elsewhere) used to
-	// silently double into a/b/a/b/crd.yaml — invisible when catalogDir
-	// happened to be "." (running from inside the catalog's own directory).
-	catalogDir := filepath.Dir(path)
-	if abs, err := filepath.Abs(catalogDir); err == nil {
-		catalogDir = abs
+	// subdirectory (e.g. -f a/b/blueprint.yaml run from elsewhere) used to
+	// silently double into a/b/a/b/crd.yaml — invisible when blueprintDir
+	// happened to be "." (running from inside the blueprint's own directory).
+	blueprintDir := filepath.Dir(path)
+	if abs, err := filepath.Abs(blueprintDir); err == nil {
+		blueprintDir = abs
 	}
 
 	for name, crd := range doc.Spec.CRDs {
@@ -116,19 +116,19 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 		// Duplicate within the same file is impossible — map keys are unique.
 		crd.Name = name
 
-		// Resolve crdFile and crFiles to absolute paths relative to this catalog.
+		// Resolve crdFile and crFiles to absolute paths relative to this blueprint.
 		if crd.CRDFile != "" && !filepath.IsAbs(crd.CRDFile) && !strings.HasPrefix(crd.CRDFile, "http") {
-			crd.CRDFile = filepath.Join(catalogDir, crd.CRDFile)
+			crd.CRDFile = filepath.Join(blueprintDir, crd.CRDFile)
 		}
 		for i, cf := range crd.CRFiles {
 			if !filepath.IsAbs(cf) && !strings.HasPrefix(cf, "http") {
-				crd.CRFiles[i] = filepath.Join(catalogDir, cf)
+				crd.CRFiles[i] = filepath.Join(blueprintDir, cf)
 			}
 		}
 		if crd.Setup != nil {
 			for i, entry := range crd.Setup.Apply {
 				if !filepath.IsAbs(entry.Path) && !strings.HasPrefix(entry.Path, "http") {
-					crd.Setup.Apply[i].Path = filepath.Join(catalogDir, entry.Path)
+					crd.Setup.Apply[i].Path = filepath.Join(blueprintDir, entry.Path)
 				}
 			}
 		}
@@ -137,24 +137,24 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 		if crd.Box().Reconcile != nil {
 			for i, imp := range crd.Box().Reconcile.Imports {
 				if isFileModule(imp.Module) && !filepath.IsAbs(imp.Module) {
-					crd.Box().Reconcile.Imports[i].Module = filepath.Join(catalogDir, imp.Module)
+					crd.Box().Reconcile.Imports[i].Module = filepath.Join(blueprintDir, imp.Module)
 				}
 			}
 		}
 
-		// Stamp catalog metadata — only when not already set so that values
+		// Stamp blueprint metadata — only when not already set so that values
 		// deserialized from an expanded ConfigMap YAML are preserved.
-		if crd.CatalogNamespace == "" {
-			crd.CatalogNamespace = catalogNamespace
+		if crd.BlueprintNamespace == "" {
+			crd.BlueprintNamespace = blueprintNamespace
 		}
-		if crd.CatalogDescription == "" {
-			crd.CatalogDescription = doc.Metadata.Description
+		if crd.BlueprintDescription == "" {
+			crd.BlueprintDescription = doc.Metadata.Description
 		}
-		if crd.CatalogVersion == "" {
-			crd.CatalogVersion = doc.Metadata.Version
+		if crd.BlueprintVersion == "" {
+			crd.BlueprintVersion = doc.Metadata.Version
 		}
 
-		// Apply catalog-level CrossAccess as the default for every CRD that
+		// Apply blueprint-level CrossAccess as the default for every CRD that
 		// does not declare its own crossAccess field.
 		if crd.CrossAccess == nil && doc.CrossAccess != nil {
 			v := *doc.CrossAccess
@@ -183,15 +183,15 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 		logger.Debug().
 			Str("crd", name).
 			Str("source", path).
-			Msg("merger: CRD loaded from Catalog")
+			Msg("merger: CRD loaded from Blueprint")
 	}
 
 	logger.Debug().
 		Str("path", path).
 		Int("crds", len(result)).
-		Msg("merger: Catalog loaded")
+		Msg("merger: Blueprint loaded")
 
-	// This is a catalog
+	// This is a blueprint
 	apiMetadata := apiMetadata{
 		APIVersion: doc.APIVersion,
 		Kind:       doc.Kind,
@@ -204,10 +204,10 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 	m.gateway = doc.Gateway
 	m.publish = doc.Publish
 	m.profiles = doc.Profiles
-	// Expand functions.include against this Catalog's own directory, so a Catalog
+	// Expand functions.include against this Blueprint's own directory, so a Blueprint
 	// imported by a Stack brings its included functions with it.
 	functions := doc.Functions
-	if err := types.ExpandFunctionsInclude(&functions, catalogDir); err != nil {
+	if err := types.ExpandFunctionsInclude(&functions, blueprintDir); err != nil {
 		return nil, fmt.Errorf("%q: functions: %w", path, err)
 	}
 	m.functions = functions
@@ -216,7 +216,7 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 	copy(specImports, doc.Spec.Imports)
 	for i, imp := range specImports {
 		if isFileModule(imp.Module) && !filepath.IsAbs(imp.Module) {
-			specImports[i].Module = filepath.Join(catalogDir, imp.Module)
+			specImports[i].Module = filepath.Join(blueprintDir, imp.Module)
 		}
 	}
 	m.specImports = specImports
@@ -225,7 +225,7 @@ func (m *Merger) loadCatalog(path string, doc *types.CatalogFile) (map[string]ty
 }
 
 // loadStack resolves imports from a Stack file and merges all CRDs.
-func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]types.CRDEntry, error) {
+func (m *Merger) loadStack(path string, doc *types.BlueprintFile) (map[string]types.CRDEntry, error) {
 	if !doc.WithImportsOrSpecOverrides() {
 		logger.Warn().
 			Str("path", path).
@@ -236,14 +236,14 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 	localSeen := map[string]string{}
 	allCRDs := make(map[string]types.CRDEntry)
 
-	// settings from all imported Catalogs. Each import that calls loadCatalog sets these
+	// settings from all imported Blueprints. Each import that calls loadBlueprint sets these
 	// as side-effects on m; we capture and merge here so they are not discarded
 	// when the Stack's own (possibly Empty() block is applied at the end.
-	var accSecurity types.CatalogSecurity
+	var accSecurity types.BlueprintSecurity
 	var accProfiles types.ProfileRegistry
 	var accSpecImports []types.ModuleImport
 	var accFunctions types.KELFunctionRegistry
-	functionsSeen := make(map[string]string) // function name → import label, for cross-Catalog conflict detection
+	functionsSeen := make(map[string]string) // function name → import label, for cross-Blueprint conflict detection
 
 	// ── Step 1: registry imports ─────────────────────────────────────────────
 	if doc.Imports != nil {
@@ -265,8 +265,8 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 				allCRDs[name] = crd
 			}
 
-			// Accumulate security and profiles from registry source Catalog.
-			accSecurity = mergeCatalogSecurity(accSecurity, m.security)
+			// Accumulate security and profiles from registry source Blueprint.
+			accSecurity = mergeBlueprintSecurity(accSecurity, m.security)
 			merged, err := accProfiles.Merge(m.profiles, fmt.Sprintf("registry:%d", i))
 			if err != nil {
 				return nil, fmt.Errorf("%q imports.registry[%d]: profiles: %w", path, i, err)
@@ -306,7 +306,7 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 				return nil, fmt.Errorf("%q imports.files[%q]: auth: %w", path, resolved, err)
 			}
 
-			// Load the file — must be a Catalog, not another Stack
+			// Load the file — must be a Blueprint, not another Stack
 			crds, err := m.loadImportFileWithAuth(path, resolved, auth)
 			if err != nil {
 				return nil, fmt.Errorf("%q imports.files[%q]: %w", path, resolved, err)
@@ -320,8 +320,8 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 				allCRDs[name] = crd
 			}
 
-			// Accumulate security and profiles from this Catalog file import.
-			accSecurity = mergeCatalogSecurity(accSecurity, m.security)
+			// Accumulate security and profiles from this Blueprint file import.
+			accSecurity = mergeBlueprintSecurity(accSecurity, m.security)
 			merged, err := accProfiles.Merge(m.profiles, "file:"+resolved)
 			if err != nil {
 				return nil, fmt.Errorf("%q imports.files[%q]: profiles: %w", path, resolved, err)
@@ -354,7 +354,7 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 			}
 
 			// Accumulate security and profiles from this Helm import.
-			accSecurity = mergeCatalogSecurity(accSecurity, m.security)
+			accSecurity = mergeBlueprintSecurity(accSecurity, m.security)
 			merged, err := accProfiles.Merge(m.profiles, srcName)
 			if err != nil {
 				return nil, fmt.Errorf("%q imports.helm[%d]: profiles: %w", path, i, err)
@@ -407,15 +407,15 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 
 		localSeen[name] = inlineKey
 	}
-	// Fill CatalogDescription and CatalogVersion fallbacks — if the sub-Catalog had none, use the Stack's.
+	// Fill BlueprintDescription and BlueprintVersion fallbacks — if the sub-Blueprint had none, use the Stack's.
 	for name, crd := range allCRDs {
 		changed := false
-		if crd.CatalogDescription == "" && doc.Metadata.Description != "" {
-			crd.CatalogDescription = doc.Metadata.Description
+		if crd.BlueprintDescription == "" && doc.Metadata.Description != "" {
+			crd.BlueprintDescription = doc.Metadata.Description
 			changed = true
 		}
-		if crd.CatalogVersion == "" && doc.Metadata.Version != "" {
-			crd.CatalogVersion = doc.Metadata.Version
+		if crd.BlueprintVersion == "" && doc.Metadata.Version != "" {
+			crd.BlueprintVersion = doc.Metadata.Version
 			changed = true
 		}
 		if changed {
@@ -455,10 +455,10 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 
 	// Merge accumulated source fields with the Stack's own top-level blocks.
 	// Stack-declared fields win on conflict (non-nil / non-empty override semantics).
-	// This ensures all top-level Catalog fields, such as security,
+	// This ensures all top-level Blueprint fields, such as security,
 	// are visible when running `inrun generate rbac` or `inrun generate configmap`
-	// against a Stack, identical to running against the source Catalogs directly.
-	m.security = mergeCatalogSecurity(accSecurity, doc.Security)
+	// against a Stack, identical to running against the source Blueprints directly.
+	m.security = mergeBlueprintSecurity(accSecurity, doc.Security)
 	if doc.Gateway != nil {
 		m.gateway = doc.Gateway
 	}
@@ -479,10 +479,10 @@ func (m *Merger) loadStack(path string, doc *types.CatalogFile) (map[string]type
 	m.profiles = mergedProfiles
 
 	if len(doc.Spec.Imports) > 0 {
-		return nil, fmt.Errorf("%q: Stack does not support spec.imports — declare functions: and profiles: inline to override Catalog-wide settings", path)
+		return nil, fmt.Errorf("%q: Stack does not support spec.imports — declare functions: and profiles: inline to override Blueprint-wide settings", path)
 	}
 	m.specImports = accSpecImports
-	mergedFunctions, err := doc.Functions.Merge(accFunctions, "catalog")
+	mergedFunctions, err := doc.Functions.Merge(accFunctions, "blueprint")
 	if err != nil {
 		return nil, fmt.Errorf("%q: functions: %w", path, err)
 	}

@@ -9,56 +9,56 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// ── mergeCatalogSecurity ──────────────────────────────────────────────────────
+// ── mergeBlueprintSecurity ──────────────────────────────────────────────────────
 
-func TestMergeCatalogSecurity_BaseWinsWhenOverrideEmpty(t *testing.T) {
-	base := types.CatalogSecurity{ServiceName: &types.ServiceName{Runtime: "base-svc"}}
-	override := types.CatalogSecurity{}
-	result := mergeCatalogSecurity(base, override)
+func TestMergeBlueprintSecurity_BaseWinsWhenOverrideEmpty(t *testing.T) {
+	base := types.BlueprintSecurity{ServiceName: &types.ServiceName{Runtime: "base-svc"}}
+	override := types.BlueprintSecurity{}
+	result := mergeBlueprintSecurity(base, override)
 	if result.ServiceName == nil || result.ServiceName.Runtime != "base-svc" {
 		t.Errorf("expected base ServiceName to win, got %v", result.ServiceName)
 	}
 }
 
-func TestMergeCatalogSecurity_OverrideWinsServiceName(t *testing.T) {
-	base := types.CatalogSecurity{ServiceName: &types.ServiceName{Runtime: "base"}}
-	override := types.CatalogSecurity{ServiceName: &types.ServiceName{Runtime: "override"}}
-	result := mergeCatalogSecurity(base, override)
+func TestMergeBlueprintSecurity_OverrideWinsServiceName(t *testing.T) {
+	base := types.BlueprintSecurity{ServiceName: &types.ServiceName{Runtime: "base"}}
+	override := types.BlueprintSecurity{ServiceName: &types.ServiceName{Runtime: "override"}}
+	result := mergeBlueprintSecurity(base, override)
 	if result.ServiceName == nil || result.ServiceName.Runtime != "override" {
 		t.Errorf("expected override ServiceName, got %v", result.ServiceName)
 	}
 }
 
-func TestMergeCatalogSecurity_OverrideDeletionProtection(t *testing.T) {
-	base := types.CatalogSecurity{}
+func TestMergeBlueprintSecurity_OverrideDeletionProtection(t *testing.T) {
+	base := types.BlueprintSecurity{}
 	dp := &types.DeletionProtectionConfig{Enabled: ptr.To(true)}
-	override := types.CatalogSecurity{DeletionProtection: dp}
-	result := mergeCatalogSecurity(base, override)
+	override := types.BlueprintSecurity{DeletionProtection: dp}
+	result := mergeBlueprintSecurity(base, override)
 	if result.DeletionProtection == nil {
 		t.Error("expected override DeletionProtection to be set")
 	}
 }
 
-func TestMergeCatalogSecurity_NilOverrideDeletionProtection_KeepsBase(t *testing.T) {
+func TestMergeBlueprintSecurity_NilOverrideDeletionProtection_KeepsBase(t *testing.T) {
 	dp := &types.DeletionProtectionConfig{Enabled: ptr.To(true)}
-	base := types.CatalogSecurity{DeletionProtection: dp}
-	override := types.CatalogSecurity{} // nil DeletionProtection
-	result := mergeCatalogSecurity(base, override)
+	base := types.BlueprintSecurity{DeletionProtection: dp}
+	override := types.BlueprintSecurity{} // nil DeletionProtection
+	result := mergeBlueprintSecurity(base, override)
 	if result.DeletionProtection == nil {
 		t.Error("base DeletionProtection must be preserved when override is nil")
 	}
 }
 
-func TestMergeCatalogSecurity_ServiceNameEmptyOverride_KeepsBase(t *testing.T) {
-	base := types.CatalogSecurity{ServiceName: &types.ServiceName{Runtime: "my-svc"}}
-	override := types.CatalogSecurity{ServiceName: nil}
-	result := mergeCatalogSecurity(base, override)
+func TestMergeBlueprintSecurity_ServiceNameEmptyOverride_KeepsBase(t *testing.T) {
+	base := types.BlueprintSecurity{ServiceName: &types.ServiceName{Runtime: "my-svc"}}
+	override := types.BlueprintSecurity{ServiceName: nil}
+	result := mergeBlueprintSecurity(base, override)
 	if result.ServiceName == nil || result.ServiceName.Runtime != "my-svc" {
 		t.Errorf("empty override ServiceName must keep base, got %v", result.ServiceName)
 	}
 }
 
-// ── mergeCatalogNotification ──────────────────────────────────────────────────
+// ── mergeBlueprintNotification ──────────────────────────────────────────────────
 
 // ── checkDuplicate ────────────────────────────────────────────────────────────
 

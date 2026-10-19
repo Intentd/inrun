@@ -13,7 +13,7 @@ package types
 //      CRs that existed before the webhook was enabled, and as drift
 //      correction for any rule violations that appear after admission.
 //
-// Both enforcement points read from the same Catalog declaration. There
+// Both enforcement points read from the same Blueprint declaration. There
 // is no duplication — declare once, enforce everywhere.
 //
 // Example:
@@ -259,7 +259,7 @@ func ValidationRulesFor(rules []ValidationRule, field string) []ValidationRule {
 
 // ValidationConfig holds all validation rules for a CRD.
 type ValidationConfig struct {
-	// Include is a path (relative to the catalog file) to a YAML file whose
+	// Include is a path (relative to the blueprint file) to a YAML file whose
 	// top-level value is a list of ValidationRule entries. Expanded at load
 	// time — included rules come first, inline rules append after.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
@@ -426,7 +426,7 @@ type MutationRule struct {
 
 // MutationConfig holds all mutation rules for a CRD.
 type MutationConfig struct {
-	// Include is a path (relative to the catalog file) to a YAML file whose
+	// Include is a path (relative to the blueprint file) to a YAML file whose
 	// top-level value is a list of MutationRule entries. Expanded at load
 	// time — included rules come first, inline rules append after.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
@@ -602,7 +602,7 @@ func (c *MutationConfig) References(nr KELFunctionRegistry, root string) bool {
 // ── AdmissionWebhookConfig ────────────────────────────────────────────────
 
 // AdmissionWebhookConfig is the per-CRD admission webhook control block.
-// Declared under spec.crds[].webhooks in the Catalog.
+// Declared under spec.crds[].webhooks in the Blueprint.
 //
 // Example:
 //

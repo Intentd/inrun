@@ -13,7 +13,7 @@ import (
 
 // BlockchainAppWithTargetsReconciler is the per-target constructor reconciler
 // for the BlockchainAppWithTargets CRD. It reads featureEnabled from req.Args
-// (declared in catalog serve.target.<name>.operatorBox.reconcile.args)
+// (declared in blueprint serve.target.<name>.operatorBox.reconcile.args)
 // rather than calling a live feature-flag endpoint.
 type BlockchainAppWithTargetsReconciler struct {
 	kube kubeclient.Interface

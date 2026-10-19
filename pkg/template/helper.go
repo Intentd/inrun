@@ -3,6 +3,7 @@ package template
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/intentd/inrun/domain"
@@ -115,9 +116,10 @@ func ObjectToMap(obj domain.Object) (map[string]interface{}, error) {
 }
 
 func objectToMap(obj domain.Object) (map[string]interface{}, error) {
-	// Unstructured — already a map, use directly
+	// Unstructured: copy the top level, so keys a Resolver adds stay off
+	// the caller's object.
 	if u, ok := obj.(*unstructured.Unstructured); ok {
-		return u.Object, nil
+		return maps.Clone(u.Object), nil
 	}
 
 	// Typed — marshal to JSON, unmarshal to map.

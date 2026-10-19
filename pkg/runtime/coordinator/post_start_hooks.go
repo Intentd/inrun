@@ -88,10 +88,10 @@ func (dc *DependencyCoordinator) retryMissingCRDs(ctx context.Context) {
 						h.SetDegraded()
 					}
 
-					// 	Catalog
+					// 	Blueprint
 					dc.allOnline.Store(false)
 					dc.inrunHealth.SetAllNotOnline()
-					dc.inrunHealth.SetCatalogDegraded()
+					dc.inrunHealth.SetBlueprintDegraded()
 
 					// Degrade dependents that require healthy condition
 					deps := dc.depGraph.GetDependents(entry.Name)
@@ -153,7 +153,7 @@ func (dc *DependencyCoordinator) retryMissingCRDs(ctx context.Context) {
 							h.SetDegraded()
 						}
 						dc.inrunHealth.SetAllNotOnline()
-						dc.inrunHealth.SetCatalogDegraded()
+						dc.inrunHealth.SetBlueprintDegraded()
 						logger.Debug().Msgf("retry loop: %s still not available", gvkStr)
 					}
 				}
@@ -163,7 +163,7 @@ func (dc *DependencyCoordinator) retryMissingCRDs(ctx context.Context) {
 					logger.Info().Msgf("retry loop: %d CRD(s) still missing", len(stillMissing))
 					dc.allOnline.Store(false)
 					dc.inrunHealth.SetAllNotOnline()
-					dc.inrunHealth.SetCatalogDegraded()
+					dc.inrunHealth.SetBlueprintDegraded()
 				}
 			}
 
@@ -209,7 +209,7 @@ func (dc *DependencyCoordinator) retryMissingCRDs(ctx context.Context) {
 			if len(dc.informerFactory.Missing()) == 0 && dc.allCRDsStarted() {
 				dc.allOnline.Store(true)
 				dc.inrunHealth.SetAllOnline()
-				dc.inrunHealth.SetCatalogReady()
+				dc.inrunHealth.SetBlueprintReady()
 				logger.Debug().Msg("retry loop: all CRDs active")
 			}
 
@@ -285,7 +285,7 @@ func (dc *DependencyCoordinator) activateCRD(ctx context.Context, entry *informe
 	dc.informerFactory.RemoveMissing(gvkStr)
 
 	// Start the worker pool for this CRD
-	workers := dc.catalog.GetWorkers(gvkStr, dc.defaultWorkers)
+	workers := dc.blueprint.GetWorkers(gvkStr, dc.defaultWorkers)
 	dc.startCRDWorkers(ctx, gvkStr, workers)
 
 	// Update health tracking
@@ -353,7 +353,7 @@ func (dc *DependencyCoordinator) deactivateCRD(gvk string) {
 	// any worker currently waiting in GetWithContext.
 	// Workers check ctx.Done() after dequeuing — sentinel is dropped.
 	if wq, ok := dc.queueReg.For(gvk); ok {
-		numWorkers := dc.catalog.GetWorkers(gvk, dc.defaultWorkers)
+		numWorkers := dc.blueprint.GetWorkers(gvk, dc.defaultWorkers)
 		for i := 0; i < numWorkers; i++ {
 			wq.Add(queue.QueueItem{GVK: gvk, Key: drainSentinel})
 		}
@@ -405,9 +405,9 @@ func (dc *DependencyCoordinator) crdExists(gvk *schema.GroupVersionKind) (bool, 
 
 // collectCustomChildGVKs scans all registered CRDs for custom resource entries declared
 // in onCreate.custom / onReconcile.custom and returns a de-duped map of GVK string → GVK.
-func collectCustomChildGVKs(catalog *ResourceCatalog) map[string]schema.GroupVersionKind {
+func collectCustomChildGVKs(blueprint *ResourceBlueprint) map[string]schema.GroupVersionKind {
 	result := make(map[string]schema.GroupVersionKind)
-	for _, entry := range catalog.Entries() {
+	for _, entry := range blueprint.Entries() {
 		box := entry.CRD.OperatorBox
 		var srcs []types.CustomResourceTemplateSource
 		if box.EffectiveOnCreate() != nil {

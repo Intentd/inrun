@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -17,16 +17,16 @@ func ParsePath(path string) (kind, ns, name string, err error) {
 	return parsePath(path)
 }
 
-func ExportedSchemaHandler(cat *catalog.Catalog) http.Handler {
-	return schemaHandler(cat)
+func ExportedSchemaHandler(bp *blueprint.Blueprint) http.Handler {
+	return schemaHandler(bp)
 }
 
-func ExportedResourcesHandler(kube kubeclient.Interface, cat *catalog.Catalog, notes types.KELFunctionRegistry) http.Handler {
-	return resourcesHandler(kube, &ClusterRegistry{clients: map[string]kubeclient.Interface{}}, cat)
+func ExportedResourcesHandler(kube kubeclient.Interface, bp *blueprint.Blueprint, notes types.KELFunctionRegistry) http.Handler {
+	return resourcesHandler(kube, &ClusterRegistry{clients: map[string]kubeclient.Interface{}}, bp)
 }
 
-func ExportedApplyHandler(kube kubeclient.Interface, cat *catalog.Catalog, notes types.KELFunctionRegistry) http.Handler {
-	return applyHandler(kube, &ClusterRegistry{clients: map[string]kubeclient.Interface{}}, cat)
+func ExportedApplyHandler(kube kubeclient.Interface, bp *blueprint.Blueprint, notes types.KELFunctionRegistry) http.Handler {
+	return applyHandler(kube, &ClusterRegistry{clients: map[string]kubeclient.Interface{}}, bp)
 }
 
 func ExportedCheckServePermission(w http.ResponseWriter, r *http.Request, crd *types.CRDEntry, class types.ServeEndpointClass, op, ns, alias string) bool {

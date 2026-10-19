@@ -60,7 +60,7 @@ type RemoteReconcilerDeclaration struct {
 }
 
 // Mapped reports whether the remote reconciler's response is mapped by the
-// Catalog (remote.response) instead of being Inrun's Result.
+// Blueprint (remote.response) instead of being Inrun's Result.
 func (d *RemoteReconcilerDeclaration) Mapped() bool {
 	return d != nil && d.Response != nil
 }

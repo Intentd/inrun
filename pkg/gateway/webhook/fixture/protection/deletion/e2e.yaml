@@ -6,7 +6,7 @@ metadata:
   description: Verify that protected CRDs cannot be deleted while the operator is running
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd-protected.yaml
   cr: ./cr-app.yaml
 
@@ -65,15 +65,15 @@ spec:
               apiVersion: v1
               kind: ConfigMap
               metadata:
-                name: inrun-catalog
+                name: inrun-blueprint
                 namespace: inrun-system
                 labels:
                   app.kubernetes.io/name: inrun
                   app.kubernetes.io/tag: inrun-internal
               data:
-                catalog.yaml: |
+                blueprint.yaml: |
                   apiVersion: inrun.dev/v1
-                  kind: Catalog
+                  kind: Blueprint
                   metadata:
                     name: deletion-protection
                   gateway:

@@ -66,7 +66,7 @@ func (dc *DependencyCoordinator) checkAllDependencyHealth() {
 //
 // This is the integration point between runtime health and startup gating.
 func (dc *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
-	entry, ok := dc.catalog.Get(gvk)
+	entry, ok := dc.blueprint.Get(gvk)
 	if !ok {
 		return
 	}

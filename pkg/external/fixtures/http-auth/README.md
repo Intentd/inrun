@@ -14,7 +14,7 @@ This proves that `auth.secretRef` is resolved on every reconcile — a rotated S
 ## Local run
 
 ```sh
-inrun -f pkg/external/fixtures/http-auth/catalog.yaml --dev-server
+inrun -f pkg/external/fixtures/http-auth/blueprint.yaml --dev-server
 ```
 
 `setup` applies `secret.yaml` (the bearer token) before the CR is created.

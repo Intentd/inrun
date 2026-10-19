@@ -8,16 +8,16 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// serveEntryCatalog builds a single-CRD catalog for kind "Platform" — its
+// serveEntryBlueprint builds a single-CRD blueprint for kind "Platform" — its
 // ServeTarget() defaults to the lowercased kind, "platform", which every
 // test below uses directly. The outer map key is unrelated to target
 // resolution (LookupByTargetOrAlias matches on ServeTarget(), not the key).
-func serveEntryCatalog(serve *types.ServeConfig) *catalog.Catalog {
-	return catalog.NewFromEntryPointers(map[string]*types.CRDEntry{
+func serveEntryBlueprint(serve *types.ServeConfig) *blueprint.Blueprint {
+	return blueprint.NewFromEntryPointers(map[string]*types.CRDEntry{
 		"platform": {
 			APITypes: types.APITypes{
 				Group:   "platform.inrun.dev",
@@ -31,7 +31,7 @@ func serveEntryCatalog(serve *types.ServeConfig) *catalog.Catalog {
 }
 
 func TestSchemaHandler_MethodNotAllowed(t *testing.T) {
-	h := schemaHandler(serveEntryCatalog(&types.ServeConfig{Enabled: true}))
+	h := schemaHandler(serveEntryBlueprint(&types.ServeConfig{Enabled: true}))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/schema", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -41,7 +41,7 @@ func TestSchemaHandler_MethodNotAllowed(t *testing.T) {
 }
 
 func TestSchemaHandler_UnknownTarget(t *testing.T) {
-	h := schemaHandler(serveEntryCatalog(&types.ServeConfig{Enabled: true}))
+	h := schemaHandler(serveEntryBlueprint(&types.ServeConfig{Enabled: true}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/schema?target=unknown", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -54,7 +54,7 @@ func TestSchemaHandler_NotEnabled_UnreachableByTarget(t *testing.T) {
 	// A disabled serve config means the CRD has no target at all —
 	// LookupByTargetOrAlias can never resolve it, so this looks identical
 	// to an unknown target from the caller's side.
-	h := schemaHandler(serveEntryCatalog(&types.ServeConfig{Enabled: false}))
+	h := schemaHandler(serveEntryBlueprint(&types.ServeConfig{Enabled: false}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/schema?target=platform", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -64,7 +64,7 @@ func TestSchemaHandler_NotEnabled_UnreachableByTarget(t *testing.T) {
 }
 
 func TestSchemaHandler_PerTarget_ReturnsFields(t *testing.T) {
-	h := schemaHandler(serveEntryCatalog(&types.ServeConfig{
+	h := schemaHandler(serveEntryBlueprint(&types.ServeConfig{
 		Enabled:     true,
 		Title:       "Platform Service",
 		Description: "A platform-managed service",
@@ -99,7 +99,7 @@ func TestSchemaHandler_PerTarget_ReturnsFields(t *testing.T) {
 }
 
 func TestSchemaHandler_PerTarget_TitleFallsBackToKind(t *testing.T) {
-	h := schemaHandler(serveEntryCatalog(&types.ServeConfig{Enabled: true}))
+	h := schemaHandler(serveEntryBlueprint(&types.ServeConfig{Enabled: true}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/schema?target=platform", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -117,7 +117,7 @@ func TestSchemaHandler_ServiceList_NoAuthorizedEntries_Forbidden(t *testing.T) {
 	// hasAnySchemaPermission grants access by finding at least one CRD the
 	// token can list — with zero CRDs, that loop can never grant, so even a
 	// present, non-empty token name gets 403 rather than an empty service list.
-	h := schemaHandler(catalog.NewFromEntryPointers(map[string]*types.CRDEntry{}))
+	h := schemaHandler(blueprint.NewFromEntryPointers(map[string]*types.CRDEntry{}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/schema", nil)
 	req = req.WithContext(contextWithTokenName(req.Context(), "test-token"))
 	rr := httptest.NewRecorder()
@@ -129,7 +129,7 @@ func TestSchemaHandler_ServiceList_NoAuthorizedEntries_Forbidden(t *testing.T) {
 }
 
 func TestSchemaHandler_ServiceList_ListsServeEnabledEntries(t *testing.T) {
-	h := schemaHandler(serveEntryCatalog(&types.ServeConfig{
+	h := schemaHandler(serveEntryBlueprint(&types.ServeConfig{
 		Enabled:  true,
 		Title:    "Platform Service",
 		Category: "Infra",

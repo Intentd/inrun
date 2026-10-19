@@ -35,7 +35,7 @@ func render(t *testing.T, name string, data interface{}) string {
 	return buf.String()
 }
 
-// The CRD page and its docs page name the reconciler kind /catalog reports,
+// The CRD page and its docs page name the reconciler kind /blueprint reports,
 // the targets that differ, and the finalizers the runtime applies.
 func TestCRDPages_ShowReconcilerKind(t *testing.T) {
 	cases := map[string]string{
@@ -57,14 +57,14 @@ func TestCRDPages_ShowReconcilerKind(t *testing.T) {
 					"constructor": map[string]interface{}{"configured": false},
 				},
 			}
-			page := render(t, "crd.html", map[string]interface{}{"CRD": crd, "CatalogName": "demo"})
+			page := render(t, "crd.html", map[string]interface{}{"CRD": crd, "BlueprintName": "demo"})
 			if !strings.Contains(page, badge) {
 				t.Errorf("crd.html: missing %q", badge)
 			}
 			if !strings.Contains(page, "inrun.dev/cleanup") {
 				t.Error("crd.html: missing the runtime finalizer")
 			}
-			docs := render(t, "crd_docs.html", CRDDocsData{CatalogName: "demo", CRD: crd})
+			docs := render(t, "crd_docs.html", CRDDocsData{BlueprintName: "demo", CRD: crd})
 			if !strings.Contains(docs, "the runtime owns the lifecycle") {
 				t.Error("crd_docs.html: missing the lifecycle paragraph")
 			}

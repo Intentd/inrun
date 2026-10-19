@@ -5,9 +5,9 @@ metadata:
   description: >
     Asserts that a play-built PlatformResource CR reaches steady state at cycle 2
     and produces the expected finalizer and status updates in cycle 1.
-    Run via: inrun serve play -f <catalog> --token console -i primary.yaml --simulate-config simulate-accept.yaml
+    Run via: inrun serve play -f <blueprint> --token console -i primary.yaml --simulate-config simulate-accept.yaml
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ""
   cycles: 5
   skipExternal: true

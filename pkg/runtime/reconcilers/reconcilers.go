@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
@@ -27,7 +27,7 @@ type Deps struct {
 	Event      event.Recorder
 	StoreFor   func(schema.GroupVersionKind) cache.Store
 	IndexerFor func(schema.GroupVersionKind) cache.Indexer
-	Catalog    *catalog.Catalog
+	Blueprint  *blueprint.Blueprint
 	// OwnNamespace is where a remote reconciler's secretRef without a
 	// namespace resolves.
 	OwnNamespace string
@@ -134,7 +134,7 @@ func genericFactory(crd types.CRDEntry, d Deps, call func() domain.ObjectHooks) 
 	return func() domain.Reconciler {
 		r := generic.New(crd, d.Informer, kube, hooks,
 			func() domain.Object { return object.DeepCopyObject().(domain.Object) },
-			d.Catalog)
+			d.Blueprint)
 		if call != nil {
 			return r.WithCall(call())
 		}

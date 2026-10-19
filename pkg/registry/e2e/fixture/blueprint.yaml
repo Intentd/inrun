@@ -1,0 +1,62 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: e2e-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    E2EProbe — living integration fixture for the kubectl DSL.
+    One operator, two CRs applied together (cr.yaml is multi-document):
+      my-probe-server — inrun-dev-server on port 9999 (port-forward, JSON endpoint assertions)
+      my-probe-exec   — nginx:alpine on port 80 (has sh, used for exec assertions)
+    The e2e.yaml exercises every kubectl subcommand: get, logs, describe,
+    exec, port-forward, apply, patch, and commands.
+    When you add a new subcommand to the DSL, add a checkpoint here.
+
+spec:
+  crds:
+    e2e-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml  # multi-document: my-probe-server (devserver) + my-probe-exec (nginx:alpine)
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+
+            services:
+              - name: "{{ .metadata.name }}-svc"
+                port: "{{ .spec.port }}"
+                targetPort: "{{ .spec.port }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Deploying"
+                when:
+                  - field: "{{ resourceExists .children.deployment }}"
+                    equals: "true"
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "false"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+

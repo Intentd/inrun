@@ -6,11 +6,11 @@ metadata:
     Living integration fixture for all reconciler resource types.
     One ReconcilerProbe CR triggers every onCreate block — namespace, serviceaccount,
     configmap, secret, service, cronjob, job, deployment (basic + premium conditional).
-    When you add a new resource type, add a block to catalog.yaml and an assertion
+    When you add a new resource type, add a block to blueprint.yaml and an assertion
     to e2e/01-resources.yaml.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./cr-suite.yaml
 

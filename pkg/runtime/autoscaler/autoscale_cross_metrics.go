@@ -4,7 +4,7 @@
 // operatorbox. Enables autoscale conditions to reference another operatorbox's
 // live metrics via the cross.metrics.* namespace.
 //
-// Usage in Catalog:
+// Usage in Blueprint:
 //
 //	# The database-backed-app operatorbox scales based on the database
 //	# operatorbox's queue depth — if the DB is overwhelmed, slow down.
@@ -80,7 +80,7 @@ func (r *CrossMetricsRegistry) Get(crd string) *AutoMetrics {
 // Resolution order:
 //  1. GlobalCrossMetricsRegistry — zero hops, same-binary CRDs
 //  2. source.Endpoint HTTP call  — one hop, cross-binary CRDs
-//     The endpoint must be the remote operator's /catalog/{crd} URL.
+//     The endpoint must be the remote operator's /blueprint/{crd} URL.
 //     The response is expected to carry a "metrics" object with the same
 //     field names as AutoMetrics.AsMap().
 //
@@ -131,7 +131,7 @@ func ResolveCrossMetric(
 	return ""
 }
 
-// fetchCrossMetricHTTP calls the remote operator's /catalog/{crd} endpoint and
+// fetchCrossMetricHTTP calls the remote operator's /blueprint/{crd} endpoint and
 // extracts the named metric from the "metrics" key in the JSON response.
 // This mirrors how readCross uses source.endpoint for CR observation.
 func fetchCrossMetricHTTP(cs kubernetes.Interface, source *types.CrossSource, metricName string) string {
@@ -141,7 +141,7 @@ func fetchCrossMetricHTTP(cs kubernetes.Interface, source *types.CrossSource, me
 		return ""
 	}
 
-	// Parse top-level "metrics" key from the /catalog/{crd} response.
+	// Parse top-level "metrics" key from the /blueprint/{crd} response.
 	var response struct {
 		Metrics map[string]interface{} `json:"metrics"`
 	}

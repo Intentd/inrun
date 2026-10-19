@@ -1,0 +1,15 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: stable-operator
+  version: 2.0.0
+  description: Tests a full lifecycle block on a stable Blueprint.
+lifecycle:
+  maturity: stable
+  compatibility:
+    kubernetes: ">=1.28"
+    inrun: ">=0.7.0"
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

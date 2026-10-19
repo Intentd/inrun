@@ -22,7 +22,7 @@ intent ──▶ gateway ──▶ custom resource ──▶ runtime ──▶ r
 
 How a resource is reconciled is up to you:
 
-- **Declarative:** describe the resources in a Catalog; no code.
+- **Declarative:** describe the resources in a Blueprint; no code.
 - **Remote:** any HTTP endpoint, in any language, returns what should exist.
 - **Typed:** Go hooks, a full reconciler, or an unchanged controller-runtime `Reconcile`.
 
@@ -54,7 +54,7 @@ inrun
 
 | Pack | Shows |
 | --- | --- |
-| [declarative](examples/reconcilers/declarative/) | Operators declared in a Catalog. Start here. |
+| [declarative](examples/reconcilers/declarative/) | Operators declared in a Blueprint. Start here. |
 | [remote](examples/reconcilers/remote/) | A reconciler in any language, called over HTTP |
 | [typed](examples/reconcilers/typed/) | Go hooks, a constructor, and a controller-runtime drop-in |
 | [intent](examples/intent/) | Intent in through the gateway, view out |

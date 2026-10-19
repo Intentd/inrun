@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Remote reconciler for the Website CRD in Python, standard library only. It
-reads only the args the Catalog maps from the CR (never the CR itself) and
+reads only the args the Blueprint maps from the CR (never the CR itself) and
 answers POST /reconcile with status and intent-form resources.
 
     python3 main.py                              # listens on :8025
@@ -21,7 +21,7 @@ TOKEN = os.environ.get("RECONCILER_TOKEN", "")
 
 
 def reconcile(body: dict) -> dict:
-    # Everything comes from reconcile.args in catalog.yaml: flat, in this
+    # Everything comes from reconcile.args in blueprint.yaml: flat, in this
     # reconciler's own names.
     args = body.get("args", {})
 

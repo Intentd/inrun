@@ -1,0 +1,16 @@
+# Triggers: preReconcile.sentinels contains an unknown sentinel name
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-watch-unknown-sentinel
+  version: 0.1.0
+  description: preReconcile.sentinels declares an unknown sentinel.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        preReconcile:
+          sentinels:
+            - generationChanged
+            - specChanged

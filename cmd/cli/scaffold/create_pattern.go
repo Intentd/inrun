@@ -14,11 +14,11 @@ import (
 
 var createPatternCmd = &cobra.Command{
 	Use:   "pattern",
-	Short: "Scaffold a new Inrun pattern: catalog.yaml, simulate.yaml, e2e.yaml, README.md",
+	Short: "Scaffold a new Inrun pattern: blueprint.yaml, simulate.yaml, e2e.yaml, README.md",
 	Long: `Creates the files needed to build, test, and publish an Inrun pattern.
 
 Always written:
-  catalog.yaml   — operator declaration
+  blueprint.yaml   — operator declaration
   simulate.yaml  — in-memory test scaffold (inrun simulate)
   e2e.yaml       — real-cluster integration test scaffold (inrun e2e)
   README.md      — actionable steps from edit to release
@@ -28,7 +28,7 @@ Also written when --typed, --add-hook, or --add-constructor:
   Makefile       — registry, build, build-runtime, docker, push, release
   Dockerfile     — production container image (distroless, runtime binary only)
 
-Typed mode flags are forwarded to catalog generation:
+Typed mode flags are forwarded to blueprint generation:
   --add-hook          Include a hooks section
   --add-constructor   Include a constructor section
   --typed             Include both hooks and constructor (commented)
@@ -49,20 +49,20 @@ Examples:
 
 		isTyped := typed || addHook || addConstructor
 
-		catalogOpts := generate.CatalogScaffoldOptions{
+		blueprintOpts := generate.BlueprintScaffoldOptions{
 			AddHook:        addHook,
 			AddConstructor: addConstructor,
 			Typed:          typed,
-			OutputFile:     filepath.Join(outputDir, cmdutil.FileCatalog),
+			OutputFile:     filepath.Join(outputDir, cmdutil.FileBlueprint),
 		}
-		if err := catalogOpts.Validate(); err != nil {
+		if err := blueprintOpts.Validate(); err != nil {
 			return err
 		}
 
 		fmt.Printf("generating pattern scaffold → %s/\n", outputDir)
 
-		if _, err := generate.CatalogScaffold(catalogOpts); err != nil {
-			return fmt.Errorf("generating %s: %w", cmdutil.FileCatalog, err)
+		if _, err := generate.BlueprintScaffold(blueprintOpts); err != nil {
+			return fmt.Errorf("generating %s: %w", cmdutil.FileBlueprint, err)
 		}
 
 		if err := generate.WriteSimulateScaffold(filepath.Join(outputDir, cmdutil.DirTest, cmdutil.FileSimulate)); err != nil {
@@ -90,7 +90,7 @@ Examples:
 		}
 
 		fmt.Printf("\n→ pattern scaffold written to %s\n", cmdutil.Bold(outputDir+"/"))
-		fmt.Printf("  %s %-16s %s\n", cmdutil.SuccessMark(), cmdutil.FileCatalog, cmdutil.Dim("declare your CRD(s) and resources"))
+		fmt.Printf("  %s %-16s %s\n", cmdutil.SuccessMark(), cmdutil.FileBlueprint, cmdutil.Dim("declare your CRD(s) and resources"))
 		fmt.Printf("  %s %-16s %s\n", cmdutil.SuccessMark(), cmdutil.DirTest+"/"+cmdutil.FileSimulate, cmdutil.Dim("inrun simulate"))
 		fmt.Printf("  %s %-16s %s\n", cmdutil.SuccessMark(), cmdutil.DirTest+"/"+cmdutil.FileE2e, cmdutil.Dim("inrun e2e"))
 		fmt.Printf("  %s %-16s %s\n", cmdutil.SuccessMark(), cmdutil.FileReadMe, cmdutil.Dim("start here"))
@@ -107,9 +107,9 @@ Examples:
 func init() {
 	cmdutil.CreateCmd.AddCommand(createPatternCmd)
 	createPatternCmd.Flags().Bool("add-hook", false,
-		"Typed mode: include a hooks section in catalog.yaml (also writes Makefile + Dockerfile)")
+		"Typed mode: include a hooks section in blueprint.yaml (also writes Makefile + Dockerfile)")
 	createPatternCmd.Flags().Bool("add-constructor", false,
-		"Typed mode: include a constructor section in catalog.yaml (also writes Makefile + Dockerfile)")
+		"Typed mode: include a constructor section in blueprint.yaml (also writes Makefile + Dockerfile)")
 	createPatternCmd.Flags().Bool("typed", false,
 		"Typed mode: include both hooks and constructor commented (also writes Makefile + Dockerfile)")
 	createPatternCmd.Flags().StringP("output", "o", "",

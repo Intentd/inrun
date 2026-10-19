@@ -39,8 +39,8 @@ func applyNormalize(
 
 	log := logger.FromContext(ctx)
 
-	// Deep-copy so the informer cache object is never modified.
-	cloned := obj.DeepCopyObject().(domain.Object)
+	// Normalize a copy: validation still checks the CR as written.
+	cloned := domain.Copy(obj)
 
 	baseResolver, err := template.NewResolver(ctx, cloned)
 	if err != nil {

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
@@ -42,19 +42,19 @@ type APIServer struct {
 	oidcCache *oidcpkg.Cache
 	kube      kubeclient.Interface
 	clusters  *ClusterRegistry
-	cat       *catalog.Catalog
+	bp        *blueprint.Blueprint
 	ownNS     string
 }
 
 // NewAPIServer resolves all tokens (bootstrapping/rotating Secrets as
 // needed) and returns a ready-to-register server.
-func NewAPIServer(ctx context.Context, cat *catalog.Catalog, kube kubeclient.Interface, clusters *ClusterRegistry, ownNS string) (*APIServer, error) {
-	if !cat.HasServeEnabled() {
+func NewAPIServer(ctx context.Context, bp *blueprint.Blueprint, kube kubeclient.Interface, clusters *ClusterRegistry, ownNS string) (*APIServer, error) {
+	if !bp.HasServeEnabled() {
 		return nil, nil // not enabled — caller skips registration
 	}
 
 	cache := oidcpkg.NewCache(oidcpkg.DefaultTTL)
-	tokens, err := LoadTokens(ctx, cat.Gateway.API.Auth.Tokens, kube, ownNS, cache)
+	tokens, err := LoadTokens(ctx, bp.Gateway.API.Auth.Tokens, kube, ownNS, cache)
 	if err != nil {
 		return nil, fmt.Errorf("loading Gateway API tokens: %w", err)
 	}
@@ -64,7 +64,7 @@ func NewAPIServer(ctx context.Context, cat *catalog.Catalog, kube kubeclient.Int
 		oidcCache: cache,
 		kube:      kube,
 		clusters:  clusters,
-		cat:       cat,
+		bp:        bp,
 		ownNS:     ownNS,
 	}, nil
 }
@@ -80,7 +80,7 @@ func (s *APIServer) matches(value string) string {
 // and atomically replaces the in-memory TokenSet. The OIDC cache is reused —
 // cached JWKS keys persist across reloads.
 func (s *APIServer) ReloadTokens(ctx context.Context) error {
-	ts, err := LoadTokens(ctx, s.cat.Gateway.API.Auth.Tokens, s.kube, s.ownNS, s.oidcCache)
+	ts, err := LoadTokens(ctx, s.bp.Gateway.API.Auth.Tokens, s.kube, s.ownNS, s.oidcCache)
 	if err != nil {
 		return fmt.Errorf("reload Gateway API tokens: %w", err)
 	}
@@ -92,7 +92,7 @@ func (s *APIServer) ReloadTokens(ctx context.Context) error {
 
 // Register wires all Gateway API routes onto the given Registrar.
 func (s *APIServer) Register(reg Registrar) {
-	if !s.cat.HasServeEnabled() {
+	if !s.bp.HasServeEnabled() {
 		return
 	}
 
@@ -114,16 +114,16 @@ func (s *APIServer) Register(reg Registrar) {
 	}
 
 	// POST /api/v1/apply
-	reg.Register("/api/v1/apply", auth(applyHandler(s.kube, s.clusters, s.cat)))
+	reg.Register("/api/v1/apply", auth(applyHandler(s.kube, s.clusters, s.bp)))
 
 	// GET/DELETE /api/v1/resources/...
-	reg.Register("/api/v1/resources/", auth(resourcesHandler(s.kube, s.clusters, s.cat)))
+	reg.Register("/api/v1/resources/", auth(resourcesHandler(s.kube, s.clusters, s.bp)))
 
 	// GET /api/v1/schema/...
-	reg.Register("/api/v1/schema", auth(schemaHandler(s.cat)))
+	reg.Register("/api/v1/schema", auth(schemaHandler(s.bp)))
 
 	// GET /api/v1/raw-schema
-	reg.Register("/api/v1/raw-schema", auth(rawSchemaHandler(s.kube, s.clusters, s.cat)))
+	reg.Register("/api/v1/raw-schema", auth(rawSchemaHandler(s.kube, s.clusters, s.bp)))
 
 	logger.Info().Msg("Gateway API routes registered: /api/v1/apply, /api/v1/resources/, /api/v1/schema, /api/v1/raw-schema")
 }

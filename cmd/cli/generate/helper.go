@@ -98,7 +98,7 @@ func goGetModules(mods []string, timeoutPerModule time.Duration, dryRun bool) er
 		return nil
 	}
 
-	fmt.Printf("best-effort fetching %d module(s) referenced by catalog", len(mods))
+	fmt.Printf("best-effort fetching %d module(s) referenced by blueprint", len(mods))
 
 	// ensure 'go' exists
 	if _, err := exec.LookPath("go"); err != nil {

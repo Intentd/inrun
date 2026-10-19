@@ -77,13 +77,13 @@ func SentinelFuncMap(declared []string) template.FuncMap {
 }
 
 // WithProfiles attaches a user-defined profile registry to the resolver.
-// Call this after NewResolver when the catalog declares a profiles: block.
+// Call this after NewResolver when the blueprint declares a profiles: block.
 func (r *Resolver) WithProfiles(reg *types.ProfileRegistry) *Resolver {
 	r.profiles = reg
 	return r
 }
 
-// WithUserFunctions registers user-defined notes from the Catalog's KELFunctionRegistry.
+// WithUserFunctions registers user-defined notes from the Blueprint's KELFunctionRegistry.
 // Each function's Expression is compiled as a Go template and registered under its
 // Name in the resolver's FuncMap. Calling {{ functionName }} in any template
 // evaluates the expression against the current CR's data.

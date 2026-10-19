@@ -10,7 +10,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/runtime/autoscaler"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
@@ -52,7 +52,7 @@ type CRDHealthResponse struct {
 // CRD Health Handler
 // Returns the live health status of a single CRD reconciler.
 // This endpoint is used by:
-//   - /catalog/<crd>/health
+//   - /blueprint/<crd>/health
 //   - dashboards
 //   - readiness/liveness checks
 //   - operator self‑diagnostics
@@ -202,7 +202,7 @@ type ConstructorInfo struct {
 //   - health summary
 //
 // This endpoint powers:
-//   - /catalog/<crd>
+//   - /blueprint/<crd>
 //   - dashboards
 //   - operator introspection
 //
@@ -304,12 +304,12 @@ func BuildCRDInfoHandler(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Catalog Response
+// Blueprint Response
 // ─────────────────────────────────────────────────────────────────────────────
 
-// CatalogNamespaceSummary groups CRDs that share the same catalog namespace.
-// Namespaces are declared in catalog.metadata.namespace — "default" when not set.
-type CatalogNamespaceSummary struct {
+// BlueprintNamespaceSummary groups CRDs that share the same blueprint namespace.
+// Namespaces are declared in blueprint.metadata.namespace — "default" when not set.
+type BlueprintNamespaceSummary struct {
 	CRDs         []string     `json:"crds"`
 	StatusCounts StatusCounts `json:"statusCounts"`
 	Healthy      bool         `json:"healthy"`
@@ -319,7 +319,7 @@ type CatalogNamespaceSummary struct {
 	Resources    int          `json:"resources"`
 }
 
-type CatalogResponse struct {
+type BlueprintResponse struct {
 	CRDs               []CRDSummaryResponse `json:"crds"`
 	Total              int                  `json:"total"`
 	TotalEnabled       int                  `json:"totalEnabled"`
@@ -337,12 +337,12 @@ type CatalogResponse struct {
 	License            string               `json:"license,omitempty"`
 	RuntimeVersion     string               `json:"runtimeVersion,omitempty"`
 	ClusterName        string               `json:"clusterName,omitempty"`
-	// Namespaces groups CRDs by catalog namespace. Always present — at minimum
-	// contains "default" when no catalog declares an explicit namespace.
-	Namespaces map[string]CatalogNamespaceSummary `json:"namespaces,omitempty"`
+	// Namespaces groups CRDs by blueprint namespace. Always present — at minimum
+	// contains "default" when no blueprint declares an explicit namespace.
+	Namespaces map[string]BlueprintNamespaceSummary `json:"namespaces,omitempty"`
 	// GatewayEndpoint is the HTTP base URL of the companion gateway process.
 	// Set via INRUN_GATEWAY_ENDPOINT on the runtime. The console reads
-	// this field and fetches gateway:/catalog to merge per-CRD webhook stats.
+	// this field and fetches gateway:/blueprint to merge per-CRD webhook stats.
 	// Empty when no gateway is paired with this runtime.
 	GatewayEndpoint string `json:"gatewayEndpoint,omitempty"`
 }
@@ -378,7 +378,7 @@ type CRDSummaryResponse struct {
 	Endpoints                EndpointInfo       `json:"endpoints"`
 	RBACCount                int                `json:"rbacCount,omitempty"`
 	DeletionProtection       bool               `json:"deletionProtection"`
-	CatalogNamespace         string             `json:"catalogNamespace,omitempty"`
+	BlueprintNamespace       string             `json:"blueprintNamespace,omitempty"`
 	ServeEnabled             bool               `json:"serveEnabled,omitempty"`
 	RequireServeName         bool               `json:"requireServeName,omitempty"`
 	// Target is the identifier callers use against the Gateway API and schema
@@ -412,7 +412,7 @@ type StatusCounts struct {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Catalog Handler
+// Blueprint Handler
 // Returns a full list of CRDs in the running operator, including:
 //   - metadata (GVK, mode, namespace, dependencies)
 //   - resolved operational values (workers, resync, queue depth)
@@ -422,20 +422,20 @@ type StatusCounts struct {
 //
 // This is the top‑level endpoint for dashboards and operator UIs.
 // ─────────────────────────────────────────────────────────────────────────────
-func BuildCatalogHandler(
-	cat *catalog.Catalog,
+func BuildBlueprintHandler(
+	bp *blueprint.Blueprint,
 	cfg *config.Config,
-	reg contract.RuntimeResourceCatalog,
+	reg contract.RuntimeResourceBlueprint,
 	healthMap map[string]*CRDHealth,
 	o *RuntimeHealth,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		crds := make([]CRDSummaryResponse, 0)
 		statusCounts := StatusCounts{}
-		namespaces := make(map[string]CatalogNamespaceSummary)
-		deletionProtectedCRDs := cat.DeletionProtectedCRDNames()
+		namespaces := make(map[string]BlueprintNamespaceSummary)
+		deletionProtectedCRDs := bp.DeletionProtectedCRDNames()
 
-		for _, crd := range cat.Enabled() {
+		for _, crd := range bp.Enabled() {
 			gvk := crd.GVKString()
 			h := healthMap[gvk]
 
@@ -494,7 +494,7 @@ func BuildCatalogHandler(
 				QueueDepth:               h.QueueDepth(gvk),
 				MaxDepth:                 v.maxDepth,
 				MaxDepthSource:           v.maxDepthSource,
-				RBACCount:                toRBACInfo(cat.RBACRulesForCRD(crd)).TotalRules,
+				RBACCount:                toRBACInfo(bp.RBACRulesForCRD(crd)).TotalRules,
 				ResourceCount:            v.resourceCount,
 				DeletionProtection:       isCRDProtected(deletionProtectedCRDs, crd.APITypes.Plural, crd.APITypes.Group),
 				OperatorBox: OperatorBoxSummary{
@@ -503,20 +503,20 @@ func BuildCatalogHandler(
 					HasHooks:       crd.HasHooks(),
 					HasConstructor: crd.HasConstructor(),
 				},
-				Healthy:          isHealthy,
-				Started:          isStarted,
-				Pending:          isPending,
-				StartedAt:        h.StartedAt(),
-				Uptime:           h.Uptime(),
-				ErrorRate:        h.ErrorRatePercent(),
-				Gated:            h.IsGated(),
-				GatedReason:      h.GatedReason(),
-				CrossAccess:      crd.CrossAccessEnabled(),
-				CatalogNamespace: crd.CatalogNamespace,
-				ServeEnabled:     crd.ServeEnabled(),
-				RequireServeName: crd.RequireServeName(),
-				Target:           crd.ServeTargetOrEmpty(),
-				Aliases:          crd.AliasNames(),
+				Healthy:            isHealthy,
+				Started:            isStarted,
+				Pending:            isPending,
+				StartedAt:          h.StartedAt(),
+				Uptime:             h.Uptime(),
+				ErrorRate:          h.ErrorRatePercent(),
+				Gated:              h.IsGated(),
+				GatedReason:        h.GatedReason(),
+				CrossAccess:        crd.CrossAccessEnabled(),
+				BlueprintNamespace: crd.BlueprintNamespace,
+				ServeEnabled:       crd.ServeEnabled(),
+				RequireServeName:   crd.RequireServeName(),
+				Target:             crd.ServeTargetOrEmpty(),
+				Aliases:            crd.AliasNames(),
 				Endpoints: EndpointInfo{
 					Health:        runtimeapi.HealthPath(strings.ToLower(crd.Name)),
 					Info:          runtimeapi.CRDPath(strings.ToLower(crd.Name)),
@@ -526,7 +526,7 @@ func BuildCatalogHandler(
 			})
 
 			// Build namespace grouping for the Console.
-			ns := crd.CatalogNamespace
+			ns := crd.BlueprintNamespace
 			if ns == "" {
 				ns = "default"
 			}
@@ -544,10 +544,10 @@ func BuildCatalogHandler(
 			nsSummary.Workers += v.workers
 			nsSummary.Resources += v.resourceCount
 			if nsSummary.Description == "" {
-				nsSummary.Description = crd.CatalogDescription
+				nsSummary.Description = crd.BlueprintDescription
 			}
 			if nsSummary.Version == "" {
-				nsSummary.Version = crd.CatalogVersion
+				nsSummary.Version = crd.BlueprintVersion
 			}
 			namespaces[ns] = nsSummary
 		}
@@ -572,14 +572,14 @@ func BuildCatalogHandler(
 		}
 
 		deletionProtection := false
-		if cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionGVRs() != nil {
+		if bp.IsDeletionProtectionEnabled() && bp.DeletionProtectionGVRs() != nil {
 			deletionProtection = true
 		}
 
-		httpapi.WriteJSON(w, status, CatalogResponse{
+		httpapi.WriteJSON(w, status, BlueprintResponse{
 			CRDs:               crds,
-			Total:              len(cat.All()),
-			TotalEnabled:       len(cat.Enabled()),
+			Total:              len(bp.All()),
+			TotalEnabled:       len(bp.Enabled()),
 			InrunReady:         o.IsInrunReady(),
 			IsLeader:           o.IsLeader(),
 			DeletionProtection: deletionProtection,
@@ -587,21 +587,21 @@ func BuildCatalogHandler(
 			Status:             status,
 			DegradedReason:     degradedReason,
 			StatusCounts:       statusCounts,
-			Name:               cat.Meta().Name,
-			Version:            cat.Meta().Version,
-			Author:             cat.Meta().Author,
-			License:            cat.Meta().License,
-			Description:        cat.Meta().Description,
+			Name:               bp.Meta().Name,
+			Version:            bp.Meta().Version,
+			Author:             bp.Meta().Author,
+			License:            bp.Meta().License,
+			Description:        bp.Meta().Description,
 			RuntimeVersion:     version.Short(),
-			ClusterName:        cat.ClusterName(),
+			ClusterName:        bp.ClusterName(),
 			Namespaces:         namespaces,
-			GatewayEndpoint:    cat.GatewayEndpoint(),
+			GatewayEndpoint:    bp.GatewayEndpoint(),
 		})
 	}
 }
 
 // isCRDProtected returns true when the CRD identified by (plural, group) is
-// present in the protected names set built from the Catalog at startup.
+// present in the protected names set built from the Blueprint at startup.
 // Returns false when the set is nil (deletion protection not enabled) or when
 // the CRD is not managed by this operator.
 func isCRDProtected(protected map[string]struct{}, plural, group string) bool {
@@ -841,7 +841,7 @@ func resolveCRDDisplayValues(
 	}
 	maxDepthSource := "configured"
 	if maxDepth == 0 {
-		maxDepth = cfg.Catalog().DefaultQueueDepth()
+		maxDepth = cfg.Blueprint().DefaultQueueDepth()
 		maxDepthSource = "default"
 	}
 
@@ -854,7 +854,7 @@ func resolveCRDDisplayValues(
 	resyncSource := "configured"
 	if resyncDuration.Duration == 0 {
 		resyncSource = "default"
-		resync = cfg.Catalog().DefaultResync().String()
+		resync = cfg.Blueprint().DefaultResync().String()
 	}
 
 	// Workers
@@ -864,7 +864,7 @@ func resolveCRDDisplayValues(
 	}
 	workersSource := "configured"
 	if workers == 0 {
-		workers = cfg.Catalog().DefaultWorkers()
+		workers = cfg.Blueprint().DefaultWorkers()
 		workersSource = "default"
 	}
 

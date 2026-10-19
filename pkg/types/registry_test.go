@@ -92,16 +92,16 @@ func TestRegistrySource_ResolvedURL_GitWithAt(t *testing.T) {
 
 func TestRegistrySource_ResolvedURL_OCIColonTag(t *testing.T) {
 	// inrun pull tells users to write oci://host/repo:tag — this must not produce host/repo:tag:latest
-	s := types.RegistrySource{URL: "oci://ghcr.io/myorg/catalogs/webapp-operator:v1.0.0"}
+	s := types.RegistrySource{URL: "oci://ghcr.io/myorg/blueprints/webapp-operator:v1.0.0"}
 	clean, ver := s.ResolvedURL()
-	assert.Equal(t, "ghcr.io/myorg/catalogs/webapp-operator", clean)
+	assert.Equal(t, "ghcr.io/myorg/blueprints/webapp-operator", clean)
 	assert.Equal(t, "v1.0.0", ver)
 }
 
 func TestRegistrySource_ResolvedURL_OCIColonTagNoScheme(t *testing.T) {
-	s := types.RegistrySource{URL: "ghcr.io/myorg/catalogs/postgres:v14", OCI: true}
+	s := types.RegistrySource{URL: "ghcr.io/myorg/blueprints/postgres:v14", OCI: true}
 	clean, ver := s.ResolvedURL()
-	assert.Equal(t, "ghcr.io/myorg/catalogs/postgres", clean)
+	assert.Equal(t, "ghcr.io/myorg/blueprints/postgres", clean)
 	assert.Equal(t, "v14", ver)
 }
 
@@ -115,9 +115,9 @@ func TestRegistrySource_ResolvedURL_OCIColonTagDoesNotSplitOnPort(t *testing.T) 
 
 // ── RegistrySource.SourceFile ─────────────────────────────────────────────────
 
-func TestRegistrySource_SourceFile_DefaultCatalog(t *testing.T) {
+func TestRegistrySource_SourceFile_DefaultBlueprint(t *testing.T) {
 	s := types.RegistrySource{}
-	assert.Equal(t, "catalog.yaml", s.SourceFile())
+	assert.Equal(t, "blueprint.yaml", s.SourceFile())
 }
 
 func TestRegistrySource_SourceFile_Stack(t *testing.T) {

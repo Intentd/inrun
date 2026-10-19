@@ -11,7 +11,7 @@ import (
 	"github.com/intentd/inrun/pkg/util/kube"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/labels"
@@ -56,12 +56,12 @@ type WebhookServer struct {
 	// Webhook registration options passed to registration functions.
 	hookReg WebhookRegistrationOptions
 
-	// Declarative enablement flags resolved from Catalog + config.
+	// Declarative enablement flags resolved from Blueprint + config.
 	webhooksEnabled  bool // admission (validation + mutation)
 	convEnabled      bool // CRD conversion
 	conversionWindow int  // rolling window size for conversion stats
 
-	// Runtime protection state — set in Start() based on Catalog.
+	// Runtime protection state — set in Start() based on Blueprint.
 	deletionProtection  atomic.Bool
 	namespaceProtection atomic.Bool
 	strictMode          atomic.Bool
@@ -69,15 +69,15 @@ type WebhookServer struct {
 	// Kubernetes client for webhook configuration registration.
 	kubeClient kubernetes.Interface
 
-	// Catalog drives all conditional behavior.
-	catalog *catalog.Catalog
+	// Blueprint drives all conditional behavior.
+	blueprint *blueprint.Blueprint
 
-	// Registries — populated from Catalog at construction time.
-	conversionRegistry catalog.ConversionRegistry
-	admissionRegistry  catalog.AdmissionRegistry
+	// Registries — populated from Blueprint at construction time.
+	conversionRegistry blueprint.ConversionRegistry
+	admissionRegistry  blueprint.AdmissionRegistry
 
 	// Stats — per-CRD maps keyed by GVR string ("group/version/resource").
-	// Pre-populated from the Catalog in NewWebhookServer so each CRD gets its
+	// Pre-populated from the Blueprint in NewWebhookServer so each CRD gets its
 	// own counters. infraProtectionStats covers self-protection and Inrun
 	// infra resources (Deployment, Service, etc.) that have no CRD GVR.
 	admissionStats  map[string]*health.AdmissionStats
@@ -88,7 +88,7 @@ type WebhookServer struct {
 	strictModeStats *health.DeletionProtectionStats // process-global; strict mode is not per-CRD
 	webhookStats    *health.WebhookStats
 
-	// Reverse-lookup tables built from the Catalog for handlers that identify
+	// Reverse-lookup tables built from the Blueprint for handlers that identify
 	// the target CRD by name/kind rather than GVR.
 	crdNameToGVRKey map[string]string // "plural.group" → "group/version/resource"
 	gvkToGVRKey     map[string]string // "group/version/Kind" → "group/version/resource"
@@ -135,37 +135,37 @@ type certSecretBundle struct {
 }
 
 // NewWebhookServer constructs a WebhookServer and resolves all declarative
-// webhook behavior from the Catalog and Config. No I/O is performed — Start()
+// webhook behavior from the Blueprint and Config. No I/O is performed — Start()
 // activates servers, registration, and reconciliation.
-func NewWebhookServer(kubeClient kubernetes.Interface, cat *catalog.Catalog, cfg *config.Config) *WebhookServer {
-	admissionFailurePolicy := admissionv1FailurePolicyType(cat.WebhooksFailurePolicy())
+func NewWebhookServer(kubeClient kubernetes.Interface, bp *blueprint.Blueprint, cfg *config.Config) *WebhookServer {
+	admissionFailurePolicy := admissionv1FailurePolicyType(bp.WebhooksFailurePolicy())
 
 	hookReg := WebhookRegistrationOptions{
 		FailurePolicy:       admissionFailurePolicy,
 		Port:                cfg.HTTPSPortInt32(),
-		ServiceName:         cat.GatewayServiceName(),
+		ServiceName:         bp.GatewayServiceName(),
 		ServiceNamespace:    cfg.Cluster().Namespace(),
 		TLSCertFile:         cfg.Security().Webhooks.TLSCert,
 		InrunResourceLabels: labels.InrunResourceLabels(),
 	}
 
-	convWindow := cat.ConversionWindow()
+	convWindow := bp.ConversionWindow()
 
 	ws := &WebhookServer{
 		name:               "webhook server",
 		kubeClient:         kubeClient,
-		catalog:            cat,
+		blueprint:          bp,
 		config:             cfg,
 		httpsPort:          cfg.HTTPSPort(),
 		tlsCert:            cfg.Security().Webhooks.TLSCert,
 		tlsKey:             cfg.Security().Webhooks.TLSKey,
 		hookReg:            hookReg,
-		webhooksEnabled:    cat.IsAdmissionEnabled(),
-		convEnabled:        cat.IsConversionEnabled(),
+		webhooksEnabled:    bp.IsAdmissionEnabled(),
+		convEnabled:        bp.IsConversionEnabled(),
 		conversionWindow:   convWindow,
 		mux:                http.NewServeMux(),
-		conversionRegistry: cat.ConversionRegistry(),
-		admissionRegistry:  cat.AdmissionRegistry(),
+		conversionRegistry: bp.ConversionRegistry(),
+		admissionRegistry:  bp.AdmissionRegistry(),
 		admissionStats:     make(map[string]*health.AdmissionStats),
 		conversionStats:    make(map[string]*health.ConversionStats),
 		protectionStats:    make(map[string]*health.DeletionProtectionStats),
@@ -177,11 +177,11 @@ func NewWebhookServer(kubeClient kubernetes.Interface, cat *catalog.Catalog, cfg
 		gvkToGVRKey:        make(map[string]string),
 	}
 
-	// Pre-populate per-CRD stat instances and reverse-lookup tables from the Catalog.
-	// Every CRD gets its own counters so the gateway /catalog can return accurate
+	// Pre-populate per-CRD stat instances and reverse-lookup tables from the Blueprint.
+	// Every CRD gets its own counters so the gateway /blueprint can return accurate
 	// per-CRD breakdowns without mixing traffic across resources.
 	// Must use Enabled() — raw Spec.CRDs entries have GroupVersionResource unset.
-	for _, crd := range cat.Enabled() {
+	for _, crd := range bp.Enabled() {
 		gvr := crd.GVR()
 		gvrKey := crdGVRKey(gvr.Group, gvr.Version, gvr.Resource)
 		ws.admissionStats[gvrKey] = health.NewAdmissionStats(convWindow)
@@ -196,13 +196,13 @@ func NewWebhookServer(kubeClient kubernetes.Interface, cat *catalog.Catalog, cfg
 	}
 
 	// Precompute deletion-protection CRD name set.
-	if cat.IsDeletionProtectionEnabled() {
-		ws.protectedCRDNames = cat.DeletionProtectedCRDNames()
+	if bp.IsDeletionProtectionEnabled() {
+		ws.protectedCRDNames = bp.DeletionProtectedCRDNames()
 	}
 
 	// Precompute namespace rule map.
-	if cat.IsNamespaceProtectionEnabled() {
-		rawRules := cat.NamespaceProtectionRuleMap()
+	if bp.IsNamespaceProtectionEnabled() {
+		rawRules := bp.NamespaceProtectionRuleMap()
 		if len(rawRules) > 0 {
 			ws.namespaceRuleMap = make(map[string]*NamespaceRules, len(rawRules))
 			for key, entry := range rawRules {
@@ -246,7 +246,7 @@ func crdGVKKey(group, version, kind string) string {
 // ── Per-CRD stat accessors ────────────────────────────────────────────────────
 // These helpers return the per-CRD stats instance for a given GVR key.
 // A nil-safe fallback is created on first miss (defensive; should not occur for
-// CRDs declared in the Catalog).
+// CRDs declared in the Blueprint).
 
 func (ws *WebhookServer) admissionStatsFor(gvrKey string) *health.AdmissionStats {
 	if s, ok := ws.admissionStats[gvrKey]; ok {
@@ -315,22 +315,22 @@ func (ws *WebhookServer) SetCertBundle(certPEM, keyPEM, caPEM []byte, secretName
 // launches the HTTPS server, performs best-effort webhook registration with the
 // API server, and starts the reconciliation controller.
 //
-// Start is a no-op when no webhook capabilities are declared in the Catalog or
+// Start is a no-op when no webhook capabilities are declared in the Blueprint or
 // when the process is not running inside a Kubernetes cluster.
 func (ws *WebhookServer) Start(ctx context.Context) error {
 	ws.ctx, ws.cancel = context.WithCancel(ctx)
 	ws.started.Store(true)
 
-	cat := ws.catalog
+	bp := ws.blueprint
 
-	// Resolve protection state from the Catalog.
-	if cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionGVRs() != nil {
+	// Resolve protection state from the Blueprint.
+	if bp.IsDeletionProtectionEnabled() && bp.DeletionProtectionGVRs() != nil {
 		ws.deletionProtection.Store(true)
 	}
-	if cat.IsNamespaceProtectionEnabled() && len(cat.NamespaceProtectionGVRs()) > 0 {
+	if bp.IsNamespaceProtectionEnabled() && len(bp.NamespaceProtectionGVRs()) > 0 {
 		ws.namespaceProtection.Store(true)
 	}
-	if cat.IsStrictModeEnabled() && kube.IsRunningInPod() {
+	if bp.IsStrictModeEnabled() && kube.IsRunningInPod() {
 		ws.strictMode.Store(true)
 	}
 
@@ -365,18 +365,18 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 		startHTTPS = true
 		logger.Info().Str("endpoint", "/strict-mode-protection").Msg("strict mode protection endpoint registered")
 	}
-	if cat.HasConversionPaths() {
+	if bp.HasConversionPaths() {
 		ws.mux.HandleFunc("/convert", ws.conversionHandler)
 		startHTTPS = true
 		logger.Info().Str("endpoint", "/convert").Msg("conversion webhook endpoint registered")
 	}
-	if cat.HasValidationRules() {
+	if bp.HasValidationRules() {
 		ws.mux.HandleFunc("/validate", ws.validationHandler)
 		admissionRuleExists = true
 		startHTTPS = true
 		logger.Info().Str("endpoint", "/validate").Msg("validation endpoint registered")
 	}
-	if cat.HasMutationRules() {
+	if bp.HasMutationRules() {
 		ws.mux.HandleFunc("/mutate", ws.mutationHandler)
 		admissionRuleExists = true
 		startHTTPS = true
@@ -385,7 +385,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 
 	// Start the housekeeper before the HTTPS gate — it manages token secrets and cert
 	// rotation regardless of whether any webhook endpoints are active.
-	if cat.IsHousekeeperEnabled() {
+	if bp.IsHousekeeperEnabled() {
 		if err := ws.housekeeper(ws.ctx); err != nil {
 			logger.Error().Err(err).Msg("housekeeper failed to start")
 		}
@@ -441,7 +441,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 			wctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			dpGVRs := cat.DeletionProtectionGVRs()
+			dpGVRs := bp.DeletionProtectionGVRs()
 			if len(dpGVRs) == 0 {
 				logger.Info().Msg("deletion protection: no GVRs — webhook not registered")
 				return
@@ -459,7 +459,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 				logger.Info().
 					Str("config", deletionProtectionWebhookConfigName).
 					Int("rules", len(dpGVRs)).
-					Int("protected", len(ws.catalog.DeletionProtectedCRDNames())).
+					Int("protected", len(ws.blueprint.DeletionProtectedCRDNames())).
 					Msg("deletion protection webhook registered")
 			}
 		}()
@@ -471,7 +471,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 			wctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			npGVRs := cat.NamespaceProtectionGVRs()
+			npGVRs := bp.NamespaceProtectionGVRs()
 			if len(npGVRs) == 0 {
 				logger.Info().Msg("namespace protection: no GVRs — webhook not registered")
 				return
@@ -483,8 +483,8 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 				return
 			}
 
-			svcName := cat.GatewayServiceName()
-			failurePolicy := cat.NamespaceProtectionFailurePolicy()
+			svcName := bp.GatewayServiceName()
+			failurePolicy := bp.NamespaceProtectionFailurePolicy()
 			if err := registerNamespaceProtectionWebhook(wctx, ws.kubeClient, npGVRs, caBundle, ws.hookReg, svcName, failurePolicy); err != nil {
 				logger.Error().Err(err).Msg("namespace protection webhook registration failed")
 			} else {
@@ -522,7 +522,7 @@ func (ws *WebhookServer) Start(ctx context.Context) error {
 }
 
 // Shutdown gracefully stops the HTTPS server and performs declarative cleanup
-// of webhook configurations as declared in the Catalog.
+// of webhook configurations as declared in the Blueprint.
 func (ws *WebhookServer) Shutdown(ctx context.Context) {
 	if ws.cancel != nil {
 		ws.cancel()
@@ -536,22 +536,22 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 		logger.Error().Err(err).Msg("webhook HTTPS server shutdown error")
 	}
 
-	cat := ws.catalog
+	bp := ws.blueprint
 
 	// Cleanup admission webhook.
 	cleanupOpts := WebhookCleanupOptions{}
-	if cat.HasMutationRules() {
-		cleanupOpts.mutating = cat.WebhookCleanupOnShutdown()
+	if bp.HasMutationRules() {
+		cleanupOpts.mutating = bp.WebhookCleanupOnShutdown()
 	}
-	if cat.HasValidationRules() {
-		cleanupOpts.validating = cat.WebhookCleanupOnShutdown()
+	if bp.HasValidationRules() {
+		cleanupOpts.validating = bp.WebhookCleanupOnShutdown()
 	}
 	if err := UnregisterAdmissionWebhooks(ctx, ws.kubeClient, cleanupOpts); err != nil {
 		logger.Error().Err(err).Msg("webhook cleanup error")
 	}
 
 	// Cleanup deletion-protection webhook.
-	if cat.IsDeletionProtectionEnabled() && cat.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
+	if bp.IsDeletionProtectionEnabled() && bp.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
 		if err := cleanupValidatingWebhook(ctx, ws.kubeClient, deletionProtectionWebhookConfigName); err != nil {
 			logger.Error().Err(err).Msg("deletion protection webhook cleanup error")
 		} else {
@@ -560,7 +560,7 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 	}
 
 	// Cleanup namespace-protection webhook.
-	if cat.IsNamespaceProtectionEnabled() && cat.NamespaceProtectionCleanupOnShutdown() && ws.kubeClient != nil {
+	if bp.IsNamespaceProtectionEnabled() && bp.NamespaceProtectionCleanupOnShutdown() && ws.kubeClient != nil {
 		if err := cleanupValidatingWebhook(ctx, ws.kubeClient, namespaceProtectionWebhookConfigName); err != nil {
 			logger.Error().Err(err).Msg("namespace protection webhook cleanup error")
 		} else {
@@ -572,7 +572,7 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 	// Strict mode cleanup mirrors deletion protection: only clean up when the
 	// parent deletionProtection.cleanupOnShutdown is set, since strict mode is
 	// a sub-feature of deletion protection.
-	if cat.IsStrictModeEnabled() && cat.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
+	if bp.IsStrictModeEnabled() && bp.DeletionProtectionCleanupOnShutdown() && ws.kubeClient != nil {
 		if err := cleanupValidatingWebhook(ctx, ws.kubeClient, strictModeProtectionWebhookConfigName); err != nil {
 			logger.Error().Err(err).Msg("strict mode protection webhook cleanup error")
 		} else {
@@ -582,9 +582,9 @@ func (ws *WebhookServer) Shutdown(ctx context.Context) {
 
 	// Cleanup the TLS secret when auto-generated certs and cleanup is enabled.
 	shouldCleanupTLS :=
-		cat.WebhookCleanupOnShutdown() ||
-			cat.NamespaceProtectionCleanupOnShutdown() ||
-			cat.DeletionProtectionCleanupOnShutdown()
+		bp.WebhookCleanupOnShutdown() ||
+			bp.NamespaceProtectionCleanupOnShutdown() ||
+			bp.DeletionProtectionCleanupOnShutdown()
 
 	if ws.certMgr != nil && shouldCleanupTLS && ws.config != nil {
 		ns := ws.config.Cluster().Namespace()
@@ -602,9 +602,9 @@ func (ws *WebhookServer) Name() string { return ws.name }
 // Started reports whether Start() has been called.
 func (ws *WebhookServer) Started() bool { return ws.started.Load() }
 
-// ── Stats getters — used by BuildGatewayCatalogHandler ───────────────────────
+// ── Stats getters — used by BuildGatewayBlueprintHandler ───────────────────────
 // All stat getters are keyed by GVR string ("group/version/resource") so the
-// gateway /catalog handler can serve accurate per-CRD breakdowns.
+// gateway /blueprint handler can serve accurate per-CRD breakdowns.
 
 // AdmissionStatsFor returns the admission stats for the CRD identified by gvrKey.
 // Returns nil when no stats exist for that key (CRD has no admission webhooks).

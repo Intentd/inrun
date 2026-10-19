@@ -24,11 +24,11 @@ var (
 	resolveEnvVar    = structured.ResolveEnvVar
 )
 
-// mergeCatalogSecurity merges two CatalogSecurity values.
+// mergeBlueprintSecurity merges two BlueprintSecurity values.
 // Fields that are non-nil/non-zero in override win; otherwise the base value is kept.
-// This is the correct semantics for Stack layering: source Catalog settings are
+// This is the correct semantics for Stack layering: source Blueprint settings are
 // inherited, and the Stack only needs to declare what it explicitly wants to change.
-func mergeCatalogSecurity(base, override types.CatalogSecurity) types.CatalogSecurity {
+func mergeBlueprintSecurity(base, override types.BlueprintSecurity) types.BlueprintSecurity {
 	result := base
 	if override.DeletionProtection != nil {
 		result.DeletionProtection = override.DeletionProtection

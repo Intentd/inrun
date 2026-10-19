@@ -10,19 +10,19 @@ Apply a CR, run the operator, and inspect the child resources directly on the cl
 
 ---
 
-## Catalogs
+## Blueprints
 
-All catalogs use the same `ProfileProbe` CRD. One CRD is enough to probe every profile family.
+All blueprints use the same `ProfileProbe` CRD. One CRD is enough to probe every profile family.
 
 | File | Profiles covered |
 |---|---|
-| `catalog-resource.yaml` | tiny, small, medium, large, burst, steady, compute-heavy, memory-heavy |
-| `catalog-security.yaml` | baseline, restricted, hardened (container + pod security) |
-| `catalog-probes.yaml` | fast, standard, patient, slow-start |
-| `catalog-autoscale.yaml` | burst, steady, batch, latency-sensitive, cost-optimized |
-| `catalog-hpa.yaml` | web, api, latency-sensitive, batch, cost-optimized (HPA behavior) |
-| `catalog-pdb.yaml` | zero-downtime, rolling, relaxed (PDB disruption budget) |
-| `catalog-rolling.yaml` | safe, fast, blue-green (Deployment/StatefulSet/ReplicaSet rolling update) |
+| `blueprint-resource.yaml` | tiny, small, medium, large, burst, steady, compute-heavy, memory-heavy |
+| `blueprint-security.yaml` | baseline, restricted, hardened (container + pod security) |
+| `blueprint-probes.yaml` | fast, standard, patient, slow-start |
+| `blueprint-autoscale.yaml` | burst, steady, batch, latency-sensitive, cost-optimized |
+| `blueprint-hpa.yaml` | web, api, latency-sensitive, batch, cost-optimized (HPA behavior) |
+| `blueprint-pdb.yaml` | zero-downtime, rolling, relaxed (PDB disruption budget) |
+| `blueprint-rolling.yaml` | safe, fast, blue-green (Deployment/StatefulSet/ReplicaSet rolling update) |
 
 ---
 
@@ -31,15 +31,15 @@ All catalogs use the same `ProfileProbe` CRD. One CRD is enough to probe every p
 ```bash
 cd pkg/profiles/fixture
 
-# Run the catalog for the profile family you want to verify.
+# Run the blueprint for the profile family you want to verify.
 # crdFile and crFiles are embedded — Inrun applies the CRD and CR automatically:
-inrun -f catalog-resource.yaml    # resource profiles
-inrun -f catalog-security.yaml   # security profiles
-inrun -f catalog-probes.yaml     # probe profiles
-inrun -f catalog-autoscale.yaml  # autoscale profiles
-inrun -f catalog-hpa.yaml        # HPA behavior profiles
-inrun -f catalog-pdb.yaml        # PDB disruption budget profiles
-inrun -f catalog-rolling.yaml    # rolling update strategy profiles
+inrun -f blueprint-resource.yaml    # resource profiles
+inrun -f blueprint-security.yaml   # security profiles
+inrun -f blueprint-probes.yaml     # probe profiles
+inrun -f blueprint-autoscale.yaml  # autoscale profiles
+inrun -f blueprint-hpa.yaml        # HPA behavior profiles
+inrun -f blueprint-pdb.yaml        # PDB disruption budget profiles
+inrun -f blueprint-rolling.yaml    # rolling update strategy profiles
 
 # Inspect child Deployments:
 kubectl get deployments -o yaml | grep -A 10 "resources:"
@@ -105,7 +105,7 @@ kubectl get hpa my-probe-cost-hpa -o jsonpath='{.spec.metrics[0].resource.target
 
 ## Adding a profile
 
-When you add a profile name to any family, add a deployment entry to the matching catalog file:
+When you add a profile name to any family, add a deployment entry to the matching blueprint file:
 
 ```yaml
 - name: "{{ .metadata.name }}-xlarge"
@@ -116,4 +116,4 @@ When you add a profile name to any family, add a deployment entry to the matchin
   reconcile: true
 ```
 
-Run `inrun -f catalog-resource.yaml` and verify the Deployment's resource block matches the definition in `pkg/profiles/resource.go`.
+Run `inrun -f blueprint-resource.yaml` and verify the Deployment's resource block matches the definition in `pkg/profiles/resource.go`.

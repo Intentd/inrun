@@ -1,4 +1,4 @@
-// Command console is the console: a web UI that shows the Catalogs,
+// Command console is the console: a web UI that shows the Blueprints,
 // CRDs and custom resources of one or more running runtimes, and lets
 // developers submit intents through the gateway's generated forms. It reads
 // everything over the runtime and gateway HTTP APIs and has no Kubernetes
@@ -40,7 +40,7 @@ func main() {
 		inrunURLs     = flag.String("u", strings.Join(cfg.URLs, ","), "Comma-separated URLs of Inrun runtime instances")
 		ignoreDefault = flag.Bool("ignore-default", cfg.IgnoreDefault, "Do not add the default localhost:8080 URL; start with no instances")
 		port          = flag.String("p", cfg.Port, "Port to serve the console on")
-		refresh       = flag.Duration("refresh", cfg.RefreshInterval, "Refresh interval for fetching Catalogs")
+		refresh       = flag.Duration("refresh", cfg.RefreshInterval, "Refresh interval for fetching Blueprints")
 		logLevel      = flag.String("log-level", cfg.LogLevel, "Log level (debug, info, warn, error)")
 		showVersion   = flag.Bool("version", false, "Show version information")
 	)

@@ -1,12 +1,12 @@
 package types
 
 // PortProtocolEntry describes a single port protocol declaration found in a
-// resource template. Used by catalog validation to catch invalid protocol
+// resource template. Used by blueprint validation to catch invalid protocol
 // values early at load time.
 type PortProtocolEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // template name field (may be a template expression)
-	Protocol     string // raw protocol string as written in the catalog
+	Protocol     string // raw protocol string as written in the blueprint
 }
 
 // ported is implemented by any resource template that carries a port protocol field.

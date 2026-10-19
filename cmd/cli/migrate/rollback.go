@@ -25,9 +25,9 @@ CRs without a snapshot annotation are skipped. Rollback is idempotent.
 Requires a live cluster connection.
 
 Example:
-  inrun migrate rollback -f catalog.yaml
-  inrun migrate rollback -f catalog.yaml --dry-run
-  inrun migrate rollback -f catalog.yaml --namespace platform-01 --name my-app`,
+  inrun migrate rollback -f blueprint.yaml
+  inrun migrate rollback -f blueprint.yaml --dry-run
+  inrun migrate rollback -f blueprint.yaml --namespace platform-01 --name my-app`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runMigrateCmd(cmd, migrate.ModeRollback)
 	},

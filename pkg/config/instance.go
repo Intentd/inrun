@@ -97,14 +97,14 @@ func (e *leaderElection) SetRetryPeriod(v time.Duration) {
 	e.retryPeriod = v
 }
 
-// CatalogKind returns the kind string for a Catalog document.
-// Catalogs declare CRDs in spec.crds. No sources block.
-func CatalogKind() string {
-	return kindCatalog
+// BlueprintKind returns the kind string for a Blueprint document.
+// Blueprints declare CRDs in spec.crds. No sources block.
+func BlueprintKind() string {
+	return kindBlueprint
 }
 
 // StackKind returns the kind string for a Stack document.
-// Stacks compose Catalogs from sources (files, helm).
+// Stacks compose Blueprints from sources (files, helm).
 func StackKind() string {
 	return kindStack
 }
@@ -129,9 +129,9 @@ func KonduktorKind() string {
 	return kindLeader
 }
 
-// IsCatalogKind returns true if the given kind is a Catalog.
-func IsCatalogKind(kind string) bool {
-	return kind == kindCatalog
+// IsBlueprintKind returns true if the given kind is a Blueprint.
+func IsBlueprintKind(kind string) bool {
+	return kind == kindBlueprint
 }
 
 // IsKonduktorKind returns true if the given kind is a Konduktor.
@@ -162,7 +162,7 @@ func IsSimulateKind(kind string) bool {
 // IsValidPatternKind reports whether the given kind is one of the supported
 // Inrun pattern kinds.
 func IsValidPatternKind(kind string) bool {
-	return kind == kindCatalog ||
+	return kind == kindBlueprint ||
 		kind == kindStack ||
 		kind == kindModule ||
 		kind == kindE2E ||
@@ -172,7 +172,7 @@ func IsValidPatternKind(kind string) bool {
 // ValidKindsString returns a comma‑separated list of all supported document kinds.
 // Useful for error messages and CLI diagnostics.
 func ValidKindsString() string {
-	return "Catalog, Stack, Module, E2E, Simulate"
+	return "Blueprint, Stack, Module, E2E, Simulate"
 }
 
 // IsValidApiVersion returns true if the given apiVersion is a supported version.

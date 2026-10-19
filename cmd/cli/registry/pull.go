@@ -25,7 +25,7 @@ var pullCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 1),
 	Example: `  inrun pull postgres:v14
   inrun pull oci://ghcr.io/myorg/patterns/redis:v7
-  inrun pull -f catalog.yaml
+  inrun pull -f blueprint.yaml
   inrun pull -f stack.yaml
   inrun pull postgres:v14 --refresh`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,11 +38,11 @@ var pullCmd = &cobra.Command{
 		}
 
 		if len(args) == 0 {
-			return fmt.Errorf("provide a reference (e.g. postgres:v14) or --file <catalog.yaml>")
+			return fmt.Errorf("provide a reference (e.g. postgres:v14) or --file <blueprint.yaml>")
 		}
 
 		isModule, _ := cmd.Flags().GetBool("module")
-		kind := registry.CatalogKind
+		kind := registry.BlueprintKind
 		if isModule {
 			kind = registry.ModuleKind
 		}
@@ -107,7 +107,7 @@ var pullCmd = &cobra.Command{
 func init() {
 	pullCmd.Flags().Bool("refresh", false, "Bypass local cache and re-pull from registry")
 	pullCmd.Flags().StringP("out", "o", "", "Extract pulled pattern to this directory")
-	pullCmd.Flags().StringP("file", "f", "", "Pull all OCI imports from a catalog or stack file")
+	pullCmd.Flags().StringP("file", "f", "", "Pull all OCI imports from a blueprint or stack file")
 	pullCmd.Flags().BoolP("module", "m", false, "Resolve as a module (uses INRUN_MODULES_REGISTRY)")
 	cmdutil.RootCmd.AddCommand(pullCmd)
 
@@ -125,15 +125,15 @@ func notifyTypedPull(cacheDir string) {
 	cmdutil.PrintTypedBuildSteps(hasMakefile == nil)
 }
 
-// pullModuleDeps reads the catalog.yaml in cacheDir and pulls any OCI module
+// pullModuleDeps reads the blueprint.yaml in cacheDir and pulls any OCI module
 // imports it declares. Warnings are printed but do not fail the main pull.
-func pullModuleDeps(catalogCacheDir string) {
-	catalogFile := cmdutil.JoinPath(catalogCacheDir, registry.FileCatalog)
-	if _, err := os.Stat(catalogFile); err != nil {
+func pullModuleDeps(blueprintCacheDir string) {
+	blueprintFile := cmdutil.JoinPath(blueprintCacheDir, registry.FileBlueprint)
+	if _, err := os.Stat(blueprintFile); err != nil {
 		return
 	}
 
-	imports, err := registry.ExtractOCIImports(catalogFile)
+	imports, err := registry.ExtractOCIImports(blueprintFile)
 	if err != nil || len(imports.ModuleImports) == 0 {
 		return
 	}
@@ -155,8 +155,8 @@ func pullModuleDeps(catalogCacheDir string) {
 	}
 }
 
-// pullFromFile extracts all OCI refs from a catalog or stack file and pulls
-// each one. Module imports (Catalog) and registry imports (Stack) are both
+// pullFromFile extracts all OCI refs from a blueprint or stack file and pulls
+// each one. Module imports (Blueprint) and registry imports (Stack) are both
 // handled, including bare-name shorthands without an oci:// prefix.
 func pullFromFile(cmd *cobra.Command, filePath string, refresh bool) error {
 	imports, err := registry.ExtractOCIImports(filePath)

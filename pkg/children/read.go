@@ -146,7 +146,7 @@ func readCustomResourceGroup(
 
 // readEndpointSlicesForServices lists the EndpointSlice for each declared Service
 // using the kubernetes.io/service-name label. The result is keyed by service name
-// so templates can reference {{ .children.endpointslice }} for single-service catalogs.
+// so templates can reference {{ .children.endpointslice }} for single-service blueprints.
 func readEndpointSlicesForServices(
 	ctx context.Context,
 	kube kubeclient.Interface,

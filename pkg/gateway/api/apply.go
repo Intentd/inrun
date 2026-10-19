@@ -28,7 +28,7 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -151,11 +151,11 @@ func scopedDynamic(kube kubeclient.Interface, capture *warningCapture) dynamic.I
 func applyHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 ) http.HandlerFunc {
 	var notes types.KELFunctionRegistry
-	if !cat.Empty() {
-		notes = cat.UserFunctions()
+	if !bp.Empty() {
+		notes = bp.UserFunctions()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -206,13 +206,13 @@ func applyHandler(
 				return
 			}
 
-			resolution := cat.LookupByTargetOrAlias(target)
+			resolution := bp.LookupByTargetOrAlias(target)
 			if resolution == nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: fmt.Sprintf(
 						"unknown target %q — available: %s",
 						target,
-						strings.Join(cat.AvailableTargets(), ", "),
+						strings.Join(bp.AvailableTargets(), ", "),
 					),
 				})
 				return
@@ -260,7 +260,7 @@ func applyHandler(
 				return
 			}
 
-			crd = cat.LookupByKind(full.GetKind()).Entry()
+			crd = bp.LookupByKind(full.GetKind()).Entry()
 			if crd == nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: fmt.Sprintf("unknown kind %q", full.GetKind()),

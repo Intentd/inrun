@@ -9,8 +9,8 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/validate"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/validate"
 	apigateway "github.com/intentd/inrun/pkg/gateway/api"
 	"github.com/intentd/inrun/pkg/tools/cluster"
 	"github.com/intentd/inrun/pkg/types"
@@ -25,26 +25,26 @@ var clustersCmd = &cobra.Command{
 	Long: `List all clusters registered in gateway.clusters.
 
 Shows the name, endpoint, and credential form for each cluster.
-Reads the catalog from the current directory or --file.`,
+Reads the blueprint from the current directory or --file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
-		return runClustersList(cat)
+		return runClustersList(bp)
 	},
 }
 
-func runClustersList(cat *catalog.Catalog) error {
+func runClustersList(bp *blueprint.Blueprint) error {
 	fmt.Println()
 
-	if !cat.IsGatewayEnabled() {
+	if !bp.IsGatewayEnabled() {
 		fmt.Printf("  %s gateway is not enabled\n", cmdutil.Gray("○"))
 		fmt.Println()
 		return nil
 	}
 
-	clusters := cat.GatewayClusters()
+	clusters := bp.GatewayClusters()
 	if len(clusters) == 0 {
 		fmt.Printf("  %s gateway.clusters is empty — no remote clusters registered\n", cmdutil.Gray("○"))
 		fmt.Println()
@@ -69,9 +69,9 @@ func runClustersList(cat *catalog.Catalog) error {
 var clustersValidateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate gateway.clusters configuration offline",
-	Long: `Validate the gateway.clusters block in the catalog.
+	Long: `Validate the gateway.clusters block in the blueprint.
 
-Reads the catalog and checks each cluster entry for structural validity:
+Reads the blueprint and checks each cluster entry for structural validity:
 endpoint required, exactly one credential form, required secret refs present.
 
 Also verifies that every static serve.cluster and target.cluster reference
@@ -82,34 +82,34 @@ With --full, also reports which CRDs route to each cluster.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		full, _ := cmd.Flags().GetBool("full")
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
 
-		return runClustersValidate(cat, full)
+		return runClustersValidate(bp, full)
 	},
 }
 
-func runClustersValidate(cat *catalog.Catalog, full bool) error {
+func runClustersValidate(bp *blueprint.Blueprint, full bool) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters validate\n", cmdutil.Bold("⎈"))
 	fmt.Println()
 
-	if !cat.IsGatewayEnabled() {
+	if !bp.IsGatewayEnabled() {
 		fmt.Printf("  %s gateway is not enabled — no clusters to validate\n", cmdutil.Gray("○"))
 		fmt.Println()
 		return nil
 	}
 
-	clusters := cat.GatewayClusters()
+	clusters := bp.GatewayClusters()
 	if len(clusters) == 0 {
 		fmt.Printf("  %s gateway.clusters is empty — no remote clusters registered\n", cmdutil.Gray("○"))
 		fmt.Println()
 		return nil
 	}
 
-	clusterRefs := buildClusterRefIndex(cat)
+	clusterRefs := buildClusterRefIndex(bp)
 
 	fmt.Printf("  gateway.clusters (%d registered)\n", len(clusters))
 	fmt.Println()
@@ -122,7 +122,7 @@ func runClustersValidate(cat *catalog.Catalog, full bool) error {
 		}
 	}
 
-	if err := validate.ValidateGatewayClusters(cat); err != nil {
+	if err := validate.ValidateGatewayClusters(bp); err != nil {
 		fmt.Printf("  %s %s\n", cmdutil.FailureMark(), cmdutil.Red(err.Error()))
 		allOK = false
 	}
@@ -145,13 +145,13 @@ var clustersCheckCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Connect to each registered cluster and verify CRD presence",
 	Long: `Go online: read each cluster's credential secret from the management
-cluster, connect to the remote cluster, verify the catalog's CRDs are installed,
+cluster, connect to the remote cluster, verify the blueprint's CRDs are installed,
 and report pass / unreachable / missing-CRD per cluster.
 
 Uses the current kubectl context to reach the management cluster.
 Pass --context <ctx> to use a specific context instead.
 
-With --config <file>, skips the catalog entirely and checks connectivity only
+With --config <file>, skips the blueprint entirely and checks connectivity only
 for each cluster listed in the bootstrap config file. Use this to verify
 contexts are reachable before bootstrapping them.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -167,12 +167,12 @@ contexts are reachable before bootstrapping them.`,
 			return runClustersCheck(cmd.Context(), nil, clusters, clusterCtx)
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
 
-		all := cat.GatewayClusters()
+		all := bp.GatewayClusters()
 		if len(all) == 0 {
 			fmt.Printf("  %s gateway.clusters is empty — nothing to check\n", cmdutil.Gray("○"))
 			return nil
@@ -193,11 +193,11 @@ contexts are reachable before bootstrapping them.`,
 			clusters = selected
 		}
 
-		return runClustersCheck(cmd.Context(), cat, clusters, clusterCtx)
+		return runClustersCheck(cmd.Context(), bp, clusters, clusterCtx)
 	},
 }
 
-func runClustersCheck(ctx context.Context, cat *catalog.Catalog, clusters map[string]types.GatewayClusterConfig, clusterCtx string) error {
+func runClustersCheck(ctx context.Context, bp *blueprint.Blueprint, clusters map[string]types.GatewayClusterConfig, clusterCtx string) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters check\n", cmdutil.Bold("⎈"))
 	fmt.Println()
@@ -207,7 +207,7 @@ func runClustersCheck(ctx context.Context, cat *catalog.Catalog, clusters map[st
 		return fmt.Errorf("%s management cluster: %w", cmdutil.FailureMark(), err)
 	}
 
-	results := apigateway.CheckClusters(ctx, cat, clusters, localKube, "default")
+	results := apigateway.CheckClusters(ctx, bp, clusters, localKube, "default")
 
 	anyFailed := false
 	for _, r := range results {
@@ -308,9 +308,9 @@ func credentialSummary(cfg types.GatewayClusterConfig) string {
 	}
 }
 
-func buildClusterRefIndex(cat *catalog.Catalog) map[string][]string {
+func buildClusterRefIndex(bp *blueprint.Blueprint) map[string][]string {
 	idx := map[string][]string{}
-	for crdName, entry := range cat.EnabledCRDs() {
+	for crdName, entry := range bp.EnabledCRDs() {
 		if entry.Serve == nil {
 			continue
 		}
@@ -334,7 +334,7 @@ func init() {
 	clustersValidateCmd.Flags().Bool("full", false, "Show CRD routing references per cluster")
 	clustersCheckCmd.Flags().String("context", "", "kubectl context for reading credential secrets (defaults to current context)")
 	clustersCheckCmd.Flags().String("clusters", "", "comma-separated list of cluster names to check (default: all registered clusters)")
-	clustersCheckCmd.Flags().String("config", "", "path to a cluster-config.yaml to check connectivity without a catalog")
+	clustersCheckCmd.Flags().String("config", "", "path to a cluster-config.yaml to check connectivity without a blueprint")
 
 	clustersCmd.AddCommand(clustersValidateCmd)
 	clustersCmd.AddCommand(clustersCheckCmd)

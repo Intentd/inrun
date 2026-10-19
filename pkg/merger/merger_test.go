@@ -9,7 +9,7 @@ import (
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-func writeTempCatalog(t *testing.T, dir, name, content string) string {
+func writeTempBlueprint(t *testing.T, dir, name, content string) string {
 	t.Helper()
 	path := filepath.Join(dir, name)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
@@ -18,10 +18,10 @@ func writeTempCatalog(t *testing.T, dir, name, content string) string {
 	return path
 }
 
-// ── upstream Catalog fields flow through Stack ────────────────────────────
+// ── upstream Blueprint fields flow through Stack ────────────────────────────
 
-const upstreamCatalogYAML = `apiVersion: inrun.dev/v1
-kind: Catalog
+const upstreamBlueprintYAML = `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
   name: upstream
 security:
@@ -46,10 +46,10 @@ imports:
 
 func TestStack_InheritsUpstreamSecurity(t *testing.T) {
 	dir := t.TempDir()
-	catalogPath := writeTempCatalog(t, dir, "upstream.yaml", upstreamCatalogYAML)
+	blueprintPath := writeTempBlueprint(t, dir, "upstream.yaml", upstreamBlueprintYAML)
 
-	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: my-stack\nimports:\n  files:\n    - url: " + catalogPath + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: my-stack\nimports:\n  files:\n    - url: " + blueprintPath + "\n"
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	if err := m.Merge(); err != nil {
@@ -64,10 +64,10 @@ func TestStack_InheritsUpstreamSecurity(t *testing.T) {
 
 func TestStack_OwnSecurityWinsOverUpstream(t *testing.T) {
 	dir := t.TempDir()
-	catalogPath := writeTempCatalog(t, dir, "upstream.yaml", upstreamCatalogYAML)
+	blueprintPath := writeTempBlueprint(t, dir, "upstream.yaml", upstreamBlueprintYAML)
 
-	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: my-stack\nsecurity:\n  serviceName:\n    runtime: stack-svc\nimports:\n  files:\n    - url: " + catalogPath + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: my-stack\nsecurity:\n  serviceName:\n    runtime: stack-svc\nimports:\n  files:\n    - url: " + blueprintPath + "\n"
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	if err := m.Merge(); err != nil {
@@ -80,12 +80,12 @@ func TestStack_OwnSecurityWinsOverUpstream(t *testing.T) {
 	}
 }
 
-func TestStack_CRDsFromUpstreamCatalog(t *testing.T) {
+func TestStack_CRDsFromUpstreamBlueprint(t *testing.T) {
 	dir := t.TempDir()
-	catalogPath := writeTempCatalog(t, dir, "upstream.yaml", upstreamCatalogYAML)
+	blueprintPath := writeTempBlueprint(t, dir, "upstream.yaml", upstreamBlueprintYAML)
 
-	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: my-stack\nimports:\n  files:\n    - url: " + catalogPath + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: my-stack\nimports:\n  files:\n    - url: " + blueprintPath + "\n"
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	if err := m.Merge(); err != nil {
@@ -94,6 +94,6 @@ func TestStack_CRDsFromUpstreamCatalog(t *testing.T) {
 
 	crds := m.All()
 	if _, ok := crds["website"]; !ok {
-		t.Error("expected website CRD from upstream Catalog")
+		t.Error("expected website CRD from upstream Blueprint")
 	}
 }

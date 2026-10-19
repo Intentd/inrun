@@ -21,7 +21,7 @@ type Pack struct {
 var Packs = map[string]Pack{
 	"declarative": {
 		Name:        "declarative",
-		Description: "Start here. Operators declared in a Catalog, no code.",
+		Description: "Start here. Operators declared in a Blueprint, no code.",
 		Path:        "reconcilers/declarative",
 		First:       "01-hello-website",
 		Order:       1,

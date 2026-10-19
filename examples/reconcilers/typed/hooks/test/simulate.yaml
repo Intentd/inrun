@@ -5,7 +5,7 @@ metadata:
   description: Verify typed hooks fire — StatefulSet, Service, and backup CronJob created in cycle 1
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../manifests/cr.yaml
   cycles: 5
 

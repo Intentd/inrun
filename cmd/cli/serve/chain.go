@@ -14,8 +14,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/gate"
 	"github.com/intentd/inrun/cmd/cli/testsuite"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/gateway/api"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/merger"
@@ -29,7 +29,7 @@ import (
 // planChain runs stages 1-6 of the play chain against an already-resolved
 // intent map, reporting each stage through n: stageNarrator for serve play,
 // quietNarrator for simulate. The steps are the same either way.
-func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string, op types.ServeOperation, n narrator) (*unstructured.Unstructured, *types.CRDEntry, string, error) {
+func planChain(c *blueprint.Blueprint, raw map[string]interface{}, tokenName string, op types.ServeOperation, n narrator) (*unstructured.Unstructured, *types.CRDEntry, string, error) {
 	target, _ := raw["target"].(string)
 	if strings.TrimSpace(target) == "" {
 		return nil, nil, "", fmt.Errorf(`"target" must be set in the intent`)
@@ -141,9 +141,9 @@ func planChain(c *catalog.Catalog, raw map[string]interface{}, tokenName string,
 
 // playRunSimulate writes the built CR to a temp file and hands it to simulate.
 // simulateConfig is the path to a simulate.yaml; empty means op-print mode with
-// the same catalog play used. Shared by "inrun serve play --simulate" and
+// the same blueprint play used. Shared by "inrun serve play --simulate" and
 // "inrun webhook play --simulate" via playSimulate below.
-func playRunSimulate(ctx context.Context, catalogFile string, obj *unstructured.Unstructured, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
+func playRunSimulate(ctx context.Context, blueprintFile string, obj *unstructured.Unstructured, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
 	b, err := yaml.Marshal(obj.Object)
 	if err != nil {
 		return fmt.Errorf("marshalling CR for simulate: %w", err)
@@ -167,10 +167,10 @@ func playRunSimulate(ctx context.Context, catalogFile string, obj *unstructured.
 	}
 	simOpts.MaxCycles = 10
 	simOpts.SkipExternal = true
-	return testsuite.RunSimulate(ctx, catalogFile, tmp.Name(), simOpts)
+	return testsuite.RunSimulate(ctx, blueprintFile, tmp.Name(), simOpts)
 }
 
-// runSimulateWithCR runs simulate using the spec file for catalog/cycles/expect
+// runSimulateWithCR runs simulate using the spec file for blueprint/cycles/expect
 // but substitutes crFile (the play-built CR) instead of spec.cr.
 // The expect: block is fully evaluated — this is assert mode, not op-print mode.
 func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts testsuite.CliSimulateOptions) error {
@@ -189,28 +189,28 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 		return fmt.Errorf("simulate config %q: missing spec", specPath)
 	}
 
-	catalogPath := cmdutil.JoinPath(specPath, doc.Spec.Catalog)
+	blueprintPath := cmdutil.JoinPath(specPath, doc.Spec.Blueprint)
 	cycles := doc.Spec.Cycles
 	if cycles <= 0 {
 		cycles = 10
 	}
 	opts := simulate.RunOptions{SkipExternal: doc.Spec.SkipExternal}
 
-	m := merger.New(catalogPath)
+	m := merger.New(blueprintPath)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging Catalog: %w", err)
+		return fmt.Errorf("merging Blueprint: %w", err)
 	}
-	// --envtest installs the spec's CRDs, else the ones the Catalog points at.
+	// --envtest installs the spec's CRDs, else the ones the Blueprint points at.
 	var crdPaths []string
 	for _, p := range doc.Spec.AllCRDPaths() {
 		crdPaths = append(crdPaths, cmdutil.JoinPath(specPath, p))
 	}
 	if len(crdPaths) == 0 {
-		crdPaths = testsuite.CatalogCRDPaths(m)
+		crdPaths = testsuite.BlueprintCRDPaths(m)
 	}
-	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
+	bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
-		return fmt.Errorf("parsing Catalog: %w", err)
+		return fmt.Errorf("parsing Blueprint: %w", err)
 	}
 
 	crData, err := cmdutil.ReadLocal(crFile)
@@ -223,14 +223,14 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 	}
 
 	var failed []string
-	for _, name := range cat.CRDNames() {
-		crdEntry, ok := cat.CRDEntry(name)
+	for _, name := range bp.CRDNames() {
+		crdEntry, ok := bp.CRDEntry(name)
 		if !ok {
 			continue
 		}
 		in, ok := cmdutil.ResolveCRInputs(crs, crdEntry.APITypes.Kind)
 		if !ok {
-			if len(cat.CRDNames()) > 1 {
+			if len(bp.CRDNames()) > 1 {
 				fmt.Printf("  %s no CR found for %s — skipped\n\n", cmdutil.Dim("note:"), crdEntry.APITypes.Kind)
 				continue
 			}
@@ -240,7 +240,7 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
 		expect := simulate.ExpectForCRD(doc.Spec.Expect, name)
-		if err := testsuite.SimulateOne(ctx, cat, name, in.CR, cycles, crdOpts, simOpts, crdPaths, expect); err != nil {
+		if err := testsuite.SimulateOne(ctx, bp, name, in.CR, cycles, crdOpts, simOpts, crdPaths, expect); err != nil {
 			failed = append(failed, name)
 		}
 	}
@@ -250,17 +250,17 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 	return nil
 }
 
-// RunIntentPlay builds a Catalog from catalogPath, runs the play chain
+// RunIntentPlay builds a Blueprint from blueprintPath, runs the play chain
 // against intentFile without printing stage output, and returns the resolved
 // target name on success.
-func RunIntentPlay(catalogPath, intentFile string) (string, error) {
-	m := merger.New(catalogPath)
+func RunIntentPlay(blueprintPath, intentFile string) (string, error) {
+	m := merger.New(blueprintPath)
 	if err := m.Merge(); err != nil {
-		return "", fmt.Errorf("merging catalog: %w", err)
+		return "", fmt.Errorf("merging blueprint: %w", err)
 	}
 	c, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
-		return "", fmt.Errorf("building catalog: %w", err)
+		return "", fmt.Errorf("building blueprint: %w", err)
 	}
 
 	raw, err := readIntentFile(intentFile)
@@ -316,13 +316,13 @@ func init() {
 			return nil, fmt.Errorf("reading intent file %q: %w", req.IntentFile, err)
 		}
 		target, _ := raw["target"].(string)
-		printPlayHeaderForSimulate(req.CatalogFile, req.IntentFile, target, req.Token, req.Cycles)
+		printPlayHeaderForSimulate(req.BlueprintFile, req.IntentFile, target, req.Token, req.Cycles)
 
 		var n narrator = quietNarrator{}
 		if req.Verbose {
 			n = stageNarrator{}
 		}
-		obj, _, _, err := planChain(req.Catalog, raw, req.Token, req.Op, n)
+		obj, _, _, err := planChain(req.Blueprint, raw, req.Token, req.Op, n)
 		if err == nil && !req.Verbose {
 			printPlayed(req.IntentFile, obj)
 		}

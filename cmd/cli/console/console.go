@@ -32,15 +32,15 @@ func init() {
 	controlCmd.Flags().StringVarP(&consolePort, "port", "p", "8081", "Port to run the Console on")
 	controlCmd.Flags().BoolVarP(&consoleIgnoreDefault, "ignore-default", "i", false, "Do not add the default localhost:8080 URL; start with no instances")
 	controlCmd.Flags().StringVarP(&consoleURLs, "urls", "u", "http://localhost:8080", "Comma-separated list of Inrun runtime URLs")
-	controlCmd.Flags().StringVar(&consoleRefresh, "refresh", "10s", "Refresh interval for fetching Catalogs")
+	controlCmd.Flags().StringVar(&consoleRefresh, "refresh", "10s", "Refresh interval for fetching Blueprints")
 	controlCmd.Flags().StringVar(&consoleLogLevel, "log-level", "info", "Log level (debug, info, warn, error)")
 
 	controlCmd.AddCommand(controlVersionCmd)
 	cmdutil.RootCmd.AddCommand(controlCmd)
 
 	// Shadow global flags so they don't appear under `inrun console`
-	controlCmd.Flags().StringSlice("catalog", nil, "")
-	controlCmd.Flags().MarkHidden("catalog")
+	controlCmd.Flags().StringSlice("blueprint", nil, "")
+	controlCmd.Flags().MarkHidden("blueprint")
 	cmdutil.ShadowGlobalCommandFlags(controlCmd)
 }
 

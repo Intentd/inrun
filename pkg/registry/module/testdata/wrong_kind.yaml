@@ -1,4 +1,4 @@
 apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
   name: not-a-module

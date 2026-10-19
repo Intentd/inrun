@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
@@ -18,20 +18,20 @@ import (
 // queue, its informer and its reconciler factory. It also builds one CRDHealth
 // per CRD, shared between the coordinator (which updates it on each reconcile)
 // and the HTTP health routes (which read it on each request).
-func wireCRDs(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, c core, infFactory *informer.Factory) (*coordinator.ResourceCatalog, map[string]*vitals.CRDHealth, error) {
+func wireCRDs(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint, c core, infFactory *informer.Factory) (*coordinator.ResourceBlueprint, map[string]*vitals.CRDHealth, error) {
 	// The registry maps GVK → (CRDEntry, SharedIndexInformer, ReconcilerFactory).
-	// It also implements reconciler.CatalogRegistry via GetInformerByName,
+	// It also implements reconciler.BlueprintRegistry via GetInformerByName,
 	// enabling cross-CRD observation with zero API server calls.
 	registry := coordinator.NewCoordinatorRegistry()
 
 	crdHealthMap := make(map[string]*vitals.CRDHealth)
-	for _, crd := range cat.Enabled() {
+	for _, crd := range bp.Enabled() {
 		crdHealthMap[crd.GVKString()] = vitals.NewCRDHealth(crd.Name)
 	}
 
 	logger.Debug().Msg("wiring CRDs into coordinator registry...")
 
-	for _, crd := range cat.Enabled() {
+	for _, crd := range bp.Enabled() {
 		gvk := crd.GVKString()
 		inf := crds.Informer(ctx, crd, c.kube, infFactory, c.queueRegistry)
 
@@ -43,7 +43,7 @@ func wireCRDs(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, c c
 			Event:        c.ev,
 			StoreFor:     infFactory.StoreFor,
 			IndexerFor:   infFactory.IndexerFor,
-			Catalog:      cat,
+			Blueprint:    bp,
 			OwnNamespace: cfg.Cluster().Namespace(),
 		})
 		if err != nil {

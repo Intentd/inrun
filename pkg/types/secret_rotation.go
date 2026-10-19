@@ -59,7 +59,7 @@
 //
 // ── Webhook certificate support ───────────────────────────────────────────
 //
-//  In the Catalog-level webhooks block:
+//  In the Blueprint-level webhooks block:
 //
 //  webhooks:
 //    createCerts: true         # false by default — Inrun generates certs

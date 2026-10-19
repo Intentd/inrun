@@ -116,7 +116,7 @@ type Condition struct {
 	// Source is the HTTP fallback for cross-binary metric observation.
 	// Only used when field is a cross.<crd>.metrics.* field and the CRD
 	// is not registered in GlobalCrossMetricsRegistry (different binary).
-	// The endpoint must be the remote operator's /catalog/{crd} URL.
+	// The endpoint must be the remote operator's /blueprint/{crd} URL.
 	//
 	//   when:
 	//     - field: cross.managed-database.metrics.queueDepth

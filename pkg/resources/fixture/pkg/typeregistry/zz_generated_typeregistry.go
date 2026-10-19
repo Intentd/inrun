@@ -27,7 +27,7 @@ import (
 //
 //	import _ "myapp/pkg/typeregistry"
 //
-// "inrun generate registry -k <catalog.yaml>" populates this
+// "inrun generate registry -k <blueprint.yaml>" populates this
 //
 // No explicit call to RegisterRuntimeObjects or RegisterTypedScheme is required.
 func init() {
@@ -53,12 +53,12 @@ func init() {
 // Hook entries — factory functions for Go hook implementations.
 //
 //	Looked up by GVK (CRDEntry.HookFactory) when the runtime builds the
-//	generic reconciler; Catalog validation checks they exist.
+//	generic reconciler; Blueprint validation checks they exist.
 //
 // Reconciler entries — constructor functions for custom reconcilers.
 //
 //	Looked up by GVK (CRDEntry.Constructor) when the runtime builds the
-//	reconciler; Catalog validation checks they exist.
+//	reconciler; Blueprint validation checks they exist.
 func RegisterRuntimeObjects() {
 	logger.Debug().Msg("RegisterRuntimeObjects called")
 

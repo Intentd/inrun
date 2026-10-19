@@ -5,7 +5,7 @@ metadata:
   description: appGroup (minimal serve) — ApplicationSet created on cycle 1
 
 spec:
-  catalog: ../../catalog.yaml
+  blueprint: ../../blueprint.yaml
   cr: ../../crs/appgroup-basic.yaml
   cycles: 3
 

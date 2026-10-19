@@ -9,21 +9,21 @@ import (
 	"strings"
 )
 
-// summaryFor returns the CRDSummary for a named CRD from a cached CatalogResponse.
-// Returns nil when the catalog is nil or the CRD is not found.
-func summaryFor(cat *CatalogResponse, crdName string) *CRDSummary {
-	if cat == nil {
+// summaryFor returns the CRDSummary for a named CRD from a cached BlueprintResponse.
+// Returns nil when the blueprint is nil or the CRD is not found.
+func summaryFor(bp *BlueprintResponse, crdName string) *CRDSummary {
+	if bp == nil {
 		return nil
 	}
-	for i := range cat.CRDs {
-		if strings.EqualFold(cat.CRDs[i].Name, crdName) {
-			return &cat.CRDs[i]
+	for i := range bp.CRDs {
+		if strings.EqualFold(bp.CRDs[i].Name, crdName) {
+			return &bp.CRDs[i]
 		}
 	}
 	return nil
 }
 
-// synthHealthFromSummary builds a CRDHealth from the /catalog summary so that
+// synthHealthFromSummary builds a CRDHealth from the /blueprint summary so that
 // CRDs with a disabled health endpoint still show correct state and uptime in
 // the Console instead of a zero placeholder.
 func synthHealthFromSummary(name string, s *CRDSummary) *CRDHealth {
@@ -44,7 +44,7 @@ func synthHealthFromSummary(name string, s *CRDSummary) *CRDHealth {
 	}
 }
 
-// synthInfoFromSummary builds a minimal CRDInfo from the /catalog summary for
+// synthInfoFromSummary builds a minimal CRDInfo from the /blueprint summary for
 // CRDs whose info endpoint is disabled.
 func synthInfoFromSummary(name string, s *CRDSummary) *CRDInfo {
 	if s == nil {
@@ -68,13 +68,13 @@ func synthInfoFromSummary(name string, s *CRDSummary) *CRDInfo {
 }
 
 // endpointInfoFor returns the EndpointInfo for a named CRD from a cached
-// CatalogResponse. When the catalog is nil or the CRD is not found it returns
+// BlueprintResponse. When the blueprint is nil or the CRD is not found it returns
 // a fully-enabled default so the caller retains normal fetch behaviour.
-func endpointInfoFor(cat *CatalogResponse, crdName string) EndpointInfo {
-	if cat == nil {
+func endpointInfoFor(bp *BlueprintResponse, crdName string) EndpointInfo {
+	if bp == nil {
 		return EndpointInfo{HealthEnabled: true, InfoEnabled: true}
 	}
-	for _, c := range cat.CRDs {
+	for _, c := range bp.CRDs {
 		if strings.EqualFold(c.Name, crdName) {
 			return c.Endpoints
 		}

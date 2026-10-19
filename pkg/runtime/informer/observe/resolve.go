@@ -107,13 +107,13 @@ func splitWatchField(field string) []string {
 }
 
 // resolveGVR resolves a ManagedResource into a concrete GroupVersionResource
-// using the configured Catalog.
+// using the configured Blueprint.
 func (o *Observer) resolveGVR(r domain.ManagedResource) (schema.GroupVersionResource, bool) {
-	return o.deps.Catalog.ResolveGVR(r)
+	return o.deps.Blueprint.ResolveGVR(r)
 }
 
 // resolveGVK resolves a ManagedResource into a concrete GroupVersionKind
-// using the configured Catalog.
+// using the configured Blueprint.
 func (o *Observer) resolveGVK(r domain.ManagedResource) (schema.GroupVersionKind, bool) {
-	return o.deps.Catalog.ResolveGVK(r)
+	return o.deps.Blueprint.ResolveGVK(r)
 }

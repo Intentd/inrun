@@ -10,7 +10,7 @@ metadata:
     hours; during business hours the Deployment is created at spec.replicas (5).
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   target: v2-enabled
   cycles: 3

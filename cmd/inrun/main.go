@@ -1,6 +1,6 @@
 // Command inrun is the Inrun CLI.
 //
-// Bare inrun runs the Catalog in the current directory (or -f), and
+// Bare inrun runs the Blueprint in the current directory (or -f), and
 // inrun <name>:<version> runs a published pattern. Subcommands validate,
 // simulate, test end to end, generate install manifests, and push and pull
 // patterns; run inrun --help for the full list.

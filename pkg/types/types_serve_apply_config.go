@@ -40,7 +40,7 @@ type ServeApplyConfig struct {
 // ─── HasOverride methods ─────────────────────────────────────────────────────
 
 // HasOverride reports whether the ServeConfig has any override fields set.
-// Used to avoid unnecessary config blocks in the Catalog.
+// Used to avoid unnecessary config blocks in the Blueprint.
 func (s *ServeConfig) HasOverride() bool {
 	if s == nil || s.Apply == nil || s.Apply.Overrides == nil {
 		return false

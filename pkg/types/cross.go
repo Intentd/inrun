@@ -72,7 +72,7 @@ type CrossCRDDeclaration struct {
 	//   crd: database
 	CRD string `yaml:"crd" json:"crd"`
 
-	// LabelSelector keys the catalog registry by CRD-entry labelSelector for label-based informer lookup.
+	// LabelSelector keys the blueprint registry by CRD-entry labelSelector for label-based informer lookup.
 	LabelSelector Labels `yaml:"labelSelector,omitempty" json:"labelSelector,omitempty"`
 
 	// Selector identifies which CR instance to observe.
@@ -180,10 +180,10 @@ func (sel CrossSelector) IsNameBased() bool {
 // If Host is provided, Inrun constructs the URL based on Type.
 //
 // Supported Type values:
-//   - "info"    → /catalog/<crd>/cr/<ns>/<name>
-//   - "metrics" → /catalog/<crd>
-//   - "health"  → /catalog/<crd>/health
-//   - "events"  → /catalog/<crd>/cr/<ns>/<name>/events
+//   - "info"    → /blueprint/<crd>/cr/<ns>/<name>
+//   - "metrics" → /blueprint/<crd>
+//   - "health"  → /blueprint/<crd>/health
+//   - "events"  → /blueprint/<crd>/cr/<ns>/<name>/events
 //
 // The endpoint must return the same JSON shape as the informer cache path —
 // i.e., the Inrun CR detail endpoint format.

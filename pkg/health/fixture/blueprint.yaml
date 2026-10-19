@@ -1,0 +1,26 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: health-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    Living fixture for the health server. A minimal declarative operator
+    used only to boot the runtime; e2e assertions target /health, /ready,
+    and /startup on the leader pod via port-forward.
+
+spec:
+  crds:
+    health-probe:
+      apiTypes:
+        group: health.inrun.dev
+        version: v1alpha1
+        kind: HealthProbe
+        plural: healthprobes
+      operatorBox:
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: Running
+

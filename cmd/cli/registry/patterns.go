@@ -23,12 +23,12 @@ var patternsCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	Example: `  inrun patterns
   inrun patterns --modules
-  inrun patterns --catalogs
+  inrun patterns --blueprints
   inrun patterns oci://ghcr.io/mycompany/patterns
   inrun patterns --tag database`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		tag, _ := cmd.Flags().GetString("tag")
-		onlyCatalogs, _ := cmd.Flags().GetBool("catalogs")
+		onlyBlueprints, _ := cmd.Flags().GetBool("blueprints")
 		onlyModules, _ := cmd.Flags().GetBool("modules")
 
 		client, err := registry.NewClient()
@@ -63,7 +63,7 @@ var patternsCmd = &cobra.Command{
 					}
 				}
 			}
-			if !onlyCatalogs {
+			if !onlyBlueprints {
 				moduleURL := os.Getenv(registry.EnvModuleRegistry)
 				if moduleURL == "" {
 					moduleURL = registry.DefaultModuleRegistry
@@ -92,8 +92,8 @@ var patternsCmd = &cobra.Command{
 
 		label := "Inrun Registry"
 		switch {
-		case onlyCatalogs:
-			label = "Inrun Catalogs"
+		case onlyBlueprints:
+			label = "Inrun Blueprints"
 		case onlyModules:
 			label = "Inrun Modules"
 		}
@@ -109,7 +109,7 @@ var patternsCmd = &cobra.Command{
 				continue
 			}
 			k := e.Kind
-			if onlyCatalogs && k != registry.CatalogKind.ToString() {
+			if onlyBlueprints && k != registry.BlueprintKind.ToString() {
 				continue
 			}
 			if onlyModules && k != registry.ModuleKind.ToString() {
@@ -152,7 +152,7 @@ var patternsCmd = &cobra.Command{
 		fmt.Printf("\n%d %s%s\n", count, noun, updatedAt)
 
 		fmt.Printf("\nTo pull:\n  inrun pull <name>:<version>\n")
-		fmt.Printf("\nTo filter:\n  inrun patterns --catalogs\n  inrun patterns --modules\n")
+		fmt.Printf("\nTo filter:\n  inrun patterns --blueprints\n  inrun patterns --modules\n")
 		fmt.Println()
 		return nil
 	},
@@ -169,7 +169,7 @@ func registryErrSummary(err error) string {
 
 func init() {
 	patternsCmd.Flags().StringP("tag", "t", "", "Filter by tag (e.g. database, stateful, security)")
-	patternsCmd.Flags().BoolP("catalogs", "k", false, "Show only catalogs (kind: Catalog)")
+	patternsCmd.Flags().BoolP("blueprints", "k", false, "Show only blueprints (kind: Blueprint)")
 	patternsCmd.Flags().BoolP("modules", "m", false, "Show only modules (kind: Module)")
 	cmdutil.RootCmd.AddCommand(patternsCmd)
 

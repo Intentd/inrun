@@ -17,7 +17,7 @@ type clustersFile struct {
 
 // LoadClustersFile reads a clusters.yaml (or .json) file and returns the
 // map of cluster name → GatewayClusterConfig. The file format is identical
-// to the gateway.clusters include file used by the catalog.
+// to the gateway.clusters include file used by the blueprint.
 func LoadClustersFile(path string) (map[string]types.GatewayClusterConfig, error) {
 	data, err := readLocal(path)
 	if err != nil {

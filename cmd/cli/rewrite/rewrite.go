@@ -32,7 +32,7 @@ compiles and runs inside Inrun with no other edits.
   inrun rewrite ./controller/webapp_controller.go -o ./my-operator
 
 The output directory receives the rewritten file plus scaffolding:
-catalog.yaml, simulate.yaml, e2e.yaml, go.mod, Makefile, Dockerfile.
+blueprint.yaml, simulate.yaml, e2e.yaml, go.mod, Makefile, Dockerfile.
 
 For a full rewrite to Inrun style, use --mode native.
 
@@ -107,7 +107,7 @@ func writeOutputDir(dir, inputPath string, res *rewrite.Result, files rewrite.Fi
 		content string
 	}
 	generated := []namedFile{
-		{"catalog.yaml", files.Catalog},
+		{"blueprint.yaml", files.Blueprint},
 		{"test/simulate.yaml", files.Simulate},
 		{"test/e2e.yaml", files.E2E},
 		{"go.mod", files.GoMod},
@@ -135,7 +135,7 @@ func replaceInPlace(inputPath string, res *rewrite.Result, files rewrite.Files) 
 	dir := filepath.Dir(inputPath)
 
 	fmt.Printf("This will replace %s and write %s alongside it.\n",
-		cmdutil.Bold(inputPath), cmdutil.Bold("catalog.yaml, test/simulate.yaml, test/e2e.yaml, go.mod, Makefile, Dockerfile"))
+		cmdutil.Bold(inputPath), cmdutil.Bold("blueprint.yaml, test/simulate.yaml, test/e2e.yaml, go.mod, Makefile, Dockerfile"))
 	fmt.Printf("%s [y/N] ", cmdutil.Yellow("Continue?"))
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -156,7 +156,7 @@ func replaceInPlace(inputPath string, res *rewrite.Result, files rewrite.Files) 
 		content string
 	}
 	generated := []namedFile{
-		{"catalog.yaml", files.Catalog},
+		{"blueprint.yaml", files.Blueprint},
 		{"test/simulate.yaml", files.Simulate},
 		{"test/e2e.yaml", files.E2E},
 		{"go.mod", files.GoMod},

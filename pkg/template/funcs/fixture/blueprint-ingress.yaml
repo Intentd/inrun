@@ -1,0 +1,107 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: ingress-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    IngressProbe — living integration test for Ingress notes.
+    Creates a Deployment + Service + Ingress.
+    Apply the CR and inspect: kubectl get ingressprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    ingress-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - ingress
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-app"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+
+            services:
+              - name: "{{ .metadata.name }}-svc"
+                port: "80"
+                targetPort: "{{ .spec.port }}"
+                reconcile: true
+
+            ingresses:
+              - name: "{{ .metadata.name }}-ingress"
+                host: "{{ .spec.host }}"
+                serviceName: "{{ .metadata.name }}-svc"
+                servicePort: "80"
+                className: nginx
+                tls:
+                  create: true
+                  secretName: "{{ .metadata.name }}-tls"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              # ── Phase state machine ─────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Deploying"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "false"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+                  - field: "{{ ingressReady .children.ingress }}"
+                    equals: "true"
+
+              - path: phase
+                value: "WaitingForIngress"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+                  - field: "{{ ingressReady .children.ingress }}"
+                    equals: "false"
+
+              # ── ingress notes ───────────────────────────────────────────────
+              - path: ingressReady
+                value: "{{ ingressReady .children.ingress }}"
+
+              - path: ingressHost
+                value: "{{ ingressHost .children.ingress }}"
+
+              - path: ingressIP
+                value: "{{ ingressIP .children.ingress }}"
+              
+              - path: ingressClassName
+                value: "{{ ingressClassName .children.ingress }}"
+
+              - path: ingressRules
+                value: '{{ join (ingressRules .children.ingress) ", " }}'
+
+              - path: ingressTLSHosts
+                value: '{{ join (ingressTLSHosts .children.ingress) ", " }}'
+
+              # ── enriched ingress notes (require enrich: [ingress]) ──────────
+              - path: ingressLoadBalancerIPs
+                value: '{{ join (ingressLoadBalancerIPs .children.ingress) ", " }}'
+
+              - path: ingressTLSSecretCount
+                value: "{{ len .children.ingress._tlsSecrets }}"
+

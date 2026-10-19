@@ -195,7 +195,7 @@ func rewriteStruct(src []byte, receiverType string) ([]byte, bool) {
 
 	if !hasConstructor {
 		constructor := fmt.Sprintf(`
-// %s is the constructor function registered in the Catalog.
+// %s is the constructor function registered in the Blueprint.
 func %s(kube kubeclient.Interface) domain.Reconciler {
 	return &%s{kube: kube}
 }

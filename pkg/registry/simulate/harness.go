@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
@@ -62,9 +62,9 @@ type RunOptions struct {
 	// When false (the default), external calls are attempted against the real network.
 	SkipExternal bool
 
-	// Peers holds CRs for sibling CRDs in the same Catalog, keyed by lowercase kind.
+	// Peers holds CRs for sibling CRDs in the same Blueprint, keyed by lowercase kind.
 	// When set, cross: declarations in the reconciler can observe these CRs
-	// via the fake catalog registry instead of returning empty results.
+	// via the fake blueprint registry instead of returning empty results.
 	Peers map[string]*unstructured.Unstructured
 
 	// ExistingInstances holds other, already-existing instances of the SAME
@@ -80,11 +80,11 @@ type RunOptions struct {
 
 // Run simulates the operator against an in-memory cluster.
 //
-// cat is the parsed Catalog.
+// bp is the parsed Blueprint.
 // crdName is the CRD entry to simulate.
 // cr is the CR to reconcile.
 // maxCycles is the maximum number of reconcile cycles.
-func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstructured.Unstructured, maxCycles int, opts RunOptions) (*Result, error) {
+func Run(ctx context.Context, bp *blueprint.Blueprint, crdName string, cr *unstructured.Unstructured, maxCycles int, opts RunOptions) (*Result, error) {
 	// Silence the reconciler's JSON logs — simulation output is structured by the caller.
 	prev := log.Logger
 	log.Logger = log.Output(io.Discard)
@@ -99,9 +99,9 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		defer func() { external.HTTPTransport = prevTransport }()
 	}
 
-	crdEntry, ok := cat.CRDEntry(crdName)
+	crdEntry, ok := bp.CRDEntry(crdName)
 	if !ok {
-		return nil, fmt.Errorf("CRD %q not found in Catalog", crdName)
+		return nil, fmt.Errorf("CRD %q not found in Blueprint", crdName)
 	}
 	if opts.Target != "" {
 		// As if created through that target, so the reconcile resolves it.
@@ -109,12 +109,12 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		intent.SetTarget(cr, opts.Target)
 	}
 	// Templates that need a live API server (cross-namespace copies) are left
-	// out of a copy of the entry, so the Catalog's own is untouched; the notes
+	// out of a copy of the entry, so the Blueprint's own is untouched; the notes
 	// say what was omitted and why.
 	result := &Result{}
 	crdEntry, result.Notes = simulatable(crdEntry)
 
-	scheme, err := cat.Scheme()
+	scheme, err := bp.Scheme()
 	if err != nil {
 		return nil, fmt.Errorf("building scheme: %w", err)
 	}
@@ -175,11 +175,11 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 	// Each peer CR is seeded into its own static indexer and wrapped in a
 	// fakeInformer; the registry maps CRD name → informer for readCross().
 	peerRegistry := coordinator.NewCoordinatorRegistry()
-	for _, peerName := range cat.CRDNames() {
+	for _, peerName := range bp.CRDNames() {
 		if peerName == crdEntry.Name {
 			continue
 		}
-		peerEntry, ok := cat.CRDEntry(peerName)
+		peerEntry, ok := bp.CRDEntry(peerName)
 		if !ok {
 			continue
 		}
@@ -203,7 +203,7 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 		Kube:         fakeKube,
 		Informer:     informer,
 		Event:        event.Discard(),
-		Catalog:      cat,
+		Blueprint:    bp,
 		OwnNamespace: outsidePodNamespace,
 	})
 	if err != nil {
@@ -220,10 +220,10 @@ func Run(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstruct
 	}
 
 	deps := reconcile.Deps{
-		Kube:     fakeKube.WithInformer(informer),
-		Event:    event.Discard(),
-		Cat:      cat,
-		Registry: peerRegistry,
+		Kube:      fakeKube.WithInformer(informer),
+		Event:     event.Discard(),
+		Blueprint: bp,
+		Registry:  peerRegistry,
 	}
 	input := reconcile.Input{
 		GVK:        crdEntry.GVKString(),

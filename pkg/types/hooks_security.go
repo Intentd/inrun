@@ -13,7 +13,7 @@ type SecurityProfileEntry struct {
 	Resource     string // e.g. "Deployment", "StatefulSet"
 	ResourceName string // template name field (may be Empty()
 	Kind         string // "container" or "pod"
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside explicit fields
 }
 
@@ -53,7 +53,7 @@ func (t CronJobTemplateSource) GetPodSecurity() *PodSecurityContext     { return
 
 // CapabilityEntry describes a single capability value found in a
 // ContainerSecurityContext.Capabilities block. Used to validate names against
-// the known Linux capability set at catalog load time.
+// the known Linux capability set at blueprint load time.
 type CapabilityEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	Resource     string // e.g. "Deployment", "StatefulSet"

@@ -20,12 +20,12 @@ import (
 type NewReconcilerFunc func(kube kubeclient.Interface) domain.Reconciler
 
 // ReconcilerKind names how a CRD's CRs are reconciled. The runtime builds the
-// reconciler from it (reconcilers.Factory) and /catalog and the console show
+// reconciler from it (reconcilers.Factory) and /blueprint and the console show
 // it, so what is shown is what runs.
 type ReconcilerKind string
 
 const (
-	// KindDeclarative: the generic reconciler running the Catalog's templates.
+	// KindDeclarative: the generic reconciler running the Blueprint's templates.
 	KindDeclarative ReconcilerKind = "declarative"
 	// KindHooks: the generic reconciler with compiled Go hooks.
 	KindHooks ReconcilerKind = "hooks"
@@ -89,7 +89,7 @@ func (c *CRDEntry) TargetReconcilerKinds() map[string]ReconcilerKind {
 // ── Registrations ─────────────────────────────────────────────────────────────
 // The compiled Go a CRD runs, looked up in the registries `inrun generate
 // registry` fills. Nothing is copied onto the entry: the runtime calls these
-// when it builds reconcilers and informers, and Catalog validation calls the
+// when it builds reconcilers and informers, and Blueprint validation calls the
 // same methods to report a missing registration before anything starts.
 
 // NeedsConstructor reports whether this CRD runs a compiled constructor: a

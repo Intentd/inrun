@@ -45,7 +45,7 @@ spec:
 
           args:
             - --file
-            - {{ .Values.runtime.catalog.mountPath }}/{{ .Values.runtime.catalog.configMapKey }}
+            - {{ .Values.runtime.blueprint.mountPath }}/{{ .Values.runtime.blueprint.configMapKey }}
 
           env:
             - name: LOG_LEVEL
@@ -131,8 +131,8 @@ spec:
             {{- toYaml .Values.runtime.resources | nindent 12 }}
 
           volumeMounts:
-            - name: catalog
-              mountPath: {{ .Values.runtime.catalog.mountPath }}
+            - name: blueprint
+              mountPath: {{ .Values.runtime.blueprint.mountPath }}
               readOnly: true
             - name: tmp
               mountPath: /tmp
@@ -141,9 +141,9 @@ spec:
             {{- end }}
 
       volumes:
-        - name: catalog
+        - name: blueprint
           configMap:
-            name: {{ include "inrun.catalogConfigMapName" . }}
+            name: {{ include "inrun.blueprintConfigMapName" . }}
         - name: tmp
           emptyDir: {}
         {{- with .Values.runtime.extraVolumes }}

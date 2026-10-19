@@ -1,11 +1,11 @@
 // pkg/merger/pull.go
 //
 // Exported pull helpers — shared with pkg/module and any other package
-// that needs to fetch a registry artifact without loading a full Catalog.
+// that needs to fetch a registry artifact without loading a full Blueprint.
 //
 // Both PullToDir and PullModuleToDir follow a cache-first strategy for OCI
 // artifacts: ~/.inrun/registry/<host>/<repo>/<version>/ is checked for a
-// sentinel file (catalog.yaml or module.yaml) before any network call is made.
+// sentinel file (blueprint.yaml or module.yaml) before any network call is made.
 // This avoids redundant pulls and removes the need for Docker credential
 // forwarding inside the process — callers should use `inrun pull`
 // to populate the cache, then rely on these helpers to read from it.

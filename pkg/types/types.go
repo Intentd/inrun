@@ -63,7 +63,7 @@ var SchemeAdderFns []func(*runtime.Scheme) error
 //	Required for declarative hook templates (onCreate, onReconcile, onDelete)
 //	because field values are resolved at reconcile time via Go text/template
 //	expressions against the live CR object map.
-//	Use when you want zero-code operator behavior from the Catalog alone.
+//	Use when you want zero-code operator behavior from the Blueprint alone.
 //
 // Auto-detection when mode is omitted:
 //
@@ -105,7 +105,7 @@ var (
 )
 
 // ── APITypes ──────────────────────────────────────────────────────────────────
-// Mirrors the apiTypes block in crd-catalog.yaml.
+// Mirrors the apiTypes block in crd-blueprint.yaml.
 // inrun generate reads this block to emit ObjectRegistry + ListRegistry entries
 // and the RegisterScheme() function.
 
@@ -248,7 +248,7 @@ type Queue struct {
 }
 
 // Empty reports whether the queue configuration has no meaningful settings.
-// Used to skip unnecessary config blocks in the Catalog.
+// Used to skip unnecessary config blocks in the Blueprint.
 func (q *Queue) Empty() bool {
 	if q == nil {
 		return true
@@ -393,7 +393,7 @@ func (q *Queue) ThresholdReached(depth int) bool {
 }
 
 // Empty reports whether the queue behaviour configuration has no meaningful settings.
-// Used to skip unnecessary config blocks in the Catalog.
+// Used to skip unnecessary config blocks in the Blueprint.
 func (q *QueueBehaviour) Empty() bool {
 	if q == nil {
 		return true

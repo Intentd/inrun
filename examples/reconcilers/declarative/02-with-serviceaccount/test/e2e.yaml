@@ -5,7 +5,7 @@ metadata:
   description: Deploy a website operator with a ServiceAccount and verify the Deployment, Service, and ServiceAccount come up and are cleaned up on delete
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 

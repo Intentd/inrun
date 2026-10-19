@@ -1,6 +1,6 @@
 # Declarative
 
-Operators declared entirely in a Catalog: no code. Work through them in order.
+Operators declared entirely in a Blueprint: no code. Work through them in order.
 
 | Example | Shows |
 |---------|-------|

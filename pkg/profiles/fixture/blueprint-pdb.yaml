@@ -1,0 +1,74 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: profile-probe-pdb
+  author: intentd
+  version: 0.1.0
+  description: >
+    ProfileProbe — living integration test for PDB behavior profiles.
+    One CRD deploys three Deployments and three PDBs, each using a different
+    behavior profile. The profile expands at blueprint load time into a concrete
+    minAvailable or maxUnavailable value. Run the operator and drain a node
+    to observe disruption budget enforcement per profile.
+
+spec:
+  crds:
+    profile-probe-pdb:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-zero"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                replicas: "3"
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-rolling"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                replicas: "3"
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-relaxed"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                replicas: "4"
+                reconcile: true
+
+            pdb:
+              - name: "{{ .metadata.name }}-zero-pdb"
+                selector:
+                  inrun-owner: "{{ .metadata.name }}"
+                behavior:
+                  profile: zero-downtime
+
+              - name: "{{ .metadata.name }}-rolling-pdb"
+                selector:
+                  inrun-owner: "{{ .metadata.name }}"
+                behavior:
+                  profile: rolling
+
+              - name: "{{ .metadata.name }}-relaxed-pdb"
+                selector:
+                  inrun-owner: "{{ .metadata.name }}"
+                behavior:
+                  profile: relaxed
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+

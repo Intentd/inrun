@@ -26,17 +26,17 @@ import (
 //  4. Setup files    (setup)
 //
 // All resources are applied in the correct order before the operator runtime
-// starts. Relative paths are resolved against the catalog directory. This
+// starts. Relative paths are resolved against the blueprint directory. This
 // function is a no-op when running inside the cluster.
-func applyPreRuntimeResources(ctx context.Context, catalogPath string, m *merger.Merger) {
+func applyPreRuntimeResources(ctx context.Context, blueprintPath string, m *merger.Merger) {
 	if cmdutil.IsRunningInPod() {
 		return
 	}
 
-	applyCRDFilesIfNeeded(ctx, catalogPath, m)
+	applyCRDFilesIfNeeded(ctx, blueprintPath, m)
 	waitForCRDsEstablished(ctx, m)
-	applyCRFilesIfNeeded(ctx, catalogPath, m)
-	applySetupIfNeeded(ctx, catalogPath, m)
+	applyCRFilesIfNeeded(ctx, blueprintPath, m)
+	applySetupIfNeeded(ctx, blueprintPath, m)
 }
 
 // ensureClusterReady ensures that a Kubernetes cluster is reachable before
@@ -96,12 +96,12 @@ func ensureClusterReady(dev bool) error {
 
 // applyCRFilesIfNeeded applies crFiles declarations via kubectl in order before
 // the runtime starts. Only runs outside the cluster (dev mode).
-func applyCRFilesIfNeeded(ctx context.Context, catalogPath string, m *merger.Merger) {
+func applyCRFilesIfNeeded(ctx context.Context, blueprintPath string, m *merger.Merger) {
 	if cmdutil.IsRunningInPod() {
 		return
 	}
 
-	catalogDir := filepath.Dir(catalogPath)
+	blueprintDir := filepath.Dir(blueprintPath)
 
 	for crdName, entry := range m.All() {
 		if !entry.HasCRFiles() {
@@ -110,7 +110,7 @@ func applyCRFilesIfNeeded(ctx context.Context, catalogPath string, m *merger.Mer
 		for _, crFile := range entry.CRFiles {
 			path := crFile
 			if !filepath.IsAbs(path) && !strings.HasPrefix(path, "http") {
-				path = filepath.Join(catalogDir, path)
+				path = filepath.Join(blueprintDir, path)
 			}
 
 			out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", path).CombinedOutput()
@@ -175,12 +175,12 @@ func waitForCRDsEstablished(ctx context.Context, m *merger.Merger) {
 // applyCRDFilesIfNeeded applies any crdFile declarations via kubectl before the
 // operator starts. Only runs outside the cluster (dev mode). In production,
 // CRDs must be pre-applied by the platform operator.
-func applyCRDFilesIfNeeded(ctx context.Context, catalogPath string, m *merger.Merger) {
+func applyCRDFilesIfNeeded(ctx context.Context, blueprintPath string, m *merger.Merger) {
 	if cmdutil.IsRunningInPod() {
 		return
 	}
 
-	catalogDir := filepath.Dir(catalogPath)
+	blueprintDir := filepath.Dir(blueprintPath)
 
 	for crdName, entry := range m.All() {
 		if !entry.HasCRDFile() {
@@ -189,7 +189,7 @@ func applyCRDFilesIfNeeded(ctx context.Context, catalogPath string, m *merger.Me
 
 		path := entry.CRDFile
 		if !filepath.IsAbs(path) && !strings.HasPrefix(path, "http") {
-			path = filepath.Join(catalogDir, path)
+			path = filepath.Join(blueprintDir, path)
 		}
 
 		out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", path).CombinedOutput()
@@ -211,10 +211,10 @@ func applyCRDFilesIfNeeded(ctx context.Context, catalogPath string, m *merger.Me
 
 // applyPatternExamples applies crd.yaml and cr.yaml from the pattern directory
 // when --apply-cr is set. These are the example files shipped with the pattern —
-// distinct from crdFile/crFiles declared in the catalog itself. kubectl apply
+// distinct from crdFile/crFiles declared in the blueprint itself. kubectl apply
 // is idempotent so overlap with applyPreRuntimeResources is safe.
-func applyPatternExamples(ctx context.Context, catalogPath string, m *merger.Merger) {
-	dir := filepath.Dir(catalogPath)
+func applyPatternExamples(ctx context.Context, blueprintPath string, m *merger.Merger) {
+	dir := filepath.Dir(blueprintPath)
 
 	if rel := registry.FindPatternFile(dir, registry.FileCRD); rel != "" {
 		crdPath := filepath.Join(dir, rel)
@@ -240,12 +240,12 @@ func applyPatternExamples(ctx context.Context, catalogPath string, m *merger.Mer
 
 // applySetupIfNeeded applies setup YAML files via kubectl in order before
 // Inrun starts. Only runs outside the cluster (dev mode).
-func applySetupIfNeeded(ctx context.Context, catalogPath string, m *merger.Merger) {
+func applySetupIfNeeded(ctx context.Context, blueprintPath string, m *merger.Merger) {
 	if cmdutil.IsRunningInPod() {
 		return
 	}
 
-	catalogDir := filepath.Dir(catalogPath)
+	blueprintDir := filepath.Dir(blueprintPath)
 
 	for crdName, entry := range m.All() {
 		if !entry.HasSetup() {
@@ -255,7 +255,7 @@ func applySetupIfNeeded(ctx context.Context, catalogPath string, m *merger.Merge
 		for _, setupFile := range entry.Setup.Apply {
 			path := setupFile.Path
 			if !filepath.IsAbs(path) && !strings.HasPrefix(path, "http") {
-				path = filepath.Join(catalogDir, path)
+				path = filepath.Join(blueprintDir, path)
 			}
 
 			out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", path).CombinedOutput()

@@ -1,0 +1,41 @@
+# Fixture for unique: true — exercised in both validation.rules (deny on
+# duplicate spec.domain) and status.fields' when: (writes domainUnique from
+# the same check). Both read the live UniquenessChecker the reconciler
+# injects via template.Resolver.WithUniquenessChecker.
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: simulate-fixture-unique-operator
+  author: intentd
+  version: 0.1.0
+  description: "Fixture for unique: true in validation.rules and when/or."
+
+spec:
+  crds:
+    website:
+      apiTypes:
+        group: testground.inrun.dev
+        version: v1alpha1
+        kind: Website
+        plural: websites
+      crdFile: ./crd.yaml
+      admission:
+        validation:
+          rules:
+            - field: spec.domain
+              unique: true
+              message: "spec.domain must be unique across all Website instances"
+              action: deny
+      operatorBox:
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Ready"
+              - path: domainUnique
+                value: "true"
+                when:
+                  - field: spec.domain
+                    unique: true
+                clearOnFalse: true
+

@@ -24,7 +24,7 @@ func IsTargetRequest(raw map[string]interface{}) bool {
 // submitted in target mode.
 //
 // Field routing — determined by where each field name is declared in the
-// Catalog's serve config:
+// Blueprint's serve config:
 //
 //	serve.fields                    → spec.<field>
 //	serve.labels       				→ metadata.labels[<field>]

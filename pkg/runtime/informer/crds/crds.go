@@ -1,4 +1,4 @@
-// Package crds builds the informers for a Catalog's CRDs: the shared factory,
+// Package crds builds the informers for a Blueprint's CRDs: the shared factory,
 // with a typed REST client per compiled CRD, and each CRD's informer with its
 // queue and namespace filter. The runtime and inrun simulate --envtest both
 // use it, so a CRD is watched the same way in both.
@@ -7,7 +7,7 @@ package crds
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
@@ -24,7 +24,7 @@ import (
 // workqueues via handleEvent.
 func NewFactory(
 	cfg *config.Config,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 	kube *kubeclient.Kubeclient,
 	scheme *runtime.Scheme,
 	defaultWq *queue.Workqueue,
@@ -35,14 +35,14 @@ func NewFactory(
 	// Dynamic CRDs skip this — they use the dynamic client directly.
 	provider := NewClientProvider(kube)
 
-	for _, crd := range cat.Enabled() {
+	for _, crd := range bp.Enabled() {
 		crd := crd
 		if crd.IsDynamic() {
 			continue
 		}
 		object, list, err := crd.RuntimeObjects()
 		if err != nil {
-			// Catalog validation already reports a missing registration.
+			// Blueprint validation already reports a missing registration.
 			logger.Error().Err(err).Str("gvk", crd.GVKString()).Msg("no client provider registered")
 			continue
 		}
@@ -59,7 +59,7 @@ func NewFactory(
 		Scheme:        scheme,
 		DefaultWq:     defaultWq,
 		Config:        cfg,
-		Catalog:       cat,
+		Blueprint:     bp,
 		ClientSet:     kube.Clientset(),
 		QueueRegistry: qr,
 	})
@@ -76,7 +76,7 @@ func Informer(
 	qr *queue.QueueRegistry,
 ) cache.SharedIndexInformer {
 	gvk := crd.GVKString()
-	object, _, _ := crd.RuntimeObjects() // validated with the Catalog
+	object, _, _ := crd.RuntimeObjects() // validated with the Blueprint
 	wq := qr.Register(gvk, crd.QueueConfig())
 
 	labelSelector := types.Labels(crd.LabelSelector).String()

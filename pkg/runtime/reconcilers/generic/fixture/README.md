@@ -4,7 +4,7 @@ Living integration fixture for the reconciler's resource types.
 
 ## Why this exists
 
-The runner functions in `pkg/runner/` apply Kubernetes resources from catalog
+The runner functions in `pkg/runner/` apply Kubernetes resources from blueprint
 templates. There is no meaningful way to unit-test them: the logic that matters
 — template rendering, server-side apply, status propagation, condition evaluation
 — only works against a real API server. Mocking it tests the mock, not Inrun.
@@ -24,7 +24,7 @@ observable without reading code.
 
 ## What each block covers
 
-| Block in `catalog.yaml`        | What it exercises                          |
+| Block in `blueprint.yaml`        | What it exercises                          |
 |--------------------------------|--------------------------------------------|
 | `custom:` (ReconcilerSuite)    | Namespaced CR creating a cluster-scoped child; exercises explicit GC on deletion |
 | `validation.rules`             | Admission validation                       |

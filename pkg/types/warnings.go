@@ -3,7 +3,7 @@ package types
 import "strings"
 
 // Warnings holds non‑fatal validation messages for this CRD.
-// Populated during Catalog validation (e.g., enrichment, deletion protection overrides).
+// Populated during Blueprint validation (e.g., enrichment, deletion protection overrides).
 type Warnings []string
 
 // HasWarnings returns true if there are any warnings for this CRD.

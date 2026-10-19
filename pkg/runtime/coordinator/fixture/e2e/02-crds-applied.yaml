@@ -15,34 +15,34 @@ expect:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/worker/health
+          path: /blueprint/worker/health
           jq: .state
           equals: pending
         - leaderElection:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/worker/health
+          path: /blueprint/worker/health
           jq: .started
           equals: "true"
         - leaderElection:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/component/health
+          path: /blueprint/component/health
           jq: .state
           equals: pending
         - leaderElection:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/component/health
+          path: /blueprint/component/health
           jq: .started
           equals: "true"
         - leaderElection:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/platform/health
+          path: /blueprint/platform/health
           jq: .state
           equals: pending

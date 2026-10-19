@@ -25,9 +25,9 @@ var inspectCmd = &cobra.Command{
 	Example: `  inrun inspect postgres:v14
   inrun inspect web-service:v1.0.0 --module
   inrun inspect oci://ghcr.io/myorg/patterns/redis:v7
-  inrun inspect redis:v1.0.0 --view catalog.yaml,simulate.yaml`,
+  inrun inspect redis:v1.0.0 --view blueprint.yaml,simulate.yaml`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		kind := registry.CatalogKind
+		kind := registry.BlueprintKind
 		if inspectModule {
 			kind = registry.ModuleKind
 		}
@@ -77,7 +77,7 @@ var inspectCmd = &cobra.Command{
 				}
 				if v.Meta.Deprecated != nil {
 					dep := v.Meta.Deprecated
-					d := &types.CatalogDeprecation{
+					d := &types.BlueprintDeprecation{
 						MigratedTo: dep.MigratedTo,
 						Message:    dep.Message,
 					}
@@ -181,7 +181,7 @@ var inspectCmd = &cobra.Command{
 		if m.Deprecated != nil {
 			cmdutil.PrintPatternDeprecation(m.Deprecated)
 			dep := m.Deprecated
-			d := &types.CatalogDeprecation{
+			d := &types.BlueprintDeprecation{
 				MigratedTo: dep.MigratedTo,
 				Message:    dep.Message,
 			}
@@ -349,7 +349,7 @@ var inspectCmd = &cobra.Command{
 
 func init() {
 	inspectCmd.Flags().BoolVarP(&inspectModule, "module", "m", false, "Resolve as a module (uses INRUN_MODULES_REGISTRY)")
-	inspectCmd.Flags().String("view", "", "Comma-separated list of files to print before pulling (e.g. catalog.yaml,cr.yaml)")
+	inspectCmd.Flags().String("view", "", "Comma-separated list of files to print before pulling (e.g. blueprint.yaml,cr.yaml)")
 	inspectCmd.Flags().Bool("versions", false, "List up to 10 tracked versions with simulate and E2E status")
 	cmdutil.RootCmd.AddCommand(inspectCmd)
 

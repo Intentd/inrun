@@ -14,7 +14,7 @@ import (
 // events, preReconcile.enqueueGate. inrun simulate builds one per CRD so its
 // passes are admitted exactly as the runtime's are.
 type Admission struct {
-	Catalog   domain.Catalog
+	Blueprint domain.Blueprint
 	Clientset kubernetes.Interface
 	// Namespace is the CRD's namespace rules; nil or inactive allows all.
 	Namespace *NamespaceFilter
@@ -28,7 +28,7 @@ func AdmitPrimary(ctx context.Context, a Admission, gvkStr string, obj interface
 	if decided {
 		return verdict
 	}
-	if !a.Catalog.EvaluateEnqueueFilter(ctx, gvkStr, domObj, a.Clientset, domain.EvaluateOptions{Sentinels: sentinels}) {
+	if !a.Blueprint.EvaluateEnqueueFilter(ctx, gvkStr, domObj, a.Clientset, domain.EvaluateOptions{Sentinels: sentinels}) {
 		logger.Debug().
 			Str("gvk", gvkStr).
 			Str("name", domObj.GetName()).
@@ -52,7 +52,7 @@ func admitCommon(ctx context.Context, a Admission, gvkStr string, obj interface{
 	}
 
 	domObj, ok := domain.ToDomainObject(obj)
-	if !ok || a.Catalog == nil {
+	if !ok || a.Blueprint == nil {
 		return domObj, true, true
 	}
 
@@ -64,7 +64,7 @@ func admitCommon(ctx context.Context, a Admission, gvkStr string, obj interface{
 
 	// Queue behaviour conditions.
 	if a.Queue != nil && a.Queue.NeedsBehaviourEval() {
-		if !a.Catalog.EvaluateQueueBehaviourConditions(ctx, gvkStr, domObj, domain.EvaluateOptions{Sentinels: sentinels}) {
+		if !a.Blueprint.EvaluateQueueBehaviourConditions(ctx, gvkStr, domObj, domain.EvaluateOptions{Sentinels: sentinels}) {
 			return domObj, false, true
 		}
 	}
@@ -76,5 +76,5 @@ func (f *Factory) admission(gvkStr string, wq *queue.Workqueue) Admission {
 	f.mu.RLock()
 	filter := f.namespaceFilters[gvkStr]
 	f.mu.RUnlock()
-	return Admission{Catalog: f.catalog, Clientset: f.cs, Namespace: filter, Queue: wq}
+	return Admission{Blueprint: f.blueprint, Clientset: f.cs, Namespace: filter, Queue: wq}
 }

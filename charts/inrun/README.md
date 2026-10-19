@@ -6,7 +6,7 @@ view.
 
 This chart deploys:
 
-- **Runtime:** reconciles the custom resources declared in your Catalog.
+- **Runtime:** reconciles the custom resources declared in your Blueprint.
 - **Gateway:** takes intents in, serves admission webhooks, and enforces
   deletion and namespace protection.
 - **Console:** a web UI over one or more runtimes.
@@ -23,8 +23,8 @@ curl -sSL https://get.inrun.dev | bash
 
 ## Install
 
-Inrun does not create RBAC or its Catalog ConfigMap itself. You generate them
-from your Catalog, review them, and apply them, so every permission is visible
+Inrun does not create RBAC or its Blueprint ConfigMap itself. You generate them
+from your Blueprint, review them, and apply them, so every permission is visible
 before it reaches the cluster.
 
 ### 1. Install the CRD
@@ -35,13 +35,13 @@ This uses the Website CRD from the hello-website example:
 kubectl apply -f https://raw.githubusercontent.com/intentd/inrun/main/examples/reconcilers/declarative/01-hello-website/manifests/crd.yaml
 ```
 
-### 2. Write a Catalog
+### 2. Write a Blueprint
 
-Save as `catalog.yaml`:
+Save as `blueprint.yaml`:
 
 ```yaml
 apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
   name: hello-website
 spec:
@@ -71,16 +71,16 @@ spec:
 ### 3. Review the permissions
 
 ```bash
-inrun validate --full -f catalog.yaml
+inrun validate --full -f blueprint.yaml
 ```
 
-This prints every RBAC rule the Catalog needs, per CRD and per component, with
+This prints every RBAC rule the Blueprint needs, per CRD and per component, with
 a note on why each one exists. No cluster required.
 
 ### 4. Generate and apply the bundle
 
 ```bash
-inrun generate bundle -f catalog.yaml -o bundle.yaml
+inrun generate bundle -f blueprint.yaml -o bundle.yaml
 ```
 
 ```bash
@@ -88,8 +88,8 @@ kubectl apply -f bundle.yaml
 ```
 
 The bundle holds the `inrun-system` Namespace, the ServiceAccounts, a
-ClusterRole with only the permissions the Catalog needs, its binding, and the
-`inrun-catalog` ConfigMap. Commit it to your GitOps repo if you use one.
+ClusterRole with only the permissions the Blueprint needs, its binding, and the
+`inrun-blueprint` ConfigMap. Commit it to your GitOps repo if you use one.
 
 ### 5. Install the chart
 
@@ -121,7 +121,7 @@ The runtime and gateway deploy independently.
 | Gateway only | `false` | `true` | Deletion and namespace protection only |
 | Full | `true` | `true` | Intents in, reconcile, views out |
 
-For gateway only, set `gateway.standalone: true` in the Catalog and generate
+For gateway only, set `gateway.standalone: true` in the Blueprint and generate
 with `inrun generate bundle --for gateway`.
 
 ## Values
@@ -142,8 +142,8 @@ with `inrun generate bundle --for gateway`.
 | `runtime.config.maxDepth` | Max queue depth per CRD | `500` |
 | `runtime.config.failureThreshold` | Failures before degraded | `10` |
 | `runtime.leaderElection.enabled` | Leader election | `true` |
-| `runtime.catalog.existingConfigMap` | Catalog ConfigMap | `<release>-catalog` |
-| `runtime.catalog.configMapKey` | Key in the ConfigMap | `catalog.yaml` |
+| `runtime.blueprint.existingConfigMap` | Blueprint ConfigMap | `<release>-blueprint` |
+| `runtime.blueprint.configMapKey` | Key in the ConfigMap | `blueprint.yaml` |
 | `runtime.gatewayEndpoint` | Gateway URL shown to the console | `""` |
 | `runtime.registry.url` | Pattern registry | `""` |
 
@@ -159,7 +159,7 @@ with `inrun generate bundle --for gateway`.
 | `gateway.server.httpsPort` | Webhook port | `8443` |
 | `gateway.webhooks.enabled` | Serve webhooks with your own TLS secret | `false` |
 | `gateway.webhooks.existingSecret` | TLS secret for webhooks | `""` |
-| `gateway.catalog.existingConfigMap` | Catalog ConfigMap | the runtime's |
+| `gateway.blueprint.existingConfigMap` | Blueprint ConfigMap | the runtime's |
 | `gateway.ingress.enabled` | Expose the Gateway API | `false` |
 
 ### Console

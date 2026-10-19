@@ -2,7 +2,7 @@ package types
 
 import "fmt"
 
-// ProfileRegistry holds all user-defined profiles declared in a Catalog or Module.
+// ProfileRegistry holds all user-defined profiles declared in a Blueprint or Module.
 // Profiles are resolved before built-ins at validate and reconcile time.
 // Template expressions in profile field values are allowed and resolved at reconcile time.
 type ProfileRegistry struct {
@@ -207,7 +207,7 @@ func (r ProfileRegistry) Merge(other ProfileRegistry, otherSource string) (Profi
 }
 
 func profileConflictError(class, name, source string) error {
-	return fmt.Errorf("profile conflict: %s %q defined in both %s and the catalog", class, name, source)
+	return fmt.Errorf("profile conflict: %s %q defined in both %s and the blueprint", class, name, source)
 }
 
 // NetworkPolicyProfileDef defines a named NetworkPolicy profile.

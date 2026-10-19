@@ -1,0 +1,60 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: pod-node-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    PodNodeProbe — living integration test for pod node enrichment notes.
+    Declares a standalone Pod (not via a Deployment) with enrich: [node]
+    so that _node is embedded after the pod is scheduled.
+    Apply the CR and inspect: kubectl get podnodeprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    pod-node-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - node
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            pods:
+              - name: "{{ .metadata.name }}-pod"
+                image: "{{ .spec.image }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              # ── Phase ───────────────────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Running"
+                when:
+                  - field: "{{ podNodeName .children.pod }}"
+                    exists: true
+
+              # ── enriched pod node notes (require enrich: [node]) ────────────
+              - path: nodeName
+                value: "{{ podNodeName .children.pod }}"
+
+              - path: nodeZone
+                value: "{{ nodeZone .children.pod._node }}"
+
+              - path: nodeRegion
+                value: "{{ nodeRegion .children.pod._node }}"
+
+              - path: nodeInstanceType
+                value: "{{ nodeInstanceType .children.pod._node }}"
+

@@ -1,7 +1,7 @@
 //go:build !runtime && !gateway
 
 // package function implements the functions command for browsing and searching the
-// template functions available in Catalog expressions.
+// template functions available in Blueprint expressions.
 package function
 
 import (
@@ -24,7 +24,7 @@ var functionsCmd = &cobra.Command{
 	Use:   "functions",
 	Short: "Browse and search Inrun functions",
 	Long: `List, search, and inspect Inrun functions — the template functions available
-in every Catalog expression.
+in every Blueprint expression.
 
   inrun functions                    list all functions
   inrun functions --domain strings   filter by domain
@@ -36,15 +36,15 @@ in every Catalog expression.
 		files, _ := cmd.Flags().GetStringSlice("file")
 		expanded := cmdutil.ParseFilePaths(files)
 
-		// When -f is provided, show user-defined functions from the Catalog.
+		// When -f is provided, show user-defined functions from the Blueprint.
 		if len(expanded) > 0 {
 			m := merger.New(expanded...)
 			if err := m.Merge(); err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
+				return fmt.Errorf("loading blueprint: %w", err)
 			}
 			reg := m.ToFunctions()
 			if reg.Empty() {
-				fmt.Println("No user-defined functions declared in this Catalog.")
+				fmt.Println("No user-defined functions declared in this Blueprint.")
 				return nil
 			}
 			return printUserFunctionTable(reg, noPager)

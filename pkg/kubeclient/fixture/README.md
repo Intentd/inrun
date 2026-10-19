@@ -17,7 +17,7 @@ reconcile:
 ```
 
 The hook reads `req.Args.String("featureEnabled")` — no HTTP client,
-no flag service SDK, no environment wiring. The Catalog handles the IO.
+no flag service SDK, no environment wiring. The Blueprint handles the IO.
 
 This fixture composes two self-contained examples showing the same access
 story with the two typed operator patterns:
@@ -42,8 +42,8 @@ make registry
 
 ```bash
 make clean && make build
-inrun validate 01-hooks/catalog.yaml
-inrun validate 02-constructor/catalog.yaml
+inrun validate 01-hooks/blueprint.yaml
+inrun validate 02-constructor/blueprint.yaml
 inrun simulate
 ```
 

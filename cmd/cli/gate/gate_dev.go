@@ -9,7 +9,7 @@ package gate
 // process to start, but operators still need to validate admission rules before
 // deploying. This command fills that gap:
 //
-//	inrun gate -f catalog.yaml --cr cr.yaml
+//	inrun gate -f blueprint.yaml --cr cr.yaml
 //
 // It evaluates validation.rules and previews mutation.rules in-process, using
 // the same EvaluateConditions + EvaluateValidationRule logic as the webhook and
@@ -26,8 +26,8 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/cmd/internal"
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/gateway/app"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/template"
@@ -48,21 +48,21 @@ Use this to test serve routing, apply flows, and intake payloads without a
 Helm deployment.
 
 Example:
-  inrun gate run -f catalog.yaml`,
+  inrun gate run -f blueprint.yaml`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		paths, _ := cmd.Flags().GetStringSlice("file")
 		if len(paths) == 0 {
 			paths = cmdutil.DefaultFilePaths()
 		}
 		if len(paths) == 0 {
-			return fmt.Errorf(cmdutil.ErrNoCatalog)
+			return fmt.Errorf(cmdutil.ErrNoBlueprint)
 		}
 
 		migrate, _ := cmd.Flags().GetBool("migrate")
 
 		m := merger.New(paths...)
 		if err := m.Merge(); err != nil {
-			return fmt.Errorf("merging catalogs: %w", err)
+			return fmt.Errorf("merging blueprints: %w", err)
 		}
 
 		internal.RunGateway(cmdutil.Ctx, cmdutil.Cfg, m, app.GatewayOptions{Migrate: migrate})
@@ -75,7 +75,7 @@ func init() {
 	gatewayCmd.RunE = gateEvalRunE
 	gatewayCmd.Long = `Evaluate admission rules locally against a CR.
 
-Reads the validation.rules declared in the Catalog and runs them against the
+Reads the validation.rules declared in the Blueprint and runs them against the
 provided CR using the same evaluation logic as the admission webhook and the
 reconciler. No cluster, no TLS, no webhook server required.
 
@@ -85,11 +85,11 @@ Limitations:
 Both are noted in the output.
 
 Example:
-  inrun gate -f catalog.yaml --cr cr.yaml`
+  inrun gate -f blueprint.yaml --cr cr.yaml`
 
 	gatewayCmd.AddCommand(gateRunCmd)
 	gatewayCmd.Flags().String("cr", "", "CR file to evaluate (default: cr.yaml)")
-	gateRunCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to catalog.yaml (repeatable)")
+	gateRunCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to blueprint.yaml (repeatable)")
 	gateRunCmd.Flags().Bool("migrate", false, "Run schema migration before starting the gateway")
 	cmdutil.ShadowGlobalCommandFlags(gateRunCmd)
 }
@@ -105,16 +105,16 @@ func gateEvalRunE(cmd *cobra.Command, args []string) error {
 		paths = cmdutil.DefaultFilePaths()
 	}
 	if len(paths) == 0 {
-		return fmt.Errorf(cmdutil.ErrNoCatalog)
+		return fmt.Errorf(cmdutil.ErrNoBlueprint)
 	}
 
 	m := merger.New(paths...)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging Catalog: %w", err)
+		return fmt.Errorf("merging Blueprint: %w", err)
 	}
-	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
+	bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
-		return fmt.Errorf("parsing Catalog: %w", err)
+		return fmt.Errorf("parsing Blueprint: %w", err)
 	}
 
 	crData, err := cmdutil.ReadLocal(crFile)
@@ -129,12 +129,12 @@ func gateEvalRunE(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun gate\n", cmdutil.Bold("▶"))
 	fmt.Printf("  %s %s\n", cmdutil.Gray("cr:     "), cmdutil.Cyan(crFile))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("catalog:"), cmdutil.Cyan(strings.Join(paths, ", ")))
+	fmt.Printf("  %s %s\n", cmdutil.Gray("blueprint:"), cmdutil.Cyan(strings.Join(paths, ", ")))
 	fmt.Println()
 
 	var anyDenied bool
-	for _, name := range cat.CRDNames() {
-		crdEntry, ok := cat.CRDEntry(name)
+	for _, name := range bp.CRDNames() {
+		crdEntry, ok := bp.CRDEntry(name)
 		if !ok {
 			continue
 		}
@@ -142,7 +142,7 @@ func gateEvalRunE(cmd *cobra.Command, args []string) error {
 		if !ok {
 			continue
 		}
-		anyDenied = gateEvalCRD(cat, &crdEntry, in.CR.Object) || anyDenied
+		anyDenied = gateEvalCRD(bp, &crdEntry, in.CR.Object) || anyDenied
 	}
 
 	if anyDenied {
@@ -153,7 +153,7 @@ func gateEvalRunE(cmd *cobra.Command, args []string) error {
 
 // gateEvalCRD evaluates validation rules and previews mutation rules for one
 // CRD+CR pair. Returns true if any deny-action validation rule fired.
-func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]interface{}) bool {
+func gateEvalCRD(bp *blueprint.Blueprint, crd *types.CRDEntry, obj map[string]interface{}) bool {
 	fmt.Printf("%s  %s  %s\n", cmdutil.Cyan("◆"), cmdutil.Bold(crd.Kind()), cmdutil.Gray(fmt.Sprintf("(%s)", crd.ServeTarget())))
 
 	if !crd.HasValidationRules() && !crd.HasMutationRules() {
@@ -172,7 +172,7 @@ func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 		fmt.Printf("  %s external: calls — skipped (no endpoint)\n", cmdutil.Dim("note:"))
 	}
 
-	resolver := template.NewResolverFromMap(obj).WithUserFunctions(cat.Functions)
+	resolver := template.NewResolverFromMap(obj).WithUserFunctions(bp.Functions)
 	eval := resolver.TemplateEvaluator()
 
 	// When mutateFirst is set the real webhook applies mutations before
@@ -183,7 +183,7 @@ func gateEvalCRD(cat *catalog.Catalog, crd *types.CRDEntry, obj map[string]inter
 		mutResult = EvalAdmissionMutation(obj, crd, resolver, eval)
 		if len(mutResult.Previews) > 0 {
 			validationObj = applyMutationPreviews(obj, mutResult.Previews)
-			validationResolver := template.NewResolverFromMap(validationObj).WithUserFunctions(cat.Functions)
+			validationResolver := template.NewResolverFromMap(validationObj).WithUserFunctions(bp.Functions)
 			resolver = validationResolver
 			eval = resolver.TemplateEvaluator()
 		}

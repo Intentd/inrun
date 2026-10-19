@@ -41,12 +41,12 @@ type Config struct {
 type Instance struct {
 	URL             string
 	Client          *Client
-	Catalog         *CatalogResponse
+	Blueprint       *BlueprintResponse
 	Healthy         bool
 	LastError       string
 	LastCheck       time.Time
 	Status          string // "online", "starting" or "degraded"
-	GatewayEndpoint string // from runtime /catalog; empty when no gateway
+	GatewayEndpoint string // from runtime /blueprint; empty when no gateway
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -113,20 +113,20 @@ func (c *Console) NoLogin() bool { return c.config.NoLogin }
 // ─────────────────────────────────────────────────────────────────────────────
 
 func (c *Console) backgroundFetchLoop() {
-	c.fetchAllCatalogs()
+	c.fetchAllBlueprints()
 	t := time.NewTicker(c.config.RefreshInterval)
 	defer t.Stop()
 	for {
 		select {
 		case <-t.C:
-			c.fetchAllCatalogs()
+			c.fetchAllBlueprints()
 		case <-c.done:
 			return
 		}
 	}
 }
 
-func (c *Console) fetchAllCatalogs() {
+func (c *Console) fetchAllBlueprints() {
 	// Snapshot instance URLs without holding the lock during network I/O.
 	// Holding a write lock across HTTP calls blocks all concurrent reads
 	// (CRD detail pages, snapshot API) for the full fetch duration, causing
@@ -149,40 +149,40 @@ func (c *Console) fetchAllCatalogs() {
 		}
 
 		now := time.Now()
-		cat, err := inst.Client.FetchCatalog()
+		bp, err := inst.Client.FetchBlueprint()
 
 		// Update only this instance under a brief write lock
 		c.mu.Lock()
 		if inst, ok = c.instances[u]; ok {
 			inst.LastCheck = now
 			if err != nil {
-				inst.Catalog = nil
+				inst.Blueprint = nil
 				inst.Status = "offline"
 				inst.Healthy = false
 				inst.LastError = err.Error()
-				Warnf("fetch catalog from %s: %v", u, err)
+				Warnf("fetch blueprint from %s: %v", u, err)
 			} else {
-				inst.GatewayEndpoint = cat.GatewayEndpoint
-				if cat.IsLeader {
+				inst.GatewayEndpoint = bp.GatewayEndpoint
+				if bp.IsLeader {
 					// Leader pod — data is authoritative, always update.
-					inst.Catalog = cat
+					inst.Blueprint = bp
 					inst.Status = "online"
 					inst.Healthy = true
 					inst.LastError = ""
-				} else if inst.Catalog == nil {
+				} else if inst.Blueprint == nil {
 					// Follower pod but we have nothing yet — accept it so the
-					// catalog appears immediately rather than waiting for a lucky
+					// blueprint appears immediately rather than waiting for a lucky
 					// tick that hits the leader. It may show CRDs as pending until
 					// the next leader response overwrites it.
-					inst.Catalog = cat
+					inst.Blueprint = bp
 					inst.Status = "starting"
 					inst.Healthy = false
 					inst.LastError = ""
 				}
 				// Follower + already have good data → keep last known-good snapshot,
 				// discard this response so the display does not flip.
-				Debugf("fetched catalog %q from %s (%d CRDs, gateway=%q)",
-					cat.Name, u, len(cat.CRDs), cat.GatewayEndpoint)
+				Debugf("fetched blueprint %q from %s (%d CRDs, gateway=%q)",
+					bp.Name, u, len(bp.CRDs), bp.GatewayEndpoint)
 			}
 		}
 		c.mu.Unlock()
@@ -247,12 +247,12 @@ func (c *Console) ServeSSE(w http.ResponseWriter, r *http.Request) {
 // Instance lookups
 // ─────────────────────────────────────────────────────────────────────────────
 
-// instanceByCatalogName returns the instance whose loaded catalog has the given name.
-func (c *Console) instanceByCatalogName(name string) (*Instance, bool) {
+// instanceByBlueprintName returns the instance whose loaded blueprint has the given name.
+func (c *Console) instanceByBlueprintName(name string) (*Instance, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	for _, inst := range c.instances {
-		if inst.Catalog != nil && inst.Catalog.Name == name {
+		if inst.Blueprint != nil && inst.Blueprint.Name == name {
 			return inst, true
 		}
 	}
@@ -287,12 +287,12 @@ func (c *Console) clientFor(instanceURL string) *Client {
 //	/metrics                                            → metrics page
 //	/debug/file                                         → debug
 //	/docs                                               → docs landing
-//	/docs/{catalog}/{crd}                               → CRD docs page
-//	/catalog/{catalog}                                  → catalog panel
-//	/catalog/{catalog}/crd/{crd}                        → CRD detail
-//	/catalog/{catalog}/crd/{crd}/cr                     → CR list
-//	/catalog/{catalog}/crd/{crd}/cr/{name}              → CR detail (cluster-scoped)
-//	/catalog/{catalog}/crd/{crd}/cr/{ns}/{name}         → CR detail (namespaced)
+//	/docs/{blueprint}/{crd}                               → CRD docs page
+//	/blueprint/{blueprint}                                  → blueprint panel
+//	/blueprint/{blueprint}/crd/{crd}                        → CRD detail
+//	/blueprint/{blueprint}/crd/{crd}/cr                     → CR list
+//	/blueprint/{blueprint}/crd/{crd}/cr/{name}              → CR detail (cluster-scoped)
+//	/blueprint/{blueprint}/crd/{crd}/cr/{ns}/{name}         → CR detail (namespaced)
 func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/console")
 	if path == "" || path == "/" {
@@ -322,13 +322,13 @@ func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		c.handleDocsLanding(w, r)
 
 	case strings.HasPrefix(path, "/docs/"):
-		// /docs/{catalog}           → developer docs or operator CRD list
-		// /docs/{catalog}/{crd}     → CRD docs page
+		// /docs/{blueprint}           → developer docs or operator CRD list
+		// /docs/{blueprint}/{crd}     → CRD docs page
 		parts := strings.SplitN(strings.TrimPrefix(path, "/docs/"), "/", 2)
 		if len(parts) == 2 {
 			c.handleCRDDocs(w, r, parts[0], parts[1])
 		} else if len(parts) == 1 && parts[0] != "" {
-			c.handleCatalogDocs(w, r, parts[0])
+			c.handleBlueprintDocs(w, r, parts[0])
 		} else {
 			c.handleDocsLanding(w, r)
 		}
@@ -340,10 +340,10 @@ func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		target := strings.TrimPrefix(path, "/api/serve/schema/")
 		c.handleServeSchema(w, r, target)
 
-	case strings.HasPrefix(path, "/catalog/"):
+	case strings.HasPrefix(path, "/blueprint/"):
 		// Strip leading slash and split
 		parts := strings.Split(strings.Trim(path, "/"), "/")
-		c.routeCatalog(w, r, parts)
+		c.routeBlueprint(w, r, parts)
 	case path == "/api/instances" && r.Method == http.MethodGet:
 		c.handleListInstances(w, r)
 	case path == "/api/instances" && r.Method == http.MethodPost:
@@ -357,64 +357,64 @@ func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// routeCatalog dispatches /catalog/** paths.
-// parts has no leading slash: ["catalog", "{name}", ...]
-func (c *Console) routeCatalog(w http.ResponseWriter, r *http.Request, parts []string) {
-	// parts[0] == "catalog"
+// routeBlueprint dispatches /blueprint/** paths.
+// parts has no leading slash: ["blueprint", "{name}", ...]
+func (c *Console) routeBlueprint(w http.ResponseWriter, r *http.Request, parts []string) {
+	// parts[0] == "blueprint"
 	if len(parts) < 2 {
 		c.handleNotFound(w, r)
 		return
 	}
 
-	catalogName := parts[1]
+	blueprintName := parts[1]
 
 	switch {
-	// /catalog/{name}/crd/{crd}/cr[/...]
+	// /blueprint/{name}/crd/{crd}/cr[/...]
 	case len(parts) >= 5 && parts[2] == "crd" && parts[4] == "cr":
 		crdName := parts[3]
-		inst, ok := c.instanceByCatalogName(catalogName)
+		inst, ok := c.instanceByBlueprintName(blueprintName)
 		if !ok {
 			c.handleNotFound(w, r)
 			return
 		}
-		c.routeCR(w, r, inst.URL, inst.Catalog.Name, crdName, parts[4:])
+		c.routeCR(w, r, inst.URL, inst.Blueprint.Name, crdName, parts[4:])
 
-	// /catalog/{name}/crd/{crd}/raw  or  /catalog/{name}/crd/{crd}/enriched
+	// /blueprint/{name}/crd/{crd}/raw  or  /blueprint/{name}/crd/{crd}/enriched
 	case len(parts) == 5 && parts[2] == "crd" && (parts[4] == "raw" || parts[4] == "enriched"):
-		c.handleProxyCRDSpec(w, r, catalogName, parts[3], parts[4])
+		c.handleProxyCRDSpec(w, r, blueprintName, parts[3], parts[4])
 
-	// /catalog/{name}/crd/{crd}
+	// /blueprint/{name}/crd/{crd}
 	case len(parts) >= 4 && parts[2] == "crd":
-		c.handleCRDDetail(w, r, catalogName, parts[3])
+		c.handleCRDDetail(w, r, blueprintName, parts[3])
 
-	// /catalog/{name}/raw  or  /catalog/{name}/enriched
+	// /blueprint/{name}/raw  or  /blueprint/{name}/enriched
 	case len(parts) == 3 && (parts[2] == "raw" || parts[2] == "enriched"):
-		c.handleProxyCatalogSpec(w, r, catalogName, parts[2])
+		c.handleProxyBlueprintSpec(w, r, blueprintName, parts[2])
 
-	// /catalog/{name}
+	// /blueprint/{name}
 	default:
-		c.handleCatalogPanel(w, r, catalogName)
+		c.handleBlueprintPanel(w, r, blueprintName)
 	}
 }
 
 // routeCR dispatches CR sub-paths.
 // crParts: ["cr"], ["cr", "{name}"], ["cr", "{ns}", "{name}"]
-func (c *Console) routeCR(w http.ResponseWriter, r *http.Request, instanceURL, catalogName, crdName string, crParts []string) {
+func (c *Console) routeCR(w http.ResponseWriter, r *http.Request, instanceURL, blueprintName, crdName string, crParts []string) {
 	// crParts[0] == "cr"
 	switch len(crParts) {
 	case 1:
 		// /cr → list
-		c.handleCRList(w, r, instanceURL, catalogName, crdName)
+		c.handleCRList(w, r, instanceURL, blueprintName, crdName)
 	case 2:
 		if crParts[1] == "create" {
-			c.handleServeCreateForm(w, r, instanceURL, catalogName, crdName)
+			c.handleServeCreateForm(w, r, instanceURL, blueprintName, crdName)
 			return
 		}
 		// /cr/{name} → cluster-scoped detail
-		c.handleCRDetail(w, r, instanceURL, catalogName, crdName, "", crParts[1])
+		c.handleCRDetail(w, r, instanceURL, blueprintName, crdName, "", crParts[1])
 	case 3:
 		// /cr/{ns}/{name} → namespaced detail
-		c.handleCRDetail(w, r, instanceURL, catalogName, crdName, crParts[1], crParts[2])
+		c.handleCRDetail(w, r, instanceURL, blueprintName, crdName, crParts[1], crParts[2])
 	default:
 		c.handleNotFound(w, r)
 	}
@@ -424,27 +424,27 @@ func (c *Console) routeCR(w http.ResponseWriter, r *http.Request, instanceURL, c
 // Raw / Enriched proxy handlers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// handleProxyCRDSpec proxies GET /catalog/{crd}/raw or /catalog/{crd}/enriched
+// handleProxyCRDSpec proxies GET /blueprint/{crd}/raw or /blueprint/{crd}/enriched
 // from the Inrun runtime and returns the JSON body to the browser.
-func (c *Console) handleProxyCRDSpec(w http.ResponseWriter, r *http.Request, catalogName, crdName, kind string) {
-	inst, ok := c.instanceByCatalogName(catalogName)
+func (c *Console) handleProxyCRDSpec(w http.ResponseWriter, r *http.Request, blueprintName, crdName, kind string) {
+	inst, ok := c.instanceByBlueprintName(blueprintName)
 	if !ok {
-		http.Error(w, "catalog not found", http.StatusNotFound)
+		http.Error(w, "blueprint not found", http.StatusNotFound)
 		return
 	}
-	target := inst.URL + "/catalog/" + crdName + "/" + kind
+	target := inst.URL + "/blueprint/" + crdName + "/" + kind
 	c.proxyJSON(w, target)
 }
 
-// handleProxyCatalogSpec proxies GET /catalog/raw or /catalog/enriched
+// handleProxyBlueprintSpec proxies GET /blueprint/raw or /blueprint/enriched
 // from the Inrun runtime and returns the JSON body to the browser.
-func (c *Console) handleProxyCatalogSpec(w http.ResponseWriter, r *http.Request, catalogName, kind string) {
-	inst, ok := c.instanceByCatalogName(catalogName)
+func (c *Console) handleProxyBlueprintSpec(w http.ResponseWriter, r *http.Request, blueprintName, kind string) {
+	inst, ok := c.instanceByBlueprintName(blueprintName)
 	if !ok {
-		http.Error(w, "catalog not found", http.StatusNotFound)
+		http.Error(w, "blueprint not found", http.StatusNotFound)
 		return
 	}
-	target := inst.URL + "/catalog/" + kind
+	target := inst.URL + "/blueprint/" + kind
 	c.proxyJSON(w, target)
 }
 
@@ -470,14 +470,14 @@ func (c *Console) proxyJSON(w http.ResponseWriter, target string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type StatsSnap struct {
-	TotalCatalogs   int `json:"totalCatalogs"`
-	HealthyCatalogs int `json:"healthyCatalogs"`
-	TotalCRDs       int `json:"totalCRDs"`
-	TotalWorkers    int `json:"totalWorkers"`
-	TotalResources  int `json:"totalResources"`
+	TotalBlueprints   int `json:"totalBlueprints"`
+	HealthyBlueprints int `json:"healthyBlueprints"`
+	TotalCRDs         int `json:"totalCRDs"`
+	TotalWorkers      int `json:"totalWorkers"`
+	TotalResources    int `json:"totalResources"`
 }
 
-type CatalogSnap struct {
+type BlueprintSnap struct {
 	Name           string `json:"name"`
 	Healthy        bool   `json:"healthy"`
 	TotalCRDs      int    `json:"totalCRDs"`
@@ -487,63 +487,63 @@ type CatalogSnap struct {
 }
 
 type SnapshotData struct {
-	Stats    StatsSnap     `json:"stats"`
-	Catalogs []CatalogSnap `json:"catalogs"`
-	Updated  string        `json:"updated"`
+	Stats      StatsSnap       `json:"stats"`
+	Blueprints []BlueprintSnap `json:"blueprints"`
+	Updated    string          `json:"updated"`
 }
 
 func (c *Console) handleAPISnapshot(w http.ResponseWriter, _ *http.Request) {
 	c.mu.RLock()
 	insts := make([]*Instance, 0, len(c.instances))
 	for _, inst := range c.instances {
-		if inst.Catalog != nil {
+		if inst.Blueprint != nil {
 			insts = append(insts, inst)
 		}
 	}
 	c.mu.RUnlock()
 
 	sort.Slice(insts, func(i, j int) bool {
-		return insts[i].Catalog.Name < insts[j].Catalog.Name
+		return insts[i].Blueprint.Name < insts[j].Blueprint.Name
 	})
 
 	stats := StatsSnap{}
-	var catalogs []CatalogSnap
+	var blueprints []BlueprintSnap
 
 	for _, inst := range insts {
-		cat := inst.Catalog
+		bp := inst.Blueprint
 		healthyCRDs := 0
-		for _, crd := range cat.CRDs {
+		for _, crd := range bp.CRDs {
 			if crd.Healthy {
 				healthyCRDs++
 			}
 		}
-		stats.TotalCatalogs++
-		stats.TotalCRDs += len(cat.CRDs)
-		stats.TotalWorkers += sumWorkers(cat.CRDs)
-		stats.TotalResources += sumResources(cat.CRDs)
-		if cat.Healthy {
-			stats.HealthyCatalogs++
+		stats.TotalBlueprints++
+		stats.TotalCRDs += len(bp.CRDs)
+		stats.TotalWorkers += sumWorkers(bp.CRDs)
+		stats.TotalResources += sumResources(bp.CRDs)
+		if bp.Healthy {
+			stats.HealthyBlueprints++
 		}
-		catalogs = append(catalogs, CatalogSnap{
-			Name:           cat.Name,
-			Healthy:        cat.Healthy,
-			TotalCRDs:      len(cat.CRDs),
+		blueprints = append(blueprints, BlueprintSnap{
+			Name:           bp.Name,
+			Healthy:        bp.Healthy,
+			TotalCRDs:      len(bp.CRDs),
 			HealthyCRDs:    healthyCRDs,
-			TotalWorkers:   sumWorkers(cat.CRDs),
-			TotalResources: sumResources(cat.CRDs),
+			TotalWorkers:   sumWorkers(bp.CRDs),
+			TotalResources: sumResources(bp.CRDs),
 		})
 	}
 
-	if catalogs == nil {
-		catalogs = []CatalogSnap{}
+	if blueprints == nil {
+		blueprints = []BlueprintSnap{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache")
 	json.NewEncoder(w).Encode(SnapshotData{
-		Stats:    stats,
-		Catalogs: catalogs,
-		Updated:  time.Now().UTC().Format(time.RFC3339),
+		Stats:      stats,
+		Blueprints: blueprints,
+		Updated:    time.Now().UTC().Format(time.RFC3339),
 	})
 }
 
@@ -551,63 +551,63 @@ func (c *Console) handleIndex(w http.ResponseWriter, _ *http.Request) {
 	c.mu.RLock()
 	insts := make([]*Instance, 0, len(c.instances))
 	for _, inst := range c.instances {
-		if inst.Catalog != nil {
+		if inst.Blueprint != nil {
 			insts = append(insts, inst)
 		}
 	}
 	c.mu.RUnlock()
 
 	sort.Slice(insts, func(i, j int) bool {
-		return insts[i].Catalog.Name < insts[j].Catalog.Name
+		return insts[i].Blueprint.Name < insts[j].Blueprint.Name
 	})
 
-	var summaries []CatalogSummary
-	totalCRDs, totalWorkers, totalResources, healthyCatalogs := 0, 0, 0, 0
-	hasOperatorCatalogs := false
+	var summaries []BlueprintSummary
+	totalCRDs, totalWorkers, totalResources, healthyBlueprints := 0, 0, 0, 0
+	hasOperatorBlueprints := false
 	clusterSeen := map[string]struct{}{}
 	nsSeen := map[string]struct{}{}
 
 	for _, inst := range insts {
-		cat := inst.Catalog
+		bp := inst.Blueprint
 		healthyCRDs := 0
-		for _, crd := range cat.CRDs {
+		for _, crd := range bp.CRDs {
 			if crd.Healthy {
 				healthyCRDs++
 			}
 		}
 
-		// Collect distinct namespaces from this catalog's namespace grouping.
+		// Collect distinct namespaces from this blueprint's namespace grouping.
 		var nsKeys []string
-		for ns := range cat.Namespaces {
+		for ns := range bp.Namespaces {
 			nsKeys = append(nsKeys, ns)
 			nsSeen[ns] = struct{}{}
 		}
 		sort.Strings(nsKeys)
 
-		if cat.ClusterName != "" {
-			clusterSeen[cat.ClusterName] = struct{}{}
+		if bp.ClusterName != "" {
+			clusterSeen[bp.ClusterName] = struct{}{}
 		}
 
-		summary := CatalogSummary{
-			Name:             cat.Name,
-			Description:      cat.Description,
-			Version:          cat.Version,
-			Healthy:          cat.Healthy,
-			TotalCRDs:        len(cat.CRDs),
+		summary := BlueprintSummary{
+			Name:             bp.Name,
+			Description:      bp.Description,
+			Version:          bp.Version,
+			Healthy:          bp.Healthy,
+			TotalCRDs:        len(bp.CRDs),
 			HealthyCRDs:      healthyCRDs,
-			TotalWorkers:     sumWorkers(cat.CRDs),
-			TotalResources:   sumResources(cat.CRDs),
-			ClusterName:      cat.ClusterName,
+			TotalWorkers:     sumWorkers(bp.CRDs),
+			TotalResources:   sumResources(bp.CRDs),
+			ClusterName:      bp.ClusterName,
 			Namespaces:       nsKeys,
-			NamespaceDetails: cat.Namespaces,
+			NamespaceDetails: bp.Namespaces,
 		}
 		summaries = append(summaries, summary)
-		hasOperatorCatalogs = true
-		totalCRDs += len(cat.CRDs)
-		totalWorkers += sumWorkers(cat.CRDs)
-		totalResources += sumResources(cat.CRDs)
-		if cat.Healthy {
-			healthyCatalogs++
+		hasOperatorBlueprints = true
+		totalCRDs += len(bp.CRDs)
+		totalWorkers += sumWorkers(bp.CRDs)
+		totalResources += sumResources(bp.CRDs)
+		if bp.Healthy {
+			healthyBlueprints++
 		}
 	}
 
@@ -624,59 +624,59 @@ func (c *Console) handleIndex(w http.ResponseWriter, _ *http.Request) {
 	sort.Strings(allNamespaces)
 
 	c.renderTemplate(w, "index.html", IndexData{
-		Catalogs:             summaries,
-		TotalCatalogs:        len(summaries),
-		HealthyCatalogs:      healthyCatalogs,
-		TotalCRDs:            totalCRDs,
-		TotalWorkers:         totalWorkers,
-		TotalResources:       totalResources,
-		AnyHealthy:           len(summaries) > 0,
-		HasOperatorCatalogs:  hasOperatorCatalogs,
-		InrunURLs:            strings.Join(c.urls, ", "),
-		ConsoleVersion:       ccversion.Short(),
-		AllClusters:          allClusters,
-		AllNamespaces:        allNamespaces,
-		EnableRuntimeManager: c.config.EnableRuntimeManager,
+		Blueprints:            summaries,
+		TotalBlueprints:       len(summaries),
+		HealthyBlueprints:     healthyBlueprints,
+		TotalCRDs:             totalCRDs,
+		TotalWorkers:          totalWorkers,
+		TotalResources:        totalResources,
+		AnyHealthy:            len(summaries) > 0,
+		HasOperatorBlueprints: hasOperatorBlueprints,
+		InrunURLs:             strings.Join(c.urls, ", "),
+		ConsoleVersion:        ccversion.Short(),
+		AllClusters:           allClusters,
+		AllNamespaces:         allNamespaces,
+		EnableRuntimeManager:  c.config.EnableRuntimeManager,
 	})
 }
 
-func (c *Console) handleCatalogPanel(w http.ResponseWriter, r *http.Request, catalogName string) {
-	inst, ok := c.instanceByCatalogName(catalogName)
+func (c *Console) handleBlueprintPanel(w http.ResponseWriter, r *http.Request, blueprintName string) {
+	inst, ok := c.instanceByBlueprintName(blueprintName)
 	if !ok {
 		// Try a fresh fetch once before giving up
-		c.fetchAllCatalogs()
-		inst, ok = c.instanceByCatalogName(catalogName)
+		c.fetchAllBlueprints()
+		inst, ok = c.instanceByBlueprintName(blueprintName)
 		if !ok {
 			c.handleNotFound(w, r)
 			return
 		}
 	}
 
-	cat := inst.Catalog
+	bp := inst.Blueprint
 
 	ns := r.URL.Query().Get("ns")
 
 	// Sort CRDs by name for consistent display
-	sortedCRDs := make([]CRDSummary, len(cat.CRDs))
-	copy(sortedCRDs, cat.CRDs)
+	sortedCRDs := make([]CRDSummary, len(bp.CRDs))
+	copy(sortedCRDs, bp.CRDs)
 	sort.Slice(sortedCRDs, func(i, j int) bool {
 		return sortedCRDs[i].Name < sortedCRDs[j].Name
 	})
 
 	// When viewing a specific namespace, use that namespace's description and
-	// version (set from each CRD's source Catalog metadata) rather than the
+	// version (set from each CRD's source Blueprint metadata) rather than the
 	// top-level Stack description which belongs to the whole bundle.
-	description := cat.Description
-	version := cat.Version
+	description := bp.Description
+	version := bp.Version
 	if ns != "" {
 		var filtered []CRDSummary
 		for _, crd := range sortedCRDs {
-			if crd.CatalogNamespace == ns {
+			if crd.BlueprintNamespace == ns {
 				filtered = append(filtered, crd)
 			}
 		}
 		sortedCRDs = filtered
-		if nsSummary, ok := cat.Namespaces[ns]; ok {
+		if nsSummary, ok := bp.Namespaces[ns]; ok {
 			if nsSummary.Description != "" {
 				description = nsSummary.Description
 			}
@@ -686,36 +686,36 @@ func (c *Console) handleCatalogPanel(w http.ResponseWriter, r *http.Request, cat
 		}
 	}
 
-	c.renderTemplate(w, "catalog.html", CatalogData{
-		CRDs:               sortedCRDs,
-		InrunReady:         cat.InrunReady,
-		DeletionProtection: cat.DeletionProtection,
-		TotalCRDs:          len(sortedCRDs),
-		TotalWorkers:       sumWorkers(sortedCRDs),
-		TotalResources:     sumResources(sortedCRDs),
-		HealthyCount:       countHealthyCRDs(sortedCRDs),
-		CatalogName:        cat.Name,
-		CatalogDescription: description,
-		CatalogHealthy:     cat.Healthy,
-		CatalogVersion:     version,
-		CatalogAuthor:      cat.Author,
-		CatalogLicense:     cat.License,
-		DegradedReason:     cat.DegradedReason,
-		StatusCounts:       computeStatusCounts(sortedCRDs),
-		RuntimeVersion:     cat.RuntimeVersion,
-		ClusterName:        cat.ClusterName,
+	c.renderTemplate(w, "blueprint.html", BlueprintData{
+		CRDs:                 sortedCRDs,
+		InrunReady:           bp.InrunReady,
+		DeletionProtection:   bp.DeletionProtection,
+		TotalCRDs:            len(sortedCRDs),
+		TotalWorkers:         sumWorkers(sortedCRDs),
+		TotalResources:       sumResources(sortedCRDs),
+		HealthyCount:         countHealthyCRDs(sortedCRDs),
+		BlueprintName:        bp.Name,
+		BlueprintDescription: description,
+		BlueprintHealthy:     bp.Healthy,
+		BlueprintVersion:     version,
+		BlueprintAuthor:      bp.Author,
+		BlueprintLicense:     bp.License,
+		DegradedReason:       bp.DegradedReason,
+		StatusCounts:         computeStatusCounts(sortedCRDs),
+		RuntimeVersion:       bp.RuntimeVersion,
+		ClusterName:          bp.ClusterName,
 	})
 }
 
-func (c *Console) handleCRDDetail(w http.ResponseWriter, r *http.Request, catalogName, crdName string) {
-	inst, ok := c.instanceByCatalogName(catalogName)
+func (c *Console) handleCRDDetail(w http.ResponseWriter, r *http.Request, blueprintName, crdName string) {
+	inst, ok := c.instanceByBlueprintName(blueprintName)
 	if !ok {
-		c.renderError(w, r, fmt.Sprintf("Catalog %q not found", catalogName))
+		c.renderError(w, r, fmt.Sprintf("Blueprint %q not found", blueprintName))
 		return
 	}
 
-	endpoints := endpointInfoFor(inst.Catalog, crdName)
-	summary := summaryFor(inst.Catalog, crdName)
+	endpoints := endpointInfoFor(inst.Blueprint, crdName)
+	summary := summaryFor(inst.Blueprint, crdName)
 	crd, err := inst.Client.FetchCRDDetail(crdName, endpoints, summary)
 	if err != nil {
 		Warnf("fetch CRD %s: %v", crdName, err)
@@ -751,14 +751,14 @@ func (c *Console) handleCRDDetail(w http.ResponseWriter, r *http.Request, catalo
 	}
 
 	c.renderTemplate(w, "crd.html", map[string]interface{}{
-		"CRD":         crd,
-		"CatalogName": catalogName,
+		"CRD":           crd,
+		"BlueprintName": blueprintName,
 	})
 }
 
 // handleCRList renders the CR instance list for one CRD.
-// Route: /catalog/{catalog}/crd/{crd}/cr
-func (c *Console) handleCRList(w http.ResponseWriter, r *http.Request, instanceURL, catalogName, crdName string) {
+// Route: /blueprint/{blueprint}/crd/{crd}/cr
+func (c *Console) handleCRList(w http.ResponseWriter, r *http.Request, instanceURL, blueprintName, crdName string) {
 	client := c.clientFor(instanceURL)
 
 	list, err := client.FetchCRList(instanceURL, crdName)
@@ -770,9 +770,9 @@ func (c *Console) handleCRList(w http.ResponseWriter, r *http.Request, instanceU
 	var serveEnabled bool
 	var gatewayEndpoint string
 	c.mu.RLock()
-	if inst, ok := c.instances[instanceURL]; ok && inst.Catalog != nil {
+	if inst, ok := c.instances[instanceURL]; ok && inst.Blueprint != nil {
 		gatewayEndpoint = inst.GatewayEndpoint
-		for _, crd := range inst.Catalog.CRDs {
+		for _, crd := range inst.Blueprint.CRDs {
 			if strings.EqualFold(crd.Name, crdName) {
 				serveEnabled = crd.ServeEnabled
 				break
@@ -782,13 +782,13 @@ func (c *Console) handleCRList(w http.ResponseWriter, r *http.Request, instanceU
 	c.mu.RUnlock()
 
 	c.renderTemplate(w, "cr_list.html", CRListView{
-		CatalogName:     catalogName,
+		BlueprintName:   blueprintName,
 		Instance:        instanceURL,
 		CRDName:         crdName,
 		GVK:             list.GVK,
 		Total:           list.Total,
 		Items:           list.Items,
-		BackURL:         fmt.Sprintf("/console/catalog/%s/crd/%s", catalogName, crdName),
+		BackURL:         fmt.Sprintf("/console/blueprint/%s/crd/%s", blueprintName, crdName),
 		ServeEnabled:    serveEnabled,
 		GatewayEndpoint: gatewayEndpoint,
 	})
@@ -845,12 +845,12 @@ func (c *Console) proxyServeRequest(w http.ResponseWriter, _ *http.Request, targ
 	w.Write(respBody) //nolint:errcheck
 }
 
-// firstInstance returns the first instance that has a loaded Catalog, or nil.
+// firstInstance returns the first instance that has a loaded Blueprint, or nil.
 func (c *Console) firstInstance() *Instance {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	for _, inst := range c.instances {
-		if inst.Catalog != nil {
+		if inst.Blueprint != nil {
 			return inst
 		}
 	}
@@ -866,20 +866,20 @@ func (c *Console) instanceByURL(instanceURL string) *Instance {
 }
 
 // handleServeCreateForm renders the serve create form (GET) or applies the CR (POST).
-// Route: /catalog/{catalog}/crd/{crd}/cr/create
-func (c *Console) handleServeCreateForm(w http.ResponseWriter, r *http.Request, instanceURL, catalogName, crdName string) {
-	backURL := fmt.Sprintf("/console/catalog/%s/crd/%s/cr", catalogName, crdName)
+// Route: /blueprint/{blueprint}/crd/{crd}/cr/create
+func (c *Console) handleServeCreateForm(w http.ResponseWriter, r *http.Request, instanceURL, blueprintName, crdName string) {
+	backURL := fmt.Sprintf("/console/blueprint/%s/crd/%s/cr", blueprintName, crdName)
 
 	inst := c.instanceByURL(instanceURL)
-	if inst == nil || inst.Catalog == nil {
+	if inst == nil || inst.Blueprint == nil {
 		http.Redirect(w, r, backURL, http.StatusSeeOther)
 		return
 	}
 
 	var crdSummary *CRDSummary
-	for i := range inst.Catalog.CRDs {
-		if strings.EqualFold(inst.Catalog.CRDs[i].Name, crdName) {
-			crdSummary = &inst.Catalog.CRDs[i]
+	for i := range inst.Blueprint.CRDs {
+		if strings.EqualFold(inst.Blueprint.CRDs[i].Name, crdName) {
+			crdSummary = &inst.Blueprint.CRDs[i]
 			break
 		}
 	}
@@ -900,7 +900,7 @@ func (c *Console) handleServeCreateForm(w http.ResponseWriter, r *http.Request, 
 
 	sections, aliases, fetchErr := c.fetchAllServeFields(inst, target)
 	data := ServeFormData{
-		CatalogName:      catalogName,
+		BlueprintName:    blueprintName,
 		CRDName:          crdName,
 		Target:           target,
 		Aliases:          aliases,
@@ -932,7 +932,7 @@ const (
 // serveFieldHint mirrors one entry of pkg/gateway/api.SchemaResponse.Fields
 // (itself types.ServeFieldConfig) — the gateway's flat, caller-facing field
 // contract. It doesn't distinguish where a field routes to (spec, label,
-// annotation) — the gateway resolves that from the Catalog, not the caller.
+// annotation) — the gateway resolves that from the Blueprint, not the caller.
 type serveFieldHint struct {
 	Label       string            `json:"label"`
 	Placeholder string            `json:"placeholder"`
@@ -1100,8 +1100,8 @@ func parseServeGVK(gvk string) (kind, apiVersion string) {
 }
 
 // handleCRDetail renders one CR instance with its children and events.
-// Route: /catalog/{catalog}/crd/{crd}/cr/{ns}/{name}  (namespace may be empty)
-func (c *Console) handleCRDetail(w http.ResponseWriter, r *http.Request, instanceURL, catalogName, crdName, namespace, name string) {
+// Route: /blueprint/{blueprint}/crd/{crd}/cr/{ns}/{name}  (namespace may be empty)
+func (c *Console) handleCRDetail(w http.ResponseWriter, r *http.Request, instanceURL, blueprintName, crdName, namespace, name string) {
 	client := c.clientFor(instanceURL)
 
 	detail, err := client.FetchCRDetail(instanceURL, crdName, namespace, name)
@@ -1131,15 +1131,15 @@ func (c *Console) handleCRDetail(w http.ResponseWriter, r *http.Request, instanc
 	}
 
 	c.renderTemplate(w, "cr_detail.html", CRDetailView{
-		CatalogName: catalogName,
-		Instance:    instanceURL,
-		CRDName:     crdName,
-		CR:          *detail,
-		Events:      events,
-		EventTotal:  eventTotal,
-		Phase:       phase,
-		ChildGroups: normalizeChildGroups(detail.Children),
-		BackURL:     fmt.Sprintf("/console/catalog/%s/crd/%s", catalogName, crdName),
+		BlueprintName: blueprintName,
+		Instance:      instanceURL,
+		CRDName:       crdName,
+		CR:            *detail,
+		Events:        events,
+		EventTotal:    eventTotal,
+		Phase:         phase,
+		ChildGroups:   normalizeChildGroups(detail.Children),
+		BackURL:       fmt.Sprintf("/console/blueprint/%s/crd/%s", blueprintName, crdName),
 	})
 }
 

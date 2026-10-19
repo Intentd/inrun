@@ -21,7 +21,7 @@ import (
 type MigrateReport struct {
 	Mode       string       `json:"mode"` // "forward" | "rollback" | "clean"
 	DryRun     bool         `json:"dryRun"`
-	Catalog    []string     `json:"catalog"`
+	Blueprint  []string     `json:"blueprint"`
 	Kind       string       `json:"kind,omitempty"`
 	Name       string       `json:"name,omitempty"`
 	Selector   string       `json:"selector,omitempty"`
@@ -91,7 +91,7 @@ func buildReport(mode string, opts Opts) MigrateReport {
 	report := MigrateReport{
 		Mode:       mode,
 		DryRun:     opts.DryRun,
-		Catalog:    opts.Paths,
+		Blueprint:  opts.Paths,
 		Kind:       opts.Kind,
 		Name:       opts.Name,
 		Selector:   opts.Selector,

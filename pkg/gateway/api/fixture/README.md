@@ -17,8 +17,8 @@ conditional admission rules, type-specific child resources, and status projectio
 
 | Feature | Where |
 |---------|-------|
-| Gateway API (`POST /api/v1/apply`) | `catalog.yaml` → `gateway.api` |
-| Schema catalog endpoint (`GET /api/v1/schema/`) | `catalog.yaml` → `serve.category` / `serve.description` |
+| Gateway API (`POST /api/v1/apply`) | `blueprint.yaml` → `gateway.api` |
+| Schema blueprint endpoint (`GET /api/v1/schema/`) | `blueprint.yaml` → `serve.category` / `serve.description` |
 | Admission webhook — unconditional deny | `admission/platformresource.yaml` rules 1–3 |
 | Admission webhook — `deny when:` | `admission/platformresource.yaml` rule 4 (domain for cert) |
 | Admission webhook — `deny or:` | `admission/platformresource.yaml` rule 5 (repoURL for app/monitoring) |
@@ -28,10 +28,10 @@ conditional admission rules, type-specific child resources, and status projectio
 | Conditional field visibility (`serve.fields.when`) | `serve/platformresource.yaml` |
 | Conditional field visibility (`serve.fields.or`) | `serve/platformresource.yaml` |
 | Disabled/locked fields (`serve.fields.disabled`) | `serve/platformresource.yaml` |
-| `ignore` — hide system fields from form | `catalog.yaml` → `serve.ignore` |
+| `ignore` — hide system fields from form | `blueprint.yaml` → `serve.ignore` |
 | CRD schema defaults pre-populating form inputs | `crd.yaml` |
 | `dryRun=true` — violation preview without admission | `e2e.yaml` |
-| Conditional child resource (`when:`) | `catalog.yaml` → `onReconcile.custom` |
+| Conditional child resource (`when:`) | `blueprint.yaml` → `onReconcile.custom` |
 | Status field projection | `status/platformresource.yaml` |
 
 ## Running
@@ -45,7 +45,7 @@ make inrun
 ### Step 2 — validate
 
 ```bash
-inrun validate -f pkg/gateway/fixture/catalog.yaml
+inrun validate -f pkg/gateway/fixture/blueprint.yaml
 ```
 
 This exercises `StrictUnmarshal` on all included sub-files — typos in field names
@@ -176,7 +176,7 @@ See [crs/README.md](./crs/README.md) for the full rule matrix.
 
 ```text
 pkg/gateway/fixture/
-  catalog.yaml                 — entry point: gateway + CRD + operator config
+  blueprint.yaml                 — entry point: gateway + CRD + operator config
   crd.yaml                     — PlatformResource CRD (schema + defaults)
   cr-default.yaml              — default happy-path CR (payments-api, app workload)
   cr-rejected.yaml             — CR that should be blocked by admission
@@ -192,7 +192,7 @@ pkg/gateway/fixture/
 ## Adding a new feature
 
 1. Add the feature to the appropriate sub-file (`serve/`, `admission/`, `status/`),
-   or extend `catalog.yaml` directly for gateway-level config.
+   or extend `blueprint.yaml` directly for gateway-level config.
 2. Add a row to the table above.
 3. If it is an admission rule, add a CR to `crs/` and a row to `crs/README.md`.
 4. If it changes reconciler behaviour, add a `simulate` op to `simulate.yaml`.

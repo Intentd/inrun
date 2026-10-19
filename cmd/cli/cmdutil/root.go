@@ -44,7 +44,7 @@ func init() {
 
 	// Global flags — always present in both runtime and dev builds
 	RootCmd.PersistentFlags().Bool("debug", false, "Enable debug logging")
-	RootCmd.PersistentFlags().StringSliceP("file", "f", nil, "Path(s) or URL(s) to catalog.yaml (repeatable)")
+	RootCmd.PersistentFlags().StringSliceP("file", "f", nil, "Path(s) or URL(s) to blueprint.yaml (repeatable)")
 	// Dev-only flags (--kubeconfig, --verbose) and required-flag marking for
 	// dev commands are registered in root_dev.go (//go:build !runtime).
 }

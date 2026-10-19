@@ -16,7 +16,7 @@ var httpClient = &http.Client{
 }
 
 // FileAuth holds optional authentication for a remote file source.
-// Constructed from the Catalog source declaration and resolved from
+// Constructed from the Blueprint source declaration and resolved from
 // environment variables at load time — credentials never appear in YAML.
 type FileAuth struct {
 	// Type — authentication scheme.
@@ -132,7 +132,7 @@ func applyAuth(req *http.Request, auth *FileAuth) error {
 
 	case "bearer":
 		// Generic bearer token — works with most REST APIs
-		// Catalog declaration:
+		// Blueprint declaration:
 		//   auth:
 		//     type: bearer
 		//     fromEnv: MY_API_TOKEN
@@ -145,7 +145,7 @@ func applyAuth(req *http.Request, auth *FileAuth) error {
 		// GitHub token — same header as bearer but documents intent clearly.
 		// Works for raw.githubusercontent.com (private repos) and GitHub API.
 		// Token needs 'repo' scope for private repository content.
-		// Catalog declaration:
+		// Blueprint declaration:
 		//   auth:
 		//     type: github
 		//     fromEnv: GITHUB_TOKEN
@@ -157,7 +157,7 @@ func applyAuth(req *http.Request, auth *FileAuth) error {
 	case "basic":
 		// HTTP Basic auth — username and password.
 		// Used for Artifactory, Nexus, and other corporate artifact stores.
-		// Catalog declaration:
+		// Blueprint declaration:
 		//   auth:
 		//     type: basic
 		//     usernameFromEnv: ARTIFACTORY_USER

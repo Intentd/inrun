@@ -5,18 +5,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// serverKat returns a *catalog.Catalog with the Gateway API enabled and one
+// serverKat returns a *blueprint.Blueprint with the Gateway API enabled and one
 // serve-enabled CRD, so Register() actually registers routes.
-func serverKat() *catalog.Catalog {
-	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	cat.Gateway = &types.GatewayConfig{
+func serverKat() *blueprint.Blueprint {
+	bp := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	bp.Gateway = &types.GatewayConfig{
 		API: &types.GatewayAPIConfig{Enabled: true},
 	}
-	return cat
+	return bp
 }
 
 type fakeRegistrar struct {
@@ -33,7 +33,7 @@ func (f *fakeRegistrar) Register(path string, h http.HandlerFunc) {
 
 func TestAPIServer_Register_RoutesPresent(t *testing.T) {
 	ts := &TokenSet{entries: []resolvedToken{{name: "ci", value: "tok"}}}
-	s := &APIServer{tokens: ts, cat: serverKat()}
+	s := &APIServer{tokens: ts, bp: serverKat()}
 
 	reg := newFakeRegistrar()
 	s.Register(reg)
@@ -48,7 +48,7 @@ func TestAPIServer_Register_RoutesPresent(t *testing.T) {
 
 func TestAPIServer_AuthWrapsAllRoutes(t *testing.T) {
 	ts := &TokenSet{entries: []resolvedToken{{name: "ci", value: "valid-token"}}}
-	s := &APIServer{tokens: ts, cat: serverKat()}
+	s := &APIServer{tokens: ts, bp: serverKat()}
 
 	reg := newFakeRegistrar()
 	s.Register(reg)

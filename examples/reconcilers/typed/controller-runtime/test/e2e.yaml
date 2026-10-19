@@ -6,7 +6,7 @@ metadata:
   description: Full lifecycle — constructor reconciler creates Deployment and Service, cleans up on delete
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
   valuesFiles:

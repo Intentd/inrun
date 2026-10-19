@@ -36,7 +36,7 @@ func (s *WebhookStats) RecordFailure() {
 }
 
 // GetStats returns a point-in-time snapshot of webhook reconciliation statistics.
-// Serialized into the /catalog/{crd} JSON response under the "webhooks" key.
+// Serialized into the /blueprint/{crd} JSON response under the "webhooks" key.
 func (s *WebhookStats) GetStats() WebhookStatsSnapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

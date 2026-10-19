@@ -59,7 +59,7 @@ type ConversionCRDPatchFn func(ctx context.Context, crdName, caBundle64 string) 
 
 // SetConversionCRDPatcher provides the housekeeper with the function it needs to
 // re-patch CRD conversion webhooks. Called from the gateway app after the kubeclient
-// and catalog are available.
+// and blueprint are available.
 func (ws *WebhookServer) SetConversionCRDPatcher(fn ConversionCRDPatchFn) {
 	ws.patchConversionCRD = fn
 }
@@ -169,7 +169,7 @@ func (ws *WebhookServer) reconcileCRDConversionWebhooks() {
 	if !ws.convEnabled {
 		return
 	}
-	if ws.patchConversionCRD == nil || ws.catalog == nil {
+	if ws.patchConversionCRD == nil || ws.blueprint == nil {
 		return
 	}
 
@@ -182,7 +182,7 @@ func (ws *WebhookServer) reconcileCRDConversionWebhooks() {
 	ctx, cancel := context.WithTimeout(context.Background(), highTimeout)
 	defer cancel()
 
-	for _, crd := range ws.catalog.EnabledCRDs() {
+	for _, crd := range ws.blueprint.EnabledCRDs() {
 		if !crd.ShouldManageCRD() {
 			continue
 		}
@@ -210,11 +210,11 @@ func (ws *WebhookServer) reconcileCRDConversionWebhooks() {
 // No-op when no CRD watcher is set, conversion is not enabled or the
 // certificate is configured rather than generated.
 func (ws *WebhookServer) watchConversionCRDs(ctx context.Context, trigger chan<- struct{}) {
-	if ws.crdWatcher == nil || !ws.convEnabled || ws.catalog == nil || ws.certSecretData == nil {
+	if ws.crdWatcher == nil || !ws.convEnabled || ws.blueprint == nil || ws.certSecretData == nil {
 		return
 	}
 
-	for _, crd := range ws.catalog.EnabledCRDs() {
+	for _, crd := range ws.blueprint.EnabledCRDs() {
 		if !crd.ShouldManageCRD() {
 			continue
 		}

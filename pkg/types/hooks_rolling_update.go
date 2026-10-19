@@ -1,12 +1,12 @@
 package types
 
 // RollingUpdateProfileEntry describes a single rollingUpdate.profile reference found in a
-// DeploymentTemplateSource. Used by catalog validation to fail fast on unknown profiles
+// DeploymentTemplateSource. Used by blueprint validation to fail fast on unknown profiles
 // and to enforce mutual exclusivity with explicit maxSurge/maxUnavailable.
 type RollingUpdateProfileEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // Deployment name template (may be Empty()
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside explicit maxSurge or maxUnavailable
 }
 

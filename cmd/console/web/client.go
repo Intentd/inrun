@@ -34,12 +34,12 @@ func NewClient(baseURL string, _ time.Duration, _ string) *Client {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Catalog endpoints
+// Blueprint endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
-// FetchCatalog calls GET /catalog.
-func (c *Client) FetchCatalog() (*CatalogResponse, error) {
-	return getJSON[CatalogResponse](c, "/catalog")
+// FetchBlueprint calls GET /blueprint.
+func (c *Client) FetchBlueprint() (*BlueprintResponse, error) {
+	return getJSON[BlueprintResponse](c, "/blueprint")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,12 +80,12 @@ func (c *Client) FetchCRDDetail(name string, endpoints EndpointInfo, summary *CR
 
 	var health *CRDHealth
 	if !endpoints.HealthEnabled {
-		// Health endpoint is disabled — synthesise from the /catalog summary
+		// Health endpoint is disabled — synthesise from the /blueprint summary
 		// which always responds and already carries the runtime's internal health state.
 		health = synthHealthFromSummary(name, summary)
 	} else {
 		for i := 0; i < 3; i++ {
-			h, err := getJSON[CRDHealth](c, "/catalog/"+name+"/health")
+			h, err := getJSON[CRDHealth](c, "/blueprint/"+name+"/health")
 			if err != nil {
 				return nil, fmt.Errorf("fetching health: %w", err)
 			}
@@ -97,7 +97,7 @@ func (c *Client) FetchCRDDetail(name string, endpoints EndpointInfo, summary *CR
 		if health == nil {
 			// All attempts hit a follower — use the last response rather than
 			// returning an error. The data may be stale but is better than nothing.
-			h, err := getJSON[CRDHealth](c, "/catalog/"+name+"/health")
+			h, err := getJSON[CRDHealth](c, "/blueprint/"+name+"/health")
 			if err != nil {
 				return nil, fmt.Errorf("fetching health: %w", err)
 			}
@@ -112,7 +112,7 @@ func (c *Client) FetchCRDDetail(name string, endpoints EndpointInfo, summary *CR
 		info = synthInfoFromSummary(name, summary)
 	} else {
 		for i := 0; i < 3; i++ {
-			inf, err := getJSON[CRDInfo](c, "/catalog/"+name)
+			inf, err := getJSON[CRDInfo](c, "/blueprint/"+name)
 			if err != nil {
 				return nil, fmt.Errorf("fetching info: %w", err)
 			}
@@ -122,7 +122,7 @@ func (c *Client) FetchCRDDetail(name string, endpoints EndpointInfo, summary *CR
 			}
 		}
 		if info == nil {
-			inf, err := getJSON[CRDInfo](c, "/catalog/"+name)
+			inf, err := getJSON[CRDInfo](c, "/blueprint/"+name)
 			if err != nil {
 				return nil, fmt.Errorf("fetching info: %w", err)
 			}
@@ -198,13 +198,13 @@ func (c *Client) FetchCRDDetail(name string, endpoints EndpointInfo, summary *CR
 // CR endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
-// FetchCRList calls GET /catalog/{crd}/cr.
+// FetchCRList calls GET /blueprint/{crd}/cr.
 // Retries up to 3 times until it gets a response from the leader pod
 // (isLeader: true). Falls back to the last response if all attempts hit a
 // follower — stale data beats an error for a list page.
 func (c *Client) FetchCRList(instanceURL, crdName string) (*CRListResponse, error) {
 	fetchOnce := func() (*CRListResponse, error) {
-		url := fmt.Sprintf("%s/catalog/%s/cr", instanceURL, strings.ToLower(crdName))
+		url := fmt.Sprintf("%s/blueprint/%s/cr", instanceURL, strings.ToLower(crdName))
 		resp, err := c.httpClient.Get(url)
 		if err != nil {
 			return nil, fmt.Errorf("fetching CR list for %s: %w", crdName, err)
@@ -246,7 +246,7 @@ func (c *Client) FetchCRList(instanceURL, crdName string) (*CRListResponse, erro
 	return last, nil
 }
 
-// FetchCRDetail calls GET /catalog/{crd}/cr[/{namespace}]/{name}.
+// FetchCRDetail calls GET /blueprint/{crd}/cr[/{namespace}]/{name}.
 // Retries up to 3 times until it gets a response from the leader pod
 // (isLeader: true). A follower pod has no informer cache and returns 404
 // for CRs that exist — retrying gives the load balancer a chance to route to
@@ -254,9 +254,9 @@ func (c *Client) FetchCRList(instanceURL, crdName string) (*CRListResponse, erro
 func (c *Client) FetchCRDetail(instanceURL, crdName, namespace, name string) (*CRDetailResponse, error) {
 	var urlPath string
 	if namespace != "" {
-		urlPath = fmt.Sprintf("%s/catalog/%s/cr/%s/%s", instanceURL, strings.ToLower(crdName), namespace, name)
+		urlPath = fmt.Sprintf("%s/blueprint/%s/cr/%s/%s", instanceURL, strings.ToLower(crdName), namespace, name)
 	} else {
-		urlPath = fmt.Sprintf("%s/catalog/%s/cr/%s", instanceURL, strings.ToLower(crdName), name)
+		urlPath = fmt.Sprintf("%s/blueprint/%s/cr/%s", instanceURL, strings.ToLower(crdName), name)
 	}
 
 	fetchOnce := func() (*CRDetailResponse, error) {
@@ -303,14 +303,14 @@ func (c *Client) FetchCRDetail(instanceURL, crdName, namespace, name string) (*C
 	return nil, lastErr
 }
 
-// FetchCREvents calls GET /catalog/{crd}/cr[/{namespace}]/{name}/events.
+// FetchCREvents calls GET /blueprint/{crd}/cr[/{namespace}]/{name}/events.
 // Best-effort — returns empty on any error.
 func (c *Client) FetchCREvents(instanceURL, crdName, namespace, name string) (*CREventsResponse, error) {
 	var path string
 	if namespace != "" {
-		path = fmt.Sprintf("%s/catalog/%s/cr/%s/%s/events", instanceURL, strings.ToLower(crdName), namespace, name)
+		path = fmt.Sprintf("%s/blueprint/%s/cr/%s/%s/events", instanceURL, strings.ToLower(crdName), namespace, name)
 	} else {
-		path = fmt.Sprintf("%s/catalog/%s/cr/%s/events", instanceURL, strings.ToLower(crdName), name)
+		path = fmt.Sprintf("%s/blueprint/%s/cr/%s/events", instanceURL, strings.ToLower(crdName), name)
 	}
 
 	resp, err := c.httpClient.Get(path)
@@ -339,7 +339,7 @@ func (c *Client) FetchCREvents(instanceURL, crdName, namespace, name string) (*C
 // Returns nil without error when the gateway returns 404 (CRD not registered).
 func FetchGatewayCRDStats(gatewayURL, crdName string) (*GatewayCRDStats, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
-	url := strings.TrimSuffix(gatewayURL, "/") + "/catalog/" + strings.ToLower(crdName)
+	url := strings.TrimSuffix(gatewayURL, "/") + "/blueprint/" + strings.ToLower(crdName)
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("gateway fetch: %w", err)

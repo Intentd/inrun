@@ -70,7 +70,7 @@ type WorkerInfo struct {
 }
 
 // BuildWorkerInfo constructs the WorkerInfo from the live operatorbox state.
-// Called by the CRD handler on every /catalog/{crd} request — reads are O(1).
+// Called by the CRD handler on every /blueprint/{crd} request — reads are O(1).
 func BuildWorkerInfo(
 	sem *ResizableSemaphore,
 	metrics *AutoMetrics,

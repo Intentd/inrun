@@ -5,7 +5,7 @@ metadata:
   description: Verify forEach expansion — all resource types created from the acme Tenant CR on cycle 1
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   cycles: 3
 

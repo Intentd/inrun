@@ -76,7 +76,7 @@ func enqueued(ctx context.Context, deps reconcile.Deps, in reconcile.Input) bool
 	}
 	crd := in.Entry.CRD
 	return informer.AdmitPrimary(ctx, informer.Admission{
-		Catalog:   deps.Cat,
+		Blueprint: deps.Blueprint,
 		Clientset: deps.Kube.Clientset(),
 		Namespace: &informer.NamespaceFilter{
 			AllowedNamespaces:    []string(crd.AllAllowedNamespaces()),

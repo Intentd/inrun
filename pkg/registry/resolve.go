@@ -7,14 +7,14 @@
 //
 //  1. Full OCI reference (starts with "oci://") — used as-is
 //  2. INRUN_REGISTRY env var + "/name:version"
-//  3. Default: ghcr.io/intentd/registry/patterns/catalogs/name:version
+//  3. Default: ghcr.io/intentd/registry/patterns/blueprints/name:version
 //
 // The "oci://" prefix is stripped before passing to ORAS — it is a user-facing
 // convention to signal "this is an OCI reference", not part of the actual URL.
 //
 // CachedDir provides the local cache lookup used by pkg/merger pull helpers.
 // Cache layout: ~/.inrun/registry/<host>/<repo>/<version>/
-// A hit is declared when catalog.yaml or module.yaml exists in that directory.
+// A hit is declared when blueprint.yaml or module.yaml exists in that directory.
 package registry
 
 import (
@@ -39,8 +39,8 @@ type Ref struct {
 
 // Resolve converts a user-supplied reference to a fully qualified OCI Ref.
 //
-//	"postgres:v14"                                           → ghcr.io/intentd/registry/patterns/catalogs/postgres:v14
-//	"oci://ghcr.io/myorg/patterns/catalogs/redis:v7"        → ghcr.io/myorg/patterns/catalogs/redis:v7
+//	"postgres:v14"                                           → ghcr.io/intentd/registry/patterns/blueprints/postgres:v14
+//	"oci://ghcr.io/myorg/patterns/blueprints/redis:v7"        → ghcr.io/myorg/patterns/blueprints/redis:v7
 //	"myorg/redis:v7" (with INRUN_REGISTRY set)           → resolved against env
 func Resolve(input string) (*Ref, error) {
 	input = strings.TrimSpace(input)
@@ -143,13 +143,13 @@ func (r *Ref) CachePath() (string, error) {
 }
 
 // IsCached returns true when the pattern is already in the local cache.
-// Checks for either catalog.yaml (pattern) or module.yaml (module).
+// Checks for either blueprint.yaml (pattern) or module.yaml (module).
 func (r *Ref) IsCached() bool {
 	path, err := r.CachePath()
 	if err != nil {
 		return false
 	}
-	for _, file := range []string{FileCatalog, FileModule} {
+	for _, file := range []string{FileBlueprint, FileModule} {
 		if _, err := os.Stat(filepath.Join(path, file)); err == nil {
 			return true
 		}
@@ -158,7 +158,7 @@ func (r *Ref) IsCached() bool {
 }
 
 // CachedDir returns the local cache directory for an OCI artifact if it has
-// been pulled previously. A hit requires catalog.yaml or module.yaml to be
+// been pulled previously. A hit requires blueprint.yaml or module.yaml to be
 // present — whichever file is found first counts as a complete pull.
 //
 // ociURL must be the bare host+path without the oci:// prefix or tag,
@@ -178,7 +178,7 @@ func CachedDir(ociURL, version string) (string, bool) {
 	repo := filepath.FromSlash(ociURL[slashIdx+1:])
 	dir := filepath.Join(home, CacheDir, reg, repo, version)
 
-	for _, file := range []string{FileCatalog, FileModule} {
+	for _, file := range []string{FileBlueprint, FileModule} {
 		if _, err := os.Stat(filepath.Join(dir, file)); err == nil {
 			return dir, true
 		}

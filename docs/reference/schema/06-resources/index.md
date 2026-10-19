@@ -1,6 +1,6 @@
 # Resources
 
-Kubernetes built-ins and custom resources declarable under `onCreate`, `onReconcile`, and `onDelete` in a Catalog. Each page documents one resource kind's full set of fields — the same schema is reused across all three lifecycle blocks, so a resource's fields don't change depending on which one it's declared under.
+Kubernetes built-ins and custom resources declarable under `onCreate`, `onReconcile`, and `onDelete` in a Blueprint. Each page documents one resource kind's full set of fields — the same schema is reused across all three lifecycle blocks, so a resource's fields don't change depending on which one it's declared under.
 
 ## Reference
 

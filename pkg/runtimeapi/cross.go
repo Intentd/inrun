@@ -29,16 +29,16 @@ func ResolveCrossToken(ctx context.Context, cs kubernetes.Interface, s *types.Cr
 
 }
 
-// FetchCrossMetricHTTP calls the remote operator's /catalog/{crd} endpoint and
+// FetchCrossMetricHTTP calls the remote operator's /blueprint/{crd} endpoint and
 // extracts the named metric from the "metrics" key in the JSON response.
 // This mirrors how readCross uses source.endpoint for CR observation.
 // func FetchCrossMetricHTTP(ctx context.Context, cs kubernetes.Interface, source *types.CrossSource, endpoint string) (map[string]interface{}, bool)
-// FetchCrossMetricHTTP calls the remote operator's /catalog/{crd} endpoint and
+// FetchCrossMetricHTTP calls the remote operator's /blueprint/{crd} endpoint and
 // extracts the named metric from the "metrics" key in the JSON response.
 // This mirrors how readCross uses source.endpoint for CR observation.
 
 // fetchCrossViaHTTP fetches a CR's detail from an Inrun CR endpoint.
-// The endpoint should be the /catalog/{crd}/cr/{namespace}/{name} URL
+// The endpoint should be the /blueprint/{crd}/cr/{namespace}/{name} URL
 // which is already built and running on every Inrun instance.
 func FetchCrossViaHTTP(ctx context.Context, cs kubernetes.Interface, source *types.CrossSource) ([]byte, map[string]interface{}) {
 	if ctx == context.TODO() {

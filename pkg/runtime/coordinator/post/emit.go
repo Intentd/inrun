@@ -11,7 +11,7 @@ import (
 
 // applyEmit fires declarative Kubernetes events declared in operatorBox.emit.events.
 // Each entry is evaluated in the order Go iterates the map (non-deterministic);
-// when order matters, names should include a sequence prefix in the catalog.
+// when order matters, names should include a sequence prefix in the blueprint.
 // Condition failures and template resolution errors are logged and skipped — they
 // never fail or requeue the reconcile.
 func applyEmit(

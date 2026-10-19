@@ -9,7 +9,7 @@ metadata:
 
 imports:
   files:
-    - 01-hooks/catalog.yaml
-    - 02-constructor/catalog.yaml
-    - 03-hooks-targets/catalog.yaml
-    - 04-ctrlruntime/catalog.yaml
+    - 01-hooks/blueprint.yaml
+    - 02-constructor/blueprint.yaml
+    - 03-hooks-targets/blueprint.yaml
+    - 04-ctrlruntime/blueprint.yaml

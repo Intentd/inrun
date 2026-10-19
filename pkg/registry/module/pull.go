@@ -5,7 +5,7 @@
 //
 // Authoring-time only: every caller (inrun pull, inrun e2e) is already
 // !runtime && !gateway tagged. LoadImport in loader.go (not gated) is the
-// path pkg/catalog's module-import expansion actually uses, and it goes
+// path pkg/blueprint's module-import expansion actually uses, and it goes
 // through merger.PullModuleToDir, not this file.
 
 //go:build !runtime && !gateway

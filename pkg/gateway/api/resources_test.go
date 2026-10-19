@@ -5,17 +5,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// registeredCatalog builds a *catalog.Catalog with one serve-enabled CRD whose
+// registeredBlueprint builds a *blueprint.Blueprint with one serve-enabled CRD whose
 // Kind matches the given kind string, for tests that need kind lookup to
 // succeed so execution reaches the method/name checks after it.
-func registeredCatalog(kind string) *catalog.Catalog {
-	return catalog.NewFromEntryPointers(map[string]*types.CRDEntry{
+func registeredBlueprint(kind string) *blueprint.Blueprint {
+	return blueprint.NewFromEntryPointers(map[string]*types.CRDEntry{
 		kind: {
 			APITypes: types.APITypes{
 				Group:   "platform.myorg.io",
@@ -71,7 +71,7 @@ func TestResourcesHandler_UnknownKind(t *testing.T) {
 }
 
 func TestResourcesHandler_MethodNotAllowed(t *testing.T) {
-	h := resourcesHandler(nil, &ClusterRegistry{}, registeredCatalog("platform"))
+	h := resourcesHandler(nil, &ClusterRegistry{}, registeredBlueprint("platform"))
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/resources/platform/default/x", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -91,7 +91,7 @@ func TestResourcesHandler_BadPath(t *testing.T) {
 }
 
 func TestResourcesHandler_DeleteRequiresName(t *testing.T) {
-	h := resourcesHandler(nil, &ClusterRegistry{}, registeredCatalog("thing"))
+	h := resourcesHandler(nil, &ClusterRegistry{}, registeredBlueprint("thing"))
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/resources/thing/default", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)

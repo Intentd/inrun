@@ -1,0 +1,39 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: unique-operator-e2e
+  description: >
+    Verifies unique: true end to end, at both enforcement points: a
+    duplicate spec.domain is rejected synchronously at kubectl apply time
+    by the admission webhook (querying the runtime's informer cache over
+    HTTP), and would also be denied at reconcile time via a live List() if
+    it somehow got past admission.
+
+gateway:
+  enabled: true
+
+security:
+  webhooks:
+    admission:
+      enabled: true
+    cleanupOnShutdown: true
+    failurePolicy: Ignore
+
+spec:
+  crds:
+    website:
+      crdFile: ./crd.yaml
+      admission:
+        validation:
+          rules:
+            - field: spec.domain
+              unique: true
+              message: "spec.domain must be unique across all Website instances"
+              action: deny
+      operatorBox:
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Ready"
+

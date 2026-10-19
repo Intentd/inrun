@@ -192,7 +192,7 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 // Idempotent — skips namespaces where the Secret already exists.
 // This is the power pattern: one declaration copies to N namespaces automatically.
 //
-// Example Catalog declaration:
+// Example Blueprint declaration:
 //
 //	onCreate:
 //	  secrets:

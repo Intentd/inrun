@@ -1,0 +1,25 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-gateway-cluster-bad-template-syntax
+  version: 1.0.0
+  description: Tests that a malformed Go template in serve.clusters fails validation.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        clusters:
+          - '{{ .intent.env }'   # unclosed action — invalid template
+gateway:
+  enabled: true
+  api:
+    enabled: true
+  clusters:
+    prod:
+      endpoint: https://prod.internal:6443
+      secretRef:
+        name: prod-credentials
+        key: kubeconfig

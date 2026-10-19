@@ -5,7 +5,7 @@ metadata:
   description: CR in restricted namespace (team-b) — namespace guard blocks reconcile, no resources created
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../cr-restricted.yaml
   cycles: 2
 

@@ -1,0 +1,20 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: path-and-values
+  version: 0.1.0
+  description: Invalid — path and values declared on the same field.
+spec:
+  crds:
+    widget:
+      crdFile: ../../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        target: widget
+        fields:
+          schedule:
+            path: schedule.cron
+            values:
+              schedule.minute: '{{ cronMinute .value }}'
+              schedule.hour:   '{{ cronHour .value }}'

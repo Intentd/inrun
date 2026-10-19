@@ -10,7 +10,7 @@ metadata:
     health stays healthy (not gated — the coordinator never sees the object).
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./cr-active.yaml
 
@@ -36,7 +36,7 @@ spec:
           name: probe-active-config
           namespace: default
       http:
-        - path: /catalog/filter-probe/health
+        - path: /blueprint/filter-probe/health
           jq: .state
           equals: healthy
 
@@ -61,7 +61,7 @@ spec:
           namespace: default
           count: 0
       http:
-        - path: /catalog/filter-probe/health
+        - path: /blueprint/filter-probe/health
           jq: .gated
           equals: "false"
 

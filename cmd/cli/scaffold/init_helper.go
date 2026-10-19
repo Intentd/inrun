@@ -95,12 +95,12 @@ func extractEmbeddedPack(root, pack string) error {
 }
 
 // extractCanonical writes the canonical hello-website operator into the
-// project root in the standard layout: catalog.yaml, manifests/ (CRD and CR)
+// project root in the standard layout: blueprint.yaml, manifests/ (CRD and CR)
 // and test/ (simulate and e2e specs).
 func extractCanonical(root string) error {
 	srcPath := "reconcilers/declarative/01-hello-website"
 	keep := map[string]bool{
-		cmdutil.FileCatalog: true,
+		cmdutil.FileBlueprint:                                true,
 		filepath.Join(cmdutil.DirManifests, cmdutil.FileCrd): true,
 		filepath.Join(cmdutil.DirManifests, cmdutil.FileCr):  true,
 		filepath.Join(cmdutil.DirTest, cmdutil.FileSimulate): true,

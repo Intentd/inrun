@@ -9,7 +9,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// ReadChildren reads all child resources declared in the Catalog's onCreate
+// ReadChildren reads all child resources declared in the Blueprint's onCreate
 // templates and returns a structured map for use in status field expressions.
 //
 // The returned map is injected into the template resolver under the "children"

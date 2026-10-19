@@ -4,7 +4,7 @@
 // at the top of pull.go for why. PullToDir/PullModuleToDir are called by
 // pkg/registry/module (module import resolution) — another authoring-time-only
 // path the runtime and gateway never exercise, since they only ever read
-// the catalog.yaml key from an already-merged ConfigMap.
+// the blueprint.yaml key from an already-merged ConfigMap.
 
 //go:build runtime || gateway
 

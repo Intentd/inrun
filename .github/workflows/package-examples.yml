@@ -49,7 +49,7 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Pack | Description | Archive |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|-------------|---------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Declarative | Operators declared in a Catalog | \`examples_declarative_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Declarative | Operators declared in a Blueprint | \`examples_declarative_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Remote | A reconciler in any language over HTTP | \`examples_remote_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Typed | Go hooks, constructor, controller-runtime drop-in | \`examples_typed_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Intent | Intent in through the gateway, view out | \`examples_intent_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"

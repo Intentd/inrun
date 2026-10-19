@@ -54,11 +54,11 @@ func declarativeRequeue(ctx context.Context, d Deps, in Input, prepared *domain.
 		resolver = prepared.Context.(*template.Resolver)
 	} else if obj != nil {
 		if r, err := template.NewResolver(ctx, obj); err == nil {
-			resolver = r.WithUserFunctions(d.Cat.UserFunctions()).
-				WithProfiles(d.Cat.UserProfiles()).
+			resolver = r.WithUserFunctions(d.Blueprint.UserFunctions()).
+				WithProfiles(d.Blueprint.UserProfiles()).
 				WithHealth(in.Health.HealthAsMap()).
 				WithMetrics(in.Health.GetAutoMetrics())
 		}
 	}
-	return d.Cat.EvaluateRequeue(ctx, in.Entry.CRD.Name, obj, resolver)
+	return d.Blueprint.EvaluateRequeue(ctx, in.Entry.CRD.Name, obj, resolver)
 }

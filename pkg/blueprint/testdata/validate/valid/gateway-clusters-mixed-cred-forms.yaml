@@ -1,0 +1,32 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: gateway-clusters-mixed-cred-forms
+  version: 1.0.0
+  description: Valid gateway.clusters — different credential forms across clusters in the same blueprint.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+gateway:
+  enabled: true
+  clusters:
+    prod:
+      endpoint: https://prod.internal:6443
+      secretRef:
+        name: prod-credentials
+        key: kubeconfig
+    staging:
+      endpoint: https://staging.internal:6443
+      tokenRef:
+        name: staging-sa-token
+        key: token
+      caRef:
+        name: staging-ca
+        key: ca.crt
+    dev:
+      endpoint: https://dev.internal:6443
+      tokenRef:
+        name: dev-sa-token
+        key: token
+      insecure: true

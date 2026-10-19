@@ -32,11 +32,11 @@ type postStart struct {
 
 // New returns the Manager for this process's instance (runtime or gateway)
 // with components registered in start order. They stop in reverse order
-// within the Catalog's shutdown grace period.
+// within the Blueprint's shutdown grace period.
 func New(cfg *config.Config, components []domain.Component) *Manager {
 	m := &Manager{
 		runningInstance: cfg.RunningInstance(),
-		timeout:         cfg.Catalog().ShutdownGracePeriod(),
+		timeout:         cfg.Blueprint().ShutdownGracePeriod(),
 		done:            make(chan struct{}),
 	}
 	m.Register(components)

@@ -33,7 +33,7 @@ func SyncContainerSpec(existing *corev1.Container, desired corev1.Container) boo
 
 	// Env — sync when desired declares env vars.
 	// Also sync when existing has env but desired does not, so explicitly-cleared
-	// env vars are removed (e.g., after removing an env block from the catalog).
+	// env vars are removed (e.g., after removing an env block from the blueprint).
 	if !reflect.DeepEqual(existing.Env, desired.Env) && (len(desired.Env) > 0 || len(existing.Env) > 0) {
 		existing.Env = desired.Env
 		drifted = true

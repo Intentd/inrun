@@ -19,7 +19,7 @@ import (
 
 // Generate 'pkg/typeregistry/zz_generated_typeregistry.go' for one or more operator projects.
 //
-// This command scans a Catalog, resolves all CRDs, typed extensions, and
+// This command scans a Blueprint, resolves all CRDs, typed extensions, and
 // managed‑resource contracts, and produces a complete runtime registry:
 //
 //   - CRD registrations
@@ -43,30 +43,30 @@ import (
 // Examples:
 //
 //	# Generate registry for the current project
-//	inrun generate registry --file catalog.yaml
+//	inrun generate registry --file blueprint.yaml
 //
-//	# Generate registry for a specific catalog file
-//	inrun generate registry --file path/to/catalog.yaml
+//	# Generate registry for a specific blueprint file
+//	inrun generate registry --file path/to/blueprint.yaml
 //
 //	# Generate registry for multiple operator projects
 //	inrun generate registry --dirs ./website,./database,./pipeline
 //
 //	# Dry‑run (print generated files without writing them)
-//	inrun generate registry --file catalog.yaml --dry-run
+//	inrun generate registry --file blueprint.yaml --dry-run
 //
 // Each project directory must contain:
 //   - go.mod
-//   - a catalog.yaml (or --file pointing to one)
+//   - a blueprint.yaml (or --file pointing to one)
 //   - pkg/typeregistry/ (created automatically if missing)
 //
 // The generated registry is deterministic and reflects the exact typed‑mode
-// contracts declared in the Catalog (hooks, constructors, operatorBox).
+// contracts declared in the Blueprint (hooks, constructors, operatorBox).
 var generateRegistryCmd = &cobra.Command{
 	Use:   "registry",
-	Short: "Generate 'pkg/typeregistry/zz_generated_typeregistry.go' from a Catalog",
+	Short: "Generate 'pkg/typeregistry/zz_generated_typeregistry.go' from a Blueprint",
 	Long: `Generate the Inrun runtime registry for one or multiple operator projects.
 
-This command scans a Catalog, resolves all CRDs, typed extensions, and
+This command scans a Blueprint, resolves all CRDs, typed extensions, and
 managed‑resource contracts, and produces the runtime registry used by the
 operator process. The registry includes:
 
@@ -86,20 +86,20 @@ projects in one invocation using --dirs.
 
 Examples:
   # Generate registry for the current project
-  inrun generate registry --file catalog.yaml
+  inrun generate registry --file blueprint.yaml
 
-  # Generate registry for a specific catalog file
-  inrun generate registry --file path/to/catalog.yaml
+  # Generate registry for a specific blueprint file
+  inrun generate registry --file path/to/blueprint.yaml
 
   # Generate registries for multiple operator projects
   inrun generate registry --dirs ./database,./pipeline --file stack.yaml
 
   # Dry-run (print generated files without writing them)
-  inrun generate registry --file catalog.yaml --dry-run
+  inrun generate registry --file blueprint.yaml --dry-run
 
 Each project directory must contain:
   • go.mod
-  • a catalog.yaml
+  • a blueprint.yaml
   • pkg/typeregistry/ (created automatically if missing)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
@@ -135,10 +135,10 @@ func generateRegistryForDir(dir string, cmd *cobra.Command, perModuleTimeout tim
 		return fmt.Errorf("chdir %s: %w", dir, err)
 	}
 
-	// Load catalog (from --file or default)
-	out, err := cmdutil.GenerateCatalog(cmd)
+	// Load blueprint (from --file or default)
+	out, err := cmdutil.GenerateBlueprint(cmd)
 	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
+		return fmt.Errorf("loading blueprint: %w", err)
 	}
 
 	// Validate Go project

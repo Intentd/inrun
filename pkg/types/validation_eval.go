@@ -149,7 +149,7 @@ func ResolveValidationOp(r ValidationRule) (ConditionOperator, string) {
 
 // RuleTypeLabel returns a short string identifying a ValidationRule's
 // effective comparison for use as a low-cardinality metric label. Prefers
-// the shorthand name the catalog author actually wrote (e.g. "min", "max")
+// the shorthand name the blueprint author actually wrote (e.g. "min", "max")
 // over the operator it resolves to (min resolves to ConditionGte, not a
 // distinct "min" operator), since that's the more actionable label for
 // "which rule type is causing the most friction" alerting.

@@ -2,7 +2,7 @@
 BINARY_NAME ?= inrun
 DEV_OUTPUT_DIR  ?= $(HOME)/.inrun/bin
 PROD_OUTPUT_DIR ?= $(HOME)/.inrun/bin/runtime
-CATALOG     ?= catalog.yaml
+BLUEPRINT     ?= blueprint.yaml
 
 IMAGE_REPO  ?= myorg/my-operator
 IMAGE_TAG   ?= latest
@@ -22,7 +22,7 @@ registry:
 	@[ -f go.mod.txt ] && mv go.mod.txt go.mod || true
 	@[ -f go.sum.txt ] && mv go.sum.txt go.sum || true
 	@find . -name "*.go" | xargs grep -l "^//go:build ignore$$" 2>/dev/null | while read f; do tail -n +3 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"; done || true
-	inrun generate registry --file $(CATALOG)
+	inrun generate registry --file $(BLUEPRINT)
 
 .PHONY: build
 build:
@@ -53,7 +53,7 @@ build-runtime:
 
 .PHONY: validate
 validate:
-	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(CATALOG)
+	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(BLUEPRINT)
 
 .PHONY: simulate
 simulate:
@@ -85,10 +85,10 @@ clean:
 
 .PHONY: help
 help:
-	@echo "  registry       generate type registry from Catalog"
+	@echo "  registry       generate type registry from Blueprint"
 	@echo "  build          compile full development CLI (all commands)"
 	@echo "  build-runtime  compile production binary (runtime only)"
-	@echo "  validate       run catalog validation (using development binary)"
+	@echo "  validate       run blueprint validation (using development binary)"
 	@echo "  e2e            run end‑to‑end tests (using development binary)"
 	@echo "  simulate       run simulation tests (using development binary)"
 	@echo "  docker         build-runtime + copy into Docker image"

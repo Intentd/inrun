@@ -6,7 +6,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -42,7 +42,7 @@ type ServiceEntry struct {
 // The service-list endpoint supports pagination via limit= and offset= query params.
 // The per-target endpoint returns the complete field map — there is no
 // pagination for fields since the field count is always small.
-func schemaHandler(cat *catalog.Catalog) http.HandlerFunc {
+func schemaHandler(bp *blueprint.Blueprint) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed", "only GET requests are supported")
@@ -56,16 +56,16 @@ func schemaHandler(cat *catalog.Catalog) http.HandlerFunc {
 			// Check list permission on a representative CRD (or skip if none)
 			// For the service list, we check permission on the first available CRD,
 			// or allow if the user has any schema access.
-			if !hasAnySchemaPermission(r, cat.ServeEnabledCRDs) {
+			if !hasAnySchemaPermission(r, bp.ServeEnabledCRDs) {
 				writeJSONError(w, http.StatusForbidden, "permission denied", "token lacks required permission")
 				return
 			}
-			handleSchemaList(w, r, cat.ServeEnabledCRDs)
+			handleSchemaList(w, r, bp.ServeEnabledCRDs)
 			return
 		}
 
 		// ─── Per-target mode ──────────────────────────────────────────────────
-		resolution := cat.LookupByTargetOrAlias(target)
+		resolution := bp.LookupByTargetOrAlias(target)
 		if resolution == nil || !resolution.CRD.ServeEnabled() {
 			writeJSONError(w, http.StatusNotFound, "target not found",
 				fmt.Sprintf("target %q not found", target),

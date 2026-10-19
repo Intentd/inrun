@@ -15,9 +15,9 @@ import (
 // startCRDWorkers activates a CRD: builds runtime state, wires health
 // callbacks, builds and registers the reconciler, then starts all goroutines.
 func (dc *DependencyCoordinator) startCRDWorkers(ctx context.Context, gvk string, workers int) {
-	entry, ok := dc.catalog.Get(gvk)
+	entry, ok := dc.blueprint.Get(gvk)
 	if !ok {
-		logger.Error().Str("gvk", gvk).Msg("no catalog entry found")
+		logger.Error().Str("gvk", gvk).Msg("no blueprint entry found")
 		return
 	}
 
@@ -107,7 +107,7 @@ func (dc *DependencyCoordinator) buildCRDRuntime(
 }
 
 // wireCRDHealthCallbacks registers AutoMetrics and WorkerInfo providers into
-// the CRD's health tracker so the /catalog endpoint can read them.
+// the CRD's health tracker so the /blueprint endpoint can read them.
 func (dc *DependencyCoordinator) wireCRDHealthCallbacks(
 	gvk string,
 	rt *perCRDRuntime,

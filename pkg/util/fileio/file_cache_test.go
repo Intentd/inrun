@@ -6,8 +6,8 @@ import (
 )
 
 func TestCacheFileBytes_RoundTrip(t *testing.T) {
-	url := "https://example.com/test-catalog.yaml"
-	data := []byte("apiVersion: inrun.dev/v1\nkind: Catalog\n")
+	url := "https://example.com/test-blueprint.yaml"
+	data := []byte("apiVersion: inrun.dev/v1\nkind: Blueprint\n")
 
 	// Ensure clean state
 	InvalidateFileCache(url)

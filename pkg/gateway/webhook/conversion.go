@@ -2,7 +2,7 @@
 //
 // The Kubernetes API server POSTs a ConversionReview to this endpoint when it
 // needs to convert a CR from one version to another. Inrun applies the
-// conversion rules declared in the Catalog for the object's Kind.
+// conversion rules declared in the Blueprint for the object's Kind.
 package webhook
 
 import (
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/metrics"
 )
 
@@ -165,7 +165,7 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // processConversionForTest exposes the conversion logic for unit tests.
-func processConversionForTest(review ConversionReview, rulesRegistry catalog.ConversionRegistry) ConversionReview {
+func processConversionForTest(review ConversionReview, rulesRegistry blueprint.ConversionRegistry) ConversionReview {
 	resp := &ConversionReviewResponse{
 		UID:              review.Request.UID,
 		ConvertedObjects: make([]json.RawMessage, len(review.Request.Objects)),

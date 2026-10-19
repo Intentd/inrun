@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
@@ -23,8 +23,8 @@ type RBACRule struct {
 	Description string `json:"description,omitempty"`
 }
 
-// toRBACInfo turns the rules the Catalog generates for one CRD
-// (catalog.RBACRulesForCRD) into the console's view of them. The rules are
+// toRBACInfo turns the rules the Blueprint generates for one CRD
+// (blueprint.RBACRulesForCRD) into the console's view of them. The rules are
 // not derived here, so the console shows what validate --full and the bundle do.
 func toRBACInfo(policy []rbacv1.PolicyRule) RBACInfo {
 	rules := make([]RBACRule, 0, len(policy))
@@ -52,7 +52,7 @@ func describeRule(p rbacv1.PolicyRule) string {
 			return "Update status of " + strings.TrimSuffix(r, "/status")
 		}
 	}
-	if catalog.Writes(p) {
+	if blueprint.Writes(p) {
 		return "Manage " + what
 	}
 	return "Read " + what

@@ -1,0 +1,20 @@
+# Triggers: unknown resources.profile name
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-resource-profile
+  version: 0.1.0
+  description: Tests that an unknown resources.profile name is rejected.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          onCreate:
+            deployments:
+            - name: "{{ .metadata.name }}-controller"
+              image: example.io/widget-controller:latest
+              resources:
+                profile: mega
+

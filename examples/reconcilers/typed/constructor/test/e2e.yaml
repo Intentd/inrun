@@ -5,7 +5,7 @@ metadata:
   description: Verify the constructor pattern — operator builds pipeline jobs from a typed Go constructor and they run to completion
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 

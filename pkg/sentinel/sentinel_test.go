@@ -236,7 +236,7 @@ func TestCompute_OwnerReferenceChangedNewControllerPtr(t *testing.T) {
 	ref := func(ctrl bool) refAndManagedFields {
 		return refAndManagedFields{
 			name:       "inrun-v2",
-			kind:       "Catalog",
+			kind:       "Blueprint",
 			apiversion: "test.inrun.dev",
 			controller: boolPtr(ctrl),
 		}
@@ -255,7 +255,7 @@ func TestCompute_OwnerReferenceChangedAddNewRef(t *testing.T) {
 	oldRef := []refAndManagedFields{
 		{
 			name:       "inrun-v2",
-			kind:       "Catalog",
+			kind:       "Blueprint",
 			apiversion: "test.inrun.dev",
 			controller: boolPtr(false),
 		},
@@ -277,7 +277,7 @@ func TestCompute_OwnerReferenceUnChanged(t *testing.T) {
 	ref := func(ctrl bool) refAndManagedFields {
 		return refAndManagedFields{
 			name:       "inrun-v2",
-			kind:       "Catalog",
+			kind:       "Blueprint",
 			apiversion: "test.inrun.dev",
 			controller: boolPtr(ctrl),
 		}

@@ -166,15 +166,15 @@ func TestCheckCleanup(t *testing.T) {
 		}
 	})
 
-	t.Run("catalog conditions met, no grace: delete now", func(t *testing.T) {
+	t.Run("blueprint conditions met, no grace: delete now", func(t *testing.T) {
 		obj := newCR("Completed", nil)
 		c, err := checkCleanup(ctx, &fakePatcher{}, obj, cleanupBox(0), resolverFor(t, obj))
-		if err != nil || !c.due || !strings.Contains(c.reason, "catalog") {
+		if err != nil || !c.due || !strings.Contains(c.reason, "blueprint") {
 			t.Fatalf("c=%+v err=%v", c, err)
 		}
 	})
 
-	t.Run("catalog conditions met first time: stamp and wait", func(t *testing.T) {
+	t.Run("blueprint conditions met first time: stamp and wait", func(t *testing.T) {
 		f := &fakePatcher{}
 		obj := newCR("Completed", nil)
 		c, err := checkCleanup(ctx, f, obj, cleanupBox(time.Hour), resolverFor(t, obj))
@@ -186,7 +186,7 @@ func TestCheckCleanup(t *testing.T) {
 		}
 	})
 
-	t.Run("catalog conditions no longer met: clock reset", func(t *testing.T) {
+	t.Run("blueprint conditions no longer met: clock reset", func(t *testing.T) {
 		f := &fakePatcher{}
 		obj := newCR("Running", map[string]string{cleanupPendingAnnotation: "2026-01-01T00:00:00Z"})
 		c, err := checkCleanup(ctx, f, obj, cleanupBox(time.Hour), resolverFor(t, obj))
@@ -199,7 +199,7 @@ func TestCheckCleanup(t *testing.T) {
 	})
 
 	t.Run("both sources pending: the nearer wins", func(t *testing.T) {
-		since := time.Now().Add(-50 * time.Minute).UTC().Format(time.RFC3339) // catalog: 10m left
+		since := time.Now().Add(-50 * time.Minute).UTC().Format(time.RFC3339) // blueprint: 10m left
 		obj := newCR("Completed", map[string]string{
 			cleanupPendingAnnotation: since,
 			cleanupDueAnnotation:     time.Now().Add(30 * time.Minute).UTC().Format(time.RFC3339),

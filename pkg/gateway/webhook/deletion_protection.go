@@ -1,6 +1,6 @@
 // webhook/deletion_protection.go — /deletion-protection webhook handler.
 //
-// Registered only when security.deletionProtection.enabled: true in the Catalog.
+// Registered only when security.deletionProtection.enabled: true in the Blueprint.
 // Intercepts DELETE operations on CRDs owned by this operator and Inrun's
 // own resources (deployment, service, ingress, webhook configurations).
 //
@@ -66,7 +66,7 @@ func (ws *WebhookServer) deletionProtectionHandler(w http.ResponseWriter, r *htt
 				Message: fmt.Sprintf(
 					"\n\n[Inrun Security] The deletion-protection webhook \"%s\" is itself protected.\n\n"+
 						"To disable deletion protection entirely:\n"+
-						"- Set security.deletionProtection.enabled: false in the Catalog\n"+
+						"- Set security.deletionProtection.enabled: false in the Blueprint\n"+
 						"- Redeploy Inrun Gateway, then delete the webhook.\n\n",
 					deletionProtectionWebhookConfigName,
 				),
@@ -100,7 +100,7 @@ func (ws *WebhookServer) deletionProtectionHandler(w http.ResponseWriter, r *htt
 					Message: fmt.Sprintf(
 						"\n\n[Inrun Security] CRD %q is protected from deletion.\n\n"+
 							"To delete it:\n"+
-							"- Set security.deletionProtection.enabled: false in the Catalog\n"+
+							"- Set security.deletionProtection.enabled: false in the Blueprint\n"+
 							"- Redeploy Inrun Gateway, then delete the CRD.\n\n",
 						req.Name,
 					),
@@ -133,7 +133,7 @@ func (ws *WebhookServer) deletionProtectionHandler(w http.ResponseWriter, r *htt
 	ns := req.Namespace
 
 	footer := "\n\nTo remove protection:\n" +
-		"- Set security.deletionProtection.enabled: false in the Catalog.\n" +
+		"- Set security.deletionProtection.enabled: false in the Blueprint.\n" +
 		"- Redeploy Inrun Gateway.\n" +
 		"- Retry the deletion."
 

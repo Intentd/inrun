@@ -6,7 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -43,12 +43,12 @@ func (r ClusterCheckResult) Failed() bool {
 // produce — callers may range over them directly.
 func CheckClusters(
 	ctx context.Context,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 	clusters map[string]types.GatewayClusterConfig,
 	localKube kubeclient.Interface,
 	ownNS string,
 ) []ClusterCheckResult {
-	scheme, _ := cat.Scheme()
+	scheme, _ := bp.Scheme()
 
 	results := make([]ClusterCheckResult, 0, len(clusters))
 
@@ -79,8 +79,8 @@ func CheckClusters(
 			continue
 		}
 
-		if cat != nil {
-			for _, crd := range cat.ServeEnabledCRDsForCluster(name) {
+		if bp != nil {
+			for _, crd := range bp.ServeEnabledCRDsForCluster(name) {
 				_, listErr := remoteKube.DynamicClient().Resource(crd.GVR()).
 					List(ctx, metav1.ListOptions{Limit: 1})
 				r.CRDs[crd.APITypes.Kind] = listErr

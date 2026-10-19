@@ -1,8 +1,8 @@
 // pkg/merger/registry.go
 //
-// Registry Catalog imports (imports.registry:) — authoring-time only, same
+// Registry Blueprint imports (imports.registry:) — authoring-time only, same
 // reasoning as helm.go: the runtime and gateway only ever read the
-// catalog.yaml key from a ConfigMap, already fully merged by
+// blueprint.yaml key from a ConfigMap, already fully merged by
 // `inrun generate bundle` with no imports left to resolve. See registry_stub.go
 // for what those two builds get instead.
 
@@ -41,7 +41,7 @@ const orasPullTimeout = 2 * time.Minute
 var knownPatternFiles = func() []string {
 	var out []string
 	for _, f := range []string{
-		pkgregistry.FileCatalog,
+		pkgregistry.FileBlueprint,
 		pkgregistry.FileModule,
 		pkgregistry.FileCRD,
 		pkgregistry.FileReadme,
@@ -64,7 +64,7 @@ var knownPatternFiles = func() []string {
 //  2. Determine pull method: OCI or Git
 //  3. Pull pattern to a temp directory
 //  4. Validate pattern structure based on detected kind
-//  5. Load catalog.yaml or stack.yaml based on UseStack
+//  5. Load blueprint.yaml or stack.yaml based on UseStack
 //  6. Parse and return the CRD entries
 func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.CRDEntry, error) {
 	cleanURL, version := src.ResolvedURL()
@@ -100,14 +100,14 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 			cleanURL, version, src.SourceFile(), err)
 	}
 
-	doc, err := parseCatalogDoc(data, sourcePath)
+	doc, err := parseBlueprintDoc(data, sourcePath)
 	if err != nil {
 		return nil, fmt.Errorf("registry %q@%s: parsing %s: %w",
 			cleanURL, version, src.SourceFile(), err)
 	}
 	if doc == nil {
 		return nil, fmt.Errorf(
-			"registry %q@%s: %s is not a valid Catalog or Stack document",
+			"registry %q@%s: %s is not a valid Blueprint or Stack document",
 			cleanURL, version, src.SourceFile(),
 		)
 	}
@@ -128,7 +128,7 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 	registryRef := fmt.Sprintf("%s@%s", cleanURL, version)
 
 	switch doc.Kind {
-	case config.CatalogKind():
+	case config.BlueprintKind():
 		if src.UseStack {
 			return nil, fmt.Errorf(
 				"registry %q@%s: useStack is true but stack.yaml contains kind %q — "+
@@ -136,7 +136,7 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 				cleanURL, version, doc.Kind,
 			)
 		}
-		entries, err := m.loadCatalog(sourcePath, doc)
+		entries, err := m.loadBlueprint(sourcePath, doc)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 	case config.StackKind():
 		if !src.UseStack {
 			return nil, fmt.Errorf(
-				"registry %q@%s: useStack is false but catalog.yaml contains kind %q — "+
+				"registry %q@%s: useStack is false but blueprint.yaml contains kind %q — "+
 					"set useStack: true to load the upstream Stack, or check the pattern structure",
 				cleanURL, version, doc.Kind,
 			)
@@ -162,7 +162,7 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 		return nil, fmt.Errorf(
 			"registry %q@%s: %s has unexpected kind %q — expected %q or %q",
 			cleanURL, version, src.SourceFile(), doc.Kind,
-			config.CatalogKind(), config.StackKind(),
+			config.BlueprintKind(), config.StackKind(),
 		)
 	}
 }
@@ -443,7 +443,7 @@ func (m *Merger) fetchModuleFromGenericGit(url, version, tmpDir string, auth *fi
 // validatePatternStructure validates that dir contains a well-formed pattern.
 // Kind is auto-detected; required files are determined by the pattern kind.
 //
-// Catalog patterns require only catalog.yaml (crd.yaml, README.md, cr.yaml are optional).
+// Blueprint patterns require only blueprint.yaml (crd.yaml, README.md, cr.yaml are optional).
 // Module patterns require only module.yaml.
 func validatePatternStructure(dir, url, version string) error {
 	_, _, _, err := pkgregistry.ValidatePatternDirectory(dir)

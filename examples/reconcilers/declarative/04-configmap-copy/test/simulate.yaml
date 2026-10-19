@@ -8,7 +8,7 @@ metadata:
     read the source ConfigMap — simulate prints a note and exits cleanly.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../manifests/cr.yaml
   cycles: 1
 

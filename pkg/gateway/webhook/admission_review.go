@@ -5,7 +5,7 @@
 // the full k8s.io/api module where it isn't needed.
 //
 // The Kubernetes API server sends an AdmissionReview to /validate and /mutate.
-// Inrun reads the Request, evaluates rules from the Catalog, and writes
+// Inrun reads the Request, evaluates rules from the Blueprint, and writes
 // the Response. The API server reads the Response and either stores the object
 // (allowed) or rejects it (denied).
 package webhook

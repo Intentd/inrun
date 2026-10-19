@@ -5,7 +5,7 @@ metadata:
   description: monitoring workload — Prometheus ServiceMonitor created on cycle 1
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../crs/monitoring-valid.yaml
   cycles: 3
 

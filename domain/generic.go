@@ -10,7 +10,7 @@
 //     Kubernetes informers store and return pointer values.
 //
 //  2. AnyReconcileHooks — the type-erased marker interface.
-//     Allows the Catalog and ObjectRegistry to store hooks without knowing T.
+//     Allows the Blueprint and ObjectRegistry to store hooks without knowing T.
 //     The unexported isHooks() method prevents accidental implementation.
 //
 //  3. ObjectHooks / HookBinder — the internal adapter layer.
@@ -45,7 +45,7 @@ import "context"
 //	}
 //
 // A hook is a reconciler whose boilerplate is done for it: the same Request in
-// and Result out as any reconciler, plus the typed object, with the Catalog's
+// and Result out as any reconciler, plus the typed object, with the Blueprint's
 // declarative templates applied alongside (see runHooksFirst).
 type ReconcileHooks[T Object] struct {
 	// OnReconcile is called for every create/update event.
@@ -65,7 +65,7 @@ type ReconcileHooks[T Object] struct {
 }
 
 // AnyReconcileHooks is the type-erased marker interface for ReconcileHooks[T].
-// It allows the Catalog, ObjectRegistry, and HookFactory closures to store
+// It allows the Blueprint, ObjectRegistry, and HookFactory closures to store
 // hooks without knowing the concrete T at compile time.
 //
 // The unexported isHooks() method prevents third-party types from accidentally

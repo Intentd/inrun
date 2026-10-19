@@ -42,11 +42,11 @@ var (
 )
 
 // gvrOrPanic is a small helper for static initialization.
-// Built-ins are guaranteed to exist in catalog.builtInRegistry.
+// Built-ins are guaranteed to exist in blueprint.builtInRegistry.
 func gvrOrPanic(kind string) schema.GroupVersionResource {
 	gvr, ok := GVRForBuiltInByKind(kind)
 	if !ok {
-		panic("catalog: built-in kind not found: " + kind)
+		panic("blueprint: built-in kind not found: " + kind)
 	}
 	return gvr
 }

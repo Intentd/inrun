@@ -12,8 +12,8 @@ import (
 
 	"path/filepath"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/registry/e2e"
 	modulepkg "github.com/intentd/inrun/pkg/registry/module"
@@ -25,17 +25,17 @@ import (
 
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Validate an Inrun pattern (Catalog, Stack, Module, E2E, Simulate)",
+	Short: "Validate an Inrun pattern (Blueprint, Stack, Module, E2E, Simulate)",
 	Long: `Validates any Inrun pattern and reports errors.
 
 The pattern kind is detected automatically from the 'kind' field:
-  Catalog   — operator definition with CRD declarations
-  Stack  — multi-source catalog composer
+  Blueprint   — operator definition with CRD declarations
+  Stack  — multi-source blueprint composer
   Module     — reusable operator pattern
   E2E       — declarative end-to-end test spec
   Simulate  — declarative reconciler assertions
 
-Reads catalog.yaml or stack.yaml from the current directory by default.
+Reads blueprint.yaml or stack.yaml from the current directory by default.
 Pass -f to validate a different file.
 
 Examples:
@@ -50,7 +50,7 @@ Examples:
 			expanded = cmdutil.DefaultFilePaths()
 		}
 		if len(expanded) == 0 {
-			return fmt.Errorf(cmdutil.ErrNoCatalog)
+			return fmt.Errorf(cmdutil.ErrNoBlueprint)
 		}
 
 		var docKind string
@@ -89,31 +89,31 @@ Examples:
 			docKind = kind
 		}
 
-		// Default path: Catalog / Stack validation
+		// Default path: Blueprint / Stack validation
 		spin := cmdutil.StartSpinner("Resolving imports...")
-		m, err := cmdutil.GenerateCatalog(cmd)
+		m, err := cmdutil.GenerateBlueprint(cmd)
 		if err != nil {
 			spin.Failure()
 			return err
 		}
 		spin.Stop()
 
-		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m.Merger)
+		bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m.Merger)
 		if err != nil {
-			var typedErr *catalog.TypedOperatorError
+			var typedErr *blueprint.TypedOperatorError
 			if errors.As(err, &typedErr) {
 				cmdutil.PrintTypedOperatorHint(typedErr, "inrun validate")
 			}
 			return err
 		}
-		entries := cat.EnabledCRDs()
+		entries := bp.EnabledCRDs()
 
-		kindLabel := "Catalog"
+		kindLabel := "Blueprint"
 		if config.IsStackKind(docKind) {
 			kindLabel = "Stack"
 		}
 
-		if cat.IsStandaloneGateway() {
+		if bp.IsStandaloneGateway() {
 			kindLabel = "Gateway Standalone"
 		}
 
@@ -124,17 +124,17 @@ Examples:
 		// --functions / --profiles: quiet mode — skip full validate output, print only that registry.
 		if showFunctions || showProfiles {
 			if showFunctions {
-				printValidateFunctions(cat.Functions)
+				printValidateFunctions(bp.Functions)
 			}
 			if showProfiles {
-				printValidateProfiles(cat.Profiles)
+				printValidateProfiles(bp.Profiles)
 			}
 			return nil
 		}
 
 		var perCRDPerms map[string][]rbacv1.PolicyRule
 		if full {
-			perCRDPerms = cat.GeneratePerCRDRBACRules()
+			perCRDPerms = bp.GeneratePerCRDRBACRules()
 		}
 
 		// Sort entries by name for stable output across runs.
@@ -157,11 +157,11 @@ Examples:
 		if config.IsStackKind(docKind) {
 			deprecationHint = "To acknowledge this import, add it to lifecycle.accept.patterns in your Stack."
 		}
-		cmdutil.PrintCatalogDeprecationWithHint(cat.Deprecation(), deprecationHint)
+		cmdutil.PrintBlueprintDeprecationWithHint(bp.Deprecation(), deprecationHint)
 
 		// Print each CRD entry with enrichment info
 		for _, entry := range sortedEntries {
-			printCRDValidationLine(cat, entry)
+			printCRDValidationLine(bp, entry)
 			if full {
 				printCRDPermissions(perCRDPerms[entry.Name])
 				printCRDProfiles(entry)
@@ -184,23 +184,23 @@ Examples:
 		fmt.Println(strings.Repeat("─", 60))
 		fmt.Printf("%d %s valid (%d built-in, %d custom)\n", len(entries), crdText, builtIn, custom)
 
-		for _, w := range cat.CronConditionWarnings() {
+		for _, w := range bp.CronConditionWarnings() {
 			fmt.Printf("\n%s  %s\n", cmdutil.Yellow("⚠"), w)
 		}
 
 		if full {
-			if dd := cat.DependencyDisplayData(); dd != nil {
+			if dd := bp.DependencyDisplayData(); dd != nil {
 				printValidateDependencyGraph(dd)
 			}
-			printRuntimePermissionsSection(cat.GenerateRuntimeRBACRules())
-			printGatewayPermissionsSection(cat.GenerateGatewayRBACRules())
+			printRuntimePermissionsSection(bp.GenerateRuntimeRBACRules())
+			printGatewayPermissionsSection(bp.GenerateGatewayRBACRules())
 			printRuntimeContext()
 			fmt.Println()
 		}
 
 		// Always print non-empty registries inline.
-		printValidateFunctions(cat.Functions)
-		printValidateProfiles(cat.Profiles)
+		printValidateFunctions(bp.Functions)
+		printValidateProfiles(bp.Profiles)
 
 		return nil
 	},
@@ -238,7 +238,7 @@ func ValidateE2EFile(path string) error {
 	}
 
 	baseDir := filepath.Dir(path)
-	isAggregator := len(doc.Imports) > 0 && doc.Spec.Catalog == "" && doc.Spec.Init == nil
+	isAggregator := len(doc.Imports) > 0 && doc.Spec.Blueprint == "" && doc.Spec.Init == nil
 
 	var errs []string
 
@@ -261,8 +261,8 @@ func ValidateE2EFile(path string) error {
 	}
 	expanded := doc.Spec.Expect
 	if !isAggregator {
-		if doc.Spec.Catalog == "" && doc.Spec.Init == nil && !isCustom {
-			errs = append(errs, "spec.catalog is required (or spec.init for example packs, spec.custom.target for custom targets, or imports)")
+		if doc.Spec.Blueprint == "" && doc.Spec.Init == nil && !isCustom {
+			errs = append(errs, "spec.blueprint is required (or spec.init for example packs, spec.custom.target for custom targets, or imports)")
 		}
 		if doc.Spec.CRD == "" && doc.Spec.Init == nil && !isCustom {
 			errs = append(errs, "spec.crd is required (or spec.init for example packs, spec.custom.target for custom targets, or imports)")
@@ -339,8 +339,8 @@ func ValidateE2EFile(path string) error {
 		if isCustom {
 			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("mode    : custom target (%s — Inrun install skipped)", doc.Spec.Custom.Target)))
 		}
-		if doc.Spec.Catalog != "" {
-			fmt.Printf("    %s\n", cmdutil.Gray("catalog : "+doc.Spec.Catalog))
+		if doc.Spec.Blueprint != "" {
+			fmt.Printf("    %s\n", cmdutil.Gray("blueprint : "+doc.Spec.Blueprint))
 		}
 		if doc.Spec.CRD != "" {
 			fmt.Printf("    %s\n", cmdutil.Gray("crd     : "+doc.Spec.CRD))
@@ -456,10 +456,10 @@ func validateSimulateFileOpts(path string, quiet bool) error {
 		}
 	}
 	if doc.Spec != nil {
-		if doc.Spec.Catalog == "" {
-			errs = append(errs, "spec.catalog is required")
-		} else if !cmdutil.FileExists(filepath.Join(baseDir, doc.Spec.Catalog)) {
-			errs = append(errs, "spec.catalog not found: "+doc.Spec.Catalog)
+		if doc.Spec.Blueprint == "" {
+			errs = append(errs, "spec.blueprint is required")
+		} else if !cmdutil.FileExists(filepath.Join(baseDir, doc.Spec.Blueprint)) {
+			errs = append(errs, "spec.blueprint not found: "+doc.Spec.Blueprint)
 		}
 		switch {
 		case doc.Spec.Intent != "" && len(doc.Spec.AllCRPaths()) > 0:
@@ -546,7 +546,7 @@ func validateSimulateFileOpts(path string, quiet bool) error {
 		return nil
 	}
 
-	// Success — print structured summary matching the Catalog/E2E style.
+	// Success — print structured summary matching the Blueprint/E2E style.
 	fmt.Printf("%s %s\n", cmdutil.HealthIcon("ready"), cmdutil.Bold(doc.Metadata.Name))
 	if doc.Metadata.Description != "" {
 		fmt.Printf("    %s\n", cmdutil.Gray(doc.Metadata.Description))
@@ -563,7 +563,7 @@ func validateSimulateFileOpts(path string, quiet bool) error {
 		if cycles <= 0 {
 			cycles = 10
 		}
-		fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("catalog : %s", doc.Spec.Catalog)))
+		fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("blueprint : %s", doc.Spec.Blueprint)))
 		if doc.Spec.Intent != "" {
 			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("intent  : %s (token %s)", doc.Spec.Intent, doc.Spec.Token)))
 		} else {
@@ -615,7 +615,7 @@ func validateModuleFile(path string) error {
 	fmt.Println(cmdutil.Bold("Validating Module..."))
 	fmt.Println()
 
-	errs := catalog.ValidateModule(path)
+	errs := blueprint.ValidateModule(path)
 	if len(errs) > 0 {
 		for _, e := range errs {
 			fmt.Printf("  %s %s\n", cmdutil.FailureMark(), e.Error())

@@ -6,7 +6,7 @@ metadata:
   description: Verify Deployment and Service created by the constructor in cycle 1
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../manifests/cr.yaml
   cycles: 3
 

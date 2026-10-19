@@ -35,10 +35,10 @@ func (ws *WebhookServer) evaluateValidationRules(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	cat := ws.catalog
+	bp := ws.blueprint
 	var notes types.KELFunctionRegistry
-	if cat != nil {
-		notes = cat.UserFunctions()
+	if bp != nil {
+		notes = bp.UserFunctions()
 		resolver = resolver.WithUserFunctions(notes)
 	}
 	// Inject the raw intent payload as .request so validation rules can gate on
@@ -59,8 +59,8 @@ func (ws *WebhookServer) evaluateValidationRules(
 	// so CRDs with no unique/health/metrics rules pay zero HTTP cost.
 	// Note bodies are scanned so a rule like {{ inBusinessHours }} correctly
 	// triggers a fetch when inBusinessHours references .health.* or .metrics.*.
-	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
-		result := ws.catalog.LookupByKind(kindName)
+	if bp != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
+		result := ws.blueprint.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
 			q := runtimeapi.NewClient(ctx, ws.runtimeEndpoint(), crdName)
@@ -122,10 +122,10 @@ func (ws *WebhookServer) applyMutationRules(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	cat := ws.catalog
+	bp := ws.blueprint
 	var notes types.KELFunctionRegistry
-	if cat != nil {
-		notes = cat.UserFunctions()
+	if bp != nil {
+		notes = bp.UserFunctions()
 		resolver = resolver.WithUserFunctions(notes)
 	}
 
@@ -142,8 +142,8 @@ func (ws *WebhookServer) applyMutationRules(
 			logger.FromContext(ctx).Warn().Err(err).Str("kind", kindName).Msg("admission/mutate: external call failed")
 		}
 	}
-	if cat != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
-		result := cat.LookupByKind(kindName)
+	if bp != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
+		result := bp.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
 			q := runtimeapi.NewClient(ctx, ws.runtimeEndpoint(), crdName)

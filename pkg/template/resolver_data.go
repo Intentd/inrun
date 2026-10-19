@@ -78,7 +78,7 @@ func (r *Resolver) OwnerNamespace() string {
 //   - <as>    — the name declared in forEach.as, e.g. "region", "namespace"
 //
 // Both resolve to the same value. "item" is the canonical accessor;
-// <as> is the semantic name that makes the Catalog more readable:
+// <as> is the semantic name that makes the Blueprint more readable:
 //
 //	forEach:
 //	  field: spec.regions
@@ -123,7 +123,7 @@ func (r *Resolver) WithItemAndValue(key interface{}, value interface{}, as strin
 // WithExternal returns a new Resolver with HTTP call results injected under
 // the "external" key. Used after runExternal completes.
 //
-// Each call result is keyed by the call's name from the Catalog:
+// Each call result is keyed by the call's name from the Blueprint:
 //
 //	external:
 //	  - name: healthCheck

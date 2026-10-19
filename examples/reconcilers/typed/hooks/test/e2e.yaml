@@ -5,7 +5,7 @@ metadata:
   description: Exercise typed Go hooks — verify pre/post reconcile hooks fire and the operator deployment comes up
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 

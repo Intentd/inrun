@@ -2,7 +2,7 @@
 //
 // Bearer token authentication for the Gateway API.
 //
-// At startup, LoadTokens resolves every token entry in the Catalog config:
+// At startup, LoadTokens resolves every token entry in the Blueprint config:
 //   - secretRef entries: read or self-bootstrap the Kubernetes Secret, then
 //     optionally rotate it if rotateAfter has elapsed.
 //   - token entries: expand ${ENV_VAR} references.
@@ -89,7 +89,7 @@ func (ts *TokenSet) MatchesOIDC(ctx context.Context, bearer string) (name, sub s
 	return "", ""
 }
 
-// LoadTokens resolves all Gateway API token entries from the Catalog config.
+// LoadTokens resolves all Gateway API token entries from the Blueprint config.
 // secretRef entries are bootstrapped/rotated via the Kubernetes client.
 // token entries are expanded from environment variables.
 // OIDC entries are stored in the TokenSet and verified per request via oidcCache.

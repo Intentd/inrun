@@ -12,8 +12,8 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/tools/generate"
 	"github.com/spf13/cobra"
@@ -71,12 +71,12 @@ var generateCmd = &cobra.Command{
 	Short: "Generate Inrun components",
 }
 
-// buildCatalogFromPath builds an expanded Catalog from a file path without
+// buildBlueprintFromPath builds an expanded Blueprint from a file path without
 // requiring a cobra command context. Useful when the path is already known.
-func buildCatalogFromPath(path string) (*catalog.Catalog, error) {
+func buildBlueprintFromPath(path string) (*blueprint.Blueprint, error) {
 	m := merger.New(path)
 	if err := m.Merge(); err != nil {
-		return nil, fmt.Errorf("merging catalog: %w", err)
+		return nil, fmt.Errorf("merging blueprint: %w", err)
 	}
 	return pipeline.BuildExpanded(cmdutil.Cfg, m)
 }
@@ -84,7 +84,7 @@ func buildCatalogFromPath(path string) (*catalog.Catalog, error) {
 var generateRbacCmd = &cobra.Command{
 	Use:   "rbac",
 	Short: "Generate RBAC ClusterRoles and ServiceAccounts for Inrun components",
-	Long: `Reads one or more catalog.yaml files, merges them, and generates minimal
+	Long: `Reads one or more blueprint.yaml files, merges them, and generates minimal
 ClusterRoles for the runtime and gateway processes, plus ServiceAccounts for
 all three components (runtime, gateway, console).
 
@@ -92,21 +92,21 @@ Use --for to limit the output to specific components. By default all three
 are included. Multiple values are comma-separated.
 
 Examples:
-  inrun generate rbac -f catalog.yaml
-  inrun generate rbac -f catalog.yaml --for gateway
-  inrun generate rbac -f catalog.yaml --for runtime,console
+  inrun generate rbac -f blueprint.yaml
+  inrun generate rbac -f blueprint.yaml --for gateway
+  inrun generate rbac -f blueprint.yaml --for runtime,console
   inrun generate rbac -f a.yaml,b.yaml`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out, err := cmdutil.GenerateCatalog(cmd)
+		out, err := cmdutil.GenerateBlueprint(cmd)
 		if err != nil {
 			return err
 		}
 		namespace, _ := cmd.Flags().GetString("namespace")
 		outputFile, _ := cmd.Flags().GetString("output")
 
-		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
+		bp, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
 		if err != nil {
-			return fmt.Errorf("build catalog: %w", err)
+			return fmt.Errorf("build blueprint: %w", err)
 		}
 
 		log.Println("generating rbac...")
@@ -116,11 +116,11 @@ Examples:
 			return err
 		}
 
-		if !cat.IsGatewayEnabled() {
+		if !bp.IsGatewayEnabled() {
 			opts.IncludeGateway = false
 		}
-		runtimeRules := cat.GenerateRuntimeRBACRules()
-		gatewayRules := cat.GenerateGatewayRBACRules()
+		runtimeRules := bp.GenerateRuntimeRBACRules()
+		gatewayRules := bp.GenerateGatewayRBACRules()
 
 		output, err := generate.RBACWithOptions(runtimeRules, gatewayRules, opts, namespace, outputFile)
 		if err != nil {
@@ -131,22 +131,22 @@ Examples:
 			return err
 		}
 
-		return writeClusterRBACFiles(cat, outputFile)
+		return writeClusterRBACFiles(bp, outputFile)
 	},
 }
 
 var generateConfigMapCmd = &cobra.Command{
 	Use:   "configmap",
-	Short: "Generate a ConfigMap embedding a Catalog or Stack",
-	Long: `Reads a catalog.yaml or stack.yaml file and produces a ConfigMap
-that embeds the file under data:<filename>. Useful for injecting Catalogs
+	Short: "Generate a ConfigMap embedding a Blueprint or Stack",
+	Long: `Reads a blueprint.yaml or stack.yaml file and produces a ConfigMap
+that embeds the file under data:<filename>. Useful for injecting Blueprints
 into the in-cluster Inrun runtime.
 
 Example:
-  inrun generate configmap -f catalog.yaml
+  inrun generate configmap -f blueprint.yaml
   inrun generate configmap -f stack.yaml -n inrun-system -o out.yaml`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out, err := cmdutil.GenerateCatalog(cmd)
+		out, err := cmdutil.GenerateBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -154,16 +154,16 @@ Example:
 		namespace, _ := cmd.Flags().GetString("namespace")
 		outputFile, _ := cmd.Flags().GetString("output")
 
-		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
+		bp, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
 		if err != nil {
-			return fmt.Errorf("build catalog: %w", err)
+			return fmt.Errorf("build blueprint: %w", err)
 		}
 
 		log.Println("generating configmap...")
 
-		expanded, err := cat.SerializeExpanded()
+		expanded, err := bp.SerializeExpanded()
 		if err != nil {
-			return fmt.Errorf("serialize catalog: %w", err)
+			return fmt.Errorf("serialize blueprint: %w", err)
 		}
 
 		cm, err := generate.ConfigMap(expanded, namespace)
@@ -182,18 +182,18 @@ var generateBundleCmd = &cobra.Command{
   • Namespace (default: 'inrun-system')
   • ServiceAccounts for runtime, gateway, and console
   • ClusterRoles and ClusterRoleBindings (one per process, minimal permissions)
-  • ConfigMap embedding your Catalog
+  • ConfigMap embedding your Blueprint
 
 Use --for to limit the output to specific components. By default all three
 are included. Multiple values are comma-separated.
 
 Examples:
-  inrun generate bundle -f catalog.yaml
-  inrun generate bundle -f catalog.yaml --for gateway
-  inrun generate bundle -f catalog.yaml --for runtime,console
-  inrun generate bundle -f catalog.yaml -o bundle.yaml -n inrun-system`,
+  inrun generate bundle -f blueprint.yaml
+  inrun generate bundle -f blueprint.yaml --for gateway
+  inrun generate bundle -f blueprint.yaml --for runtime,console
+  inrun generate bundle -f blueprint.yaml -o bundle.yaml -n inrun-system`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out, err := cmdutil.GenerateCatalog(cmd)
+		out, err := cmdutil.GenerateBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -202,9 +202,9 @@ Examples:
 		workloadNamespace, _ := cmd.Flags().GetString("workload-namespace")
 		outputFile, _ := cmd.Flags().GetString("output")
 
-		cat, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
+		bp, err := pipeline.BuildExpanded(cmdutil.Cfg, out.Merger)
 		if err != nil {
-			return fmt.Errorf("build catalog: %w", err)
+			return fmt.Errorf("build blueprint: %w", err)
 		}
 
 		opts, err := bundleOptsFromFor(cmd)
@@ -214,15 +214,15 @@ Examples:
 
 		log.Println("generating bundle...")
 
-		if !cat.IsGatewayEnabled() {
+		if !bp.IsGatewayEnabled() {
 			opts.IncludeGateway = false
 		}
-		runtimeRules := cat.GenerateRuntimeRBACRules()
-		gatewayRules := cat.GenerateGatewayRBACRules()
+		runtimeRules := bp.GenerateRuntimeRBACRules()
+		gatewayRules := bp.GenerateGatewayRBACRules()
 
-		expanded, err := cat.SerializeExpanded()
+		expanded, err := bp.SerializeExpanded()
 		if err != nil {
-			return fmt.Errorf("serialize catalog: %w", err)
+			return fmt.Errorf("serialize blueprint: %w", err)
 		}
 
 		bundle, err := generate.RenderBundle(runtimeRules, gatewayRules, expanded, namespace, workloadNamespace, opts)
@@ -234,7 +234,7 @@ Examples:
 			return err
 		}
 
-		return writeClusterRBACFiles(cat, outputFile)
+		return writeClusterRBACFiles(bp, outputFile)
 	},
 }
 
@@ -242,8 +242,8 @@ Examples:
 // that has serve-enabled CRDs routed to it. Files land in the same directory as
 // outputFile (or the current directory when outputFile is empty or "-").
 // Template-routed CRDs appear in every cluster file; a warning is printed for those.
-func writeClusterRBACFiles(cat *catalog.Catalog, outputFile string) error {
-	clusterRules, templateKinds := cat.GenerateGatewayClusterRBACRules()
+func writeClusterRBACFiles(bp *blueprint.Blueprint, outputFile string) error {
+	clusterRules, templateKinds := bp.GenerateGatewayClusterRBACRules()
 	if len(clusterRules) == 0 {
 		return nil
 	}
@@ -252,7 +252,7 @@ func writeClusterRBACFiles(cat *catalog.Catalog, outputFile string) error {
 	}
 
 	dir := clusterOutputDir(outputFile)
-	clusters := cat.GatewayClusters()
+	clusters := bp.GatewayClusters()
 
 	if len(templateKinds) > 0 {
 		crdTxt := "CRDs"
@@ -307,9 +307,9 @@ func init() {
 	generateCmd.AddCommand(generateConfigMapCmd)
 	generateCmd.AddCommand(generateBundleCmd)
 
-	// All three commands use StringSliceP so generateCatalog can read them uniformly.
+	// All three commands use StringSliceP so generateBlueprint can read them uniformly.
 	for _, cmd := range []*cobra.Command{generateConfigMapCmd, generateBundleCmd, generateRbacCmd} {
-		cmd.Flags().StringSliceP("file", "f", []string{}, "Path to catalog.yaml or stack.yaml (repeatable or comma-separated)")
+		cmd.Flags().StringSliceP("file", "f", []string{}, "Path to blueprint.yaml or stack.yaml (repeatable or comma-separated)")
 	}
 
 	generateRegistryCmd.Flags().StringP("dirs", "d", "", "Comma-separated list of project directories to generate registries for")
@@ -342,5 +342,5 @@ func init() {
 
 	// Shadow global flags so they don't appear under `inrun generate`
 	cmdutil.ShadowGlobalCommandFlags(generateCmd)
-	cobra.MarkFlagRequired(generateCmd.Flags(), "catalog")
+	cobra.MarkFlagRequired(generateCmd.Flags(), "blueprint")
 }

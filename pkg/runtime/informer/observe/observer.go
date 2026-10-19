@@ -15,7 +15,7 @@ import (
 //
 // Supplied at construction time by the runtime constructor when New() is called.
 type Dependencies struct {
-	Catalog       domain.Catalog
+	Blueprint     domain.Blueprint
 	Kube          *kubeclient.Kubeclient
 	Informer      *informer.Factory
 	QueueRegistry *queue.QueueRegistry

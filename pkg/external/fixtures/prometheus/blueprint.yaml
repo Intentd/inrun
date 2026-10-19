@@ -1,0 +1,73 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: external-prometheus
+  description: >
+    Verifies protocol: prometheus against Inrun's own metrics server.
+    go_goroutines and process_cpu_seconds_total are queried from /api/v1/query
+    on the health server. Status fields exercise promValue, promAboveThreshold,
+    and promSeriesCount.
+
+spec:
+  crds:
+    webapp:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          resync: 20s
+          onReconcile:
+            external:
+              - name: goroutines
+                protocol: prometheus
+                url: "{{ .spec.prometheusURL }}"
+                query: "go_goroutines"
+                continueOnError: true
+                timeout: 5s
+
+              - name: cpuTotal
+                protocol: prometheus
+                url: "{{ .spec.prometheusURL }}"
+                query: "process_cpu_seconds_total"
+                continueOnError: true
+                timeout: 5s
+                cacheFor: 10s
+
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: 1
+        emit:
+          status:
+            fields:
+              # promValue — scalar from first series
+              - path: goroutineCount
+                value: "{{ promValue .external.goroutines.raw }}"
+
+              # promAboveThreshold — a running operator always has > 1 goroutine
+              - path: goroutinesAboveOne
+                value: "{{ promAboveThreshold .external.goroutines.raw 1 }}"
+
+              # promSeriesCount — go_goroutines is a gauge with one series
+              - path: goroutineSeriesCount
+                value: "{{ promSeriesCount .external.goroutines.raw }}"
+
+              # promValue on a counter
+              - path: cpuSeconds
+                value: "{{ promValue .external.cpuTotal.raw }}"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: external.goroutines.called
+                    equals: "true"
+                  - field: external.goroutines.error
+                    notExists: true
+
+              - path: phase
+                value: "Degraded"
+                when:
+                  - field: external.goroutines.error
+                    exists: true
+

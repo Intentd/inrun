@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -267,7 +267,7 @@ func TestConversionReview_RoundTrip(t *testing.T) {
 	}
 
 	rules := websiteRules()
-	registry := catalog.NewInMemoryRegistryForTest()
+	registry := blueprint.NewInMemoryRegistryForTest()
 	registry.RegisterConversionRules(rules)
 
 	response := processConversionForTest(review, registry)

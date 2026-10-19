@@ -65,7 +65,7 @@
             "retryPeriod":   { "type": "integer" }
           }
         },
-        "catalog": {
+        "blueprint": {
           "type": "object",
           "properties": {
             "existingConfigMap": { "type": "string" },
@@ -158,7 +158,7 @@
             "keyKey":         { "type": "string" }
           }
         },
-        "catalog": {
+        "blueprint": {
           "type": "object",
           "properties": {
             "existingConfigMap": { "type": "string" },

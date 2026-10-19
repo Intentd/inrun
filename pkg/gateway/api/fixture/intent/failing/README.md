@@ -4,7 +4,7 @@ Intent files that exercise the validation and permission chain in `inrun serve p
 Each one is designed to fail at a specific stage so you can see the error surface.
 
 ```bash
-CATALOG=pkg/gateway/api/fixture/catalog.yaml
+BLUEPRINT=pkg/gateway/api/fixture/blueprint.yaml
 ```
 
 ---
@@ -14,11 +14,11 @@ CATALOG=pkg/gateway/api/fixture/catalog.yaml
 ### Unknown target
 
 ```bash
-inrun serve play -f $CATALOG --token console \
+inrun serve play -f $BLUEPRINT --token console \
   -i pkg/gateway/api/fixture/intent/failing/unknown-target.yaml
 ```
 
-`target: doesnotexist` — not declared in the catalog. Fails at stage 1 with the
+`target: doesnotexist` — not declared in the blueprint. Fails at stage 1 with the
 list of available targets.
 
 ---
@@ -31,7 +31,7 @@ list of available targets.
 permissions.
 
 ```bash
-inrun serve play -f $CATALOG --token ci-pipeline \
+inrun serve play -f $BLUEPRINT --token ci-pipeline \
   -i pkg/gateway/api/fixture/intent/failing/ci-pipeline-create.yaml
 ```
 
@@ -41,7 +41,7 @@ inrun serve play -f $CATALOG --token ci-pipeline \
 the alias token level.
 
 ```bash
-inrun serve play -f $CATALOG --token console \
+inrun serve play -f $BLUEPRINT --token console \
   -i pkg/gateway/api/fixture/intent/failing/preview-create.yaml
 ```
 
@@ -52,7 +52,7 @@ denied entirely regardless of operation, even though it has CRD-level access on
 the primary target.
 
 ```bash
-inrun serve play -f $CATALOG --token ci-pipeline \
+inrun serve play -f $BLUEPRINT --token ci-pipeline \
   -i pkg/gateway/api/fixture/intent/failing/ci-pipeline-on-alias.yaml
 ```
 
@@ -69,7 +69,7 @@ team-payments`. That is what would be sent to SSA; the real gateway rejects it
 there with "metadata.name is required" before the CR lands.
 
 ```bash
-inrun serve play -f $CATALOG --token console \
+inrun serve play -f $BLUEPRINT --token console \
   -i pkg/gateway/api/fixture/intent/failing/missing-name.yaml
 ```
 

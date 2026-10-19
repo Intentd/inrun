@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
@@ -23,10 +23,10 @@ import (
 //	Shutdown → drain queue → stop workers → remove from active set
 func newCoordinator(
 	cfg *config.Config,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 	c core,
 	infFactory *informer.Factory,
-	registry *coordinator.ResourceCatalog,
+	registry *coordinator.ResourceBlueprint,
 	crdHealthMap map[string]*vitals.CRDHealth,
 	inrunHealth *vitals.RuntimeHealth,
 ) *coordinator.DependencyCoordinator {
@@ -34,7 +34,7 @@ func newCoordinator(
 		Kube:          c.kube,
 		Informer:      infFactory,
 		QueueRegistry: c.queueRegistry,
-		Catalog:       cat,
+		Blueprint:     bp,
 	})
 
 	return coordinator.NewDependencyCoordinator(
@@ -42,15 +42,15 @@ func newCoordinator(
 		infFactory,
 		obs,
 		registry,
-		cat,
+		bp,
 		c.ev,
 		c.hs,
 		c.queueRegistry,
 		c.defaultWq,
 		crdHealthMap,
 		inrunHealth,
-		cfg.Catalog().DefaultWorkers(),
-		catalog.NewDependencyGraph(cat),
-		cfg.Catalog().ShutdownTimeout(),
+		cfg.Blueprint().DefaultWorkers(),
+		blueprint.NewDependencyGraph(bp),
+		cfg.Blueprint().ShutdownTimeout(),
 	)
 }

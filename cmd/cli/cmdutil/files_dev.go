@@ -13,10 +13,10 @@ import (
 	"github.com/intentd/inrun/pkg/registry"
 )
 
-// ResolveOCIRunPath resolves an OCI pattern reference to a local catalog or
+// ResolveOCIRunPath resolves an OCI pattern reference to a local blueprint or
 // stack path, pulling to the cache if necessary.
 func ResolveOCIRunPath(ctx context.Context, ref string, useStack, refresh bool) (string, error) {
-	r, err := registry.ResolveForKind(ref, registry.CatalogKind)
+	r, err := registry.ResolveForKind(ref, registry.BlueprintKind)
 	if err != nil {
 		return "", fmt.Errorf("invalid reference: %w", err)
 	}
@@ -41,7 +41,7 @@ func ResolveOCIRunPath(ctx context.Context, ref string, useStack, refresh bool) 
 		return "", err
 	}
 
-	target := FileCatalog
+	target := FileBlueprint
 	if useStack {
 		target = fileStack
 	}

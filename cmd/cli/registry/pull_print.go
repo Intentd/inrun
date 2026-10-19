@@ -15,15 +15,15 @@ import (
 )
 
 // detectCacheType resolves the artifact kind by checking for sentinel files on
-// disk — not by sniffing the path string. Returns (isModule, isCatalog, patternFile).
+// disk — not by sniffing the path string. Returns (isModule, isBlueprint, patternFile).
 func detectCacheType(cacheDir string) (bool, bool, string) {
 	moduleFile := filepath.Join(cacheDir, registry.FileModule)
 	if _, err := os.Stat(moduleFile); err == nil {
 		return true, false, moduleFile
 	}
-	catalogFile := filepath.Join(cacheDir, registry.FileCatalog)
-	if _, err := os.Stat(catalogFile); err == nil {
-		return false, true, catalogFile
+	blueprintFile := filepath.Join(cacheDir, registry.FileBlueprint)
+	if _, err := os.Stat(blueprintFile); err == nil {
+		return false, true, blueprintFile
 	}
 	return false, false, ""
 }
@@ -82,7 +82,7 @@ func printValidationHint(patternFile string) {
 
 // printModuleReference prints module usage and inputs sample.
 func printModuleReference(ref *registry.Ref, module *types.Module, sum inputsSummary) {
-	fmt.Printf("\nReference in a Catalog:\n")
+	fmt.Printf("\nReference in a Blueprint:\n")
 	fmt.Printf("  imports:\n")
 	fmt.Printf("    - module: %s\n", ref.String())
 
@@ -111,10 +111,10 @@ func printModuleReference(ref *registry.Ref, module *types.Module, sum inputsSum
 	}
 }
 
-// printCatalogReference prints catalog usage and run hint.
-func printCatalogReference(ref *registry.Ref, cacheDir string) {
-	fmt.Printf("\nRun this catalog pattern:\n")
-	fmt.Printf("  inrun -f %s\n", filepath.Join(cacheDir, registry.FileCatalog))
+// printBlueprintReference prints blueprint usage and run hint.
+func printBlueprintReference(ref *registry.Ref, cacheDir string) {
+	fmt.Printf("\nRun this blueprint pattern:\n")
+	fmt.Printf("  inrun -f %s\n", filepath.Join(cacheDir, registry.FileBlueprint))
 	fmt.Printf("\nOr reference in a Stack:\n")
 	fmt.Printf("  imports:\n")
 	fmt.Printf("    registry:\n")
@@ -143,7 +143,7 @@ func printCachedFiles(cacheDir string) {
 
 // printPullSuggestions orchestrates the helpers and handles errors gracefully.
 func printPullSuggestions(ref *registry.Ref, cacheDir string) {
-	isModule, isCatalog, patternFile := detectCacheType(cacheDir)
+	isModule, isBlueprint, patternFile := detectCacheType(cacheDir)
 	printCachedFiles(cacheDir)
 	printValidationHint(patternFile)
 
@@ -159,11 +159,11 @@ func printPullSuggestions(ref *registry.Ref, cacheDir string) {
 		return
 	}
 
-	if isCatalog {
-		printCatalogReference(ref, cacheDir)
+	if isBlueprint {
+		printBlueprintReference(ref, cacheDir)
 		return
 	}
 
 	// fallback: nothing recognized
-	fmt.Println("No module or catalog pattern detected in cache.")
+	fmt.Println("No module or blueprint pattern detected in cache.")
 }

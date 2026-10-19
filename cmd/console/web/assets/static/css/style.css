@@ -347,7 +347,7 @@ code, .mono {
   color: var(--text-secondary);
 }
 
-/* ── List view for CRD cards (catalog.html) ────────────────── */
+/* ── List view for CRD cards (blueprint.html) ────────────────── */
 .console-card-grid.list-view {
   display: flex;
   flex-direction: column;
@@ -1150,7 +1150,7 @@ code, .mono {
   overflow: hidden;
 }
 
-/* ── Info Card (catalog info) ──────────────────────────────── */
+/* ── Info Card (blueprint info) ──────────────────────────────── */
 .console-info-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -1762,7 +1762,7 @@ details > summary::-webkit-details-marker { display: none; }
   }
 }
 
-/* ── CRD / Catalog config popup ─────────────────────────────── */
+/* ── CRD / Blueprint config popup ─────────────────────────────── */
 .console-crumb-clickable {
   cursor: pointer;
   padding: 2px 6px;
@@ -1774,7 +1774,7 @@ details > summary::-webkit-details-marker { display: none; }
   color: var(--accent);
 }
 
-.console-catalog-name-link:hover svg {
+.console-blueprint-name-link:hover svg {
   opacity: 0.8 !important;
 }
 

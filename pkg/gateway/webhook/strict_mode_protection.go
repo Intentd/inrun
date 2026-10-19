@@ -1,6 +1,6 @@
 // webhook/strict_mode_protection.go — /strict-mode-protection webhook handler.
 //
-// Registered only when security.deletionProtection.strictMode: true in the Catalog.
+// Registered only when security.deletionProtection.strictMode: true in the Blueprint.
 // Intercepts UPDATE operations on resources that carry the deletion-protection label
 // and denies any request that removes that label — treating label removal as a
 // deletion attempt.
@@ -26,10 +26,10 @@
 // # Unlock
 //
 // To remove the label from a protected resource, set strictMode: false in the
-// Catalog, edit the Inrun ConfigMap, and restart Inrun. The new pods will
+// Blueprint, edit the Inrun ConfigMap, and restart Inrun. The new pods will
 // not register the strict-mode webhook, so label removal becomes possible again.
 // This mirrors how deletion protection itself is disabled — the trust boundary is
-// the Catalog, not a separate escape hatch.
+// the Blueprint, not a separate escape hatch.
 package webhook
 
 import (
@@ -116,10 +116,10 @@ func (ws *WebhookServer) strictModeProtectionHandler(w http.ResponseWriter, r *h
 					"\n\n[Inrun Security] %s\n\n"+
 						"Removing this label is blocked because strictMode is enabled.\n\n"+
 						"To unprotect this resource:\n"+
-						"- Opt out in the catalog using: '<crd>.deletionProtection.strictMode: false'\n\n"+
+						"- Opt out in the blueprint using: '<crd>.deletionProtection.strictMode: false'\n\n"+
 
 						"To disable strict mode globally:\n"+
-						"- Set security.deletionProtection.strictMode: false in the Catalog\n"+
+						"- Set security.deletionProtection.strictMode: false in the Blueprint\n"+
 						"- Regenerate and apply the bundle, and restart the Gateway\n\n",
 					header,
 				),

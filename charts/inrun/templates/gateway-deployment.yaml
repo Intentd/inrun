@@ -52,7 +52,7 @@ spec:
 
           args:
             - --file
-            - {{ .Values.gateway.catalog.mountPath }}/{{ .Values.gateway.catalog.configMapKey }}
+            - {{ .Values.gateway.blueprint.mountPath }}/{{ .Values.gateway.blueprint.configMapKey }}
 
           env:
             - name: LOG_LEVEL
@@ -138,8 +138,8 @@ spec:
               mountPath: /tls
               readOnly: true
             {{- end }}
-            - name: catalog
-              mountPath: {{ .Values.gateway.catalog.mountPath }}
+            - name: blueprint
+              mountPath: {{ .Values.gateway.blueprint.mountPath }}
               readOnly: true
             - name: tmp
               mountPath: /tmp
@@ -153,9 +153,9 @@ spec:
           secret:
             secretName: {{ $webhooks.existingSecret }}
         {{- end }}
-        - name: catalog
+        - name: blueprint
           configMap:
-            name: {{ include "inrun.gatewayCatalogConfigMapName" . }}
+            name: {{ include "inrun.gatewayBlueprintConfigMapName" . }}
         - name: tmp
           emptyDir: {}
         {{- with .Values.gateway.extraVolumes }}

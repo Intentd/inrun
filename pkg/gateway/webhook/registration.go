@@ -7,7 +7,7 @@
 //
 // All registration functions are idempotent — safe to call on restart or from the
 // reconciliation controller. Existing configurations are updated to match the
-// current Catalog state.
+// current Blueprint state.
 package webhook
 
 import (
@@ -20,7 +20,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/retry"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -73,10 +73,10 @@ func CleanupAllWebhooks() WebhookCleanupOptions {
 	return WebhookCleanupOptions{mutating: true, validating: true}
 }
 
-// admissionRegistryReader is the subset of catalog.AdmissionRegistry used here.
+// admissionRegistryReader is the subset of blueprint.AdmissionRegistry used here.
 type admissionRegistryReader interface {
-	ValidationGVRs() []catalog.GVREntry
-	MutationGVRs() []catalog.GVREntry
+	ValidationGVRs() []blueprint.GVREntry
+	MutationGVRs() []blueprint.GVREntry
 }
 
 // RegisterAdmissionWebhooks creates or updates the ValidatingWebhookConfiguration
@@ -181,7 +181,7 @@ func UnregisterAdmissionWebhooks(
 func registerValidatingWebhook(
 	ctx context.Context,
 	client kubernetes.Interface,
-	gvrs []catalog.GVREntry,
+	gvrs []blueprint.GVREntry,
 	caBundle []byte,
 	opts WebhookRegistrationOptions,
 ) error {
@@ -222,7 +222,7 @@ func registerValidatingWebhook(
 func registerMutatingWebhook(
 	ctx context.Context,
 	client kubernetes.Interface,
-	gvrs []catalog.GVREntry,
+	gvrs []blueprint.GVREntry,
 	caBundle []byte,
 	opts WebhookRegistrationOptions,
 ) error {
@@ -270,7 +270,7 @@ func registerMutatingWebhook(
 func registerDeletionProtectionWebhook(
 	ctx context.Context,
 	client kubernetes.Interface,
-	gvrs []catalog.GVREntry,
+	gvrs []blueprint.GVREntry,
 	caBundle []byte,
 	opts WebhookRegistrationOptions,
 ) error {
@@ -278,7 +278,7 @@ func registerDeletionProtectionWebhook(
 	path := "/deletion-protection"
 	port := opts.Port
 
-	var crdGVRs, inrunGVRs []catalog.GVREntry
+	var crdGVRs, inrunGVRs []blueprint.GVREntry
 	for _, gvr := range gvrs {
 		if gvr.Resource == "customresourcedefinitions" {
 			crdGVRs = append(crdGVRs, gvr)
@@ -363,7 +363,7 @@ func registerDeletionProtectionWebhook(
 func registerNamespaceProtectionWebhook(
 	ctx context.Context,
 	client kubernetes.Interface,
-	gvrs []catalog.GVREntry,
+	gvrs []blueprint.GVREntry,
 	caBundle []byte,
 	opts WebhookRegistrationOptions,
 	svcName string,
@@ -461,7 +461,7 @@ func registerStrictModeProtectionWebhook(
 	return applyWebhookConfig(ctx, client, config)
 }
 
-func buildAdmissionRules(gvrs []catalog.GVREntry) []admissionv1.RuleWithOperations {
+func buildAdmissionRules(gvrs []blueprint.GVREntry) []admissionv1.RuleWithOperations {
 	rules := make([]admissionv1.RuleWithOperations, 0, len(gvrs))
 	for _, gvr := range gvrs {
 		ops := make([]admissionv1.OperationType, 0, len(gvr.Operations))
@@ -480,7 +480,7 @@ func buildAdmissionRules(gvrs []catalog.GVREntry) []admissionv1.RuleWithOperatio
 	return rules
 }
 
-func buildDeletionProtectionRules(gvrs []catalog.GVREntry) []admissionv1.RuleWithOperations {
+func buildDeletionProtectionRules(gvrs []blueprint.GVREntry) []admissionv1.RuleWithOperations {
 	rules := make([]admissionv1.RuleWithOperations, 0, len(gvrs))
 	for _, gvr := range gvrs {
 		ops := make([]admissionv1.OperationType, 0, len(gvr.Operations))

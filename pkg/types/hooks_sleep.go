@@ -13,7 +13,7 @@ type SleepEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	Resource     string // e.g., "Deployment", "Service", "Job"
 	ResourceName string // template name field if available (may be Empty()
-	Duration     string // raw duration string as written in the catalog
+	Duration     string // raw duration string as written in the blueprint
 }
 
 // tiny interfaces used by CollectSleepEntries to avoid a large type switch.

@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/webhook"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -28,7 +28,7 @@ import (
 func patchConversionCRDs(
 	ctx context.Context,
 	kube *kubeclient.Kubeclient,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 	caCertPEM []byte,
 	serviceName, serviceNamespace string,
 	port int32,
@@ -36,7 +36,7 @@ func patchConversionCRDs(
 	caBundle64 := base64.StdEncoding.EncodeToString(caCertPEM)
 
 	var errs []error
-	for _, crd := range cat.EnabledCRDs() {
+	for _, crd := range bp.EnabledCRDs() {
 		if !crd.ShouldManageCRD() {
 			continue
 		}
@@ -120,10 +120,10 @@ func applyCRDConversionPatch(
 func wireConversion(
 	ws *webhook.WebhookServer,
 	kube *kubeclient.Kubeclient,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 	cfg *config.Config,
 ) {
-	serviceName := cat.GatewayServiceName()
+	serviceName := bp.GatewayServiceName()
 	namespace := cfg.Cluster().Namespace()
 	port := cfg.HTTPSPortInt32()
 

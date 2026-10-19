@@ -31,4 +31,4 @@ What actually happened.
 
 ## Additional Context
 
-Logs, Catalog snippets, CRDs, etc.
+Logs, Blueprint snippets, CRDs, etc.

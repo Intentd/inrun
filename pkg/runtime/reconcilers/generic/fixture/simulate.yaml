@@ -5,7 +5,7 @@ metadata:
   description: Verify all onCreate resources are reconciled in cycle 1 with no errors
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   cycles: 3
 

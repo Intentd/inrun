@@ -2,7 +2,7 @@
 BINARY_NAME ?= inrun
 DEV_OUTPUT_DIR  ?= $(HOME)/.inrun/bin
 PROD_OUTPUT_DIR ?= $(HOME)/.inrun/bin/runtime
-CATALOG     ?= catalog.yaml
+BLUEPRINT     ?= blueprint.yaml
 
 IMAGE_REPO  ?= ghcr.io/intentd/resource-probe
 IMAGE_TAG   ?= latest
@@ -22,7 +22,7 @@ registry:
 	@[ -f go.mod.txt ] && mv go.mod.txt go.mod || true
 	@[ -f go.sum.txt ] && mv go.sum.txt go.sum || true
 	@find . -name "*.go" | xargs grep -l "^//go:build ignore$$" 2>/dev/null | while read f; do tail -n +3 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"; done || true
-	inrun generate registry --file $(CATALOG)
+	inrun generate registry --file $(BLUEPRINT)
 
 # ── build (development) ───────────────────────────────────────────────────────
 .PHONY: build
@@ -56,7 +56,7 @@ build-runtime:
 # ── validate ──────────────────────────────────────────────────────────────────
 .PHONY: validate
 validate:
-	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(CATALOG)
+	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(BLUEPRINT)
 
 # ── simulate ──────────────────────────────────────────────────────────────────
 .PHONY: simulate
@@ -93,10 +93,10 @@ clean:
 # ── help ──────────────────────────────────────────────────────────────────────
 .PHONY: help
 help:
-	@echo "  registry       generate type registry from Catalog"
+	@echo "  registry       generate type registry from Blueprint"
 	@echo "  build          compile full development CLI (all commands)"
 	@echo "  build-runtime  compile production binary (runtime only)"
-	@echo "  validate       run catalog validation (requires make build)"
+	@echo "  validate       run blueprint validation (requires make build)"
 	@echo "  simulate       run simulation tests (requires make build)"
 	@echo "  e2e            run end-to-end tests"
 	@echo "  docker         build-runtime + build Docker image"

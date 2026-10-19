@@ -37,7 +37,7 @@ func applyConversion(
 	if path == nil {
 		return nil, fmt.Errorf(
 			"no conversion path declared for %s → %s in kind %q.\n"+
-				"Add a path to the Catalog:\n"+
+				"Add a path to the Blueprint:\n"+
 				"  conversion:\n"+
 				"    paths:\n"+
 				"      - from: %s\n"+

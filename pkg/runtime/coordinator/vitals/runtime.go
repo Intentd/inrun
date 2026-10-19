@@ -8,8 +8,8 @@ import (
 type RuntimeHealth struct {
 	name       string
 	inrunReady atomic.Bool
-	catReady   atomic.Bool
-	allOnline  atomic.Bool // For this catalog
+	bpReady    atomic.Bool
+	allOnline  atomic.Bool // For this blueprint
 	isLeader   atomic.Bool // true only on the pod that won the leader election
 	mu         sync.RWMutex
 }
@@ -41,9 +41,9 @@ func (h *RuntimeHealth) IsInrunReady() bool {
 	return h.inrunReady.Load()
 }
 
-// SetCatalogReady marks a catalog as ready
-func (h *RuntimeHealth) SetCatalogReady() {
-	h.catReady.Store(true)
+// SetBlueprintReady marks a blueprint as ready
+func (h *RuntimeHealth) SetBlueprintReady() {
+	h.bpReady.Store(true)
 }
 
 func (h *RuntimeHealth) SetRuntimeReady(ready bool) {
@@ -62,12 +62,12 @@ func (h *RuntimeHealth) SetReconciling(isLeader bool) {
 	h.isLeader.Store(isLeader)
 }
 
-// SetCatalogDegraded marks a catalog as degraded
-func (h *RuntimeHealth) SetCatalogDegraded() {
-	h.catReady.Store(false)
+// SetBlueprintDegraded marks a blueprint as degraded
+func (h *RuntimeHealth) SetBlueprintDegraded() {
+	h.bpReady.Store(false)
 }
 
-// IsCatalogReady is used to track ready state of a catalog
-func (h *RuntimeHealth) IsCatalogReady() bool {
-	return h.catReady.Load()
+// IsBlueprintReady is used to track ready state of a blueprint
+func (h *RuntimeHealth) IsBlueprintReady() bool {
+	return h.bpReady.Load()
 }

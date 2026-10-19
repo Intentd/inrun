@@ -29,7 +29,7 @@ spec:
       - path: fixtures/inrun-bundle.yaml
         wait:
           - kind: ConfigMap
-            name: inrun-catalog
+            name: inrun-blueprint
             namespace: inrun-system
             timeout: 30s
       - path: fixtures/cr.yaml
@@ -120,7 +120,7 @@ spec:
             leaderElection:
               lease: inrun-leader
             port: 8080
-            path: /catalog/website/health
+            path: /blueprint/website/health
             jq: resourceCount
             equals: "1"
 
@@ -128,7 +128,7 @@ spec:
             leaderElection:
               lease: inrun-leader
             port: 8080
-            path: /catalog/website/health
+            path: /blueprint/website/health
             jq: healthy
             equals: "true"
 
@@ -136,7 +136,7 @@ spec:
             leaderElection:
               lease: inrun-leader
             port: 8080
-            path: /catalog/website
+            path: /blueprint/website
             contains: "Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website"
 
     - include: ./e2e/cleanup.yaml

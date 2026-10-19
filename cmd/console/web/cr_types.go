@@ -7,7 +7,7 @@ import (
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CR types — mirror the JSON shapes returned by Inrun's
-// /catalog/{crd}/cr and /catalog/{crd}/cr/{namespace}/{name} endpoints.
+// /blueprint/{crd}/cr and /blueprint/{crd}/cr/{namespace}/{name} endpoints.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // CRSummary is one row in the CR list — one line of kubectl get.
@@ -22,7 +22,7 @@ type CRSummary struct {
 	Generation  int64  `json:"generation"`
 }
 
-// CRListResponse is returned by GET /catalog/{crd}/cr.
+// CRListResponse is returned by GET /blueprint/{crd}/cr.
 type CRListResponse struct {
 	CRD      string      `json:"crd"`
 	GVK      string      `json:"gvk"`
@@ -40,7 +40,7 @@ type ChildSummary struct {
 	Ready     bool                   `json:"ready"`
 }
 
-// CRDetailResponse is returned by GET /catalog/{crd}/cr/{namespace}/{name}.
+// CRDetailResponse is returned by GET /blueprint/{crd}/cr/{namespace}/{name}.
 // Children is map[string]json.RawMessage because each value is either a single
 // ChildSummary object or an array of ChildSummary objects (when multiple children
 // of the same kind exist).
@@ -121,7 +121,7 @@ type CREvent struct {
 	Age       string `json:"age"`
 }
 
-// CREventsResponse is returned by GET /catalog/{crd}/cr/{namespace}/{name}/events.
+// CREventsResponse is returned by GET /blueprint/{crd}/cr/{namespace}/{name}/events.
 type CREventsResponse struct {
 	Name      string    `json:"name"`
 	Namespace string    `json:"namespace,omitempty"`
@@ -135,26 +135,26 @@ type CREventsResponse struct {
 
 // CRListView is the data passed to cr_list.html.
 type CRListView struct {
-	CatalogName     string // e.g. "demo"
+	BlueprintName   string // e.g. "demo"
 	Instance        string // Inrun instance URL
 	CRDName         string // e.g. "pipeline"
 	GVK             string // e.g. "demo.inrun.dev/v1alpha1, Kind=Pipeline"
 	Total           int
 	Items           []CRSummary
-	BackURL         string // back to /catalog/{crd}
-	ServeEnabled    bool   // true when this CRD has serve.enabled: true in the Catalog
+	BackURL         string // back to /blueprint/{crd}
+	ServeEnabled    bool   // true when this CRD has serve.enabled: true in the Blueprint
 	GatewayEndpoint string // base URL of the companion gateway; empty when no gateway
 }
 
 // CRDetailView is the data passed to cr_detail.html.
 type CRDetailView struct {
-	CatalogName string // e.g. "demo"
-	Instance    string
-	CRDName     string
-	CR          CRDetailResponse
-	Events      []CREvent
-	EventTotal  int
-	Phase       string       // extracted from status.phase for convenience
-	ChildGroups []ChildGroup // normalised children — single or grouped per kind
-	BackURL     string       // back to /catalog/{crd}/cr
+	BlueprintName string // e.g. "demo"
+	Instance      string
+	CRDName       string
+	CR            CRDetailResponse
+	Events        []CREvent
+	EventTotal    int
+	Phase         string       // extracted from status.phase for convenience
+	ChildGroups   []ChildGroup // normalised children — single or grouped per kind
+	BackURL       string       // back to /blueprint/{crd}/cr
 }

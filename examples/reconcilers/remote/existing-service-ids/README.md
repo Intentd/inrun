@@ -79,7 +79,7 @@ or the next pass reads the CR from a cache that has not seen it yet,
 Inrun sends an `Idempotency-Key` header with every POST and PATCH, derived
 from the CR's UID and the request. A repeated create sends the same key, and
 an API that honours it (as this one and Stripe-style APIs do) answers the
-first volume instead of creating another. Nothing to write in the Catalog.
+first volume instead of creating another. Nothing to write in the Blueprint.
 
 When the API wants a different header or its own key format:
 

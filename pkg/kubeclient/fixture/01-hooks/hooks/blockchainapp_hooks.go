@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BlockchainAppHooks returns the hook implementation registered in the Catalog.
+// BlockchainAppHooks returns the hook implementation registered in the Blueprint.
 func BlockchainAppHooks() domain.AnyReconcileHooks {
 	return domain.ReconcileHooks[*apiv1.BlockchainApp]{OnReconcile: onBlockchainAppReconcile}
 }
@@ -22,10 +22,10 @@ func onBlockchainAppReconcile(ctx context.Context, req domain.Request, obj *apiv
 		return domain.Result{}, fmt.Errorf("kubeclient not in context")
 	}
 
-	// Both values come from the Catalog — not from the CR spec.
+	// Both values come from the Blueprint — not from the CR spec.
 	// inBusinessHours: computed from a user-defined note (world state).
 	// featureEnabled:  result of an external HTTP call the runtime made,
-	//                  but only when inBusinessHours was true (see catalog.yaml when:).
+	//                  but only when inBusinessHours was true (see blueprint.yaml when:).
 	// The hook binary never changes when the schedule or flag endpoint changes.
 	inBusinessHours := req.Args().String("inBusinessHours") == "true"
 	featureEnabled := req.Args().String("featureEnabled") == "true"

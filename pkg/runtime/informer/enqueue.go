@@ -69,14 +69,14 @@ func eventsFromObservation(observation *ObservationContext) map[string]interface
 
 // ComputeSentinels derives event-time sentinel values from an informer update.
 //
-// Declarations normally come from Catalog. Callers may provide declarations
+// Declarations normally come from Blueprint. Callers may provide declarations
 // explicitly for secondary watches.
 func (f *Factory) ComputeSentinels(
 	gvkStr string,
 	oldObj, newObj interface{},
 	opts ...ComputeSentinelsOptions,
 ) map[string]string {
-	if f.catalog == nil {
+	if f.blueprint == nil {
 		return nil
 	}
 
@@ -90,7 +90,7 @@ func (f *Factory) ComputeSentinels(
 	if len(opts) > 0 && len(opts[0].DeclaredSentinels) > 0 {
 		declared = opts[0].DeclaredSentinels
 	} else {
-		declared = f.catalog.GetPreReconcileSentinels(newDomain, gvkStr)
+		declared = f.blueprint.GetPreReconcileSentinels(newDomain, gvkStr)
 	}
 
 	if len(declared) == 0 {
@@ -145,7 +145,7 @@ func (f *Factory) allowEnqueue(
 		if opts.WatchSecondaryGVK == "" {
 			return true
 		}
-		return f.catalog.EvaluateWatchEnqueueFilter(
+		return f.blueprint.EvaluateWatchEnqueueFilter(
 			ctx,
 			gvkStr,
 			opts.WatchSecondaryGVK,
@@ -165,7 +165,7 @@ func (f *Factory) allowEnqueue(
 		if opts.SourceName == "" {
 			return true
 		}
-		return f.catalog.EvaluateEventEnqueueFilter(
+		return f.blueprint.EvaluateEventEnqueueFilter(
 			ctx,
 			gvkStr,
 			opts.SourceName,
@@ -229,8 +229,8 @@ func (f *Factory) enqueueKey(
 	}
 
 	eventAware := false
-	if f.catalog != nil {
-		eventAware = f.catalog.IsEventAware(domObj, gvkStr)
+	if f.blueprint != nil {
+		eventAware = f.blueprint.IsEventAware(domObj, gvkStr)
 	}
 
 	if secondary {

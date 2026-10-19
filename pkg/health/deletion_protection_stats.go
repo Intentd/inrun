@@ -50,7 +50,7 @@ func (s *DeletionProtectionStats) GetStats() DeletionProtectionStatsSnapshot {
 }
 
 // DeletionProtectionStatsSnapshot is a read-only point-in-time snapshot.
-// Serialised into the /catalog/{crd} JSON response under the "protection" key.
+// Serialised into the /blueprint/{crd} JSON response under the "protection" key.
 type DeletionProtectionStatsSnapshot struct {
 	TotalRequests int64 `json:"total"`
 	Blocked       int64 `json:"blocked"`

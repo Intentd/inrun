@@ -1,0 +1,57 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: website-with-serviceaccount
+  author: intentd
+  version: 0.1.0
+  description: >
+    Adds a ServiceAccount to the website operator.
+    The Deployment uses it immediately via serviceAccountName.
+  tags:
+    - beginner
+    - web
+    - rbac
+
+spec:
+  crds:
+    website:
+      apiTypes:
+        group: demo.inrun.dev
+        version: v1alpha1
+        kind: Website
+        plural: websites
+
+      operatorBox:
+
+        runtime:
+          allowedNamespaces:
+            - demo-02
+
+        reconcile:
+          onCreate:
+            serviceAccounts:
+              - name: "{{ .metadata.name }}-sa"
+
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                serviceAccountName: "{{ .metadata.name }}-sa"
+                reconcile: true
+
+            services:
+              - name: "{{ .metadata.name }}-svc"
+                port: "80"
+                targetPort: "{{ .spec.port }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: endpoint
+                value: "{{ .metadata.name }}.{{ .metadata.namespace }}.svc.cluster.local"
+              - path: allReplicasReady
+                value: "{{ allReplicasReady .children.deployment }}"
+

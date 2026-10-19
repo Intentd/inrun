@@ -77,7 +77,7 @@ func (r *RuntimeConfig) Empty() bool { return r == nil }
 // FinalizerConfig is runtime.finalizers.
 type FinalizerConfig struct {
 	// Names are finalizers added to every CR besides Inrun's inrun.dev/cleanup.
-	// The Catalog-level spec.finalizers are merged in.
+	// The Blueprint-level spec.finalizers are merged in.
 	Names []string `yaml:"names,omitempty" json:"names,omitempty"`
 
 	// Timeout releases a CR still finalizing this long after its deletion

@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	defaultConfigMapName = "inrun-catalog"
-	defaultConfigMapKey  = "catalog.yaml"
+	defaultConfigMapName = "inrun-blueprint"
+	defaultConfigMapKey  = "blueprint.yaml"
 )
 
-// ConfigMap renders a Namespace + ConfigMap from pre-expanded catalog bytes.
-// expandedYAML must be the output of catalog.Catalog.SerializeExpanded() —
+// ConfigMap renders a Namespace + ConfigMap from pre-expanded blueprint bytes.
+// expandedYAML must be the output of blueprint.Blueprint.SerializeExpanded() —
 // fully resolved, no OCI imports remaining.
 func ConfigMap(expandedYAML []byte, namespace string) ([]byte, error) {
 	if namespace == "" {
@@ -38,7 +38,7 @@ func renderNamespaceAndConfigMap(expandedYAML []byte, namespace string) ([]byte,
 	return []byte("---\n" + string(nsBytes) + "\n---\n" + string(cmBytes)), nil
 }
 
-// renderConfigMapBytes marshals a ConfigMap embedding the given expanded catalog YAML.
+// renderConfigMapBytes marshals a ConfigMap embedding the given expanded blueprint YAML.
 // The Namespace is intentionally excluded — callers prepend it so that
 // bundle assembly can include it exactly once.
 func renderConfigMapBytes(expandedYAML []byte, namespace string) ([]byte, error) {

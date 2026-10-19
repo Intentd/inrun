@@ -1,0 +1,36 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: children-foreach-fixture
+  description: >
+    Comprehensive fixture covering every child resource type, all using forEach.
+    Imports six focused modules — one per resource group.
+
+spec:
+  crds:
+    tenant:
+      crdFile: crd.yaml
+      crFiles:
+        - cr.yaml
+      operatorBox:
+        reconcile:
+          imports:
+            - module: modules/01-namespaced/module.yaml
+            - module: modules/02-rbac/module.yaml
+            - module: modules/03-workloads/module.yaml
+            - module: modules/04-network/module.yaml
+            - module: modules/05-config/module.yaml
+            - module: modules/06-storage/module.yaml
+            - module: modules/07-custom/module.yaml
+
+    tenant-plan:
+      apiTypes:
+        group: test.inrun.dev
+        version: v1alpha1
+        kind: TenantPlan
+        plural: tenantplans
+      operatorBox:
+        reconcile:
+          imports:
+            - module: modules/08-plan/module.yaml
+

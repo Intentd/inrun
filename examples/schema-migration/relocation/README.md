@@ -104,7 +104,7 @@ kubectl apply -f manifests/crd-transitional.yaml
 
 ### 4. Create two new-form CRs — one via the gateway, one via kubectl
 
-Validate the Catalog
+Validate the Blueprint
 
 ```bash
 inrun validate
@@ -130,7 +130,7 @@ curl -s -X POST http://localhost:8080/api/v1/apply \
   }'
 ```
 
-The gateway uses the target `my-api-server` as configured in **[catalog.yaml](catalog.yaml)** and lands on the configured namespace
+The gateway uses the target `my-api-server` as configured in **[blueprint.yaml](blueprint.yaml)** and lands on the configured namespace
 
 Platform-10 is created directly with kubectl using the new schema YAML:
 
@@ -174,7 +174,7 @@ inrun migrate --dry-run
 
 ```console
 ⟳  inrun migrate  [dry-run]
-  catalog: catalog.yaml
+  blueprint: blueprint.yaml
 
 ◆  AppConfig  10 CRs
   ✓ platform-01/api-server  would migrate: replicas, logLevel
@@ -264,7 +264,7 @@ inrun migrate rollback --dry-run
 
 ```
 ⟳  inrun migrate rollback  [dry-run]
-  catalog: catalog.yaml
+  blueprint: blueprint.yaml
 
 ◆  AppConfig  10 CRs
   ✓ platform-01/api-server  would roll back: replicas, logLevel

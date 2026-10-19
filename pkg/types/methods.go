@@ -219,14 +219,14 @@ func (c *CRDEntry) WithHooksDecl() bool {
 
 // RunHooksFirst reports whether the hook should run before declarative templates.
 // Returns false by default — declared templates run first (the 90/10 hybrid pattern).
-// Set reconcile.hooks.runHooksFirst: true in the Catalog to override.
+// Set reconcile.hooks.runHooksFirst: true in the Blueprint to override.
 func (c *CRDEntry) RunHooksFirst() bool {
 	r := c.Box().Reconcile
 	return r != nil && r.Hooks != nil && r.Hooks.RunHooksFirst
 }
 
 // WithConstructorDecl returns true if the CRD has a constructor declaration.
-// Required when reconcile.default: false in the Catalog.
+// Required when reconcile.default: false in the Blueprint.
 func (c *CRDEntry) WithConstructorDecl() bool {
 	return c.Box().Reconcile.HasConstructorDecl()
 }
@@ -755,7 +755,7 @@ func (c *CRDEntry) EffectiveConversion() *CRDConversion {
 // IsConversionParticipant reports whether this CRD is a participant-only member
 // of a conversion pair. Participants hold no conversion paths — those live on
 // the CRD that owns the /convert logic. Used to skip path registration so a
-// participant entry can never clobber the real rules during Catalog load.
+// participant entry can never clobber the real rules during Blueprint load.
 func (c *CRDEntry) IsConversionParticipant() bool {
 	cv := c.EffectiveConversion()
 	if cv == nil {

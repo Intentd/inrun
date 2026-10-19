@@ -8,7 +8,7 @@ metadata:
     gateway. The reconciler runs as a Deployment, applied in setup.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   valuesFiles:
     - ./e2e-values.yaml

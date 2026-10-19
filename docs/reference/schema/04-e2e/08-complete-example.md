@@ -22,7 +22,7 @@ metadata:
       my-probe-exec   — nginx:alpine on port 80 (exec via sh)
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./cr.yaml
 

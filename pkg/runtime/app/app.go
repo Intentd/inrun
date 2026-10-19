@@ -1,4 +1,4 @@
-// Package app assembles the Inrun runtime: the Catalog, Kubernetes clients and
+// Package app assembles the Inrun runtime: the Blueprint, Kubernetes clients and
 // informers, every CRD's queue, informer and reconciler, the HTTP routes, the
 // coordinator, and the process that starts and stops them. New wires all of it
 // and starts nothing; the caller starts the process. Being importable, it lets
@@ -8,8 +8,8 @@ package app
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -23,7 +23,7 @@ import (
 // Runtime is the assembled runtime. Start it with Process.Start; Coordinator
 // begins reconciling once this replica leads.
 type Runtime struct {
-	Catalog     *catalog.Catalog
+	Blueprint   *blueprint.Blueprint
 	Event       *event.Event
 	Kube        *kubeclient.Kubeclient
 	Coordinator *coordinator.DependencyCoordinator
@@ -38,26 +38,26 @@ type Runtime struct {
 // Each step below is its own function; read top to bottom, this is the
 // runtime's dependency graph and startup order.
 func New(cfg *config.Config, m *merger.Merger, ctx context.Context) (*Runtime, error) {
-	cat := pipeline.NewCatalog(cfg, m, config.Runtime())
-	c, err := newCore(ctx, cfg, cat)
+	bp := pipeline.NewBlueprint(cfg, m, config.Runtime())
+	c, err := newCore(ctx, cfg, bp)
 	if err != nil {
 		return nil, err
 	}
 
-	infFactory := crds.NewFactory(cfg, cat, c.kube, c.scheme, c.defaultWq, c.queueRegistry)
+	infFactory := crds.NewFactory(cfg, bp, c.kube, c.scheme, c.defaultWq, c.queueRegistry)
 
-	registry, crdHealthMap, crdErr := wireCRDs(ctx, cfg, cat, c, infFactory)
+	registry, crdHealthMap, crdErr := wireCRDs(ctx, cfg, bp, c, infFactory)
 	if crdErr != nil {
 		return nil, crdErr
 	}
 
 	inrunHealth := vitals.NewRuntimeHealth()
-	registerRoutes(c.hs, cfg, m, cat, c.kube, registry, crdHealthMap, inrunHealth)
-	coord := newCoordinator(cfg, cat, c, infFactory, registry, crdHealthMap, inrunHealth)
+	registerRoutes(c.hs, cfg, m, bp, c.kube, registry, crdHealthMap, inrunHealth)
+	coord := newCoordinator(cfg, bp, c, infFactory, registry, crdHealthMap, inrunHealth)
 	o := process.New(cfg, components(c, infFactory, coord))
 
 	return &Runtime{
-		Catalog:     cat,
+		Blueprint:   bp,
 		Event:       c.ev,
 		Kube:        c.kube,
 		Coordinator: coord,

@@ -10,7 +10,7 @@ import (
 )
 
 // ValidateCalls checks a list of ExternalCallSpecs for name uniqueness and semantic correctness.
-// Called from pkg/catalog during inrun validate.
+// Called from pkg/blueprint during inrun validate.
 func ValidateCalls(crdName, location string, calls []types.ExternalCallSpec) error {
 	seen := make(map[string]bool, len(calls))
 	for i, call := range calls {

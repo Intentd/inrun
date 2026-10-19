@@ -12,7 +12,7 @@ metadata:
     the reconciler body never changes.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr-webapp.yaml
   cycles: 3
 

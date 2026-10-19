@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/merger"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -49,9 +49,9 @@ stringData:
   token: test-token
 `
 
-const remoteTestCatalog = `
+const remoteTestBlueprint = `
 apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
   name: remote-harness-test
   version: 0.1.0
@@ -107,22 +107,22 @@ func TestRun_RemoteReconciler(t *testing.T) {
 
 	dir := t.TempDir()
 	files := map[string]string{
-		"crd.yaml":     remoteTestCRD,
-		"secret.yaml":  remoteTestSecret,
-		"catalog.yaml": strings.Replace(remoteTestCatalog, "ENDPOINT", srv.URL+"/reconcile", 1),
+		"crd.yaml":       remoteTestCRD,
+		"secret.yaml":    remoteTestSecret,
+		"blueprint.yaml": strings.Replace(remoteTestBlueprint, "ENDPOINT", srv.URL+"/reconcile", 1),
 	}
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
 			t.Fatalf("writing %s: %v", name, err)
 		}
 	}
-	m := merger.New(filepath.Join(dir, "catalog.yaml"))
+	m := merger.New(filepath.Join(dir, "blueprint.yaml"))
 	if err := m.Merge(); err != nil {
-		t.Fatalf("merging catalog: %v", err)
+		t.Fatalf("merging blueprint: %v", err)
 	}
-	cat, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
+	bp, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
 	if err != nil {
-		t.Fatalf("building catalog: %v", err)
+		t.Fatalf("building blueprint: %v", err)
 	}
 
 	cr := &unstructured.Unstructured{Object: map[string]interface{}{
@@ -132,7 +132,7 @@ func TestRun_RemoteReconciler(t *testing.T) {
 		"spec":       map[string]interface{}{"image": "nginx:1.25"},
 	}}
 
-	result, err := Run(context.Background(), cat, "webapp", cr, 2, RunOptions{})
+	result, err := Run(context.Background(), bp, "webapp", cr, 2, RunOptions{})
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}

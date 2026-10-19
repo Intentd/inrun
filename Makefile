@@ -369,7 +369,7 @@ test-fixture-reconciler:
 	@echo "── Reconciler fixture test ────────────────────────────────────"
 	@bash scripts/setup-kind.sh $(FIXTURE_RECONCILER_CLUSTER)
 	@kubectl apply -f pkg/runtime/reconciler/fixture/crd.yaml
-	@inrun generate bundle --file pkg/runtime/reconciler/fixture/catalog.yaml | kubectl apply -f -
+	@inrun generate bundle --file pkg/runtime/reconciler/fixture/blueprint.yaml | kubectl apply -f -
 	@helm install inrun $(HELM_CHART) --namespace inrun-system --wait --timeout 120s
 	@kubectl apply -f pkg/runtime/reconciler/fixture/cr.yaml
 	@kubectl wait reconcilerprobe/probe --for=jsonpath='{.status.tier}'=premium \
@@ -446,7 +446,7 @@ vet:
 # (pkg/registry/client.go, pkg/registry/module/pull.go) are both build-tag
 # excluded from the runtime and gateway binaries — see the comments atop
 # those files. Both are authoring-time-only (inrun push/pull/generate bundle);
-# the runtime and gateway only ever read an already-merged catalog.yaml key
+# the runtime and gateway only ever read an already-merged blueprint.yaml key
 # from a ConfigMap. validate-pr.yml's vuln-check (console/runtime/
 # gateway) has no known findings left to accept — it runs as a hard gate.
 #
@@ -457,7 +457,7 @@ vet:
 #     NewPullWithOpts starts from a zero-value Pull{} (Verify defaults to
 #     false), and Inrun's own call site never sets pull.Verify = true —
 #     so the verification code path that would invoke openpgp is never
-#     exercised, regardless of what a Catalog's HelmSource points at.
+#     exercised, regardless of what a Blueprint's HelmSource points at.
 #   - GO-2026-5622 / GO-2026-5338 / GO-2026-5064 (github.com/containerd/containerd,
 #     no fix yet): all three are specifically about CRI checkpoint/restore, a
 #     container-runtime feature nothing in this codebase calls. containerd is

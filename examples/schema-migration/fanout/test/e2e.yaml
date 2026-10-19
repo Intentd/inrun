@@ -9,7 +9,7 @@ metadata:
     backfills existing flat-schedule CRs to the structured form.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   valuesFiles:
     - ./e2e-values.yaml

@@ -16,7 +16,6 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/contract"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // httpDoer is satisfied by *http.Client and any test double.
@@ -171,17 +170,17 @@ func (r *Reconciler) buildBody(req domain.Request) ([]byte, error) {
 	return json.Marshal(body)
 }
 
-// applyObjectExclusions returns a deep copy of obj with the given dot-notation paths removed.
+// applyObjectExclusions returns a copy of obj, typed or unstructured, with the
+// given dot-notation paths removed.
 func (r *Reconciler) applyObjectExclusions(obj domain.Object, paths []string) map[string]interface{} {
-	u, ok := obj.(*unstructured.Unstructured)
+	u, ok := domain.ToUnstructured(domain.Copy(obj))
 	if !ok {
-		return domain.Raw(obj)
+		return nil
 	}
-	cp := u.DeepCopy().Object
 	for _, path := range paths {
-		structured.DeleteNestedPath(cp, path)
+		structured.DeleteNestedPath(u.Object, path)
 	}
-	return cp
+	return u.Object
 }
 
 // effectiveAuth is the declared remote.auth with a secretRef without a

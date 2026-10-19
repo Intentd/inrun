@@ -22,7 +22,7 @@ const (
 	defaultReplicas  = "1"
 )
 
-// DatabaseHooks returns the Database CRD's hooks, registered in the Catalog
+// DatabaseHooks returns the Database CRD's hooks, registered in the Blueprint
 // under hooks.function. They run inside the generic reconciler, so Inrun
 // still handles the informer, queue, finalizer, events, Ready status and
 // metrics; the hooks add typed spec access and the children the templates
@@ -60,7 +60,7 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 			Image:              image,
 			Replicas:           defaultReplicas,
 			Port:               dbPort(engine),
-			ServiceAccountName: obj.Name + "-sa", // declared in the Catalog onCreate
+			ServiceAccountName: obj.Name + "-sa", // declared in the Blueprint onCreate
 			Env: []types.EnvVar{
 				{Name: "POSTGRES_USER", Value: postgresUser},
 				{Name: "POSTGRES_PASSWORD", Value: postgresPassword},

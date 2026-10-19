@@ -18,7 +18,7 @@ type Component interface {
 }
 
 // Workqueue is the per-CRD queue contract used by pkg/types, pkg/runtime/queue,
-// pkg/runtime/informer, and pkg/catalog. Declared here to break the import cycle
+// pkg/runtime/informer, and pkg/blueprint. Declared here to break the import cycle
 // that would form if those packages imported each other directly.
 type Workqueue interface {
 	// Type, IsRatelimitedType, IsDelayedType — reserved for future queue-type-aware

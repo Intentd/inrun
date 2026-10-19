@@ -2,7 +2,7 @@
 BINARY_NAME ?= inrun
 DEV_OUTPUT_DIR  ?= $(HOME)/.inrun/bin
 PROD_OUTPUT_DIR ?= $(HOME)/.inrun/bin/runtime
-CATALOG     ?= stack.yaml
+BLUEPRINT     ?= stack.yaml
 
 IMAGE_REPO  ?= myorg/my-operator
 IMAGE_TAG   ?= latest
@@ -19,13 +19,13 @@ INRUN_LDFLAGS := -X github.com/intentd/inrun/pkg/version.Version=$(GIT_VERSION) 
 
 # ── registry ──────────────────────────────────────────────────────────────────
 # Generates pkg/typeregistry/zz_generated_typeregistry.go.
-# Re-run whenever you change apiTypes fields in catalog.yaml.
+# Re-run whenever you change apiTypes fields in blueprint.yaml.
 .PHONY: registry
 registry:
 	@[ -f go.mod.txt ] && mv go.mod.txt go.mod || true
 	@[ -f go.sum.txt ] && mv go.sum.txt go.sum || true
 	@find . -name "*.go" | xargs grep -l "^//go:build ignore$$" 2>/dev/null | while read f; do tail -n +3 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"; done || true
-	inrun generate registry --file $(CATALOG)
+	inrun generate registry --file $(BLUEPRINT)
 
 # ── build (development) ───────────────────────────────────────────────────────
 # Builds the full CLI with all commands (validate, e2e, simulate, run, etc.)
@@ -63,7 +63,7 @@ build-runtime:
 # ── validate ──────────────────────────────────────────────────────────────────
 .PHONY: validate
 validate:
-	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(CATALOG)
+	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(BLUEPRINT)
 
 # ── simulate ───────────────────────────────────────────────────────────────────────
 .PHONY: simulate
@@ -102,10 +102,10 @@ clean:
 # ── help ──────────────────────────────────────────────────────────────────────
 .PHONY: help
 help:
-	@echo "  registry       generate type registry from Catalog"
+	@echo "  registry       generate type registry from Blueprint"
 	@echo "  build          compile full development CLI (all commands)"
 	@echo "  build-runtime  compile production binary (runtime only)"
-	@echo "  validate       run catalog validation (using development binary)"
+	@echo "  validate       run blueprint validation (using development binary)"
 	@echo "  e2e            run end‑to‑end tests (using development binary)"
 	@echo "  simulate       run simulation tests (using development binary)"
 	@echo "  docker         build-runtime + copy into Docker image"

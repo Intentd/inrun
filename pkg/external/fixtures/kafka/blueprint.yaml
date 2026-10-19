@@ -1,0 +1,49 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: external-kafka
+  description: >
+    Verifies protocol: kafka using a Kafka instance deployed in inrun-system.
+    Reads topic metadata (@events) to assert connectivity and partition count.
+
+spec:
+  crds:
+    webapp:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          resync: 20s
+
+          onReconcile:
+            external:
+              - name: topicMeta
+                protocol: kafka
+                url: "{{ .spec.kafkaBrokers }}"
+                query: "@events"
+                continueOnError: true
+                timeout: 5s
+
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: 1
+        emit:
+          status:
+            fields:
+              - path: partitionCount
+                value: "{{ .external.topicMeta.partitionCount }}"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: external.topicMeta.error
+                    notExists: true
+
+              - path: phase
+                value: "Degraded"
+                when:
+                  - field: external.topicMeta.error
+                    exists: true
+

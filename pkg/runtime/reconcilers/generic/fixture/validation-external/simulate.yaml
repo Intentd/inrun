@@ -4,7 +4,7 @@ metadata:
   name: validation-external-simulate
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: webapp
   cr: ./cr-bad-health.yaml
   cycles: 3

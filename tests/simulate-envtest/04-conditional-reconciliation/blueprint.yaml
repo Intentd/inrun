@@ -1,0 +1,35 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: gate-operator
+  version: 0.1.0
+  description: >
+    Gate operator used in envtest simulate tests.
+    Verifies the coordinator pre-reconcile gate: when spec.enabled is false,
+    the reconciler is never called and no Deployment is created.
+
+spec:
+  crds:
+    probe:
+      crdFile: ./crd.yaml
+
+      operatorBox:
+        preReconcile:
+          reconcileGate:
+            when:
+              - field: "{{ .spec.enabled }}"
+                equals: "true"
+
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+
+        reconcile:
+          onReconcile:
+            deployments:
+            - name: "{{ .metadata.name }}"
+              image: "{{ .spec.image }}"
+              replicas: "{{ .spec.replicas }}"
+              reconcile: true

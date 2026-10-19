@@ -4,7 +4,7 @@
 // Inrun knows about. Adding one entry here is the only change required to:
 //
 //   - Resolve GVR for children and GVR lookups
-//   - Generate RBAC rules (ClusterRole) for any catalog that uses the resource
+//   - Generate RBAC rules (ClusterRole) for any blueprint that uses the resource
 //   - Detect usage in onReconcile / onCreate / onDelete template blocks
 //   - Expand kind shorthands (e.g. "hpa" → "horizontalpodautoscaler")
 //   - Derive the canonical PascalCase Kind name
@@ -75,7 +75,7 @@ type enrichmentEntry struct {
 
 // enrichmentMeta maps each canonical kind name to its enrichment configuration.
 // This is a sibling of builtInRegistry — update both when adding a resource kind
-// that should be reachable via enrich: in a catalog spec.
+// that should be reachable via enrich: in a blueprint spec.
 var enrichmentMeta = map[string]enrichmentEntry{
 	"pod":                     {Target: true},
 	"service":                 {Target: true, EnrichKeys: []string{"backingpods"}},

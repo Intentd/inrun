@@ -12,7 +12,7 @@ func NewCRDHealth(name string) *CRDHealth {
 	h.pending.Store(true)
 	h.degraded.Store(false)
 
-	// Add catalog tracker
+	// Add blueprint tracker
 	h.inrunHealth = NewRuntimeHealth()
 	return h
 }
@@ -21,6 +21,6 @@ func NewCRDHealth(name string) *CRDHealth {
 func NewRuntimeHealth() *RuntimeHealth {
 	h := &RuntimeHealth{name: config.CLI}
 	h.inrunReady.Store(true)
-	h.catReady.Store(false)
+	h.bpReady.Store(false)
 	return h
 }

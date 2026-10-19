@@ -1,12 +1,12 @@
 package types
 
 // NetworkPolicyProfileEntry describes a single profile reference found in a
-// NetworkPolicyTemplateSource. Used by catalog validation to fail fast on unknown
+// NetworkPolicyTemplateSource. Used by blueprint validation to fail fast on unknown
 // profiles and to enforce mutual exclusivity with explicit ingress/egress/policyTypes.
 type NetworkPolicyProfileEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // NetworkPolicy name template (may be Empty()
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside explicit ingress/egress/policyTypes
 }
 

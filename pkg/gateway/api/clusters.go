@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/secrets"
@@ -17,7 +17,7 @@ import (
 )
 
 // ClusterRegistry maps gateway.clusters names to their ready kubeclient.Interface.
-// Built at gateway startup from the catalog config; never mutated after construction.
+// Built at gateway startup from the blueprint config; never mutated after construction.
 type ClusterRegistry struct {
 	clients map[string]kubeclient.Interface
 }
@@ -45,17 +45,17 @@ func (r *ClusterRegistry) Len() int {
 // Returns an empty (non-nil) registry when no clusters are declared.
 func BuildClusterRegistry(
 	ctx context.Context,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 	kube kubeclient.Interface,
 	ownNS string,
 ) (*ClusterRegistry, error) {
 	reg := &ClusterRegistry{clients: make(map[string]kubeclient.Interface)}
-	if cat == nil || cat.Gateway == nil || !cat.Gateway.HasClusters() {
+	if bp == nil || bp.Gateway == nil || !bp.Gateway.HasClusters() {
 		return reg, nil
 	}
 
 	scheme := kube.Scheme()
-	for name, cfg := range cat.GatewayClusters() {
+	for name, cfg := range bp.GatewayClusters() {
 		restCfg, err := BuildClusterRestConfig(ctx, cfg, kube, ownNS)
 		if err != nil {
 			return nil, fmt.Errorf("building client for cluster %q: %w", name, err)

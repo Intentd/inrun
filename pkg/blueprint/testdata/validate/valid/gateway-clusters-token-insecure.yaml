@@ -1,0 +1,19 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: gateway-clusters-token-insecure
+  version: 1.0.0
+  description: Valid gateway.clusters — bearer token with insecure:true, no caRef required.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+gateway:
+  enabled: true
+  clusters:
+    dev:
+      endpoint: https://dev.internal:6443
+      tokenRef:
+        name: dev-sa-token
+        key: token
+      insecure: true

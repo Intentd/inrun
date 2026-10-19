@@ -78,7 +78,7 @@ func stripFinalizers(
 }
 
 // Finalize removes the box's finalizers (Inrun's cleanup finalizer and any the
-// Catalog declares) from obj, letting the API server finish deleting it. The
+// Blueprint declares) from obj, letting the API server finish deleting it. The
 // coordinator calls it once a finalizing reconcile returns without a requeue.
 func Finalize(ctx context.Context, kube kubeclient.Interface, obj domain.Object, box types.OperatorBoxConfig) error {
 	if len(obj.GetFinalizers()) == 0 {

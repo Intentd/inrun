@@ -54,7 +54,7 @@ func TestBuildCRListHandler_NoFieldParam(t *testing.T) {
 	crd := types.CRDEntry{Name: "website", APITypes: types.APITypes{Kind: "Website"}}
 	handler := BuildCRListHandler(crd, inf, &RuntimeHealth{})
 
-	req := httptest.NewRequest(http.MethodGet, "/catalog/website/cr", nil)
+	req := httptest.NewRequest(http.MethodGet, "/blueprint/website/cr", nil)
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
@@ -78,7 +78,7 @@ func TestBuildCRListHandler_FieldParamResolvesSpecValue(t *testing.T) {
 	crd := types.CRDEntry{Name: "website", APITypes: types.APITypes{Kind: "Website"}}
 	handler := BuildCRListHandler(crd, inf, &RuntimeHealth{})
 
-	req := httptest.NewRequest(http.MethodGet, "/catalog/website/cr?field=spec.domain", nil)
+	req := httptest.NewRequest(http.MethodGet, "/blueprint/website/cr?field=spec.domain", nil)
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
@@ -103,7 +103,7 @@ func TestBuildCRListHandler_FieldParamMissingOnCR(t *testing.T) {
 	crd := types.CRDEntry{Name: "website", APITypes: types.APITypes{Kind: "Website"}}
 	handler := BuildCRListHandler(crd, inf, &RuntimeHealth{})
 
-	req := httptest.NewRequest(http.MethodGet, "/catalog/website/cr?field=spec.doesNotExist", nil)
+	req := httptest.NewRequest(http.MethodGet, "/blueprint/website/cr?field=spec.doesNotExist", nil)
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 

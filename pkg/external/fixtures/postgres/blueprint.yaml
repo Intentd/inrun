@@ -1,0 +1,61 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: external-postgres
+  description: >
+    Verifies protocol: postgres using a PostgreSQL instance deployed in
+    inrun-system. Queries pg_stat_activity to assert connectivity and
+    current_database() to confirm the target database.
+
+spec:
+  crds:
+    webapp:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          resync: 20s
+
+          onReconcile:
+            external:
+              - name: dbName
+                protocol: postgres
+                url: "{{ .spec.postgresURL }}"
+                query: "SELECT current_database()"
+                continueOnError: true
+                timeout: 5s
+
+              - name: connCount
+                protocol: postgres
+                url: "{{ .spec.postgresURL }}"
+                query: "SELECT COUNT(*) FROM pg_stat_activity"
+                continueOnError: true
+                timeout: 5s
+                cacheFor: 10s
+
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: 1
+        emit:
+          status:
+            fields:
+              - path: currentDatabase
+                value: "{{ .external.dbName.result }}"
+
+              - path: connectionCount
+                value: "{{ .external.connCount.result }}"
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: external.dbName.result
+                    equals: "inrun"
+
+              - path: phase
+                value: "Degraded"
+                when:
+                  - field: external.dbName.error
+                    exists: true
+

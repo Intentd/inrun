@@ -1,0 +1,14 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: legacy-worker
+  version: 1.0.0
+  description: Tests that lifecycle.deprecation requires a message field.
+lifecycle:
+  deprecation:
+    migratedTo: task-runner:v1.0.0
+    # message is required — this should fail validation
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

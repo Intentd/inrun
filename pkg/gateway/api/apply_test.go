@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,10 +31,10 @@ func appRequestBody(name string) []byte {
 	return body
 }
 
-// appRequestCatalog builds a real, lookup-ready *catalog.Catalog with one
+// appRequestBlueprint builds a real, lookup-ready *blueprint.Blueprint with one
 // serve-enabled "AppRequest" CRD.
-func appRequestCatalog(serveName string) *catalog.Catalog {
-	return catalog.NewFromEntryPointers(map[string]*types.CRDEntry{
+func appRequestBlueprint(serveName string) *blueprint.Blueprint {
+	return blueprint.NewFromEntryPointers(map[string]*types.CRDEntry{
 		"apprequest": {
 			APITypes: types.APITypes{
 				Group:   "platform.myorg.io",
@@ -49,7 +49,7 @@ func appRequestCatalog(serveName string) *catalog.Catalog {
 
 func TestApplyHandler_MissingName_Rejected(t *testing.T) {
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
-	h := applyHandler(kube, &ClusterRegistry{}, appRequestCatalog(""))
+	h := applyHandler(kube, &ClusterRegistry{}, appRequestBlueprint(""))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/apply", bytes.NewReader(appRequestBody("")))
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -74,7 +74,7 @@ func TestApplyHandler_MissingName_Rejected(t *testing.T) {
 
 func TestApplyHandler_NameSupplied_NotRejected(t *testing.T) {
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
-	h := applyHandler(kube, &ClusterRegistry{}, appRequestCatalog(""))
+	h := applyHandler(kube, &ClusterRegistry{}, appRequestBlueprint(""))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/apply", bytes.NewReader(appRequestBody("payments-api")))
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
@@ -91,7 +91,7 @@ func TestApplyHandler_NameSupplied_NotRejected(t *testing.T) {
 
 func TestApplyHandler_SerbeName_ResolvesWithoutClientName(t *testing.T) {
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
-	h := applyHandler(kube, &ClusterRegistry{}, appRequestCatalog("resolved-name"))
+	h := applyHandler(kube, &ClusterRegistry{}, appRequestBlueprint("resolved-name"))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/apply", bytes.NewReader(appRequestBody("")))
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)

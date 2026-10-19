@@ -34,9 +34,9 @@
                   <rect x="14" y="14" width="7" height="7"/>
                   <rect x="3" y="14" width="7" height="7"/>
                </svg>
-               All Catalogs
+               All Blueprints
             </a>
-            {{ if .HasOperatorCatalogs }}
+            {{ if .HasOperatorBlueprints }}
             <a href="/console/metrics" class="console-nav-item">
                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -53,7 +53,7 @@
                Manage Runtimes
             </a>
             {{ end }}
-            {{ if .HasOperatorCatalogs }}
+            {{ if .HasOperatorBlueprints }}
             <a href="/console/docs" class="console-nav-item">
                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -98,7 +98,7 @@
          </div>
          <div class="console-page">
             <!-- Warning Banner -->
-            {{ if and (not .AnyHealthy) (eq .TotalCatalogs 0) }}
+            {{ if and (not .AnyHealthy) (eq .TotalBlueprints 0) }}
             <div class="console-alert console-alert-warn mb-4">
                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="anim-pulse console-icon-shrink">
                   <circle cx="12" cy="12" r="10"/>
@@ -114,9 +114,9 @@
             <!-- Stats -->
             <div class="console-stats-grid">
                <div class="console-stat-card">
-                  <div class="console-stat-label">Catalogs</div>
-                  <div class="console-stat-value" data-live="totalCatalogs">{{ .TotalCatalogs }}</div>
-                  <div class="console-stat-sub" data-live="healthyCatalogs">{{ .HealthyCatalogs }} healthy</div>
+                  <div class="console-stat-label">Blueprints</div>
+                  <div class="console-stat-value" data-live="totalBlueprints">{{ .TotalBlueprints }}</div>
+                  <div class="console-stat-sub" data-live="healthyBlueprints">{{ .HealthyBlueprints }} healthy</div>
                </div>
                <div class="console-stat-card">
                   <div class="console-stat-label">CRDs</div>
@@ -134,14 +134,14 @@
                   <div class="console-stat-sub">CRs in cache</div>
                </div>
             </div>
-            <!-- Catalog cards -->
-            {{ if gt (len .Catalogs) 0 }}
+            <!-- Blueprint cards -->
+            {{ if gt (len .Blueprints) 0 }}
 
             <!-- Filter bar -->
             <div class="console-filter-bar" style="flex-wrap:wrap;gap:8px;align-items:center">
-              <button data-filter="all" class="console-filter-btn active">All ({{ len .Catalogs }})</button>
-              <button data-filter="healthy" class="console-filter-btn">Healthy ({{ .HealthyCatalogs }})</button>
-              <button data-filter="degraded" class="console-filter-btn">Degraded ({{ sub (len .Catalogs) .HealthyCatalogs }})</button>
+              <button data-filter="all" class="console-filter-btn active">All ({{ len .Blueprints }})</button>
+              <button data-filter="healthy" class="console-filter-btn">Healthy ({{ .HealthyBlueprints }})</button>
+              <button data-filter="degraded" class="console-filter-btn">Degraded ({{ sub (len .Blueprints) .HealthyBlueprints }})</button>
 
               {{ if gt (len .AllClusters) 0 }}
               <div class="console-filter-dropdown" id="clusterDropWrap" style="position:relative">
@@ -170,7 +170,7 @@
               {{ end }}
 
               <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-                <input type="text" id="catalogSearch" placeholder="Search catalogs…" class="console-search-input" oninput="applyFilters()">
+                <input type="text" id="blueprintSearch" placeholder="Search blueprints…" class="console-search-input" oninput="applyFilters()">
                 <div class="console-view-toggle">
                   <button class="console-view-btn active" id="viewGrid" data-view="grid" title="Grid view" onclick="setView('grid')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -182,16 +182,16 @@
               </div>
             </div>
 
-            <div class="console-card-grid" id="catalogGrid">
-               {{ range $cat := .Catalogs }}
-               {{ if gt (len $cat.Namespaces) 1 }}
-               {{ range $ns := $cat.Namespaces }}
-               {{ $detail := index $cat.NamespaceDetails $ns }}
-               <div class="console-card catalog-item"
-                    data-catalog="{{ $cat.Name }}"
+            <div class="console-card-grid" id="blueprintGrid">
+               {{ range $bp := .Blueprints }}
+               {{ if gt (len $bp.Namespaces) 1 }}
+               {{ range $ns := $bp.Namespaces }}
+               {{ $detail := index $bp.NamespaceDetails $ns }}
+               <div class="console-card blueprint-item"
+                    data-blueprint="{{ $bp.Name }}"
                     data-name="{{ $ns }}"
                     data-status="{{ if $detail.Healthy }}healthy{{ else }}degraded{{ end }}"
-                    data-cluster="{{ $cat.ClusterName }}"
+                    data-cluster="{{ $bp.ClusterName }}"
                     data-namespaces="{{ $ns }}">
                   <div class="console-card-body">
                      <div class="flex items-center justify-between mb-2">
@@ -206,14 +206,14 @@
                         </span>
                         {{ end }}
                      </div>
-                     {{ if $cat.ClusterName }}
+                     {{ if $bp.ClusterName }}
                      <div class="flex gap-2 flex-wrap mb-2">
-                       <span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $cat.ClusterName }}</span>
-                       <span class="console-dep-pill">{{ $cat.Name }}</span>
+                       <span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $bp.ClusterName }}</span>
+                       <span class="console-dep-pill">{{ $bp.Name }}</span>
                      </div>
                      {{ else }}
                      <div class="flex gap-2 flex-wrap mb-2">
-                       <span class="console-dep-pill">{{ $cat.Name }}</span>
+                       <span class="console-dep-pill">{{ $bp.Name }}</span>
                      </div>
                      {{ end }}
                      <p class="console-card-desc">
@@ -238,7 +238,7 @@
                            <span class="console-card-row-value">{{ $detail.Resources }}</span>
                         </div>
                      </div>
-                     <a href="/console/catalog/{{ $cat.Name }}?ns={{ $ns }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
+                     <a href="/console/blueprint/{{ $bp.Name }}?ns={{ $ns }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
                         View Panel
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                            <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -248,16 +248,16 @@
                </div>
                {{ end }}
                {{ else }}
-               <div class="console-card catalog-item"
-                    data-catalog="{{ $cat.Name }}"
-                    data-name="{{ $cat.Name }}"
-                    data-status="{{ if $cat.Healthy }}healthy{{ else }}degraded{{ end }}"
-                    data-cluster="{{ $cat.ClusterName }}"
-                    data-namespaces="{{ range $i, $ns := $cat.Namespaces }}{{ if $i }},{{ end }}{{ $ns }}{{ end }}">
+               <div class="console-card blueprint-item"
+                    data-blueprint="{{ $bp.Name }}"
+                    data-name="{{ $bp.Name }}"
+                    data-status="{{ if $bp.Healthy }}healthy{{ else }}degraded{{ end }}"
+                    data-cluster="{{ $bp.ClusterName }}"
+                    data-namespaces="{{ range $i, $ns := $bp.Namespaces }}{{ if $i }},{{ end }}{{ $ns }}{{ end }}">
                   <div class="console-card-body">
                      <div class="flex items-center justify-between mb-2">
-                        <h3 class="console-card-title">{{ $cat.Name }}</h3>
-                        {{ if $cat.Healthy }}
+                        <h3 class="console-card-title">{{ $bp.Name }}</h3>
+                        {{ if $bp.Healthy }}
                         <span class="console-badge console-badge-healthy" data-live="badge">
                         <span class="console-status-dot healthy"></span>Healthy
                         </span>
@@ -267,35 +267,35 @@
                         </span>
                         {{ end }}
                      </div>
-                     {{ if or $cat.ClusterName $cat.Namespaces }}
+                     {{ if or $bp.ClusterName $bp.Namespaces }}
                      <div class="flex gap-2 flex-wrap mb-2">
-                       {{ if $cat.ClusterName }}<span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $cat.ClusterName }}</span>{{ end }}
-                       {{ range $cat.Namespaces }}<span class="console-dep-pill">{{ . }}</span>{{ end }}
+                       {{ if $bp.ClusterName }}<span class="console-dep-pill" style="background:var(--bg-hover)">⬡ {{ $bp.ClusterName }}</span>{{ end }}
+                       {{ range $bp.Namespaces }}<span class="console-dep-pill">{{ . }}</span>{{ end }}
                      </div>
                      {{ end }}
                      <p class="console-card-desc">
-                        {{ if $cat.Description }}{{ truncate $cat.Description 100 }}{{ else }}<em>No description</em>{{ end }}
+                        {{ if $bp.Description }}{{ truncate $bp.Description 100 }}{{ else }}<em>No description</em>{{ end }}
                      </p>
-                     {{ if $cat.Version }}
-                     <div class="text-xs text-muted font-mono mb-3">{{ if not (hasPrefix $cat.Version "v") }}v{{ end }}{{ $cat.Version }}</div>
+                     {{ if $bp.Version }}
+                     <div class="text-xs text-muted font-mono mb-3">{{ if not (hasPrefix $bp.Version "v") }}v{{ end }}{{ $bp.Version }}</div>
                      {{ end }}
                   </div>
                   <div class="console-card-footer">
                      <div class="console-card-meta mb-3">
                         <div class="console-card-row">
                            <span class="console-card-row-label">CRDs</span>
-                           <span class="console-card-row-value" data-live="totalCRDs">{{ $cat.TotalCRDs }} <span class="text-muted">({{ $cat.HealthyCRDs }} healthy)</span></span>
+                           <span class="console-card-row-value" data-live="totalCRDs">{{ $bp.TotalCRDs }} <span class="text-muted">({{ $bp.HealthyCRDs }} healthy)</span></span>
                         </div>
                         <div class="console-card-row">
                            <span class="console-card-row-label">Workers</span>
-                           <span class="console-card-row-value" data-live="totalWorkers">{{ $cat.TotalWorkers }}</span>
+                           <span class="console-card-row-value" data-live="totalWorkers">{{ $bp.TotalWorkers }}</span>
                         </div>
                         <div class="console-card-row">
                            <span class="console-card-row-label">Resources</span>
-                           <span class="console-card-row-value" data-live="totalResources">{{ $cat.TotalResources }}</span>
+                           <span class="console-card-row-value" data-live="totalResources">{{ $bp.TotalResources }}</span>
                         </div>
                      </div>
-                     <a href="/console/catalog/{{ $cat.Name }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
+                     <a href="/console/blueprint/{{ $bp.Name }}" class="console-btn console-btn-primary w-full" style="justify-content:center">
                         View Panel
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                            <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -308,10 +308,10 @@
             </div>
 
             <!-- Pagination -->
-            {{ if gt (len .Catalogs) 12 }}
+            {{ if gt (len .Blueprints) 12 }}
             <div class="console-pagination">
               <div class="console-pagination-info">
-                Showing <span id="pageStart">1</span>–<span id="pageEnd">12</span> of <span id="totalCount">{{ len .Catalogs }}</span> catalogs
+                Showing <span id="pageStart">1</span>–<span id="pageEnd">12</span> of <span id="totalCount">{{ len .Blueprints }}</span> blueprints
               </div>
               <div class="console-pagination-btns">
                 <button id="prevPage" class="console-page-btn" disabled>← Prev</button>
@@ -321,16 +321,16 @@
             </div>
             {{ end }}
 
-            <div id="catalogEmpty" class="console-empty-state hidden">
+            <div id="blueprintEmpty" class="console-empty-state hidden">
               <div class="console-empty-state-icon">⬡</div>
-              <div class="console-empty-state-title">No catalogs match your filter</div>
+              <div class="console-empty-state-title">No blueprints match your filter</div>
               <p class="console-empty-state-text">Try changing your search or filter criteria.</p>
             </div>
 
             {{ else }}
             <div class="console-empty-state">
                <div class="console-empty-state-icon">⬡</div>
-               <div class="console-empty-state-title">No Catalogs found</div>
+               <div class="console-empty-state-title">No Blueprints found</div>
                <p class="console-empty-state-text">No Inrun runtimes are responding. Make sure at least one instance is running.</p>
             </div>
             {{ end }}
@@ -389,11 +389,11 @@
         var PAGE_SIZE = 12;
         var currentPage = 1;
         var activeStatus = 'all';
-        var currentView = localStorage.getItem('console-catalog-view') || 'grid';
+        var currentView = localStorage.getItem('console-blueprint-view') || 'grid';
         var filtered = [];
 
         function allItems() {
-          return Array.from(document.querySelectorAll('.catalog-item'));
+          return Array.from(document.querySelectorAll('.blueprint-item'));
         }
 
         function checkedValues(cls) {
@@ -401,7 +401,7 @@
         }
 
         window.applyFilters = function() {
-          var q = (document.getElementById('catalogSearch') || {}).value || '';
+          var q = (document.getElementById('blueprintSearch') || {}).value || '';
           var ql = q.toLowerCase();
           var clusters = checkedValues('cluster-cb');
           var namespaces = checkedValues('ns-cb');
@@ -427,7 +427,7 @@
           var items = allItems();
           items.forEach(function(el) { el.style.display = 'none'; });
 
-          var empty = document.getElementById('catalogEmpty');
+          var empty = document.getElementById('blueprintEmpty');
           if (filtered.length === 0) {
             if (empty) empty.classList.remove('hidden');
             updatePagination(0);
@@ -470,8 +470,8 @@
 
         window.setView = function(view) {
           currentView = view;
-          localStorage.setItem('console-catalog-view', view);
-          var grid = document.getElementById('catalogGrid');
+          localStorage.setItem('console-blueprint-view', view);
+          var grid = document.getElementById('blueprintGrid');
           if (grid) grid.className = view === 'list' ? 'console-card-grid list-view' : 'console-card-grid';
           document.getElementById('viewGrid').classList.toggle('active', view === 'grid');
           document.getElementById('viewList').classList.toggle('active', view === 'list');

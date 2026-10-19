@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/health"
@@ -28,11 +28,11 @@ type core struct {
 
 // newCore builds the scheme and the core components, created here and started
 // later by inrun in registration order.
-func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) (core, error) {
+func newCore(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint) (core, error) {
 	// Each CRD type (e.g. *PipelineList) must be registered with the scheme so
 	// the REST client knows how to decode API server responses. For dynamic CRDs
 	// (unstructured mode), this is a no-op — they use the dynamic client.
-	scheme, err := catalog.NewSchemeRegistry(cat)
+	scheme, err := blueprint.NewSchemeRegistry(bp)
 	if err != nil {
 		return core{}, fmt.Errorf("failed to build scheme registry: %w", err)
 	}
@@ -48,7 +48,7 @@ func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) (cor
 	return core{
 		scheme: scheme,
 		kube:   kube,
-		// HTTP-only (health, readiness, metrics, Catalog API routes). Routes are
+		// HTTP-only (health, readiness, metrics, Blueprint API routes). Routes are
 		// registered before Start() binds the port.
 		hs: health.NewHealthServer(cfg),
 		// Surfaces notable state changes to the Kubernetes event stream (visible
@@ -71,7 +71,7 @@ func newCore(ctx context.Context, cfg *config.Config, cat *catalog.Catalog) (cor
 // Stop().
 func components(c core, infFactory *informer.Factory, coord *coordinator.DependencyCoordinator) []domain.Component {
 	return []domain.Component{
-		c.hs,            // 1. HTTP server — /ready, /livez, /catalog routes
+		c.hs,            // 1. HTTP server — /ready, /livez, /blueprint routes
 		c.kube,          // 2. REST clients — already started, managed for Stop()
 		c.ev,            // 3. event recorder — depends on kube
 		c.queueRegistry, // 4. per-CRD bounded queues

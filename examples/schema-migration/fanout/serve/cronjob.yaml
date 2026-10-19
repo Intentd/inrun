@@ -1,5 +1,5 @@
 # Serve field config for the schema-evolution example.
-# Included from catalog.yaml via serve.include.
+# Included from blueprint.yaml via serve.include.
 
 fields:
   # ── Fanout: one cron string → five structured spec fields ─────────────────

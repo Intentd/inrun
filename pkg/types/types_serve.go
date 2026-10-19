@@ -20,7 +20,7 @@ const (
 // ServeConfig declares serve exposure settings for a CRD entry.
 type ServeConfig struct {
 	// Enabled surfaces this CRD in the Console as a self-service form.
-	// Requires gateway.api.enabled: true on the Catalog.
+	// Requires gateway.api.enabled: true on the Blueprint.
 	// Default: false.
 	Enabled bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
 
@@ -28,7 +28,7 @@ type ServeConfig struct {
 	// Both default to true for backward compatibility.
 	Modes *ServeModes `yaml:"modes,omitempty" json:"modes,omitempty"`
 
-	// Include is a path (relative to the catalog file) to a YAML file with a
+	// Include is a path (relative to the blueprint file) to a YAML file with a
 	// "fields:" map and/or a "labels:" or "annotations:" block (same shape as the
 	// inline equivalents below). Expanded at load time — the result is merged
 	// into Fields, Labels and Annotations respectively, with inline entries
@@ -119,7 +119,7 @@ type ServeConfig struct {
 	// too, for a CRD whose instances always land in one fixed namespace.
 	//
 	// Required when the CRD is namespaced (the default) and serve.enabled is
-	// true — see Catalog.validateServeNamespace. Meaningless, and rejected at
+	// true — see Blueprint.validateServeNamespace. Meaningless, and rejected at
 	// load time, on a cluster-scoped CRD (namespaced: false) — there's no
 	// namespace to resolve into.
 	//
@@ -245,7 +245,7 @@ type ServeFieldConfig struct {
 	// as the headline denial reason), so the field a developer sees first is
 	// also the one whose error they see first when several fail at once.
 	// Two fields on the same CRD sharing a non-zero Order is a load-time
-	// error (see Catalog.validateServeFieldOrder) for exactly this reason.
+	// error (see Blueprint.validateServeFieldOrder) for exactly this reason.
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
 
 	// Category is a section heading for visual grouping. Fields sharing a category
@@ -268,7 +268,7 @@ type ServeFieldConfig struct {
 	// the browser enforces this natively (asterisk on the label, form cannot
 	// be submitted while Empty() — and is also enforced server-side: an
 	// implicit exists validation rule is synthesized automatically at
-	// catalog load time (see CRDEntry.RequiredServeFieldRules), covering every
+	// blueprint load time (see CRDEntry.RequiredServeFieldRules), covering every
 	// client of the Gateway API, not just the Console form. No matching
 	// validation.rules entry needs to be hand-written.
 	Required bool `yaml:"required,omitempty" json:"required,omitempty"`
@@ -319,7 +319,7 @@ type ServeFieldConfig struct {
 	// Values is a fanout map from dot-notation spec paths to template expressions.
 	// Use when one submitted field must be split into multiple CR spec fields.
 	//
-	// Example — caller submits "image: ghcr.io/myorg/app:v1.2.3"; catalog fans
+	// Example — caller submits "image: ghcr.io/myorg/app:v1.2.3"; blueprint fans
 	// it out to image.registry, image.repository, image.tag:
 	//
 	//   values:

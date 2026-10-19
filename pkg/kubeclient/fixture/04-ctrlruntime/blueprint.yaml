@@ -1,0 +1,51 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: webapp-ctrlruntime
+  author: intentd
+  version: 0.1.0
+  description: >
+    WebApp operator — reconciler written in controller-runtime style.
+    The constructor wraps it with domain.ReconcilerFrom and adapter.ToClient
+    so it plugs into Inrun without rewriting the reconciler body.
+
+spec:
+  crds:
+    webapp:
+      crdFile: ./crd-webapp.yaml
+      crFiles:
+        - ./cr-webapp.yaml
+      apiTypes:
+        group: migration.demo.inrun.dev
+        version: v1alpha1
+        kind: WebApp
+        plural: webapps
+        object: WebApp
+        objectList: WebAppList
+        location: github.com/intentd/inrun-ctrlruntime-constructor/api/v1alpha1
+        alias: webappv1
+      operatorBox:
+        reconcile:
+          default: false
+          # The reconciler creates both through the controller-runtime client;
+          # Inrun generates RBAC for exactly these kinds.
+          managedResources:
+            - kind: Deployment
+            - kind: ConfigMap
+          constructor:
+            location: github.com/intentd/inrun-ctrlruntime-constructor/constructor
+            function: NewWebAppReconciler
+            alias: webappconstructor
+          workers: 2
+          resync: 30s
+        observe:
+          watch:
+            - apiVersion: v1
+              kind: ConfigMap
+              index:
+                - name: app
+                  field: "metadata.name"
+        preReconcile:
+          reconcileGate:
+            eventAware: true
+

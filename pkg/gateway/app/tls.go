@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -30,7 +30,7 @@ type webhookTLS struct {
 // both TLS_CERT and TLS_KEY. Otherwise it generates a self-signed one for the
 // gateway Service, stores it in the inrun-tls Secret and writes it to files
 // for the HTTPS server.
-func ensureTLS(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, kube *kubeclient.Kubeclient) (*webhookTLS, error) {
+func ensureTLS(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint, kube *kubeclient.Kubeclient) (*webhookTLS, error) {
 	webhooks := cfg.Security().Webhooks
 	if webhooks.TLSCert != "" && webhooks.TLSKey != "" {
 		logger.Info().Str("cert", webhooks.TLSCert).Msg("security: using provided TLS certificates")
@@ -40,10 +40,10 @@ func ensureTLS(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, ku
 	logger.Info().Msg("security: generating TLS certificates")
 	mgr := certmanager.New(kube.Clientset())
 	bundle, err := mgr.EnsureCertificate(ctx, certmanager.CertificateSpec{
-		ServiceName: cat.GatewayServiceName(),
+		ServiceName: bp.GatewayServiceName(),
 		Namespace:   cfg.Cluster().Namespace(),
 		SecretName:  certmanager.DefaultTLSSecretName,
-		ValidFor:    cat.CertValidForStr(),
+		ValidFor:    bp.CertValidForStr(),
 		BaseLabels:  labels.InrunResourceLabels(),
 	})
 	if err != nil {

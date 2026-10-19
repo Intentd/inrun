@@ -47,7 +47,7 @@ import (
 )
 
 // ResourceProbeHooks returns the hook implementation for the ResourceProbe CRD.
-// Registered in the Catalog under operatorBox.reconciler.hooks.function.
+// Registered in the Blueprint under operatorBox.reconciler.hooks.function.
 func ResourceProbeHooks() domain.AnyReconcileHooks {
 	return domain.ReconcileHooks[*rpv1alpha1.ResourceProbe]{
 		OnReconcile: onReconcile,

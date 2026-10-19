@@ -200,23 +200,23 @@
     if (!s) return;
 
     // ── Global stats (index page) ──
-    setText(document.querySelector('[data-live="totalCatalogs"]'), s.totalCatalogs);
+    setText(document.querySelector('[data-live="totalBlueprints"]'), s.totalBlueprints);
     setText(document.querySelector('[data-live="totalCRDs"]'), s.totalCRDs);
     setText(document.querySelector('[data-live="totalWorkers"]'), s.totalWorkers);
     setText(document.querySelector('[data-live="totalResources"]'), s.totalResources);
-    var healthyEl = document.querySelector('[data-live="healthyCatalogs"]');
-    if (healthyEl) setText(healthyEl, s.healthyCatalogs + ' healthy');
+    var healthyEl = document.querySelector('[data-live="healthyBlueprints"]');
+    if (healthyEl) setText(healthyEl, s.healthyBlueprints + ' healthy');
 
-    // ── Per-catalog cards (index page) ──
-    if (data.catalogs && data.catalogs.length) {
-      data.catalogs.forEach(function (cat) {
-        var card = document.querySelector('[data-catalog="' + CSS.escape(cat.name) + '"]');
+    // ── Per-blueprint cards (index page) ──
+    if (data.blueprints && data.blueprints.length) {
+      data.blueprints.forEach(function (bp) {
+        var card = document.querySelector('[data-blueprint="' + CSS.escape(bp.name) + '"]');
         if (!card) return;
 
         // Badge
         var badge = card.querySelector('[data-live="badge"]');
         if (badge) {
-          var healthy = cat.healthy;
+          var healthy = bp.healthy;
           badge.className = 'console-badge ' + (healthy ? 'console-badge-healthy' : 'console-badge-degraded');
           badge.innerHTML = healthy
             ? '<span class="console-status-dot healthy"></span>Healthy'
@@ -226,10 +226,10 @@
         // Meta values
         var crdEl = card.querySelector('[data-live="totalCRDs"]');
         if (crdEl) {
-          crdEl.innerHTML = cat.totalCRDs + ' <span class="text-muted">(' + cat.healthyCRDs + ' healthy)</span>';
+          crdEl.innerHTML = bp.totalCRDs + ' <span class="text-muted">(' + bp.healthyCRDs + ' healthy)</span>';
         }
-        setText(card.querySelector('[data-live="totalWorkers"]'), cat.totalWorkers);
-        setText(card.querySelector('[data-live="totalResources"]'), cat.totalResources);
+        setText(card.querySelector('[data-live="totalWorkers"]'), bp.totalWorkers);
+        setText(card.querySelector('[data-live="totalResources"]'), bp.totalResources);
       });
     }
   }
@@ -278,7 +278,7 @@
 
   connectSSE();
 
-  /* ── 4. CRD filter + search (catalog page) ─────────────────── */
+  /* ── 4. CRD filter + search (blueprint page) ─────────────────── */
   var PAGE_SIZE = 12;
   var currentFilter = 'all';
   var currentSearch = '';

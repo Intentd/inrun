@@ -2,7 +2,7 @@
 
 A cluster-scoped `SecretDistribution` copies a Secret from a source namespace
 into each target namespace and keeps the copies in sync. It shows that
-Catalogs manage built-in kinds, not only new ones.
+Blueprints manage built-in kinds, not only new ones.
 
 > **Trust:** whoever can create a `SecretDistribution` can copy any Secret the
 > operator can read into any namespace. Treat it as a platform-internal CRD:

@@ -12,7 +12,7 @@
 //
 // Authoring-time only: every caller (inrun push/pull/inspect/patterns and the
 // e2e/validate/simulate commands) is already !runtime && !gateway tagged.
-// The runtime and gateway only ever read an already-merged catalog.yaml key
+// The runtime and gateway only ever read an already-merged blueprint.yaml key
 // from a ConfigMap — module/registry/helm imports are expanded before that
 // point, not by either binary. No stub needed here: nothing in the
 // runtime/gateway build graph calls into this file.
@@ -548,32 +548,32 @@ func artifactMetaToAnnotations(meta *PatternMeta, ref *Ref) map[string]string {
 	}
 	if meta.Typed != nil {
 		if meta.Typed.HasHooks {
-			ann["io.inrun.catalog.has_hooks"] = "true"
+			ann["io.inrun.blueprint.has_hooks"] = "true"
 		}
 		if meta.Typed.HasConstructor {
-			ann["io.inrun.catalog.has_constructor"] = "true"
+			ann["io.inrun.blueprint.has_constructor"] = "true"
 		}
 		if meta.Typed.HasHooks || meta.Typed.HasConstructor {
-			ann["io.inrun.catalog.typed"] = "true"
+			ann["io.inrun.blueprint.typed"] = "true"
 		}
 	}
 	if meta.Deprecated != nil {
-		ann["io.inrun.catalog.deprecated"] = "true"
+		ann["io.inrun.blueprint.deprecated"] = "true"
 		if meta.Deprecated.MigratedTo != "" {
-			ann["io.inrun.catalog.deprecated.migrated_to"] = meta.Deprecated.MigratedTo
+			ann["io.inrun.blueprint.deprecated.migrated_to"] = meta.Deprecated.MigratedTo
 		}
 		if meta.Deprecated.Message != "" {
-			ann["io.inrun.catalog.deprecated.message"] = meta.Deprecated.Message
+			ann["io.inrun.blueprint.deprecated.message"] = meta.Deprecated.Message
 		}
 		if meta.Deprecated.TimelineFrom != "" {
-			ann["io.inrun.catalog.deprecated.timeline_from"] = meta.Deprecated.TimelineFrom
+			ann["io.inrun.blueprint.deprecated.timeline_from"] = meta.Deprecated.TimelineFrom
 		}
 		if meta.Deprecated.TimelineTo != "" {
-			ann["io.inrun.catalog.deprecated.timeline_to"] = meta.Deprecated.TimelineTo
+			ann["io.inrun.blueprint.deprecated.timeline_to"] = meta.Deprecated.TimelineTo
 		}
 	}
 	if meta.RuntimeVersion != "" {
-		ann["io.inrun.catalog.runtime_version"] = meta.RuntimeVersion
+		ann["io.inrun.blueprint.runtime_version"] = meta.RuntimeVersion
 	}
 	return ann
 }
@@ -638,20 +638,20 @@ func annotationsToMeta(ann map[string]string) *PatternMeta {
 			TestedAt: ann["io.inrun.intent.tested_at"],
 		}
 	}
-	if ann["io.inrun.catalog.typed"] == "true" {
+	if ann["io.inrun.blueprint.typed"] == "true" {
 		meta.Typed = &PatternTyped{
-			HasHooks:       ann["io.inrun.catalog.has_hooks"] == "true",
-			HasConstructor: ann["io.inrun.catalog.has_constructor"] == "true",
+			HasHooks:       ann["io.inrun.blueprint.has_hooks"] == "true",
+			HasConstructor: ann["io.inrun.blueprint.has_constructor"] == "true",
 		}
 	}
-	if ann["io.inrun.catalog.deprecated"] == "true" {
+	if ann["io.inrun.blueprint.deprecated"] == "true" {
 		meta.Deprecated = &PatternDeprecated{
-			MigratedTo:   ann["io.inrun.catalog.deprecated.migrated_to"],
-			Message:      ann["io.inrun.catalog.deprecated.message"],
-			TimelineFrom: ann["io.inrun.catalog.deprecated.timeline_from"],
-			TimelineTo:   ann["io.inrun.catalog.deprecated.timeline_to"],
+			MigratedTo:   ann["io.inrun.blueprint.deprecated.migrated_to"],
+			Message:      ann["io.inrun.blueprint.deprecated.message"],
+			TimelineFrom: ann["io.inrun.blueprint.deprecated.timeline_from"],
+			TimelineTo:   ann["io.inrun.blueprint.deprecated.timeline_to"],
 		}
 	}
-	meta.RuntimeVersion = ann["io.inrun.catalog.runtime_version"]
+	meta.RuntimeVersion = ann["io.inrun.blueprint.runtime_version"]
 	return meta
 }

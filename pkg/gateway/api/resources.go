@@ -6,7 +6,7 @@
 //
 // These endpoints are for external callers (CI, Terraform, Slack bots) that
 // need raw Kubernetes CR state without kubeconfig. The Console uses the
-// runtime's /catalog/{crd}/cr/... endpoints (richer, informer-cached); these
+// runtime's /blueprint/{crd}/cr/... endpoints (richer, informer-cached); these
 // endpoints call the Kubernetes API directly via the dynamic client.
 //
 // Deletion protection is enforced by the admission webhook when enabled.
@@ -26,7 +26,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
@@ -43,11 +43,11 @@ import (
 func resourcesHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 ) http.HandlerFunc {
 	var notes types.KELFunctionRegistry
-	if !cat.Empty() {
-		notes = cat.UserFunctions()
+	if !bp.Empty() {
+		notes = bp.UserFunctions()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		kind, ns, name, err := parsePath(r.URL.Path)
@@ -61,11 +61,11 @@ func resourcesHandler(
 		// ─── Debug: Log available kinds ──────────────────────────────────────────────
 		logger.FromContext(r.Context()).Debug().
 			Str("kind", kind).
-			Str("availableKinds", strings.Join(cat.ListKinds(), ", ")).
+			Str("availableKinds", strings.Join(bp.ListKinds(), ", ")).
 			Msg("resourcesHandler: lookup")
 
 		// Resolve CRD entry — accept Kubernetes Kind, serve target, or alias.
-		resolution := cat.LookupByKindOrAlias(kind)
+		resolution := bp.LookupByKindOrAlias(kind)
 		if resolution == nil {
 			writeJSONError(w, http.StatusNotFound, "kind not found",
 				fmt.Sprintf("unknown kind %q", kind),

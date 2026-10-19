@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -28,10 +28,10 @@ import (
 
 // Deps are the long-lived dependencies a pass uses, held by the coordinator.
 type Deps struct {
-	Kube     kubeclient.Interface
-	Event    event.Recorder
-	Cat      *catalog.Catalog
-	Registry prepare.CatalogRegistry
+	Kube      kubeclient.Interface
+	Event     event.Recorder
+	Blueprint *blueprint.Blueprint
+	Registry  prepare.BlueprintRegistry
 }
 
 // Input is one pass: a key of a CRD, its reconciler and its health.
@@ -78,11 +78,11 @@ func Run(ctx context.Context, d Deps, in Input) Outcome {
 	// Returns nil when the object is not in cache (deleted between dequeue and here)
 	// or when the namespace guard blocks it — both are silent skips, not errors.
 	prepared, valResult, err := prepare.Prepare(ctx, prepare.Input{
-		Entry:    entry,
-		Key:      key,
-		Cat:      d.Cat,
-		Kube:     d.Kube,
-		Registry: d.Registry,
+		Entry:     entry,
+		Key:       key,
+		Blueprint: d.Blueprint,
+		Kube:      d.Kube,
+		Registry:  d.Registry,
 	})
 	if err != nil {
 		logger.Error().Err(err).Str("gvk", gvk).Str("key", key).Msg("prepare failed")
@@ -103,7 +103,7 @@ func Run(ctx context.Context, d Deps, in Input) Outcome {
 	}
 	if err := maintain.Apply(ctx, maintain.Input{
 		CRD:        entry.CRD,
-		Cat:        d.Cat,
+		Blueprint:  d.Blueprint,
 		Kube:       d.Kube,
 		Recorder:   d.Event,
 		ForCleanup: check.due,

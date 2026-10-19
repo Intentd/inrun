@@ -5,7 +5,7 @@ metadata:
   description: app workload — ArgoCD Application created on cycle 1
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../cr-default.yaml
   cycles: 3
 

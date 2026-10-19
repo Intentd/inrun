@@ -11,13 +11,13 @@ expect:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/platform/health
+          path: /blueprint/platform/health
           jq: .totalReconciles
           equals: "0"
         - leaderElection:
             lease: inrun-leader
             namespace: inrun-system
           port: 8080
-          path: /catalog/platform/health
+          path: /blueprint/platform/health
           jq: .hasUnhealthyDependencies
           equals: "true"

@@ -17,7 +17,7 @@ import (
 // Cleanup has two independent sources, each with durable state on the CR so the
 // clock survives restarts and leader changes:
 //
-//   - the Catalog's operatorBox.runtime.cleanup conditions, evaluated before
+//   - the Blueprint's operatorBox.runtime.cleanup conditions, evaluated before
 //     reconcile; cleanupPendingAnnotation records when they were first met;
 //   - the reconciler's Result.Cleanup, known only after reconcile;
 //     cleanupDueAnnotation records when it falls due.
@@ -32,7 +32,7 @@ const (
 )
 
 const (
-	catalogCleanupReason    = "catalog cleanup conditions met"
+	blueprintCleanupReason  = "blueprint cleanup conditions met"
 	reconcilerCleanupReason = "requested by the reconciler"
 )
 
@@ -75,8 +75,8 @@ type annotationPatcher interface {
 	Patch(ctx context.Context, obj domain.Object, patch kubeclient.Patch, opts metav1.PatchOptions) error
 }
 
-// checkCleanup settles the Catalog's cleanup conditions and reports whether any
-// cleanup, from the Catalog or from an earlier Result, is due.
+// checkCleanup settles the Blueprint's cleanup conditions and reports whether any
+// cleanup, from the Blueprint or from an earlier Result, is due.
 func checkCleanup(
 	ctx context.Context,
 	kube annotationPatcher,
@@ -95,7 +95,7 @@ func checkCleanup(
 
 		switch {
 		case met && cleanup.After.Duration == 0:
-			c.consider(0, catalogCleanupReason)
+			c.consider(0, blueprintCleanupReason)
 
 		case met && !pending:
 			now := time.Now().UTC().Format(time.RFC3339)
@@ -106,15 +106,15 @@ func checkCleanup(
 				Str("key", key).
 				Str("after", cleanup.After.Duration.String()).
 				Msg("cleanup: conditions met — grace period started")
-			c.consider(cleanup.After.Duration, catalogCleanupReason)
+			c.consider(cleanup.After.Duration, blueprintCleanupReason)
 
 		case met:
 			t, err := time.Parse(time.RFC3339, since)
 			if err != nil {
 				// An unparseable timestamp is treated as elapsed.
-				c.consider(0, catalogCleanupReason)
+				c.consider(0, blueprintCleanupReason)
 			} else {
-				c.consider(cleanup.After.Duration-time.Since(t), catalogCleanupReason)
+				c.consider(cleanup.After.Duration-time.Since(t), blueprintCleanupReason)
 			}
 
 		case pending:
@@ -192,10 +192,9 @@ func settleResultCleanup(ctx context.Context, kube annotationPatcher, obj domain
 }
 
 // patchAnnotations sets and removes annotations with a JSON merge patch.
-// obj itself is never modified: it may be the informer cache's copy.
+// obj is the patch's base and is not modified.
 func patchAnnotations(ctx context.Context, kube annotationPatcher, obj domain.Object, set map[string]string, remove ...string) error {
-	base := obj.DeepCopyObject().(domain.Object)
-	modified := obj.DeepCopyObject().(domain.Object)
+	modified := domain.Copy(obj)
 
 	ann := make(map[string]string, len(modified.GetAnnotations())+len(set))
 	for k, v := range modified.GetAnnotations() {
@@ -209,7 +208,7 @@ func patchAnnotations(ctx context.Context, kube annotationPatcher, obj domain.Ob
 	}
 	modified.SetAnnotations(ann)
 
-	return kube.Patch(ctx, modified, kubeclient.MergeFrom(base), metav1.PatchOptions{})
+	return kube.Patch(ctx, modified, kubeclient.MergeFrom(obj), metav1.PatchOptions{})
 }
 
 // deleteCR issues a foreground delete for obj. Called by the worker after

@@ -16,8 +16,8 @@ type DeletionProtectionOverride struct {
 	// StrictMode controls whether removing the deletion-protection label from a resource
 	// is itself treated as a deletion attempt and blocked.
 	// When true, the only way to remove the label (and thus unprotect a resource) is to
-	// disable strictMode in the Catalog and restart Inrun Gateway.
-	// Default: catalog level strictMode.
+	// disable strictMode in the Blueprint and restart Inrun Gateway.
+	// Default: blueprint level strictMode.
 	StrictMode *bool `yaml:"strictMode,omitempty" json:"strictMode,omitempty"`
 }
 
@@ -55,8 +55,8 @@ func (c *CRDEntry) ShouldProtectCRs() bool {
 }
 
 // IsStrictDeletionProtection returns whether strict deletion-protection semantics apply.
-func (c *CRDEntry) IsStrictDeletionProtection(catalogStrictMode bool) bool {
-	if !catalogStrictMode {
+func (c *CRDEntry) IsStrictDeletionProtection(blueprintStrictMode bool) bool {
+	if !blueprintStrictMode {
 		return false
 	}
 	dp := c.deletionProtection()

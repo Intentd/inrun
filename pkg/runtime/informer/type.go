@@ -81,9 +81,9 @@ type Factory struct {
 	// Checked in handleEvent before enqueue — read lock only on the hot path.
 	namespaceFilters map[string]*NamespaceFilter
 
-	// catalog is the domain.Catalog with useful interface methods for the informer
-	catalog domain.Catalog
-	cs      kubernetes.Interface
+	// blueprint is the domain.Blueprint with useful interface methods for the informer
+	blueprint domain.Blueprint
+	cs        kubernetes.Interface
 }
 
 type FactoryOptions struct {
@@ -92,7 +92,7 @@ type FactoryOptions struct {
 	DefaultWq     *queue.Workqueue
 	Scheme        *runtime.Scheme
 	Config        *config.Config
-	Catalog       domain.Catalog
+	Blueprint     domain.Blueprint
 	ClientSet     kubernetes.Interface
 }
 
@@ -104,8 +104,8 @@ func SharedInformerFactory(restConfig *rest.Config, opts FactoryOptions) *Factor
 		defaultWq:        opts.DefaultWq,
 		namespace:        opts.Config.Cluster().Namespace(),
 		scheme:           opts.Scheme,
-		defaultResync:    opts.Config.Catalog().DefaultResync(),
-		catalog:          opts.Catalog,
+		defaultResync:    opts.Config.Blueprint().DefaultResync(),
+		blueprint:        opts.Blueprint,
 		cs:               opts.ClientSet,
 		informers:        make(map[string]*InformerEntry),
 		missing:          make(map[string]*InformerEntry),

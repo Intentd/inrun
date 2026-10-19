@@ -189,20 +189,20 @@ subjects:
 ---
 apiVersion: v1
 data:
-  catalog.yaml: |
+  blueprint.yaml: |
     apiVersion: inrun.dev/v1
-    kind: Catalog
+    kind: Blueprint
     metadata:
         name: hello-website
-        description: Fixture catalog for chart e2e — one CRD, one Deployment, one Service.
+        description: Fixture blueprint for chart e2e — one CRD, one Deployment, one Service.
         version: 0.1.0
     spec:
         crds:
             website:
-                catalogName: hello-website
-                catalogNamespace: default
-                catalogDescription: Fixture catalog for chart e2e — one CRD, one Deployment, one Service.
-                catalogVersion: 0.1.0
+                blueprintName: hello-website
+                blueprintNamespace: default
+                blueprintDescription: Fixture blueprint for chart e2e — one CRD, one Deployment, one Service.
+                blueprintVersion: 0.1.0
                 description: 'Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website'
                 mode: dynamic
                 apiTypes:
@@ -251,6 +251,6 @@ metadata:
     app.kubernetes.io/name: inrun
     app.kubernetes.io/tag: inrun-internal
     inrun.dev/deletion-protection: "true"
-  name: inrun-catalog
+  name: inrun-blueprint
   namespace: inrun-system
 

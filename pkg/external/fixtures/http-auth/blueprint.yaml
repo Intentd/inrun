@@ -1,0 +1,77 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: http-auth
+  description: >
+    Verifies auth.secretRef on external calls.
+    healthCheck runs unauthenticated. configFetch calls /protected/:name which
+    requires a bearer token. The token is read from a Kubernetes Secret via
+    auth.secretRef. status.tokenValid surfaces the response field proving the
+    authenticated call reached the protected endpoint.
+
+spec:
+  crds:
+    webapp:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      setup:
+        - ./secret.yaml
+      operatorBox:
+        reconcile:
+          resync: 15s
+
+          onReconcile:
+            external:
+              - name: healthCheck
+                url: "{{ .spec.url }}/health"
+                method: GET
+                expectedStatus: [200]
+                continueOnError: true
+                timeout: 5s
+
+              - name: config
+                url: "{{ .spec.url }}/protected/{{ .metadata.name }}"
+                method: GET
+                expectedStatus: [200]
+                continueOnError: true
+                timeout: 5s
+                auth:
+                  secretRef:
+                    name: dev-server-token
+                    namespace: default
+                    key: token
+
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: 1
+                when:
+                  - field: external.healthCheck.status
+                    equals: "200"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: external.healthCheck.status
+                    equals: "200"
+                  - field: external.config.status
+                    equals: "200"
+
+              - path: phase
+                value: "Degraded"
+                when:
+                  - field: external.healthCheck.status
+                    notEquals: "200"
+
+              - path: healthStatus
+                value: "{{ .external.healthCheck.status }}"
+
+              - path: configStatus
+                value: "{{ .external.config.status }}"
+
+              - path: tokenValid
+                value: "{{ .external.config.json.tokenValid }}"
+

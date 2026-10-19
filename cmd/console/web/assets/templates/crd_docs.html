@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ .CRD.Name }} – {{ .CatalogName }} Docs – Inrun</title>
+  <title>{{ .CRD.Name }} – {{ .BlueprintName }} Docs – Inrun</title>
   <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
   <link rel="stylesheet" href="/console/assets/static/css/inrun-docs.css">
   <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -41,9 +41,9 @@
     <!-- Left sidebar -->
     <aside class="inrun-sidebar" id="inrun-sidebar">
       <div class="inrun-sidebar-inner">
-        {{ if .CatalogVersion }}
+        {{ if .BlueprintVersion }}
         <div class="inrun-sidebar-version">
-          <span class="inrun-version-badge">{{ .CatalogName }} {{ .CatalogVersion }}</span>
+          <span class="inrun-version-badge">{{ .BlueprintName }} {{ .BlueprintVersion }}</span>
         </div>
         {{ end }}
 
@@ -69,12 +69,12 @@
 
         <div class="inrun-sidebar-group is-open">
           <button class="inrun-sidebar-group-toggle">
-            <span>Catalog</span>
+            <span>Blueprint</span>
             <svg class="inrun-toggle-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <ul class="inrun-sidebar-items">
             <li class="inrun-sidebar-item"><a href="/console/docs">← All docs</a></li>
-            <li class="inrun-sidebar-item"><a href="/console/catalog/{{ .CatalogName }}">{{ .CatalogName }} dashboard</a></li>
+            <li class="inrun-sidebar-item"><a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }} dashboard</a></li>
           </ul>
         </div>
       </div>
@@ -86,8 +86,8 @@
       <!-- Breadcrumb -->
       <nav class="inrun-breadcrumbs">
         <ol>
-          <li><a href="/console">Catalogs</a> /</li>
-          <li><a href="/console/catalog/{{ .CatalogName }}">{{ .CatalogName }}</a> /</li>
+          <li><a href="/console">Blueprints</a> /</li>
+          <li><a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }}</a> /</li>
           <li><a href="/console/docs">Docs</a> /</li>
           <li aria-current="page">{{ .CRD.Name }}</li>
         </ol>
@@ -101,7 +101,7 @@
         {{ end }}
         <div class="inrun-doc-meta">
           <span><span class="inrun-state inrun-state-{{ .CRD.State }}">{{ .CRD.State }}</span></span>
-          <span>{{ .CatalogName }}{{ if .CatalogVersion }} {{ .CatalogVersion }}{{ end }}</span>
+          <span>{{ .BlueprintName }}{{ if .BlueprintVersion }} {{ .BlueprintVersion }}{{ end }}</span>
           {{ if .CRD.Uptime }}<span>uptime {{ .CRD.Uptime }}</span>{{ end }}
         </div>
       </header>
@@ -112,7 +112,7 @@
         <h2 id="overview">Overview</h2>
         <p>
           <code>{{ .CRD.Name }}</code> is a custom resource managed by the
-          <strong>{{ .CatalogName }}</strong> operator running on Inrun.
+          <strong>{{ .BlueprintName }}</strong> operator running on Inrun.
           {{ if .CRD.Namespaced }}
           Resources of this type are <strong>namespace-scoped</strong>{{ if .CRD.Namespace }} and are restricted to the <code>{{ .CRD.Namespace }}</code> namespace{{ end }}.
           {{ else }}
@@ -160,11 +160,11 @@
 
         {{ if eq $kind "declarative" }}
         <p>
-          It is reconciled <strong>declaratively</strong>: the Catalog's <code>onCreate</code> and <code>onReconcile</code> templates, with expressions like <code>{{ "{{ .spec.field }}" }}</code>, become the CR's children and status.
+          It is reconciled <strong>declaratively</strong>: the Blueprint's <code>onCreate</code> and <code>onReconcile</code> templates, with expressions like <code>{{ "{{ .spec.field }}" }}</code>, become the CR's children and status.
         </p>
         {{ else if eq $kind "hooks" }}
         <p>
-          It is reconciled by <strong>Go hooks</strong>: compiled functions that receive the typed object and return what to apply, alongside the Catalog's templates.
+          It is reconciled by <strong>Go hooks</strong>: compiled functions that receive the typed object and return what to apply, alongside the Blueprint's templates.
         </p>
         {{ else if eq $kind "constructor" }}
         <p>
@@ -286,7 +286,7 @@
         </table>
         <p>
           To see the actual child resources created for a running instance, navigate to the instance's
-          detail page from the <a href="/console/catalog/{{ .CatalogName }}">{{ .CatalogName }} control panel</a>.
+          detail page from the <a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }} control panel</a>.
         </p>
         <hr>
         {{ end }}
@@ -302,7 +302,7 @@
         {{ $finVals  := mapGet $fins  "values"     | asSlice }}
         <h2 id="operatorbox">operatorBox</h2>
         <p>
-          Summary of the reconciler configuration declared in the Catalog for this CRD.
+          Summary of the reconciler configuration declared in the Blueprint for this CRD.
         </p>
         <table>
           <thead><tr><th>Feature</th><th>Configured</th><th>Detail</th></tr></thead>
@@ -487,7 +487,7 @@
         <h2 id="endpoints">Endpoints</h2>
         <p>
           Inrun exposes per-CRD HTTP endpoints for health reporting and runtime introspection.
-          Endpoints can be selectively disabled in the Catalog via <code>endpoints:</code>.
+          Endpoints can be selectively disabled in the Blueprint via <code>endpoints:</code>.
         </p>
 
         <table>
@@ -495,7 +495,7 @@
           <tbody>
             <tr>
               <td>Health</td>
-              <td><code>/catalog/{{ .CRD.Name | toLower }}/health</code></td>
+              <td><code>/blueprint/{{ .CRD.Name | toLower }}/health</code></td>
               <td>
                 {{- if .CRD.HealthEndpointDisabled }}
                 <span style="color:var(--inrun-muted)">⊘ disabled — <code>endpoints: health: false</code></span>
@@ -506,7 +506,7 @@
             </tr>
             <tr>
               <td>Info</td>
-              <td><code>/catalog/{{ .CRD.Name | toLower }}</code></td>
+              <td><code>/blueprint/{{ .CRD.Name | toLower }}</code></td>
               <td>
                 {{- if .CRD.InfoEndpointDisabled }}
                 <span style="color:var(--inrun-muted)">⊘ disabled — <code>endpoints: enabled: false</code></span>
@@ -517,7 +517,7 @@
             </tr>
             <tr>
               <td>CR List</td>
-              <td><code>/catalog/{{ .CRD.Name | toLower }}/cr</code></td>
+              <td><code>/blueprint/{{ .CRD.Name | toLower }}/cr</code></td>
               <td>
                 {{- if .CRD.InfoEndpointDisabled }}
                 <span style="color:var(--inrun-muted)">⊘ disabled — <code>endpoints: enabled: false</code></span>

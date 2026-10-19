@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
@@ -33,10 +33,10 @@ import (
 //
 // The label and the CRD patches are best-effort and only logged on failure;
 // a certificate error is returned.
-func ensureSecurity(ctx context.Context, cfg *config.Config, cat *catalog.Catalog, kube *kubeclient.Kubeclient) (*webhookTLS, error) {
+func ensureSecurity(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint, kube *kubeclient.Kubeclient) (*webhookTLS, error) {
 	namespace := cfg.Cluster().Namespace()
 
-	if cat.IsDeletionProtectionEnabled() {
+	if bp.IsDeletionProtectionEnabled() {
 		if err := ensureNamespaceLabeled(ctx, kube, namespace, labels.InrunResourceLabels()); err != nil {
 			logger.Warn().Err(err).
 				Str("namespace", namespace).
@@ -44,17 +44,17 @@ func ensureSecurity(ctx context.Context, cfg *config.Config, cat *catalog.Catalo
 		}
 	}
 
-	if !cat.NeedsCertificates() {
+	if !bp.NeedsCertificates() {
 		return nil, nil
 	}
-	tls, err := ensureTLS(ctx, cfg, cat, kube)
+	tls, err := ensureTLS(ctx, cfg, bp, kube)
 	if err != nil {
 		return nil, err
 	}
 
 	if tls.bundle != nil {
-		if err := patchConversionCRDs(ctx, kube, cat, tls.bundle.CACertPEM,
-			cat.GatewayServiceName(), namespace, cfg.HTTPSPortInt32()); err != nil {
+		if err := patchConversionCRDs(ctx, kube, bp, tls.bundle.CACertPEM,
+			bp.GatewayServiceName(), namespace, cfg.HTTPSPortInt32()); err != nil {
 			logger.Warn().Err(err).Msg("security: some CRD conversion patches failed")
 		}
 	}

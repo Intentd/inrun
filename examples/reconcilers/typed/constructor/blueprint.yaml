@@ -1,0 +1,51 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: pipeline-operator
+  author: intentd
+  version: 0.1.0
+  description: >
+    Custom constructor for the Pipeline CRD. The Generic Reconciler is
+    replaced entirely — the constructor owns the full reconcile loop.
+    Demonstrates the state machine pattern: Pending → Running → Succeeded/Failed.
+
+spec:
+  crds:
+    pipeline:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      apiTypes:
+        object: Pipeline
+        objectList: PipelineList
+        # location enables typed mode — the informer delivers *apiv1.Pipeline
+        # instead of *unstructured.Unstructured.
+        location: github.com/intentd/inrun-constructor-demo/api/v1alpha1
+      operatorBox:
+        reconcile:
+          # default: false tells Inrun NOT to use the Generic Reconciler.
+          # The constructor below provides the complete reconcile implementation.
+          default: false
+
+          # constructor replaces the Generic Reconciler entirely.
+          # The function must match:
+          #   func(kube *kubeclient.Kubeclient,
+          #        informer cache.SharedIndexInformer,
+          #        ev *event.Event) domain.Reconciler
+          managedResources:
+            - kind: Job             # For built-ins, only kind is required
+              group: batch
+              version: v1
+              plural: jobs
+          constructor:
+            location: github.com/intentd/inrun-constructor-demo/reconciler
+            function: NewPipelineReconciler
+            #
+            # (Required for RBAC)
+            # Define the resources managed by this reconciler
+          workers: 5       # pipelines can be IO-bound — more workers tolerated
+          resync: 10s      # short resync to check Job completion quickly
+        # Note: onCreate, onReconcile, onDelete, hooks, and status.fields
+        # are all ignored when reconciler.default is false. The constructor
+        # owns everything. Status is managed directly by PipelineReconciler.patchStatus.
+

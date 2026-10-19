@@ -11,34 +11,34 @@ import (
 	"syscall"
 
 	"github.com/intentd/inrun/cmd/cli/console"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
 )
 
 // Start starts the console next to the runtime, and the gateway too when the
-// Catalog serves (gateway API enabled and a CRD with serve enabled). Each runs
+// Blueprint serves (gateway API enabled and a CRD with serve enabled). Each runs
 // as a child process, so one that fails never takes the runtime down: a
 // companion that cannot start is logged and skipped. A signal that stops inrun
 // is passed on, so the children stop with it.
 //
-// paths are the Catalogs the gateway loads; cfg is the runtime's config, which
+// paths are the Blueprints the gateway loads; cfg is the runtime's config, which
 // advertises the gateway to the console.
-func Start(ctx context.Context, cfg *config.Config, paths []string, cat *catalog.Catalog, migrate bool) {
+func Start(ctx context.Context, cfg *config.Config, paths []string, bp *blueprint.Blueprint, migrate bool) {
 	var children []*exec.Cmd
 
-	if cat.HasServeEnabled() {
+	if bp.HasServeEnabled() {
 		cmd, url, err := startGateway(ctx, paths, migrate)
 		if err != nil {
 			logger.Warn().Err(err).Msg("gateway not started")
 		} else {
 			children = append(children, cmd)
-			// The runtime's /catalog advertises it, so the console finds it.
+			// The runtime's /blueprint advertises it, so the console finds it.
 			cfg.SetGatewayEndpoint(url)
 		}
 	}
 
-	// The console finds the gateway through the runtime's /catalog.
+	// The console finds the gateway through the runtime's /blueprint.
 	cmd, err := startConsole(ctx, "http://localhost:"+cfg.Health().Port())
 	if err != nil {
 		logger.Warn().Err(err).Msg("console not started")
@@ -74,7 +74,7 @@ func stopWithInrun(children []*exec.Cmd) {
 	}()
 }
 
-// startGateway runs this binary's `gate run` with the same Catalogs, on
+// startGateway runs this binary's `gate run` with the same Blueprints, on
 // INRUN_GATEWAY_PORT (default 8082).
 func startGateway(ctx context.Context, paths []string, migrate bool) (*exec.Cmd, string, error) {
 	exe, err := os.Executable()

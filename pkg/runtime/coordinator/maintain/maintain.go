@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
@@ -14,10 +14,10 @@ import (
 
 // Input holds everything Apply needs from the Controller.
 type Input struct {
-	CRD      types.CRDEntry
-	Cat      *catalog.Catalog
-	Kube     kubeclient.Interface
-	Recorder event.Recorder
+	CRD       types.CRDEntry
+	Blueprint *blueprint.Blueprint
+	Kube      kubeclient.Interface
+	Recorder  event.Recorder
 
 	// ForCleanup signals that the CR is about to be deleted by the cleanup gate.
 	// When true, maintain sets shouldHaveProtection=false so the two-phase

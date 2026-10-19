@@ -43,6 +43,6 @@ We will acknowledge your report within **72 hours**.
 ## What Is *Not* Considered a Security Issue?
 
 - Misconfigured RBAC in user clusters  
-- Incorrect Catalog definitions  
+- Incorrect Blueprint definitions  
 - Expected Kubernetes behavior  
 - Resource exhaustion caused by user‑defined CRDs  

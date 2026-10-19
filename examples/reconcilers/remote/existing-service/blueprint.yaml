@@ -1,0 +1,70 @@
+# Schema reference: https://inrun.dev/docs/reference/schema/blueprint/
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bucket-existing-service
+  author: intentd
+  version: 0.1.0
+  description: >
+    A storage API that knows nothing about Inrun, used as the reconciler.
+    Each reconcile makes one PUT to ensure the bucket; the answer is mapped
+    into the CR's status, and a provisioning bucket is checked again. On
+    delete, a DELETE holds the CR until the API answers 404. Nothing is
+    created in the cluster.
+  tags:
+    - remote
+    - existing-service
+
+functions:
+  definitions:
+    - name: bucketAPI
+      description: The bucket API — the dev server in the cluster, or on localhost when inrun runs outside it
+      expression: >
+        {{ if .inrun.inPod }}
+          http://inrun-dev-server.inrun-system.svc:9999
+        {{ else }}
+          http://localhost:9999
+        {{ end }}
+
+spec:
+  crds:
+    bucket:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      operatorBox:
+        reconcile:
+          default: false
+          args:
+            quotaGB: "{{ .spec.quotaGB }}"
+          remote:
+            endpoint: "{{ bucketAPI }}/buckets/{{ .metadata.name }}"
+            timeout: 10s
+            request:
+              method: PUT
+              body: '{"quotaGB": {{ .args.quotaGB }}}'
+              expectedStatus: [200]
+              # The finalizing pass deletes the bucket instead.
+              finalize:
+                method: DELETE
+                # 404: the bucket is already gone, which is done.
+                expectedStatus: [202, 404]
+            # The service answers in its own shape: map it.
+            response:
+              status:
+                fields:
+                  - path: bucketId
+                    value: "{{ .response.json.id }}"
+                  - path: state
+                    value: "{{ .response.json.status }}"
+              requeue:
+                after: 5s
+                or:
+                  - field: response.json.status
+                    equals: provisioning
+                  # 202 while deleting: hold the CR until the API answers 404.
+                  - field: response.status
+                    equals: "202"
+        runtime:
+          allowedNamespaces:
+            - default

@@ -1,4 +1,4 @@
-// Package validate implements the validate command for Catalogs, Stacks,
+// Package validate implements the validate command for Blueprints, Stacks,
 // modules and test specs, and the template command that renders the fully
-// expanded runtime Catalog.
+// expanded runtime Blueprint.
 package validate

@@ -6,7 +6,7 @@ package dependency_test
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -54,21 +54,21 @@ func mkMap(crds ...types.CRDEntry) map[string]types.CRDEntry {
 }
 
 func TestStartupOrder_LinearChain(t *testing.T) {
-	cat := catalog.NewCatalogForTest(mkMap(
+	bp := blueprint.NewBlueprintForTest(mkMap(
 		mkCRD("app", "cache"),
 		mkCRD("cache", "database"),
 		mkCRD("database"),
 	))
-	order := catalog.NewDependencyGraph(cat).StartupOrder()
+	order := blueprint.NewDependencyGraph(bp).StartupOrder()
 	assertBefore(t, order, "database", "cache")
 	assertBefore(t, order, "cache", "app")
 }
 
 func TestStartupOrder_IndependentCRDs_AllPresent(t *testing.T) {
-	cat := catalog.NewCatalogForTest(mkMap(
+	bp := blueprint.NewBlueprintForTest(mkMap(
 		mkCRD("alpha"), mkCRD("beta"), mkCRD("gamma"),
 	))
-	if n := len(catalog.NewDependencyGraph(cat).StartupOrder()); n != 3 {
+	if n := len(blueprint.NewDependencyGraph(bp).StartupOrder()); n != 3 {
 		t.Errorf("expected 3 CRDs in order, got %d", n)
 	}
 }
@@ -79,13 +79,13 @@ func TestStartupOrder_DiamondDependency(t *testing.T) {
 	//    left   right
 	//       \    /
 	//        app
-	cat := catalog.NewCatalogForTest(mkMap(
+	bp := blueprint.NewBlueprintForTest(mkMap(
 		mkCRD("app", "left", "right"),
 		mkCRD("left", "base"),
 		mkCRD("right", "base"),
 		mkCRD("base"),
 	))
-	order := catalog.NewDependencyGraph(cat).StartupOrder()
+	order := blueprint.NewDependencyGraph(bp).StartupOrder()
 	assertBefore(t, order, "base", "left")
 	assertBefore(t, order, "base", "right")
 	assertBefore(t, order, "left", "app")
@@ -93,11 +93,11 @@ func TestStartupOrder_DiamondDependency(t *testing.T) {
 }
 
 func TestShutdownOrder_ReversesStartup(t *testing.T) {
-	cat := catalog.NewCatalogForTest(mkMap(
+	bp := blueprint.NewBlueprintForTest(mkMap(
 		mkCRD("app", "db"),
 		mkCRD("db"),
 	))
-	g := catalog.NewDependencyGraph(cat)
+	g := blueprint.NewDependencyGraph(bp)
 	startup, shutdown := g.StartupOrder(), g.ShutdownOrder()
 	for i := range startup {
 		if startup[i] != shutdown[len(shutdown)-1-i] {
@@ -107,8 +107,8 @@ func TestShutdownOrder_ReversesStartup(t *testing.T) {
 }
 
 func TestStartupOrder_SingleCRD(t *testing.T) {
-	cat := catalog.NewCatalogForTest(mkMap(mkCRD("solo")))
-	order := catalog.NewDependencyGraph(cat).StartupOrder()
+	bp := blueprint.NewBlueprintForTest(mkMap(mkCRD("solo")))
+	order := blueprint.NewDependencyGraph(bp).StartupOrder()
 	if len(order) != 1 || order[0] != "solo" {
 		t.Errorf("expected [solo], got %v", order)
 	}

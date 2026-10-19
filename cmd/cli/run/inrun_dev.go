@@ -10,7 +10,7 @@ import (
 	"github.com/intentd/inrun/cmd/cli/run/companions"
 
 	"github.com/intentd/inrun/cmd/internal"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/registry"
@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// runDev is the dev build's root command. Bare `inrun` runs the Catalog in the
+// runDev is the dev build's root command. Bare `inrun` runs the Blueprint in the
 // current directory (or -f); `inrun <name>:<version>` pulls a published
 // pattern and runs it.
 func runDev(cmd *cobra.Command, args []string) error {
@@ -51,23 +51,23 @@ func runDev(cmd *cobra.Command, args []string) error {
 		paths = append([]string{p}, paths...)
 	}
 
-	// Resolve catalog paths
-	paths, err := cmdutil.ResolveCatalogPaths(paths)
+	// Resolve blueprint paths
+	paths, err := cmdutil.ResolveBlueprintPaths(paths)
 	if err != nil {
 		return err
 	}
 
-	// Merge catalogs
+	// Merge blueprints
 	m := merger.New(paths...)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging catalogs: %w", err)
+		return fmt.Errorf("merging blueprints: %w", err)
 	}
 
 	logger.Debug().
-		Strs("catalogs", paths).
+		Strs("blueprints", paths).
 		Int("total", m.Count()).
 		Int("enabled", m.EnabledCount()).
-		Msg("catalogs merged")
+		Msg("blueprints merged")
 
 	// Apply declared crdFile, crFiles and setup paths before handing off to the runtime.
 	if len(paths) > 0 {
@@ -79,10 +79,10 @@ func runDev(cmd *cobra.Command, args []string) error {
 
 	migrate, _ := cmd.Flags().GetBool("migrate")
 
-	// Run the runtime. Once its Catalog is built, start the console, and the
-	// gateway when the Catalog serves.
-	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx, func(cat *catalog.Catalog) {
-		companions.Start(cmdutil.Ctx, cmdutil.Cfg, paths, cat, migrate)
+	// Run the runtime. Once its Blueprint is built, start the console, and the
+	// gateway when the Blueprint serves.
+	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx, func(bp *blueprint.Blueprint) {
+		companions.Start(cmdutil.Ctx, cmdutil.Cfg, paths, bp, migrate)
 	})
 	return nil
 }
@@ -115,7 +115,7 @@ func init() {
 	root.Flags().Bool("dev", false, "Create a local Kind cluster if none is reachable (development only)")
 	root.Flags().Bool("dev-server", false, "Start the mock dev server for external: examples (no real services needed)")
 	root.Flags().Int("dev-server-port", devserver.Port, "Port for the mock dev server")
-	root.Flags().Bool("use-stack", false, "Run the pattern's stack.yaml instead of its catalog.yaml")
+	root.Flags().Bool("use-stack", false, "Run the pattern's stack.yaml instead of its blueprint.yaml")
 	root.Flags().Bool("refresh", false, "Pull the pattern again even if it is cached")
 	root.Flags().Bool("apply-cr", false, "Apply the pattern's example CRD and CR before starting")
 	root.Flags().Bool("migrate", false, "Run schema migration before the gateway starts")

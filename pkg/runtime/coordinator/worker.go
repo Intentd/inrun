@@ -62,7 +62,7 @@ func (c *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 			}
 
 			// Resource count — read from this CRD's informer cache
-			if entry, ok := c.catalog.Get(gvk); ok && entry.Informer != nil {
+			if entry, ok := c.blueprint.Get(gvk); ok && entry.Informer != nil {
 				count := float64(len(entry.Informer.GetIndexer().List()))
 				metrics.SetResourceCount(gvk, count)
 			}
@@ -124,18 +124,18 @@ func (c *Controller) processItemForGVK(ctx context.Context, gvk string, item que
 		return
 	}
 
-	entry, ok := c.catalog.Get(gvk)
+	entry, ok := c.blueprint.Get(gvk)
 	if !ok {
-		logger.Error().Str("gvk", gvk).Str("key", item.Key).Msg("no catalog entry — dropping item")
+		logger.Error().Str("gvk", gvk).Str("key", item.Key).Msg("no blueprint entry — dropping item")
 		wq.Forget(item)
 		return
 	}
 
 	out := reconcile.Run(ctx, reconcile.Deps{
-		Kube:     c.kube,
-		Event:    c.event,
-		Cat:      c.cat,
-		Registry: c.catalog,
+		Kube:      c.kube,
+		Event:     c.event,
+		Blueprint: c.bp,
+		Registry:  c.blueprint,
 	}, reconcile.Input{
 		GVK:              gvk,
 		Key:              item.Key,

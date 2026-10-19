@@ -29,16 +29,16 @@
     <nav class="console-sidebar-nav">
       <a href="/console" class="console-nav-item">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        All Catalogs
+        All Blueprints
       </a>
       <a href="/console/metrics" class="console-nav-item">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Metrics
       </a>
       <div class="console-nav-section">Context</div>
-      <a href="/console/catalog/{{ .CatalogName }}" class="console-nav-item">
+      <a href="/console/blueprint/{{ .BlueprintName }}" class="console-nav-item">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-        {{ .CatalogName }}
+        {{ .BlueprintName }}
       </a>
       <a href="{{ .BackURL }}" class="console-nav-item">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
@@ -66,7 +66,7 @@
       <nav class="console-breadcrumb">
         <a href="/console">Console</a>
         <span class="sep">›</span>
-        <a href="/console/catalog/{{ .CatalogName }}">{{ .CatalogName }}</a>
+        <a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }}</a>
         <span class="sep">›</span>
         <a href="{{ .BackURL }}">{{ .CRDName }}</a>
         <span class="sep">›</span>
@@ -94,7 +94,7 @@
         {{ if .ServeEnabled }}
         <a href="cr/create" class="console-btn console-btn-primary">+ Create</a>
         {{ else }}
-        <button class="console-btn console-btn-disabled" disabled title="Serve is not enabled for this CRD. Set serve.enabled: true in the Catalog to allow browser-based CR creation.">+ Create</button>
+        <button class="console-btn console-btn-disabled" disabled title="Serve is not enabled for this CRD. Set serve.enabled: true in the Blueprint to allow browser-based CR creation.">+ Create</button>
         {{ end }}
       </div>
 

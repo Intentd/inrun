@@ -8,8 +8,8 @@ import (
 )
 
 // ResolvedPodSpec is the fully resolved Pod specification.
-// Produced by merging PodFromCRD (dynamic) and PodFromCatalog (static).
-// fromCRD wins over fromCatalog when both declare the same field.
+// Produced by merging PodFromCRD (dynamic) and PodFromBlueprint (static).
+// fromCRD wins over fromBlueprint when both declare the same field.
 // Passed directly to Create, Update, and Delete.
 type ResolvedPodSpec struct {
 	// Name — resolved Pod name. Required.

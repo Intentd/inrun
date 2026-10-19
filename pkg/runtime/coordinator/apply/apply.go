@@ -89,12 +89,12 @@ func apply(
 	}
 
 	ownerRefs := shared.ResolveOwnerReferences(owner)
-	catalogName := owner.GetAnnotations()[labels.AnnotationManagedBy]
+	blueprintName := owner.GetAnnotations()[labels.AnnotationManagedBy]
 	since := managedSince(owner)
 
 	applied := make([]*unstructured.Unstructured, 0, len(targets))
 	for i, rr := range targets {
-		if err := applyOne(ctx, kube, rr, owner, ownerRefs, catalogName, since); err != nil {
+		if err := applyOne(ctx, kube, rr, owner, ownerRefs, blueprintName, since); err != nil {
 			return nil, fmt.Errorf("resources[%d] %q: apply failed: %w", i, rr.obj.GetName(), err)
 		}
 		applied = append(applied, rr.obj)
@@ -170,7 +170,7 @@ func applyOne(
 	rr resource,
 	owner domain.Object,
 	ownerRefs []metav1.OwnerReference,
-	catalogName string,
+	blueprintName string,
 	since string,
 ) error {
 	u := rr.obj
@@ -196,7 +196,7 @@ func applyOne(
 		lbls[labels.OwnerUID] = string(uid)
 	}
 	u.SetLabels(lbls)
-	labels.NewManager(labels.Config{}).EnsureManagedAnnotations(u, catalogName)
+	labels.NewManager(labels.Config{}).EnsureManagedAnnotations(u, blueprintName)
 
 	// Owner reference: same namespace only.
 	if ns := u.GetNamespace(); ns != "" && ns == owner.GetNamespace() {

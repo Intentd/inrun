@@ -35,24 +35,24 @@ func ExpandExternalCalls(calls []ExternalCallSpec, baseDir string) ([]ExternalCa
 	return expanded, nil
 }
 
-func PopulateExternalCallsFromInclude(entry *CRDEntry, catalogDir string) error {
+func PopulateExternalCallsFromInclude(entry *CRDEntry, blueprintDir string) error {
 	var err error
 	box := entry.OperatorBox
 
 	if box.PreReconcile != nil {
 		pr := box.PreReconcile
-		pr.External, err = ExpandExternalCalls(box.PreReconcile.External, catalogDir)
+		pr.External, err = ExpandExternalCalls(box.PreReconcile.External, blueprintDir)
 		if err != nil {
 			return fmt.Errorf("preReconcile.external: %w", err)
 		}
 		if pr.HasEnqueueGate() {
-			pr.EnqueueGate.External, err = ExpandExternalCalls(pr.EnqueueGate.External, catalogDir)
+			pr.EnqueueGate.External, err = ExpandExternalCalls(pr.EnqueueGate.External, blueprintDir)
 			if err != nil {
 				return fmt.Errorf("preReconcile.enqueueGate.external: %w", err)
 			}
 		}
 		if pr.HasReconcileGate() {
-			pr.ReconcileGate.External, err = ExpandExternalCalls(pr.ReconcileGate.External, catalogDir)
+			pr.ReconcileGate.External, err = ExpandExternalCalls(pr.ReconcileGate.External, blueprintDir)
 			if err != nil {
 				return fmt.Errorf("preReconcile.reconcileGate.external: %w", err)
 			}
@@ -60,31 +60,31 @@ func PopulateExternalCallsFromInclude(entry *CRDEntry, catalogDir string) error 
 	}
 
 	if box.EffectiveOnReconcile() != nil {
-		box.EffectiveOnReconcile().External, err = ExpandExternalCalls(box.EffectiveOnReconcile().External, catalogDir)
+		box.EffectiveOnReconcile().External, err = ExpandExternalCalls(box.EffectiveOnReconcile().External, blueprintDir)
 		if err != nil {
 			return fmt.Errorf("onReconcile.external: %w", err)
 		}
 	}
 	if box.EffectiveOnCreate() != nil {
-		box.EffectiveOnCreate().External, err = ExpandExternalCalls(box.EffectiveOnCreate().External, catalogDir)
+		box.EffectiveOnCreate().External, err = ExpandExternalCalls(box.EffectiveOnCreate().External, blueprintDir)
 		if err != nil {
 			return fmt.Errorf("onCreate.external: %w", err)
 		}
 	}
 	if r := box.Reconcile; r != nil {
-		r.External, err = ExpandExternalCalls(r.External, catalogDir)
+		r.External, err = ExpandExternalCalls(r.External, blueprintDir)
 		if err != nil {
 			return fmt.Errorf("reconcile.external: %w", err)
 		}
 	}
 	if entry.Admission != nil && entry.Admission.Validation != nil {
-		entry.Admission.Validation.External, err = ExpandExternalCalls(entry.Admission.Validation.External, catalogDir)
+		entry.Admission.Validation.External, err = ExpandExternalCalls(entry.Admission.Validation.External, blueprintDir)
 		if err != nil {
 			return fmt.Errorf("validation.external: %w", err)
 		}
 	}
 	if entry.Admission != nil && entry.Admission.Mutation != nil {
-		entry.Admission.Mutation.External, err = ExpandExternalCalls(entry.Admission.Mutation.External, catalogDir)
+		entry.Admission.Mutation.External, err = ExpandExternalCalls(entry.Admission.Mutation.External, blueprintDir)
 		if err != nil {
 			return fmt.Errorf("mutation.external: %w", err)
 		}

@@ -21,9 +21,9 @@ CRs without migration annotations are skipped. Clean is idempotent.
 Requires a live cluster connection.
 
 Example:
-  inrun migrate clean -f catalog.yaml
-  inrun migrate clean -f catalog.yaml --dry-run
-  inrun migrate clean -f catalog.yaml --namespace platform-01 --name my-app`,
+  inrun migrate clean -f blueprint.yaml
+  inrun migrate clean -f blueprint.yaml --dry-run
+  inrun migrate clean -f blueprint.yaml --namespace platform-01 --name my-app`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runMigrateCmd(cmd, migrate.ModeClean)
 	},

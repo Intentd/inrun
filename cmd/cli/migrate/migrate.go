@@ -10,8 +10,8 @@ import (
 
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "Migrate CR spec fields declared with migrate.from in the Catalog",
-	Long: `Apply schema migrations to live CRs using migrate.from declarations in the Catalog.
+	Short: "Migrate CR spec fields declared with migrate.from in the Blueprint",
+	Long: `Apply schema migrations to live CRs using migrate.from declarations in the Blueprint.
 
 For each serve field with migrate.from set, the migrator:
   1. reads the old value from the migrate.from spec path
@@ -27,9 +27,9 @@ Subcommands:
   clean      Remove migration annotations without touching the spec
 
 Example:
-  inrun migrate -f catalog.yaml
-  inrun migrate -f catalog.yaml --dry-run
-  inrun migrate -f catalog.yaml --kind WebApp`,
+  inrun migrate -f blueprint.yaml
+  inrun migrate -f blueprint.yaml --dry-run
+  inrun migrate -f blueprint.yaml --kind WebApp`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runMigrateCmd(cmd, migrate.ModeForward)
 	},
@@ -41,7 +41,7 @@ func init() {
 	// Persistent flags are inherited by every subcommand (rollback, clean).
 	// Declare shared options here so a new subcommand picks them up without
 	// re-registering, and so `inrun migrate --help` lists them once.
-	migrateCmd.PersistentFlags().StringSliceP("file", "f", nil, "Path(s) to catalog.yaml (repeatable)")
+	migrateCmd.PersistentFlags().StringSliceP("file", "f", nil, "Path(s) to blueprint.yaml (repeatable)")
 	migrateCmd.PersistentFlags().Bool("dry-run", false, "Preview changes without writing to the cluster")
 	migrateCmd.PersistentFlags().Bool("strict", false, "Fail if any individual CR cannot be migrated (default: warn and skip)")
 	migrateCmd.PersistentFlags().Bool("verbose", false, "Print the resulting spec for each migrated CR")

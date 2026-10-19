@@ -10,7 +10,7 @@ metadata:
     into a live Deployment end-to-end on a real cluster.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd-webapp.yaml
   cr: ./cr-webapp.yaml
 

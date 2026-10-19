@@ -3,7 +3,7 @@ package types
 import "strings"
 
 // Info holds non‑fatal validation messages for this CRD.
-// Populated during Catalog validation (e.g., enrichments).
+// Populated during Blueprint validation (e.g., enrichments).
 type Info []string
 
 // HasInfo returns true if there are any informational messages.

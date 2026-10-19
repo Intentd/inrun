@@ -1,0 +1,97 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: webapp-validation-external-webhook
+  description: >
+    Demonstrates validation.external with two calls at different lifecycle
+    points. admissionCheck fires only at kubectl apply (fires.reconcile: false)
+    — the health-check rule that depends on it is skipped entirely on reconcile
+    resyncs. configFetch has no fires restriction and runs at both sites.
+
+gateway:
+  enabled: true
+
+security:
+  webhooks:
+    admission:
+      enabled: true
+    cleanupOnShutdown: true
+    failurePolicy: Ignore
+
+spec:
+  crds:
+    webapp:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr-placeholder.yaml
+      admission:
+        validation:
+          external:
+            - name: admissionCheck
+              url: "{{ .spec.healthCheckUrl }}"
+              method: GET
+              expectedStatus: [200]
+              continueOnError: true
+              timeout: 5s
+              fires:
+                reconcile: false   # gate only at admission — not re-run on resyncs
+
+            - name: configFetch
+              url: "http://inrun-dev-server.inrun-system.svc:9999/health"
+              continueOnError: true
+              timeout: 5s
+              # no fires: — runs at both admission and reconcile
+
+          rules:
+            # Only active at admission time. when: guards on called == "true" —
+            # at reconcile, admissionCheck is skipped so called is "" and this
+            # rule is never evaluated.
+            - field: "{{ .external.admissionCheck.status }}"
+              equals: "200"
+              action: deny
+              message: "health check failed at admission — {{ .spec.healthCheckUrl }} must return 200"
+              when:
+                - field: external.admissionCheck.called
+                  equals: "true"
+
+            # Always evaluated — configFetch runs at both admission and reconcile.
+            - field: "{{ .external.configFetch.status }}"
+              equals: "200"
+              action: deny
+              message: "config service unreachable"
+      operatorBox:
+        reconcile:
+          workers: 2
+          resync: 30s
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}"
+                namespace: "{{ .metadata.namespace }}"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Active"
+                when:
+                  - field: external.configFetch.status
+                    equals: "200"
+
+              - path: phase
+                value: "Degraded"
+                when:
+                  - field: external.configFetch.called
+                    equals: "true"
+                  - field: external.configFetch.status
+                    notEquals: "200"
+
+              - path: configFetchStatus
+                value: "{{ .external.configFetch.status }}"
+
+              - path: admissionOnlyRan
+                value: "true"
+                when:
+                  - field: external.admissionCheck.called
+                    equals: "true"
+

@@ -11,7 +11,7 @@ metadata:
     This is the difference from hooks: the constructor owns the HTTP call.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr-node.yaml
   cycles: 3
 

@@ -1,0 +1,16 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: publish-empty-identity
+  version: 1.0.0
+  description: Tests that an empty string in expectedIdentities fails validation.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+publish:
+  signing:
+    verify: true
+    expectedIdentities:
+      - github.com/myorg/myrepo/.github/workflows/release.yaml@refs/heads/main
+      - ""

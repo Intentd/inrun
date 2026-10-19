@@ -65,13 +65,13 @@ Runtime image — respects tag override, falls back to appVersion.
 {{- end }}
 
 {{/*
-Catalog ConfigMap the runtime mounts.
+Blueprint ConfigMap the runtime mounts.
 */}}
-{{- define "inrun.catalogConfigMapName" -}}
-{{- if .Values.runtime.catalog.existingConfigMap }}
-{{- .Values.runtime.catalog.existingConfigMap }}
+{{- define "inrun.blueprintConfigMapName" -}}
+{{- if .Values.runtime.blueprint.existingConfigMap }}
+{{- .Values.runtime.blueprint.existingConfigMap }}
 {{- else }}
-{{- printf "%s-catalog" (include "inrun.fullname" .) }}
+{{- printf "%s-blueprint" (include "inrun.fullname" .) }}
 {{- end }}
 {{- end }}
 
@@ -87,10 +87,10 @@ Gateway image — respects tag override, falls back to appVersion.
 {{- end }}
 
 {{/*
-Catalog ConfigMap the gateway mounts — its own, or the runtime's.
+Blueprint ConfigMap the gateway mounts — its own, or the runtime's.
 */}}
-{{- define "inrun.gatewayCatalogConfigMapName" -}}
-{{- default (include "inrun.catalogConfigMapName" .) .Values.gateway.catalog.existingConfigMap }}
+{{- define "inrun.gatewayBlueprintConfigMapName" -}}
+{{- default (include "inrun.blueprintConfigMapName" .) .Values.gateway.blueprint.existingConfigMap }}
 {{- end }}
 
 {{/*

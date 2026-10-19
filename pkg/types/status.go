@@ -8,11 +8,11 @@ package types
 // Layer 1 — automatic standard Kubernetes conditions.
 // After every reconcile, regardless of outcome, Inrun patches the CR's
 // /status subresource with a standard Ready condition and observedGeneration.
-// No Catalog declaration required. Every managed CR gets this automatically,
+// No Blueprint declaration required. Every managed CR gets this automatically,
 // the same way every CR gets the managed label and finalizers.
 //
 // Layer 2 — declarative status fields.
-// Optional. Declared in the Catalog under operatorBox.status.fields.
+// Optional. Declared in the Blueprint under operatorBox.status.fields.
 // Resolved after reconcile templates complete, patched to /status.
 // Field values support the same Go template expressions as onCreate templates.
 //
@@ -148,9 +148,9 @@ type StatusFieldSpec struct {
 // or other typed fields to be updated correctly.
 
 // StatusConfig declares the declarative status behavior for a CRD.
-// Declared under spec.crds[].reconciler.status in the Catalog.
+// Declared under spec.crds[].reconciler.status in the Blueprint.
 type StatusConfig struct {
-	// Include is a path (relative to the catalog file) to a YAML file whose
+	// Include is a path (relative to the blueprint file) to a YAML file whose
 	// top-level value is a list of StatusFieldSpec entries under a "fields:" key.
 	// Expanded at load time — included fields come first, inline fields append after.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`

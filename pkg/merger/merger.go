@@ -9,7 +9,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// Merger loads one or more Catalog files, resolves their imports
+// Merger loads one or more Blueprint files, resolves their imports
 // (files, URLs, Helm charts), merges all CRD entries, and exposes
 // the result through Enabled(), All(), and Get().
 //
@@ -18,9 +18,9 @@ import (
 // is internal to the merger.
 //
 // Merge rules:
-//   - Sources within a Catalog are loaded before spec.crds
+//   - Sources within a Blueprint are loaded before spec.crds
 //   - Inline spec.crds win on name conflict (local overrides remote)
-//   - Duplicate names across independent Catalog files are errors
+//   - Duplicate names across independent Blueprint files are errors
 //   - disabled CRDs are preserved and filtered by Enabled()
 type Merger struct {
 	// entryPoints are the initial file paths/URLs passed from the CLI (inrun or or generate)
@@ -29,30 +29,30 @@ type Merger struct {
 	// result holds the merged CRD entries after Merge() completes — keyed by CRD name
 	result map[string]types.CRDEntry
 
-	// security holds the security configuration of the final catalog
-	security types.CatalogSecurity
+	// security holds the security configuration of the final blueprint
+	security types.BlueprintSecurity
 
-	// gateway holds the gateway deployment config of the final catalog
+	// gateway holds the gateway deployment config of the final blueprint
 	gateway *types.GatewayConfig
 
-	// publish holds the publishing and consumer policy of the final catalog
+	// publish holds the publishing and consumer policy of the final blueprint
 	publish *types.PublishConfig
 
-	// profiles holds the merged user-defined profile registry of the final catalog
+	// profiles holds the merged user-defined profile registry of the final blueprint
 	profiles types.ProfileRegistry
 
-	// specImports holds the spec.imports module list from the loaded Catalog.
-	// These are modules whose profiles and functions are merged at the Catalog level.
+	// specImports holds the spec.imports module list from the loaded Blueprint.
+	// These are modules whose profiles and functions are merged at the Blueprint level.
 	specImports []types.ModuleImport
 
-	// functions holds the Catalog-level user-defined function registry.
+	// functions holds the Blueprint-level user-defined function registry.
 	functions types.KELFunctionRegistry
 
-	// lifecycle holds the lifecycle policy of the final catalog.
-	lifecycle *types.CatalogLifecycle
+	// lifecycle holds the lifecycle policy of the final blueprint.
+	lifecycle *types.BlueprintLifecycle
 
-	// policy holds the platform policy block of the final catalog.
-	policy *types.CatalogPolicy
+	// policy holds the platform policy block of the final blueprint.
+	policy *types.BlueprintPolicy
 
 	// merged tracks whether Merge() has been called
 	merged bool
@@ -67,9 +67,9 @@ type Merger struct {
 }
 
 type apiMetadata struct {
-	APIVersion string            `json:"apiVersion" yaml:"apiVersion"`
-	Kind       string            `json:"kind" yaml:"kind"`
-	Metadata   types.CatalogMeta `json:"metadata" yaml:"metadata"`
+	APIVersion string              `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string              `json:"kind" yaml:"kind"`
+	Metadata   types.BlueprintMeta `json:"metadata" yaml:"metadata"`
 }
 
 // New creates a Merger with the given entry point file paths or URLs.
@@ -94,9 +94,9 @@ func (m *Merger) Merge() error {
 	merged := make(map[string]types.CRDEntry)
 
 	for _, path := range m.entryPoints {
-		// loadCatalogFile manages its OWN internal dedup
+		// loadBlueprintFile manages its OWN internal dedup
 		// it does NOT receive seen — only returns the final CRD map for this file
-		crds, err := m.loadCatalogFile(path)
+		crds, err := m.loadBlueprintFile(path)
 		if err != nil {
 			return fmt.Errorf("merger: loading %q: %w", path, err)
 		}
@@ -128,7 +128,7 @@ func (m *Merger) Merge() error {
 //
 // This is how Stack spec.crds works: you declare only what you want
 // to change. Everything else — reconciler templates, validation rules,
-// mutation rules, status config — is inherited from the source Catalog.
+// mutation rules, status config — is inherited from the source Blueprint.
 func mergeCRDEntry(base, override types.CRDEntry) types.CRDEntry {
 	result := base // start from the full base
 
@@ -356,76 +356,76 @@ func (m *Merger) EnabledCount() int {
 	return len(m.Enabled())
 }
 
-// ToSpec returns the merged result as a CatalogSpec.
-// Used by NewCatalog and generate.Registry to consume the merged result.
-func (m *Merger) ToSpec() types.CatalogSpec {
+// ToSpec returns the merged result as a BlueprintSpec.
+// Used by NewBlueprint and generate.Registry to consume the merged result.
+func (m *Merger) ToSpec() types.BlueprintSpec {
 	m.mustBeMerged()
-	return types.CatalogSpec{CRDs: m.result}
+	return types.BlueprintSpec{CRDs: m.result}
 }
 
-// ToSecurity returns the security config of the merged result as a CatalogSecurity
-// Used by NewCatalog consume the merged result.
-func (m *Merger) ToSecurity() types.CatalogSecurity {
+// ToSecurity returns the security config of the merged result as a BlueprintSecurity
+// Used by NewBlueprint consume the merged result.
+func (m *Merger) ToSecurity() types.BlueprintSecurity {
 	m.mustBeMerged()
 	return m.security
 }
 
 // ToGateway returns the gateway deployment config of the merged result.
-// Used by BuildRuntimeCatalog to populate Catalog.Gateway.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Gateway.
 func (m *Merger) ToGateway() *types.GatewayConfig {
 	m.mustBeMerged()
 	return m.gateway
 }
 
 // ToPublish returns the publish config of the merged result.
-// Used by BuildRuntimeCatalog to populate Catalog.Publish.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Publish.
 func (m *Merger) ToPublish() *types.PublishConfig {
 	m.mustBeMerged()
 	return m.publish
 }
 
 // ToProfiles returns the merged user-defined profile registry of the merged result.
-// Used by BuildRuntimeCatalog to populate Catalog.Profiles.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Profiles.
 func (m *Merger) ToProfiles() types.ProfileRegistry {
 	m.mustBeMerged()
 	return m.profiles
 }
 
-// ToSpecImports returns the spec.imports module list from the loaded Catalog.
-// Used by BuildRuntimeCatalog to populate Catalog.Spec.Imports before profile expansion.
+// ToSpecImports returns the spec.imports module list from the loaded Blueprint.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Spec.Imports before profile expansion.
 func (m *Merger) ToSpecImports() []types.ModuleImport {
 	m.mustBeMerged()
 	return m.specImports
 }
 
-// ToFunctions returns the Catalog-level user-defined function registry.
-// Used by BuildRuntimeCatalog to populate Catalog.Functions.
+// ToFunctions returns the Blueprint-level user-defined function registry.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Functions.
 func (m *Merger) ToFunctions() types.KELFunctionRegistry {
 	m.mustBeMerged()
 	return m.functions
 }
 
 // ToLifecycle returns the lifecycle policy of the merged result.
-// Used by BuildRuntimeCatalog to populate Catalog.lifecycle.
-func (m *Merger) ToLifecycle() *types.CatalogLifecycle {
+// Used by BuildRuntimeBlueprint to populate Blueprint.lifecycle.
+func (m *Merger) ToLifecycle() *types.BlueprintLifecycle {
 	m.mustBeMerged()
 	return m.lifecycle
 }
 
 // ToPolicy returns the platform policy block of the merged result.
-func (m *Merger) ToPolicy() *types.CatalogPolicy {
+func (m *Merger) ToPolicy() *types.BlueprintPolicy {
 	m.mustBeMerged()
 	return m.policy
 }
 
-// APIMetadata returns the merged result as a CatalogMeta with apiversion and kind.
+// APIMetadata returns the merged result as a BlueprintMeta with apiversion and kind.
 func (m *Merger) APIMetadata() apiMetadata {
 	m.mustBeMerged()
 	return m.apiMetadata
 }
 
 // FirstEntryDir returns the directory of the first entry point path.
-// Used by the Catalog parser to resolve relative crdFile paths.
+// Used by the Blueprint parser to resolve relative crdFile paths.
 func (m *Merger) FirstEntryDir() string {
 	if len(m.entryPoints) == 0 {
 		return ""
@@ -433,25 +433,25 @@ func (m *Merger) FirstEntryDir() string {
 	return filepath.Dir(m.entryPoints[0])
 }
 
-// ToUI returns a UI-friendly representation of the merged Catalog.
+// ToUI returns a UI-friendly representation of the merged Blueprint.
 // This method extracts only the fields needed for display in the Console:
-//   - API version and kind (always "Catalog" at runtime)
+//   - API version and kind (always "Blueprint" at runtime)
 //   - Metadata (name, description, version, author, license)
 //   - All merged CRD definitions
 //
 // Internal fields (Scheme, GroupVersionKind, etc.) are excluded because they
 // have `yaml:"-" json:"-"` tags and won't be serialized to JSON.
 //
-// This method is used by the /catalog/raw endpoint to provide a clean,
-// readable view of the Catalog that created the current operator.
-func (m *Merger) ToUI() *types.CatalogForUI {
+// This method is used by the /blueprint/raw endpoint to provide a clean,
+// readable view of the Blueprint that created the current operator.
+func (m *Merger) ToUI() *types.BlueprintForUI {
 	m.mustBeMerged()
 
-	return &types.CatalogForUI{
+	return &types.BlueprintForUI{
 		APIVersion: m.apiMetadata.APIVersion,
-		Kind:       config.CatalogKind(),
+		Kind:       config.BlueprintKind(),
 		Metadata:   m.apiMetadata.Metadata,
-		Spec: types.CatalogSpecForUI{
+		Spec: types.BlueprintSpecForUI{
 			CRDs: m.result,
 		},
 	}

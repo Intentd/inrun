@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
@@ -31,16 +31,16 @@ func (r *recordingReconciler) Reconcile(_ context.Context, req domain.Request) (
 	return r.result, nil
 }
 
-// passFixture is a one-CRD Catalog, an informer holding default/a, and a fake kube.
+// passFixture is a one-CRD Blueprint, an informer holding default/a, and a fake kube.
 func passFixture(t *testing.T) (reconcile.Deps, contract.RegistryEntry) {
 	t.Helper()
-	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"app": {
+	bp := blueprint.NewBlueprintForTest(map[string]types.CRDEntry{"app": {
 		APITypes: types.APITypes{Group: "demo.inrun.dev", Version: "v1", Kind: "App", Plural: "apps"},
 		OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{
 			Args: map[string]interface{}{"image": "{{ .spec.image }}"},
 		}},
 	}})
-	crd := cat.EnabledCRDs()["app"]
+	crd := bp.EnabledCRDs()["app"]
 
 	inf := cache.NewSharedIndexInformer(&cache.ListWatch{}, &unstructured.Unstructured{}, 0, cache.Indexers{})
 	obj := &unstructured.Unstructured{Object: map[string]interface{}{
@@ -51,7 +51,7 @@ func passFixture(t *testing.T) (reconcile.Deps, contract.RegistryEntry) {
 	}}
 	require.NoError(t, inf.GetIndexer().Add(obj))
 
-	deps := reconcile.Deps{Kube: simulate.NewFakeKubeclient(runtime.NewScheme()), Event: event.Discard(), Cat: cat}
+	deps := reconcile.Deps{Kube: simulate.NewFakeKubeclient(runtime.NewScheme()), Event: event.Discard(), Blueprint: bp}
 	return deps, contract.RegistryEntry{CRD: crd, Informer: inf}
 }
 
@@ -91,11 +91,11 @@ func TestRun_ObjectGoneIsSkipped(t *testing.T) {
 // declaring requeue; spec.waiting says whether the CR's cleanup is pending.
 func finalizingFixture(t *testing.T, requeue *types.RequeueConfig, waiting string) (reconcile.Deps, contract.RegistryEntry) {
 	t.Helper()
-	cat := catalog.NewCatalogForTest(map[string]types.CRDEntry{"app": {
+	bp := blueprint.NewBlueprintForTest(map[string]types.CRDEntry{"app": {
 		APITypes:    types.APITypes{Group: "demo.inrun.dev", Version: "v1", Kind: "App", Plural: "apps"},
 		OperatorBox: &types.OperatorBoxConfig{Reconcile: &types.ReconcileConfig{Requeue: requeue}},
 	}})
-	crd := cat.EnabledCRDs()["app"]
+	crd := bp.EnabledCRDs()["app"]
 
 	obj := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "demo.inrun.dev/v1",
@@ -112,7 +112,7 @@ func finalizingFixture(t *testing.T, requeue *types.RequeueConfig, waiting strin
 
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
 	require.NoError(t, kube.Seed(obj.DeepCopy()))
-	return reconcile.Deps{Kube: kube, Event: event.Discard(), Cat: cat}, contract.RegistryEntry{CRD: crd, Informer: inf}
+	return reconcile.Deps{Kube: kube, Event: event.Discard(), Blueprint: bp}, contract.RegistryEntry{CRD: crd, Informer: inf}
 }
 
 func runFinalizing(t *testing.T, deps reconcile.Deps, entry contract.RegistryEntry) (reconcile.Outcome, *recordingReconciler) {

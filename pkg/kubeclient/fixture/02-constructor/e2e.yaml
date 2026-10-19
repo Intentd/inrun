@@ -11,7 +11,7 @@ metadata:
     the result.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd-node.yaml
   cr: ./cr-node-e2e.yaml
 

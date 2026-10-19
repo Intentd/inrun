@@ -8,7 +8,7 @@ metadata:
     /ready — via port-forward to the leader pod.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./cr.yaml
 

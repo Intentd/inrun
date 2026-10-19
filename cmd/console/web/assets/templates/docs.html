@@ -45,7 +45,7 @@
         </div>
         {{ end }}
 
-        {{ range .Catalogs }}
+        {{ range .Blueprints }}
         <div class="inrun-sidebar-group is-open">
           <button class="inrun-sidebar-group-toggle">
             <span>{{ .Name }}</span>
@@ -54,7 +54,7 @@
           <ul class="inrun-sidebar-items">
             {{ range .CRDs }}
             <li class="inrun-sidebar-item">
-              <a href="/console/docs/{{ .CatalogName }}/{{ .Name }}">{{ .Name }}</a>
+              <a href="/console/docs/{{ .BlueprintName }}/{{ .Name }}">{{ .Name }}</a>
             </li>
             {{ end }}
           </ul>
@@ -73,7 +73,7 @@
       </div>
 
       <div class="inrun-doc-body">
-        {{ if eq (len .Catalogs) 0 }}
+        {{ if eq (len .Blueprints) 0 }}
         <div class="inrun-callout inrun-callout-note">
           <div class="inrun-callout-header">No runtimes connected</div>
           <div class="inrun-callout-body">
@@ -82,7 +82,7 @@
         </div>
         {{ else }}
 
-        {{ range .Catalogs }}
+        {{ range .Blueprints }}
         <h2>{{ .Name }}</h2>
         {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
         {{ if .Author }}<p><strong>Author:</strong> {{ .Author }}{{ if .Version }} &nbsp;·&nbsp; <strong>Version:</strong> <code>{{ .Version }}</code>{{ end }}</p>{{ end }}
@@ -92,7 +92,7 @@
           <tbody>
             {{ range .CRDs }}
             <tr>
-              <td><a href="/console/docs/{{ .CatalogName }}/{{ .Name }}"><code>{{ .Name }}</code></a></td>
+              <td><a href="/console/docs/{{ .BlueprintName }}/{{ .Name }}"><code>{{ .Name }}</code></a></td>
               <td><span class="inrun-state inrun-state-{{ .State }}">{{ .State }}</span></td>
             </tr>
             {{ end }}

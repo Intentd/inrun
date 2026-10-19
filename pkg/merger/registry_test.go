@@ -115,10 +115,10 @@ func TestResolvedURL_DefaultVersion_Git(t *testing.T) {
 
 // ── RegistrySource.SourceFile ─────────────────────────────────────────────────
 
-func TestSourceFile_Default_IsCatalog(t *testing.T) {
+func TestSourceFile_Default_IsBlueprint(t *testing.T) {
 	src := types.RegistrySource{URL: "https://github.com/myorg/r"}
-	if src.SourceFile() != "catalog.yaml" {
-		t.Errorf("default source file should be catalog.yaml, got %q", src.SourceFile())
+	if src.SourceFile() != "blueprint.yaml" {
+		t.Errorf("default source file should be blueprint.yaml, got %q", src.SourceFile())
 	}
 }
 
@@ -131,24 +131,24 @@ func TestSourceFile_UseStack_IsStack(t *testing.T) {
 
 // ── validatePatternStructure ──────────────────────────────────────────────────
 
-// Catalog pattern: only catalog.yaml is required.
-func TestValidatePatternStructure_CatalogOnly_NoError(t *testing.T) {
+// Blueprint pattern: only blueprint.yaml is required.
+func TestValidatePatternStructure_BlueprintOnly_NoError(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "catalog.yaml", "kind: Catalog\n")
+	writeFile(t, dir, "blueprint.yaml", "kind: Blueprint\n")
 	if err := merger.ExportedValidatePatternStructure(dir, "test-url", "v1.0.0"); err != nil {
-		t.Errorf("catalog.yaml alone should be sufficient: %v", err)
+		t.Errorf("blueprint.yaml alone should be sufficient: %v", err)
 	}
 }
 
-// Catalog pattern with all optional files present.
-func TestValidatePatternStructure_CatalogWithOptionals_NoError(t *testing.T) {
+// Blueprint pattern with all optional files present.
+func TestValidatePatternStructure_BlueprintWithOptionals_NoError(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "catalog.yaml", "kind: Catalog\n")
+	writeFile(t, dir, "blueprint.yaml", "kind: Blueprint\n")
 	writeFile(t, dir, "crd.yaml", "content")
 	writeFile(t, dir, "cr.yaml", "content")
 	writeFile(t, dir, "README.md", "content")
 	if err := merger.ExportedValidatePatternStructure(dir, "test-url", "v1.0.0"); err != nil {
-		t.Errorf("catalog with all optional files should pass: %v", err)
+		t.Errorf("blueprint with all optional files should pass: %v", err)
 	}
 }
 
@@ -167,7 +167,7 @@ func TestValidatePatternStructure_NoPatternFile_Error(t *testing.T) {
 	writeFile(t, dir, "crd.yaml", "content")
 	writeFile(t, dir, "README.md", "content")
 	if err := merger.ExportedValidatePatternStructure(dir, "test-url", "v1.0.0"); err == nil {
-		t.Fatal("expected error when no catalog.yaml or module.yaml present")
+		t.Fatal("expected error when no blueprint.yaml or module.yaml present")
 	}
 }
 
@@ -181,8 +181,8 @@ func writeFile(t *testing.T, dir, name, content string) {
 // ── GitHub raw URL construction ───────────────────────────────────────────────
 
 func TestGitHubRawURL_Construction(t *testing.T) {
-	got := merger.ExportedGitHubRawURL("https://github.com/myorg/myrepo", "main", "catalog.yaml")
-	want := "https://raw.githubusercontent.com/myorg/myrepo/main/catalog.yaml"
+	got := merger.ExportedGitHubRawURL("https://github.com/myorg/myrepo", "main", "blueprint.yaml")
+	want := "https://raw.githubusercontent.com/myorg/myrepo/main/blueprint.yaml"
 	if got != want {
 		t.Errorf("githubRawURL: got %q, want %q", got, want)
 	}
@@ -192,11 +192,11 @@ func TestGitHubRawURL_Construction(t *testing.T) {
 func patternServer(t *testing.T, version string, overrides map[string][]byte) *httptest.Server {
 	t.Helper()
 	files := map[string][]byte{
-		"/" + version + "/crd.yaml":     []byte("kind: CustomResourceDefinition"),
-		"/" + version + "/catalog.yaml": testCatalogYAML,
-		"/" + version + "/stack.yaml":   []byte("apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: c\nspec:\n  crds:\n    - name: myapp\n      enabled: true\n      apiTypes:\n        group: test.inrun.dev\n        version: v1alpha1\n        kind: MyApp\n        plural: myapps\n"),
-		"/" + version + "/cr.yaml":      []byte("kind: MyApp"),
-		"/" + version + "/README.md":    []byte("# MyApp"),
+		"/" + version + "/crd.yaml":       []byte("kind: CustomResourceDefinition"),
+		"/" + version + "/blueprint.yaml": testBlueprintYAML,
+		"/" + version + "/stack.yaml":     []byte("apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: c\nspec:\n  crds:\n    - name: myapp\n      enabled: true\n      apiTypes:\n        group: test.inrun.dev\n        version: v1alpha1\n        kind: MyApp\n        plural: myapps\n"),
+		"/" + version + "/cr.yaml":        []byte("kind: MyApp"),
+		"/" + version + "/README.md":      []byte("# MyApp"),
 	}
 	for k, v := range overrides {
 		files[k] = v
@@ -212,10 +212,10 @@ func patternServer(t *testing.T, version string, overrides map[string][]byte) *h
 	}))
 }
 
-var testCatalogYAML = []byte(`apiVersion: inrun.dev/v1
-kind: Catalog
+var testBlueprintYAML = []byte(`apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
-  name: test-catalog
+  name: test-blueprint
 spec:
   crds:
     - name: myapp

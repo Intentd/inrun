@@ -1,7 +1,7 @@
 package types
 
 // EnvFromRefEntry describes a single envFrom secretRef/configMapRef entry
-// found in a resource template. Used by catalog validation to catch a
+// found in a resource template. Used by blueprint validation to catch a
 // suffix-without-keys config error early at load time.
 type EnvFromRefEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"

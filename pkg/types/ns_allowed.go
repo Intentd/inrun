@@ -9,7 +9,7 @@ package types
 //
 // Supported at all three levels:
 //   Stack level — applies to all CRDs in the Stack
-//   Catalog level  — applies to all CRDs in the Catalog
+//   Blueprint level  — applies to all CRDs in the Blueprint
 //   CRD level      — applies to this specific CRD
 //
 // Rules from all three levels are merged — more specific levels add to,
@@ -93,7 +93,7 @@ func (c *CRDEntry) SingleNamespace() string {
 // (cmd/internal/runtime_construct.go's dynamic-CRD fallback). A CRD whose
 // serve.namespace resolves differently per submission (e.g. by team) can never
 // be watched this way — whatever it creates outside the pinned namespace
-// would sit unreconciled forever. See Catalog.validateServeNamespace.
+// would sit unreconciled forever. See Blueprint.validateServeNamespace.
 func (c *CRDEntry) PinnedToNamespace() bool {
 	return c.IsSingleNamespace() || c.Namespace != ""
 }

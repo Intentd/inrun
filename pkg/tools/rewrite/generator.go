@@ -1,7 +1,7 @@
 // pkg/migrate/generator.go
 //
 // Generates the Inrun scaffolding files that accompany a migrated reconciler:
-// catalog.yaml, simulate.yaml, e2e.yaml, and go.mod.
+// blueprint.yaml, simulate.yaml, e2e.yaml, and go.mod.
 //
 // All generated files are stubs with TODO markers. The user fills in
 // CRD details (group, kind, location) and resource assertions.
@@ -14,7 +14,7 @@ import (
 
 // Files holds all generated file contents keyed by filename.
 type Files struct {
-	Catalog    string
+	Blueprint  string
 	Simulate   string
 	E2E        string
 	GoMod      string
@@ -26,7 +26,7 @@ type Files struct {
 // Options controls what the generator emits.
 type Options struct {
 	// ModulePath is the Go module path of the migrated operator (e.g. github.com/myorg/my-operator).
-	// Used in go.mod and as a hint in catalog.yaml location fields.
+	// Used in go.mod and as a hint in blueprint.yaml location fields.
 	ModulePath string
 
 	// OperatorName is the kebab-case name for the operator (e.g. webapp-operator).
@@ -52,7 +52,7 @@ func Generate(res *Result, opts Options) Files {
 	constructorFn := "New" + res.ReceiverType
 
 	return Files{
-		Catalog:    generateCatalog(res, opts, crdName, constructorFn),
+		Blueprint:  generateBlueprint(res, opts, crdName, constructorFn),
 		Simulate:   generateSimulate(opts, crdName),
 		E2E:        generateE2E(opts, crdName),
 		GoMod:      generateGoMod(opts),
@@ -62,7 +62,7 @@ func Generate(res *Result, opts Options) Files {
 	}
 }
 
-func generateCatalog(res *Result, opts Options, crdName, constructorFn string) string {
+func generateBlueprint(res *Result, opts Options, crdName, constructorFn string) string {
 	resources := buildResourcesBlock(res.Owns)
 	watchBlock := buildWatchBlock(res.Watches)
 	p := res.Primary
@@ -86,9 +86,9 @@ func generateCatalog(res *Result, opts Options, crdName, constructorFn string) s
 		alias = "apiv1alpha1"
 	}
 
-	return fmt.Sprintf(`# Schema reference: https://inrun.dev/docs/reference/schema/catalog/
+	return fmt.Sprintf(`# Schema reference: https://inrun.dev/docs/reference/schema/blueprint/
 apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
   name: %s
   author: myorg  # TODO(inrun rewrite): set your name or org
@@ -195,7 +195,7 @@ metadata:
     TODO(inrun rewrite): fill in the resource kinds your operator creates.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../manifests/cr.yaml
   cycles: 3
 
@@ -223,7 +223,7 @@ metadata:
     TODO(inrun rewrite): fill in your CRD kind, CR name, and assertions.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 
@@ -294,7 +294,7 @@ func generateMakefile(opts Options) string {
 BINARY_NAME ?= inrun
 DEV_OUTPUT_DIR  ?= $(HOME)/.inrun/bin
 PROD_OUTPUT_DIR ?= $(HOME)/.inrun/bin/runtime
-CATALOG     ?= catalog.yaml
+BLUEPRINT     ?= blueprint.yaml
 
 IMAGE_REPO  ?= myorg/%s
 IMAGE_TAG   ?= latest
@@ -313,7 +313,7 @@ registry:
 	@[ -f go.mod.txt ] && mv go.mod.txt go.mod || true
 	@[ -f go.sum.txt ] && mv go.sum.txt go.sum || true
 	@find . -name "*.go" | xargs grep -l "^//go:build ignore$$" 2>/dev/null | while read f; do tail -n +3 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"; done || true
-	inrun generate registry --file $(CATALOG)
+	inrun generate registry --file $(BLUEPRINT)
 
 .PHONY: build
 build:
@@ -343,7 +343,7 @@ build-runtime:
 
 .PHONY: validate
 validate:
-	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(CATALOG)
+	$(DEV_OUTPUT_DIR)/$(BINARY_NAME) validate -f $(BLUEPRINT)
 
 .PHONY: e2e
 e2e:
@@ -370,10 +370,10 @@ clean:
 
 .PHONY: help
 help:
-	@echo "  registry       generate type registry from Catalog"
+	@echo "  registry       generate type registry from Blueprint"
 	@echo "  build          compile full development CLI"
 	@echo "  build-runtime  compile production binary (runtime only)"
-	@echo "  validate       run catalog validation"
+	@echo "  validate       run blueprint validation"
 	@echo "  e2e            run end-to-end tests"
 	@echo "  docker         build-runtime + Docker image"
 	@echo "  push           push Docker image"
@@ -403,7 +403,7 @@ informer, queue, workers, leader election and metrics.
 grep -rn "TODO(inrun rewrite)" .
 ` + bt + `
 
-Set ` + "`" + `apiTypes` + "`" + ` and ` + "`" + `managedResources` + "`" + ` in ` + "`" + `catalog.yaml` + "`" + `, add assertions to
+Set ` + "`" + `apiTypes` + "`" + ` and ` + "`" + `managedResources` + "`" + ` in ` + "`" + `blueprint.yaml` + "`" + `, add assertions to
 ` + "`" + `test/simulate.yaml` + "`" + ` and ` + "`" + `test/e2e.yaml` + "`" + `, and delete ` + "`" + `main.go` + "`" + `, the scheme
 setup and ` + "`" + `SetupWithManager` + "`" + `.
 

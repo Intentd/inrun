@@ -9,7 +9,6 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // injectRuntimeAnnotations writes live metrics and health data as annotations
@@ -19,8 +18,8 @@ import (
 //
 // Metrics injection respects crossAccess; health injection respects the health endpoint flag.
 func injectRuntimeAnnotations(ctx context.Context, obj domain.Object, in Input) {
-	u := toUnstructured(obj)
-	if u == nil {
+	u, ok := domain.ToUnstructured(obj)
+	if !ok {
 		return
 	}
 	existing := u.GetAnnotations()
@@ -68,12 +67,4 @@ func sameHealth(a, b string) bool {
 		delete(mb, k)
 	}
 	return reflect.DeepEqual(ma, mb)
-}
-
-func toUnstructured(obj domain.Object) *unstructured.Unstructured {
-	res, ok := domain.ToUnstructured(obj)
-	if !ok {
-		return nil
-	}
-	return res
 }

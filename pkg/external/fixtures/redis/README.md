@@ -11,7 +11,7 @@ Two calls are declared:
 
 ```sh
 docker compose -f pkg/external/fixtures/redis/docker-compose.yaml up -d
-inrun -f pkg/external/fixtures/redis/catalog.yaml
+inrun -f pkg/external/fixtures/redis/blueprint.yaml
 ```
 
 ## Check the Status

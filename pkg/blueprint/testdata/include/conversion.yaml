@@ -1,0 +1,22 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: test
+spec:
+  crds:
+    platform:
+      apiTypes:
+        group: platform.inrun.dev
+        version: v1
+        kind: Platform
+        plural: platforms
+      admission:
+        conversion:
+          storageVersion: v1
+          include: ./conversion-paths.yaml
+          paths:
+            - from: v1
+              to: v1alpha1
+              spec:
+                image: "{{ .spec.image }}"
+

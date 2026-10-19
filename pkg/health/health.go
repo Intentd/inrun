@@ -25,7 +25,7 @@ var _ domain.Component = (*HealthServer)(nil)
 type HealthServer struct {
 	name string
 
-	// HTTP server for health, readiness, metrics, and Catalog API routes.
+	// HTTP server for health, readiness, metrics, and Blueprint API routes.
 	server *http.Server
 	mux    *http.ServeMux
 

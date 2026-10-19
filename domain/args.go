@@ -7,7 +7,7 @@ import (
 )
 
 // Args are the values a reconciler receives on each reconcile, declared in the
-// Catalog under operatorBox.reconcile.args. Template expressions are rendered
+// Blueprint under operatorBox.reconcile.args. Template expressions are rendered
 // against the CR first, so args express the CR in the reconciler's own
 // vocabulary. The runtime puts them on Request.Args for every reconciler,
 // hooks included.

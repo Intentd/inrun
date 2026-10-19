@@ -15,8 +15,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/serve"
 	"github.com/intentd/inrun/cmd/cli/testsuite"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/registry/e2e"
@@ -119,8 +119,8 @@ var pushCmd = &cobra.Command{
 		cmdutil.PrintBanner()
 		fmt.Printf("Pushing %s (%s) to %s...\n", refArg, patternKind, ref.Registry)
 
-		if patternKind == registry.CatalogKind {
-			localImports, err := registry.ExtractLocalModuleImports(filepath.Join(dir, registry.FileCatalog))
+		if patternKind == registry.BlueprintKind {
+			localImports, err := registry.ExtractLocalModuleImports(filepath.Join(dir, registry.FileBlueprint))
 			if err == nil && len(localImports) > 0 {
 				var lines []string
 				for _, li := range localImports {
@@ -129,29 +129,29 @@ var pushCmd = &cobra.Command{
 				return fmt.Errorf(
 					"✗ Push blocked: local file imports in %s\n\n%s\n\n"+
 						"  Local imports work for inrun simulate and inrun template, but cannot\n"+
-						"  be resolved by consumers after the catalog is published.\n\n"+
+						"  be resolved by consumers after the blueprint is published.\n\n"+
 						"  Before publishing:\n"+
 						"    1. Push the module:  inrun push <module-dir>/\n"+
 						"    2. Replace the local path with the OCI ref:\n"+
 						"       module: oci://<your-registry>/modules/<name>:<version>",
-					registry.FileCatalog,
+					registry.FileBlueprint,
 					strings.Join(lines, "\n"),
 				)
 			}
 		}
 
-		if patternKind == registry.CatalogKind {
-			m := merger.New(filepath.Join(dir, registry.FileCatalog))
+		if patternKind == registry.BlueprintKind {
+			m := merger.New(filepath.Join(dir, registry.FileBlueprint))
 			if err := m.Merge(); err != nil {
-				return fmt.Errorf("  ✗ %s: %w", registry.FileCatalog, err)
+				return fmt.Errorf("  ✗ %s: %w", registry.FileBlueprint, err)
 			}
-			cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
+			bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 			if err != nil {
-				return fmt.Errorf("  ✗ %s: %w", registry.FileCatalog, err)
+				return fmt.Errorf("  ✗ %s: %w", registry.FileBlueprint, err)
 			}
-			fmt.Printf("  %s %-20s valid\n", cmdutil.SuccessMark(), registry.FileCatalog)
-			if d := cat.Deprecation(); d != nil {
-				cmdutil.PrintCatalogDeprecation(d)
+			fmt.Printf("  %s %-20s valid\n", cmdutil.SuccessMark(), registry.FileBlueprint)
+			if d := bp.Deprecation(); d != nil {
+				cmdutil.PrintBlueprintDeprecation(d)
 			}
 
 			if crd := registry.FindPatternFile(dir, registry.FileCRD); crd != "" && slices.Contains(files, crd) {
@@ -163,7 +163,7 @@ var pushCmd = &cobra.Command{
 		}
 
 		for _, f := range files {
-			if f == registry.FileCatalog || filepath.Base(f) == registry.FileCRD {
+			if f == registry.FileBlueprint || filepath.Base(f) == registry.FileCRD {
 				continue
 			}
 			info, _ := os.Stat(filepath.Join(dir, f))
@@ -171,7 +171,7 @@ var pushCmd = &cobra.Command{
 		}
 
 		var simulateMeta *registry.PatternSimulate
-		if patternKind == registry.CatalogKind {
+		if patternKind == registry.BlueprintKind {
 			if rel := registry.FindPatternFile(dir, registry.FileSimulate); rel != "" {
 				simFile := filepath.Join(dir, rel)
 				if pushForce || pushNoSimulate {
@@ -208,7 +208,7 @@ var pushCmd = &cobra.Command{
 		}
 
 		var e2eMeta *registry.PatternE2E
-		if patternKind == registry.CatalogKind {
+		if patternKind == registry.BlueprintKind {
 			e2eFile := pushE2EFile
 			if e2eFile == "" {
 				if rel := registry.FindPatternFile(dir, registry.FileE2E); rel != "" {
@@ -258,13 +258,13 @@ var pushCmd = &cobra.Command{
 		}
 
 		var intentMeta *registry.PatternIntent
-		if patternKind == registry.CatalogKind && pushAddIntent != "" {
+		if patternKind == registry.BlueprintKind && pushAddIntent != "" {
 			intentFile := pushAddIntent
 			if !filepath.IsAbs(intentFile) {
 				intentFile = filepath.Join(dir, intentFile)
 			}
 			fmt.Printf("\nRunning intent play (%s)...\n", pushAddIntent)
-			target, perr := serve.RunIntentPlay(filepath.Join(dir, registry.FileCatalog), intentFile)
+			target, perr := serve.RunIntentPlay(filepath.Join(dir, registry.FileBlueprint), intentFile)
 			status := "passed"
 			if perr != nil {
 				status = "failed"
@@ -280,8 +280,8 @@ var pushCmd = &cobra.Command{
 		}
 
 		var typedMeta *registry.PatternTyped
-		if patternKind == registry.CatalogKind {
-			typedMeta = detectTypedCatalog(filepath.Join(dir, registry.FileCatalog))
+		if patternKind == registry.BlueprintKind {
+			typedMeta = detectTypedBlueprint(filepath.Join(dir, registry.FileBlueprint))
 		}
 
 		runtimeVersion := version.Short()
@@ -318,7 +318,7 @@ var pushCmd = &cobra.Command{
 		fmt.Printf("\n%s Pushed: %s\n", cmdutil.SuccessMark(), ref.String())
 		fmt.Printf("  Digest: %s\n", digest)
 
-		if patternKind == registry.CatalogKind {
+		if patternKind == registry.BlueprintKind {
 			moduleYAML := filepath.Join(dir, registry.FileModule)
 			if _, err := os.Stat(moduleYAML); err == nil {
 				moduleRef, err := registry.ResolveForKind(fmt.Sprintf("%s:%s", meta.Name, meta.Version), registry.ModuleKind)
@@ -337,7 +337,7 @@ var pushCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Printf("\nTo import in a Catalog:\n")
+		fmt.Printf("\nTo import in a Blueprint:\n")
 		if patternKind == registry.ModuleKind {
 			fmt.Printf("  imports:\n")
 			fmt.Printf("    - module: %s\n", ref.String())
@@ -368,7 +368,7 @@ func init() {
 	cmdutil.ShadowGlobalCommandFlags(pushCmd, "file")
 }
 
-// detectTypedCatalog parses a catalog.yaml and returns a PatternTyped if any
+// detectTypedBlueprint parses a blueprint.yaml and returns a PatternTyped if any
 // CRD declares customHooks or customConstructor. Returns nil on parse error.
 // extractRuntimeVersionFromGoMod scans go.mod for the inrun runtime dependency
 // and returns its version (e.g. "v0.7.6"). Returns "" if go.mod is absent or the
@@ -403,14 +403,14 @@ func extractRuntimeVersionFromGoMod(dir string) string {
 	return ""
 }
 
-func detectTypedCatalog(catalogPath string) *registry.PatternTyped {
-	cat, err := catalog.ParseFile(catalogPath)
+func detectTypedBlueprint(blueprintPath string) *registry.PatternTyped {
+	bp, err := blueprint.ParseFile(blueprintPath)
 	if err != nil {
 		return nil
 	}
 	var t registry.PatternTyped
-	for _, name := range cat.CRDNames() {
-		entry, ok := cat.CRDEntry(name)
+	for _, name := range bp.CRDNames() {
+		entry, ok := bp.CRDEntry(name)
 		if !ok {
 			continue
 		}

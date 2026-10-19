@@ -20,7 +20,7 @@ type BlockchainNodeReconciler struct {
 	kube kubeclient.Interface
 }
 
-// NewBlockchainNodeReconciler is the constructor function registered in the Catalog.
+// NewBlockchainNodeReconciler is the constructor function registered in the Blueprint.
 func NewBlockchainNodeReconciler(kube kubeclient.Interface) domain.Reconciler {
 	return &BlockchainNodeReconciler{kube: kube}
 }
@@ -39,8 +39,8 @@ func (r *BlockchainNodeReconciler) Reconcile(ctx context.Context, req domain.Req
 		return domain.Result{}, nil
 	}
 
-	// The Catalog declares the flag URL pattern and the business-hours window.
-	// The constructor owns the time check and the HTTP call — the Catalog owns
+	// The Blueprint declares the flag URL pattern and the business-hours window.
+	// The constructor owns the time check and the HTTP call — the Blueprint owns
 	// the configuration. The binary is identical across environments and schedules.
 	flagUrl := req.Args().String("flagUrl")
 	start := req.Args().String("businessHoursStart")
@@ -81,7 +81,7 @@ func (r *BlockchainNodeReconciler) Reconcile(ctx context.Context, req domain.Req
 }
 
 // inBusinessHours returns true when the current UTC time is a weekday within
-// the declared window. start and end are "HH:MM" strings from catalog args.
+// the declared window. start and end are "HH:MM" strings from blueprint args.
 func (r *BlockchainNodeReconciler) inBusinessHours(start, end string) bool {
 	now := time.Now().UTC()
 	if wd := now.Weekday(); wd == time.Saturday || wd == time.Sunday {

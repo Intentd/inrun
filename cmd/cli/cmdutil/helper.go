@@ -19,7 +19,7 @@ import (
 	"github.com/intentd/inrun/pkg/util/structured"
 	"github.com/intentd/inrun/pkg/util/term"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
@@ -132,18 +132,18 @@ func ShadowGlobalCommandFlags(cmd *cobra.Command, flags ...string) {
 
 // PrintTemplateSummary prints the human-readable default output of `inrun template`.
 // CRDs are listed in startup order so the user sees the dependency sequence.
-func PrintTemplateSummary(cat *catalog.Catalog, crds map[string]types.CRDEntry, startupOrder []string) {
-	meta := cat.Metadata()
+func PrintTemplateSummary(bp *blueprint.Blueprint, crds map[string]types.CRDEntry, startupOrder []string) {
+	meta := bp.Metadata()
 
-	fmt.Printf("\n%s", Cyan(Bold("Catalog")))
+	fmt.Printf("\n%s", Cyan(Bold("Blueprint")))
 	if meta.Name != "" {
 		fmt.Printf(": %s", Bold(meta.Name))
 	}
 	if meta.Version != "" {
 		fmt.Printf(" %s", Dim("("+meta.Version+")"))
 	}
-	if cat.APIVersion != "" {
-		fmt.Printf("  %s", Dim(cat.APIVersion))
+	if bp.APIVersion != "" {
+		fmt.Printf("  %s", Dim(bp.APIVersion))
 	}
 	fmt.Println()
 
@@ -270,7 +270,7 @@ func PrintTemplateSummary(cat *catalog.Catalog, crds map[string]types.CRDEntry, 
 		fmt.Println()
 	}
 
-	fmt.Printf("  %s\n\n", Green("✓ Catalog is valid"))
+	fmt.Printf("  %s\n\n", Green("✓ Blueprint is valid"))
 }
 
 // ── printDependencyGraph ──────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ func PrintTemplateSummary(cat *catalog.Catalog, crds map[string]types.CRDEntry, 
 // PrintDependencyGraph prints a two-part dependency view:
 // 1. Ordered startup list (flat)
 // 2. Tree view showing the dependency hierarchy
-func PrintDependencyGraph(crds map[string]types.CRDEntry, g *catalog.DependencyGraph, startupOrder []string) {
+func PrintDependencyGraph(crds map[string]types.CRDEntry, g *blueprint.DependencyGraph, startupOrder []string) {
 	fmt.Printf("\n%s\n\n", Cyan(Bold("Dependency Graph")))
 
 	// ── Part 1: startup order list ────────────────────────────────────────────
@@ -337,7 +337,7 @@ func PrintDependencyGraph(crds map[string]types.CRDEntry, g *catalog.DependencyG
 }
 
 // printGraphNode recursively prints one CRD node and its dependents in tree form.
-func printGraphNode(crds map[string]types.CRDEntry, g *catalog.DependencyGraph, name, indent, connector string, printed map[string]bool) {
+func printGraphNode(crds map[string]types.CRDEntry, g *blueprint.DependencyGraph, name, indent, connector string, printed map[string]bool) {
 	crd, ok := crds[name]
 	if !ok {
 		return
@@ -382,7 +382,7 @@ func printGraphNode(crds map[string]types.CRDEntry, g *catalog.DependencyGraph, 
 
 // PrintCRDDetail prints the full expanded state of a single CRD as a
 // human-readable document — what the runtime will use for this CRD.
-func PrintCRDDetail(crd types.CRDEntry, g *catalog.DependencyGraph) {
+func PrintCRDDetail(crd types.CRDEntry, g *blueprint.DependencyGraph) {
 	fmt.Printf("\n%s\n", Bold(crd.Name))
 	fmt.Printf("  %s %s/%s\n", Cyan("APIVersion:"), crd.APITypes.Group, crd.APITypes.Version)
 	fmt.Printf("  %s %s  (plural: %s)\n", Cyan("Kind:     "), crd.APITypes.Kind, crd.APITypes.Plural)
@@ -725,7 +725,7 @@ func PrintTypedBuildSteps(hasMakefile bool) {
 // PrintTypedOperatorHint is called when a registry-sourced typed operator fails
 // validation or simulate. Tells the user to pull the pattern, build the custom
 // runtime, then re-run the same command.
-func PrintTypedOperatorHint(err *catalog.TypedOperatorError, command string) {
+func PrintTypedOperatorHint(err *blueprint.TypedOperatorError, command string) {
 	fmt.Printf("\n%s  This operator is typed — requires a custom runtime.\n\n", Yellow("⚠"))
 	fmt.Printf("  Pull and build, then re-run:\n")
 	fmt.Printf("    inrun pull %s -o .\n", err.Ref)
@@ -735,14 +735,14 @@ func PrintTypedOperatorHint(err *catalog.TypedOperatorError, command string) {
 
 // ── crdModeLabel ──────────────────────────────────────────────────────────────
 
-// PrintCatalogDeprecation prints the deprecation notice for a locally validated
-// catalog. Reads timeline state from the CatalogDeprecation methods.
+// PrintBlueprintDeprecation prints the deprecation notice for a locally validated
+// blueprint. Reads timeline state from the BlueprintDeprecation methods.
 // Prints nothing if the block is nil or today is before timeline.from.
-func PrintCatalogDeprecation(d *types.CatalogDeprecation) {
-	PrintCatalogDeprecationWithHint(d, "")
+func PrintBlueprintDeprecation(d *types.BlueprintDeprecation) {
+	PrintBlueprintDeprecationWithHint(d, "")
 }
 
-func PrintCatalogDeprecationWithHint(d *types.CatalogDeprecation, hint string) {
+func PrintBlueprintDeprecationWithHint(d *types.BlueprintDeprecation, hint string) {
 	if d == nil {
 		return
 	}
@@ -760,7 +760,7 @@ func PrintPatternDeprecation(dep *registry.PatternDeprecated) {
 	if dep == nil {
 		return
 	}
-	d := &types.CatalogDeprecation{
+	d := &types.BlueprintDeprecation{
 		MigratedTo: dep.MigratedTo,
 		Message:    dep.Message,
 	}
@@ -770,7 +770,7 @@ func PrintPatternDeprecation(dep *registry.PatternDeprecated) {
 			To:   dep.TimelineTo,
 		}
 	}
-	PrintCatalogDeprecation(d)
+	PrintBlueprintDeprecation(d)
 }
 
 // printDeprecationBlock renders the deprecation block for a given state.

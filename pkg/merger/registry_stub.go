@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// loadRegistrySource is unavailable in this build — Registry Catalog
+// loadRegistrySource is unavailable in this build — Registry Blueprint
 // imports are an authoring-time feature only. Pre-merge with the inrun CLI
 // (inrun generate bundle) before deploying.
 func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.CRDEntry, error) {

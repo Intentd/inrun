@@ -5,7 +5,7 @@ package types
 // When enabled, Inrun serves the /convert endpoint and translates
 // ConversionReview requests using these rules and the template resolver.
 //
-// Example Catalog declaration:
+// Example Blueprint declaration:
 //
 //	conversion:
 //	  storageVersion: v1
@@ -24,7 +24,7 @@ package types
 //	        replicas: "{{ .spec.replicas }}"
 //	        theme: "default"   # default — v1 has no theme field
 type CRDConversion struct {
-	// Include is a path (relative to the catalog file) to a YAML file whose
+	// Include is a path (relative to the blueprint file) to a YAML file whose
 	// top-level value is a list of ConversionPath entries under a "paths:" key.
 	// Expanded at load time — included paths come first, inline paths append after.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
@@ -78,7 +78,7 @@ type ConversionPath struct {
 }
 
 // ConversionRules is the runtime form of CRDConversion, keyed by Kind.
-// Registered in the InMemoryConversionRegistry at Catalog load time.
+// Registered in the InMemoryConversionRegistry at Blueprint load time.
 type ConversionRules struct {
 	Kind           string           `json:"kind" yaml:"kind"`
 	StorageVersion string           `json:"storageVersion" yaml:"storageVersion"`

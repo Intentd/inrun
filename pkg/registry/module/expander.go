@@ -7,9 +7,9 @@
 //
 // Static (inrun doctor init): inputs resolved from explicit with: bindings
 // at generation time. The expanded resources are inlined into the generated
-// Catalog. No runtime dependency on the Module.
+// Blueprint. No runtime dependency on the Module.
 //
-// Dynamic (Catalog runtime): inputs resolved at Catalog startup, before
+// Dynamic (Blueprint runtime): inputs resolved at Blueprint startup, before
 // any reconcile. The Module is loaded once and its templates compiled with
 // the input bindings.
 package module
@@ -37,10 +37,10 @@ type ExpandedModule struct {
 	Status      *types.StatusConfig
 	Admission   *types.Admission
 	// NotFunctionses carries user-defined functions declared in the module.
-	// Merged into the Catalog's KELFunctionRegistry during expandCatalogImports.
+	// Merged into the Blueprint's KELFunctionRegistry during expandBlueprintImports.
 	Functions types.KELFunctionRegistry
 	// Profiles carries user-defined profiles declared in the module.
-	// Merged into the Catalog's ProfileRegistry during expandCatalogImports.
+	// Merged into the Blueprint's ProfileRegistry during expandBlueprintImports.
 	Profiles types.ProfileRegistry
 }
 

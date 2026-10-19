@@ -7,7 +7,7 @@ metadata:
     reconciler first (it listens on :8025); each cycle calls it.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
   cycles: 3

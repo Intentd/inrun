@@ -11,7 +11,7 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/catalog/validate"
+	"github.com/intentd/inrun/pkg/blueprint/validate"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -32,12 +32,12 @@ what fields developers can submit, what the gateway builds, and what
 callers see.
 
 Subcommands:
-  validate    Validate Serve configuration in a Catalog
+  validate    Validate Serve configuration in a Blueprint
   schema      Show the flat schema for a Serve target
   fields      List all Serve fields with their paths and types
   tokens      Show token permissions for a CRD
-  targets     List all Serve targets in a Catalog
-  aliases     List serve aliases in a Catalog
+  targets     List all Serve targets in a Blueprint
+  aliases     List serve aliases in a Blueprint
   can-i       Check if a token can perform an operation
   view        Show the serve view a target returns`,
 }
@@ -47,28 +47,28 @@ Subcommands:
 var serveValidateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate Serve configuration",
-	Long: `Validate Serve configuration in a Catalog.
+	Long: `Validate Serve configuration in a Blueprint.
 
 This runs the same Serve-specific validations as inrun validate, but only for
 Serve concerns: fields, paths, tokens, the view, and namespace rules.
 
-It does not check the full Catalog schema — only the Serve portions.
+It does not check the full Blueprint schema — only the Serve portions.
 
 With --full, shows a detailed breakdown of the Serve configuration.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
 
 		full, _ := cmd.Flags().GetBool("full")
 
-		if err := validate.ValidateServe(cat); err != nil {
+		if err := validate.ValidateServe(bp); err != nil {
 			return err
 		}
 
 		if full {
-			printServeValidationSummary(cat)
+			printServeValidationSummary(bp)
 		} else {
 			fmt.Printf("\n%s Serve configuration is valid\n", cmdutil.SuccessMark())
 		}
@@ -99,7 +99,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 			return errRequiresCRDSelector
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 
 		if alias != "" && target == "" && kind == "" && name == "" {
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(bp, alias)
 			if err != nil {
 				return err
 			}
@@ -118,7 +118,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 			}
 			header = fmt.Sprintf("\nSchema for: %s (alias: %s → target: %s)\n", crd.Name, alias, crd.ServeTarget())
 		} else {
-			crd, err = resolveCRD(cat, target, kind, name)
+			crd, err = resolveCRD(bp, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ GET /api/v1/schema?target=<t> endpoint.`,
 var serveFieldsCmd = &cobra.Command{
 	Use:   "fields",
 	Short: "List Serve fields with their paths and types",
-	Long: `List Serve fields in a Catalog with their paths and types.
+	Long: `List Serve fields in a Blueprint with their paths and types.
 
 This shows fields declared in serve.fields, serve.labels and serve.annotations
 across all Serve-enabled CRDs.
@@ -187,7 +187,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 			sortBy = "name"
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -199,7 +199,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 
 			if alias != "" && target == "" && kind == "" && name == "" {
 				var resolvedAlias string
-				crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
+				crd, resolvedAlias, err = resolveCRDByAnyTarget(bp, alias)
 				if err != nil {
 					return err
 				}
@@ -208,7 +208,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 				}
 				header = fmt.Sprintf("\nFields for: %s (alias: %s → target: %s)\n", crd.Name, alias, crd.ServeTarget())
 			} else {
-				crd, err = resolveCRD(cat, target, kind, name)
+				crd, err = resolveCRD(bp, target, kind, name)
 				if err != nil {
 					return err
 				}
@@ -250,7 +250,7 @@ With --target, --kind, or --name, shows fields for a specific CRD.`,
 		}
 
 		// ── All fields across all CRDs ──────────────────────────────────────
-		crds := cat.ServeEnabledCRDs()
+		crds := bp.ServeEnabledCRDs()
 		sort.Slice(crds, func(i, j int) bool {
 			if crds[i] == nil || crds[j] == nil {
 				return false
@@ -321,7 +321,7 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 			return errRequiresCRDSelector
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -330,7 +330,7 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 		if alias != "" && target == "" && kind == "" && name == "" {
 			// --alias alone: resolve CRD from alias name
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(bp, alias)
 			if err != nil {
 				return err
 			}
@@ -338,7 +338,7 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 				return fmt.Errorf("%s %q is a primary target, not an alias — use --target instead", cmdutil.FailureMark(), alias)
 			}
 		} else {
-			crd, err = resolveCRD(cat, target, kind, name)
+			crd, err = resolveCRD(bp, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -407,12 +407,12 @@ When it inherits from the CRD, the CRD-level tokens are shown with a note.`,
 
 var serveTargetsCmd = &cobra.Command{
 	Use:   "targets",
-	Short: "List all Serve targets in a Catalog",
-	Long: `List all Serve-enabled targets in a Catalog.
+	Short: "List all Serve targets in a Blueprint",
+	Long: `List all Serve-enabled targets in a Blueprint.
 
 This shows each target, its CRD kind, and whether it has fields defined.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -425,7 +425,7 @@ This shows each target, its CRD kind, and whether it has fields defined.`,
 			Aliases  int
 		}
 
-		for _, crd := range cat.ServeEnabledCRDs() {
+		for _, crd := range bp.ServeEnabledCRDs() {
 			if crd == nil {
 				continue
 			}
@@ -526,7 +526,7 @@ Examples:
 			return errRequiresCRDSelector
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -539,7 +539,7 @@ Examples:
 			alias string
 		)
 		if target != "" {
-			crd, alias, err = resolveCRDByAnyTarget(cat, target)
+			crd, alias, err = resolveCRDByAnyTarget(bp, target)
 			if err != nil {
 				return err
 			}
@@ -550,7 +550,7 @@ Examples:
 			}
 		} else if aliasFlag != "" && kind == "" && name == "" {
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, aliasFlag)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(bp, aliasFlag)
 			if err != nil {
 				return err
 			}
@@ -559,7 +559,7 @@ Examples:
 			}
 			alias = resolvedAlias
 		} else {
-			crd, err = resolveCRD(cat, target, kind, name)
+			crd, err = resolveCRD(bp, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -571,7 +571,7 @@ Examples:
 		}
 
 		// Verify the token exists at the gateway level first.
-		gatewayTokens := cat.GatewayTokenNames()
+		gatewayTokens := bp.GatewayTokenNames()
 		tokenKnown := false
 		for _, t := range gatewayTokens {
 			if t == token {
@@ -627,7 +627,7 @@ Gateway API, from serve.view. It shows:
   - Excluded paths
   - Poll URL configuration
 
-No cluster access is required — this reads the Catalog directly.
+No cluster access is required — this reads the Blueprint directly.
 
 Examples:
   inrun serve view --target smartapp
@@ -643,7 +643,7 @@ Examples:
 			return errRequiresCRDSelector
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -651,7 +651,7 @@ Examples:
 		var crd *types.CRDEntry
 		if alias != "" && target == "" && kind == "" && name == "" {
 			var resolvedAlias string
-			crd, resolvedAlias, err = resolveCRDByAnyTarget(cat, alias)
+			crd, resolvedAlias, err = resolveCRDByAnyTarget(bp, alias)
 			if err != nil {
 				return err
 			}
@@ -659,7 +659,7 @@ Examples:
 				return fmt.Errorf("%s %q is a primary target, not an alias — use --target instead", cmdutil.FailureMark(), alias)
 			}
 		} else {
-			crd, err = resolveCRD(cat, target, kind, name)
+			crd, err = resolveCRD(bp, target, kind, name)
 			if err != nil {
 				return err
 			}
@@ -780,7 +780,7 @@ Examples:
 
 var serveAliasesCmd = &cobra.Command{
 	Use:   "aliases",
-	Short: "List serve aliases in a Catalog",
+	Short: "List serve aliases in a Blueprint",
 	Long: `List serve aliases across all serve-enabled CRDs, or for a specific CRD.
 
 Aliases are additional named entry points for a CRD. Each alias can independently
@@ -798,7 +798,7 @@ Examples:
 		name, _ := cmd.Flags().GetString("name")
 		alias, _ := cmd.Flags().GetString("alias")
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -809,12 +809,12 @@ Examples:
 
 			if alias != "" && target == "" && kind == "" && name == "" {
 				// Resolve by alias — show all aliases for the same CRD.
-				crd, _, err = resolveCRDByAnyTarget(cat, alias)
+				crd, _, err = resolveCRDByAnyTarget(bp, alias)
 				if err != nil {
 					return err
 				}
 			} else {
-				crd, err = resolveCRD(cat, target, kind, name)
+				crd, err = resolveCRD(bp, target, kind, name)
 				if err != nil {
 					return err
 				}
@@ -827,7 +827,7 @@ Examples:
 		}
 
 		// ── All CRDs ────────────────────────────────────────────────────────
-		crds := cat.ServeEnabledCRDs()
+		crds := bp.ServeEnabledCRDs()
 		sort.Slice(crds, func(i, j int) bool { return crds[i].Name < crds[j].Name })
 
 		var total int

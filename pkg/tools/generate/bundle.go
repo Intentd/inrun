@@ -9,7 +9,7 @@ import (
 
 // RenderBundle assembles a complete installation bundle:
 // Namespace (once) → ServiceAccounts → ClusterRoles → ClusterRoleBindings → ConfigMap.
-// expandedYAML must be the output of catalog.Catalog.SerializeExpanded() —
+// expandedYAML must be the output of blueprint.Blueprint.SerializeExpanded() —
 // fully resolved, no OCI imports remaining. The ConfigMap embeds this content
 // so the runtime never needs to do OCI pulls at startup.
 //

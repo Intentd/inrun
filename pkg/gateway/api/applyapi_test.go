@@ -10,7 +10,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -22,10 +22,10 @@ import (
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-// newKat builds a minimal *catalog.Catalog with one serve-enabled CRD
+// newKat builds a minimal *blueprint.Blueprint with one serve-enabled CRD
 // so handler tests have a real lookup target without a cluster.
-func newKat(entries map[string]*types.CRDEntry) *catalog.Catalog {
-	return catalog.NewFromEntryPointers(entries)
+func newKat(entries map[string]*types.CRDEntry) *blueprint.Blueprint {
+	return blueprint.NewFromEntryPointers(entries)
 }
 
 // appCRD is a reusable serve-enabled CRD entry for tests.
@@ -106,8 +106,8 @@ func noopNotes() types.KELFunctionRegistry { return types.KELFunctionRegistry{} 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestSchemaHandler(t *testing.T) {
-	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	handler := ExportedSchemaHandler(cat)
+	bp := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	handler := ExportedSchemaHandler(bp)
 
 	t.Run("method not allowed", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/api/v1/schema/", nil)
@@ -189,10 +189,10 @@ func TestSchemaHandler(t *testing.T) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestResourcesHandler_Routing(t *testing.T) {
-	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	bp := newKat(map[string]*types.CRDEntry{"app": appCRD()})
 
 	t.Run("method not allowed", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
+		h := ExportedResourcesHandler(nil, bp, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodPut, "/api/v1/resources/app/default/x", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -201,7 +201,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("bad path — only one segment", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
+		h := ExportedResourcesHandler(nil, bp, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/resources/onlyone", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -210,7 +210,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("unknown kind returns 404", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
+		h := ExportedResourcesHandler(nil, bp, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/resources/unknown/default", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -219,7 +219,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 	})
 
 	t.Run("DELETE without name returns 400", func(t *testing.T) {
-		h := ExportedResourcesHandler(nil, cat, types.KELFunctionRegistry{})
+		h := ExportedResourcesHandler(nil, bp, types.KELFunctionRegistry{})
 		r := httptest.NewRequest(http.MethodDelete, "/api/v1/resources/app/default", nil)
 		r = requestWithToken(r, "ci-pipeline")
 		rr := httptest.NewRecorder()
@@ -229,7 +229,7 @@ func TestResourcesHandler_Routing(t *testing.T) {
 }
 
 func TestResourcesHandler_Permissions(t *testing.T) {
-	cat := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
+	bp := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
 
 	// The fake dynamic client needs its List kind registered for any GVR it
 	// will List() — "coding error" panic otherwise, not a graceful error.
@@ -239,7 +239,7 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 	scheme.AddKnownTypeWithName(appGVK.GroupVersion().WithKind("AppList"), &unstructured.UnstructuredList{})
 
 	kube := simulate.NewFakeKubeclient(scheme)
-	h := ExportedResourcesHandler(kube, cat, types.KELFunctionRegistry{})
+	h := ExportedResourcesHandler(kube, bp, types.KELFunctionRegistry{})
 
 	cases := []struct {
 		name     string
@@ -284,8 +284,8 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func TestApplyHandler_Format(t *testing.T) {
-	cat := newKat(map[string]*types.CRDEntry{"app": appCRD()})
-	h := ExportedApplyHandler(nil, cat, types.KELFunctionRegistry{})
+	bp := newKat(map[string]*types.CRDEntry{"app": appCRD()})
+	h := ExportedApplyHandler(nil, bp, types.KELFunctionRegistry{})
 
 	t.Run("method not allowed", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/api/v1/apply", nil)
@@ -388,13 +388,13 @@ func TestApplyHandler_Format(t *testing.T) {
 }
 
 func TestApplyHandler_Permissions(t *testing.T) {
-	cat := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
+	bp := newKat(map[string]*types.CRDEntry{"app": restrictedCRD()})
 	// Real fake client, not nil — the permission check probes
 	// kube.DynamicClient() to distinguish create vs update before deciding
 	// whether the token is allowed, even for a token that will be denied
 	// outright regardless of operation.
 	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
-	h := ExportedApplyHandler(kube, cat, types.KELFunctionRegistry{})
+	h := ExportedApplyHandler(kube, bp, types.KELFunctionRegistry{})
 
 	t.Run("unknown token denied before SSA", func(t *testing.T) {
 		r := postJSON(t, "/api/v1/apply", map[string]interface{}{

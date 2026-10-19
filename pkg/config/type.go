@@ -9,7 +9,7 @@ type Config struct {
 	cluster      clusterConfig
 	leader       leaderElection
 	healthServer healthServer
-	catalog      catalogConfig
+	blueprint    blueprintConfig
 	security     SecurityConfig
 	registry     registryConfig
 }
@@ -40,10 +40,10 @@ type registryConfig struct {
 }
 
 // SecurityConfig is the unified security configuration populated from ENV vars
-// at Init() time. Catalog YAML values are merged on top via the Catalog
+// at Init() time. Blueprint YAML values are merged on top via the Blueprint
 // loader, so this represents the ENV-level defaults.
 //
-// Precedence: Catalog YAML > SecurityConfig (ENV) > hard default.
+// Precedence: Blueprint YAML > SecurityConfig (ENV) > hard default.
 type SecurityConfig struct {
 	ServiceName struct {
 		Runtime string
@@ -90,7 +90,7 @@ type SecurityConfig struct {
 	// The webhook is managed by the housekeeper and will be recreated if
 	// deleted, ensuring continuous enforcement when enabled.
 	//
-	// Precedence: Catalog YAML > SecurityConfig (ENV) > hard default.
+	// Precedence: Blueprint YAML > SecurityConfig (ENV) > hard default.
 	NamespaceProtection struct {
 		Enabled           bool
 		FailurePolicy     string
@@ -100,7 +100,7 @@ type SecurityConfig struct {
 	// CertManager controls the lifecycle of Inrun’s auto-generated TLS certificate.
 	// Only applies when certificates are auto-generated (TLS_CERT/TLS_KEY not set).
 	//
-	// Precedence: Catalog YAML > SecurityConfig (ENV) > hard default.
+	// Precedence: Blueprint YAML > SecurityConfig (ENV) > hard default.
 	CertManager struct {
 		// AutoRotate enables pre-emptive certificate rotation before expiry.
 		// Default: true. Set TLS_AUTO_ROTATE=false to opt out.
@@ -114,15 +114,15 @@ type SecurityConfig struct {
 	}
 }
 
-type catalogConfig struct {
-	paths                   []string // Comma separated Paths to CRD catalog YAML file
+type blueprintConfig struct {
+	paths                   []string // Comma separated Paths to CRD blueprint YAML file
 	defaultQueueDepth       int
 	defaultFailureThreshold int `validate:"required"`
 	defaultResync           time.Duration
 	defaultWorkers          int
 	shutdownTimeout         time.Duration
 	shutdownGracePeriod     time.Duration
-	// gatewayEndpoint is advertised in the runtime /catalog response so the
+	// gatewayEndpoint is advertised in the runtime /blueprint response so the
 	// console can locate the companion gateway and merge stats.
 	// Populated from INRUN_GATEWAY_ENDPOINT; empty when no gateway is configured.
 	gatewayEndpoint string
@@ -167,8 +167,8 @@ func NewDefaultConfig() *Config {
 			readTimeout:  GetDurEnvSeconds("SRV_READ_TIMEOUT", 5),
 			writeTimeout: GetDurEnvSeconds("SRV_WRITE_TIMEOUT", 20),
 		},
-		catalog: catalogConfig{
-			paths:                   GetStrSliceEnv("CATALOG_PATH", []string{"catalog.yaml"}),
+		blueprint: blueprintConfig{
+			paths:                   GetStrSliceEnv("BLUEPRINT_PATH", []string{"blueprint.yaml"}),
 			defaultWorkers:          GetIntEnv("DEFAULT_WORKERS", 3),
 			defaultResync:           GetDurEnvSeconds("DEFAULT_RESYNC", 15),
 			defaultQueueDepth:       GetIntEnv("QUEUE_DEPTH", 100),
@@ -227,9 +227,9 @@ func (c *Config) Leader() *leaderElection {
 	return &c.leader
 }
 
-// Catalog returns catalog Configurations
-func (c *Config) Catalog() *catalogConfig {
-	return &c.catalog
+// Blueprint returns blueprint Configurations
+func (c *Config) Blueprint() *blueprintConfig {
+	return &c.blueprint
 }
 
 // Security returns the unified security configuration.
@@ -258,15 +258,15 @@ func (c *Config) AdmissionEnabled() bool {
 // GatewayEndpoint returns the companion gateway URL advertised to the console.
 // Empty string when no gateway is configured (e.g. runtime-only deployment).
 func (c *Config) GatewayEndpoint() string {
-	return c.catalog.gatewayEndpoint
+	return c.blueprint.gatewayEndpoint
 }
 
 // SetGatewayEndpoint advertises url as the companion gateway unless
 // INRUN_GATEWAY_ENDPOINT already set one. The CLI calls it when it starts a
 // local gateway next to the runtime.
 func (c *Config) SetGatewayEndpoint(url string) {
-	if c.catalog.gatewayEndpoint == "" {
-		c.catalog.gatewayEndpoint = url
+	if c.blueprint.gatewayEndpoint == "" {
+		c.blueprint.gatewayEndpoint = url
 	}
 }
 

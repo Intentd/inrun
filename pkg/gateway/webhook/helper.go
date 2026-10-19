@@ -42,10 +42,10 @@ func admissionv1FailurePolicyType(policy string) admissionv1.FailurePolicyType {
 // runtime — the same service the gateway is deployed alongside, not an
 // operator-declared cross: endpoint. Port comes from config's INRUN_PORT
 // (default "8080") — the runtime and gateway both read the same env var
-// convention for their own /catalog server, so the gateway's own configured
+// convention for their own /blueprint server, so the gateway's own configured
 // value is the runtime's too.
 func (ws *WebhookServer) runtimeEndpoint() string {
-	svc := ws.catalog.RuntimeServiceName()
+	svc := ws.blueprint.RuntimeServiceName()
 	ns := ws.config.Cluster().Namespace()
 	port := ws.config.Health().Port()
 	return fmt.Sprintf("http://%s.%s.svc:%s", svc, ns, port)

@@ -5,9 +5,9 @@ metadata:
   description: >
     Intentionally failing simulate spec — asserts ops the reconciler does not produce.
     Demonstrates that play --simulate-config catches runtime-level mismatches before cluster.
-    Run via: inrun serve play -f <catalog> --token console -i primary.yaml --simulate-config simulate-reject.yaml
+    Run via: inrun serve play -f <blueprint> --token console -i primary.yaml --simulate-config simulate-reject.yaml
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ""
   cycles: 5
   skipExternal: true

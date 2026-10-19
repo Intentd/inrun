@@ -5,7 +5,7 @@ package types
 // Profile and explicit fields are mutually exclusive.
 type HPABehavior struct {
 	// Profile — named behavior preset. Expands into scaleUp, scaleDown, and
-	// targetCPUUtilizationPercentage at catalog load time.
+	// targetCPUUtilizationPercentage at blueprint load time.
 	// Allowed: web, api, latency-sensitive, batch, cost-optimized.
 	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
 

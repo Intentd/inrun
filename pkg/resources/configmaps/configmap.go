@@ -177,7 +177,7 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 // Reads the source once and creates copies in each namespace.
 // Idempotent — skips namespaces where the ConfigMap already exists.
 //
-// Example Catalog declaration:
+// Example Blueprint declaration:
 //
 //	onCreate:
 //	  configMaps:

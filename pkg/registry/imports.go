@@ -1,6 +1,6 @@
 // pkg/registry/imports.go
 //
-// Extracts OCI references from a catalog or stack file so they can be
+// Extracts OCI references from a blueprint or stack file so they can be
 // pre-pulled before running validate, generate, or run commands.
 package registry
 
@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// OCIImports holds all OCI references found in a catalog or stack file.
+// OCIImports holds all OCI references found in a blueprint or stack file.
 type OCIImports struct {
 	ModuleImports   []types.ModuleImport
 	RegistrySources []types.RegistrySource
@@ -23,10 +23,10 @@ func (o *OCIImports) Empty() bool {
 	return len(o.ModuleImports) == 0 && len(o.RegistrySources) == 0
 }
 
-// ExtractOCIImports parses a catalog or stack file and returns all OCI
+// ExtractOCIImports parses a blueprint or stack file and returns all OCI
 // references that must be pre-pulled before validate/generate/run.
 //
-// For Catalog files: spec.crds[*].imports[*].module refs that resolve to OCI.
+// For Blueprint files: spec.crds[*].imports[*].module refs that resolve to OCI.
 // For Stack files: imports.registry[*] sources where oci: true or the URL
 // has an oci:// prefix.
 //
@@ -39,14 +39,14 @@ func ExtractOCIImports(filePath string) (*OCIImports, error) {
 		return nil, fmt.Errorf("reading %q: %w", filePath, err)
 	}
 
-	var kf types.CatalogFile
+	var kf types.BlueprintFile
 	if err := yaml.Unmarshal(data, &kf); err != nil {
 		return nil, fmt.Errorf("parsing %q: %w", filePath, err)
 	}
 
 	out := &OCIImports{}
 
-	// Module imports from spec.crds[*].imports (Catalog and inline Stack CRDs)
+	// Module imports from spec.crds[*].imports (Blueprint and inline Stack CRDs)
 	for _, crd := range kf.Spec.CRDs {
 		for _, imp := range crd.EffectiveImports() {
 			if isOCIModuleImport(imp) {
@@ -89,7 +89,7 @@ func ExtractHelmAndFileImports(filePath string) (*HelmAndFileImports, error) {
 		return nil, fmt.Errorf("reading %q: %w", filePath, err)
 	}
 
-	var kf types.CatalogFile
+	var kf types.BlueprintFile
 	if err := yaml.Unmarshal(data, &kf); err != nil {
 		return nil, fmt.Errorf("parsing %q: %w", filePath, err)
 	}
@@ -111,16 +111,16 @@ func ExtractHelmAndFileImports(filePath string) (*HelmAndFileImports, error) {
 	return out, nil
 }
 
-// LocalModuleImport describes a module import in a catalog that uses a local file path.
+// LocalModuleImport describes a module import in a blueprint that uses a local file path.
 // Local imports are valid for development (inrun simulate, inrun template) but cannot
-// be resolved by consumers after the catalog is published.
+// be resolved by consumers after the blueprint is published.
 type LocalModuleImport struct {
 	CRDName string
 	Index   int
 	Path    string
 }
 
-// ExtractLocalModuleImports parses a catalog.yaml and returns any module imports
+// ExtractLocalModuleImports parses a blueprint.yaml and returns any module imports
 // that reference local file paths. The caller should block inrun push when the
 // result is non-empty and prompt the user to replace them with OCI refs.
 func ExtractLocalModuleImports(filePath string) ([]LocalModuleImport, error) {
@@ -128,7 +128,7 @@ func ExtractLocalModuleImports(filePath string) ([]LocalModuleImport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading %q: %w", filePath, err)
 	}
-	var kf types.CatalogFile
+	var kf types.BlueprintFile
 	if err := yaml.Unmarshal(data, &kf); err != nil {
 		return nil, fmt.Errorf("parsing %q: %w", filePath, err)
 	}

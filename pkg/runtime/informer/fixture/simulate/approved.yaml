@@ -5,7 +5,7 @@ metadata:
   description: CR in allowed namespace (team-a) — reconciler runs, ConfigMap created
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../cr.yaml
   cycles: 2
 

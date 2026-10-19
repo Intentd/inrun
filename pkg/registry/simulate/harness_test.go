@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/stretchr/testify/assert"
@@ -49,9 +49,9 @@ spec:
                   type: string
 `
 
-const uniqueTestCatalog = `
+const uniqueTestBlueprint = `
 apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
   name: unique-operator-harness-test
   author: claude
@@ -77,34 +77,34 @@ spec:
               action: deny
 `
 
-// writeUniqueTestCatalog materializes the catalog+CRD fixture used by both
+// writeUniqueTestBlueprint materializes the blueprint+CRD fixture used by both
 // TestRun_OperatorUnique_* tests into a temp dir, matching what
-// merger.New/catalog.BuildExpanded expect on disk.
-func writeUniqueTestCatalog(t *testing.T) string {
+// merger.New/blueprint.BuildExpanded expect on disk.
+func writeUniqueTestBlueprint(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "crd.yaml"), []byte(uniqueTestCRD), 0o644); err != nil {
 		t.Fatalf("writing crd.yaml: %v", err)
 	}
-	catalogPath := filepath.Join(dir, "catalog.yaml")
-	if err := os.WriteFile(catalogPath, []byte(uniqueTestCatalog), 0o644); err != nil {
-		t.Fatalf("writing catalog.yaml: %v", err)
+	blueprintPath := filepath.Join(dir, "blueprint.yaml")
+	if err := os.WriteFile(blueprintPath, []byte(uniqueTestBlueprint), 0o644); err != nil {
+		t.Fatalf("writing blueprint.yaml: %v", err)
 	}
-	return catalogPath
+	return blueprintPath
 }
 
-func loadUniqueTestCatalog(t *testing.T) *catalog.Catalog {
+func loadUniqueTestBlueprint(t *testing.T) *blueprint.Blueprint {
 	t.Helper()
-	catalogPath := writeUniqueTestCatalog(t)
-	m := merger.New(catalogPath)
+	blueprintPath := writeUniqueTestBlueprint(t)
+	m := merger.New(blueprintPath)
 	if err := m.Merge(); err != nil {
-		t.Fatalf("merging catalog: %v", err)
+		t.Fatalf("merging blueprint: %v", err)
 	}
-	cat, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
+	bp, err := pipeline.BuildExpanded(config.NewDefaultConfig(), m)
 	if err != nil {
-		t.Fatalf("building catalog: %v", err)
+		t.Fatalf("building blueprint: %v", err)
 	}
-	return cat
+	return bp
 }
 
 func websiteCR(name, domain string) *unstructured.Unstructured {
@@ -126,10 +126,10 @@ func websiteCR(name, domain string) *unstructured.Unstructured {
 // UniquenessChecker → validation.rules) when no other instance shares the
 // field value.
 func TestRun_OperatorUnique_NoDuplicate(t *testing.T) {
-	cat := loadUniqueTestCatalog(t)
+	bp := loadUniqueTestBlueprint(t)
 	cr := websiteCR("site-a", "a.example.com")
 
-	result, err := Run(context.Background(), cat, "website", cr, 1, RunOptions{})
+	result, err := Run(context.Background(), bp, "website", cr, 1, RunOptions{})
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}
@@ -147,11 +147,11 @@ func TestRun_OperatorUnique_NoDuplicate(t *testing.T) {
 // into the fake dynamic client and makes operator: unique correctly deny —
 // not a checker that trivially always passes because nothing was seeded.
 func TestRun_OperatorUnique_Duplicate(t *testing.T) {
-	cat := loadUniqueTestCatalog(t)
+	bp := loadUniqueTestBlueprint(t)
 	cr := websiteCR("site-b", "shared.example.com")
 	existing := websiteCR("site-a", "shared.example.com")
 
-	result, err := Run(context.Background(), cat, "website", cr, 1, RunOptions{
+	result, err := Run(context.Background(), bp, "website", cr, 1, RunOptions{
 		ExistingInstances: []*unstructured.Unstructured{existing},
 	})
 	if err != nil {

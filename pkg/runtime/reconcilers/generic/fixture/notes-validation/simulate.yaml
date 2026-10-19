@@ -8,7 +8,7 @@ metadata:
     the error appears in the simulate output.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr-bad-image.yaml
   cycles: 3
 

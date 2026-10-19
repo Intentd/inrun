@@ -10,7 +10,7 @@ metadata:
     waits for the API to answer 404.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 

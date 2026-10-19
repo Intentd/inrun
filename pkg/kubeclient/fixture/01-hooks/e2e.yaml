@@ -11,7 +11,7 @@ metadata:
     and status — no HTTP client in hook code.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./cr-e2e.yaml
 

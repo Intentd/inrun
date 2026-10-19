@@ -1,0 +1,22 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: test
+spec:
+  crds:
+    platform:
+      apiTypes:
+        group: platform.inrun.dev
+        version: v1alpha1
+        kind: Platform
+        plural: platforms
+      admission:
+        mutation:
+          rules:
+            - field: spec.env
+              default: "development"
+
+security:
+  webhooks:
+    admission:
+      enabled: true

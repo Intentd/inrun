@@ -1,19 +1,19 @@
 package web
 
-// CatalogListData is the data for the main index page
-type CatalogListData struct {
-	Catalogs        []CatalogSummary
-	TotalCatalogs   int
-	HealthyCatalogs int
-	TotalCRDs       int
-	TotalWorkers    int
-	TotalResources  int
-	AnyHealthy      bool
-	InrunURLs       string
+// BlueprintListData is the data for the main index page
+type BlueprintListData struct {
+	Blueprints        []BlueprintSummary
+	TotalBlueprints   int
+	HealthyBlueprints int
+	TotalCRDs         int
+	TotalWorkers      int
+	TotalResources    int
+	AnyHealthy        bool
+	InrunURLs         string
 }
 
-// CatalogSummary is a summary of a Catalog for the list view
-type CatalogSummary struct {
+// BlueprintSummary is a summary of a Blueprint for the list view
+type BlueprintSummary struct {
 	Name             string
 	Description      string
 	Version          string
@@ -23,46 +23,46 @@ type CatalogSummary struct {
 	TotalWorkers     int
 	TotalResources   int
 	ClusterName      string
-	Namespaces       []string                           // distinct namespace values from this Catalog's CRDs
-	NamespaceDetails map[string]CatalogNamespaceSummary // per-namespace stats from the runtime
+	Namespaces       []string                             // distinct namespace values from this Blueprint's CRDs
+	NamespaceDetails map[string]BlueprintNamespaceSummary // per-namespace stats from the runtime
 }
 
-// CatalogData is the data for the Catalog dashboard view
-type CatalogData struct {
-	CRDs               []CRDSummary
-	TotalCRDs          int
-	InrunReady         bool
-	DeletionProtection bool
-	TotalWorkers       int
-	TotalResources     int
-	HealthyCount       int
-	CatalogName        string
-	CatalogDescription string
-	CatalogHealthy     bool
-	CatalogVersion     string
-	CatalogAuthor      string
-	CatalogLicense     string
-	DegradedReason     string
-	StatusCounts       StatusCounts
-	RuntimeVersion     string
-	ClusterName        string
+// BlueprintData is the data for the Blueprint dashboard view
+type BlueprintData struct {
+	CRDs                 []CRDSummary
+	TotalCRDs            int
+	InrunReady           bool
+	DeletionProtection   bool
+	TotalWorkers         int
+	TotalResources       int
+	HealthyCount         int
+	BlueprintName        string
+	BlueprintDescription string
+	BlueprintHealthy     bool
+	BlueprintVersion     string
+	BlueprintAuthor      string
+	BlueprintLicense     string
+	DegradedReason       string
+	StatusCounts         StatusCounts
+	RuntimeVersion       string
+	ClusterName          string
 }
 
 // IndexData is the data for the main page
 type IndexData struct {
-	Catalogs             []CatalogSummary
-	TotalCatalogs        int
-	HealthyCatalogs      int
-	TotalCRDs            int
-	TotalWorkers         int
-	TotalResources       int
-	AnyHealthy           bool
-	HasOperatorCatalogs  bool
-	InrunURLs            string
-	EnableRuntimeManager bool
-	ConsoleVersion       string
-	AllClusters          []string // distinct cluster names for filter checkboxes
-	AllNamespaces        []string // distinct namespace names for filter checkboxes
+	Blueprints            []BlueprintSummary
+	TotalBlueprints       int
+	HealthyBlueprints     int
+	TotalCRDs             int
+	TotalWorkers          int
+	TotalResources        int
+	AnyHealthy            bool
+	HasOperatorBlueprints bool
+	InrunURLs             string
+	EnableRuntimeManager  bool
+	ConsoleVersion        string
+	AllClusters           []string // distinct cluster names for filter checkboxes
+	AllNamespaces         []string // distinct namespace names for filter checkboxes
 }
 
 // StatusCounts tracks CRD health counts
@@ -89,8 +89,8 @@ type RBACRule struct {
 	Description string `json:"description,omitempty"`
 }
 
-// CatalogNamespaceSummary mirrors the runtime's namespace grouping.
-type CatalogNamespaceSummary struct {
+// BlueprintNamespaceSummary mirrors the runtime's namespace grouping.
+type BlueprintNamespaceSummary struct {
 	CRDs         []string     `json:"crds"`
 	StatusCounts StatusCounts `json:"statusCounts"`
 	Healthy      bool         `json:"healthy"`
@@ -100,33 +100,33 @@ type CatalogNamespaceSummary struct {
 	Resources    int          `json:"resources"`
 }
 
-// CatalogResponse is the response from the /catalog endpoint
-type CatalogResponse struct {
-	Total              int                                `json:"total"`
-	TotalEnabled       int                                `json:"totalEnabled"`
-	Healthy            bool                               `json:"healthy"`
-	Status             int                                `json:"status"`
-	InrunReady         bool                               `json:"InrunReady"`
-	IsLeader           bool                               `json:"isLeader"`
-	DeletionProtection bool                               `json:"deletionProtection"`
-	CRDs               []CRDSummary                       `json:"crds"`
-	Name               string                             `json:"name,omitempty"`
-	Version            string                             `json:"version,omitempty"`
-	Author             string                             `json:"author,omitempty"`
-	Description        string                             `json:"description,omitempty"`
-	DegradedReason     string                             `json:"degradedReason,omitempty"`
-	StatusCounts       StatusCounts                       `json:"statusCounts"`
-	License            string                             `json:"license,omitempty"`
-	RuntimeVersion     string                             `json:"runtimeVersion,omitempty"`
-	ClusterName        string                             `json:"clusterName,omitempty"`
-	Namespaces         map[string]CatalogNamespaceSummary `json:"namespaces,omitempty"`
-	GatewayEndpoint    string                             `json:"gatewayEndpoint,omitempty"`
+// BlueprintResponse is the response from the /blueprint endpoint
+type BlueprintResponse struct {
+	Total              int                                  `json:"total"`
+	TotalEnabled       int                                  `json:"totalEnabled"`
+	Healthy            bool                                 `json:"healthy"`
+	Status             int                                  `json:"status"`
+	InrunReady         bool                                 `json:"InrunReady"`
+	IsLeader           bool                                 `json:"isLeader"`
+	DeletionProtection bool                                 `json:"deletionProtection"`
+	CRDs               []CRDSummary                         `json:"crds"`
+	Name               string                               `json:"name,omitempty"`
+	Version            string                               `json:"version,omitempty"`
+	Author             string                               `json:"author,omitempty"`
+	Description        string                               `json:"description,omitempty"`
+	DegradedReason     string                               `json:"degradedReason,omitempty"`
+	StatusCounts       StatusCounts                         `json:"statusCounts"`
+	License            string                               `json:"license,omitempty"`
+	RuntimeVersion     string                               `json:"runtimeVersion,omitempty"`
+	ClusterName        string                               `json:"clusterName,omitempty"`
+	Namespaces         map[string]BlueprintNamespaceSummary `json:"namespaces,omitempty"`
+	GatewayEndpoint    string                               `json:"gatewayEndpoint,omitempty"`
 }
 
-// GatewayCatalogResponse mirrors the response served at GET /catalog by the
+// GatewayBlueprintResponse mirrors the response served at GET /blueprint by the
 // gateway process. Used by the console to merge per-CRD webhook stats
 // with the runtime's reconciler stats by GVR key.
-type GatewayCatalogResponse struct {
+type GatewayBlueprintResponse struct {
 	Source                     string            `json:"source"`
 	Name                       string            `json:"name"`
 	Version                    string            `json:"version,omitempty"`
@@ -187,7 +187,7 @@ type CRDSummary struct {
 	RBACCount                int          `json:"rbacCount,omitempty"`
 	HasUnhealthyDependencies bool         `json:"hasUnhealthyDependencies"`
 	DeletionProtection       bool         `json:"deletionProtection"`
-	CatalogNamespace         string       `json:"catalogNamespace,omitempty"`
+	BlueprintNamespace       string       `json:"blueprintNamespace,omitempty"`
 	Endpoints                EndpointInfo `json:"endpoints,omitempty"`
 	ServeEnabled             bool         `json:"serveEnabled,omitempty"`
 	RequireServeName         bool         `json:"requireServeName,omitempty"`
@@ -218,8 +218,8 @@ type ServeSection struct {
 
 // ServeFormData is the view model for serve_form.html.
 type ServeFormData struct {
-	CatalogName string
-	CRDName     string
+	BlueprintName string
+	CRDName       string
 	// Target is the identifier submitted to the gateway's Gateway API
 	// (serve.target, or the lowercased kind when unset).
 	Target string
@@ -238,7 +238,7 @@ type ServeFormData struct {
 	Error            string
 }
 
-// CRDHealth is the response from the /catalog/{crd}/health endpoint
+// CRDHealth is the response from the /blueprint/{crd}/health endpoint
 type CRDHealth struct {
 	Name                     string                      `json:"name"`
 	State                    string                      `json:"state"`
@@ -289,7 +289,7 @@ type AutoscalerWorkersInfo struct {
 	BusyPercent          float64 `json:"busyPercent"`
 }
 
-// CRDInfo is the response from the /catalog/{crd} endpoint
+// CRDInfo is the response from the /blueprint/{crd} endpoint
 type CRDInfo struct {
 	Name                     string                    `json:"name"`
 	Description              string                    `json:"description"`

@@ -26,21 +26,21 @@ import (
 // exempt label is cleaned up without webhook interference.
 func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *template.Resolver) error {
 	mgr := labels.NewManager(labels.Config{
-		Standalone:                in.Cat.IsStandaloneGateway(),
-		DeletionProtectionEnabled: in.Cat.IsDeletionProtectionEnabled(),
+		Standalone:                in.Blueprint.IsStandaloneGateway(),
+		DeletionProtectionEnabled: in.Blueprint.IsDeletionProtectionEnabled(),
 	})
 
 	serverLabels := copyStringMap(obj.GetLabels()) // snapshot before mutation
 
 	mgr.EnsureManagedLabel(obj)
 
-	if in.Cat.IsDeletionProtectionEnabled() {
+	if in.Blueprint.IsDeletionProtectionEnabled() {
 		// ForCleanup overrides protection so the two-phase label removal runs
 		// before the coordinator issues the Delete call on this same cycle.
-		shouldHaveProtection := !in.ForCleanup && in.Cat.IsDeletionProtectionEnabled() && in.CRD.ShouldProtectCRs()
+		shouldHaveProtection := !in.ForCleanup && in.Blueprint.IsDeletionProtectionEnabled() && in.CRD.ShouldProtectCRs()
 		mgr.EnsureDeletionProtectionLabel(obj, shouldHaveProtection)
 
-		effectiveStrict := in.CRD.IsStrictDeletionProtection(in.Cat.IsStrictModeEnabled())
+		effectiveStrict := in.CRD.IsStrictDeletionProtection(in.Blueprint.IsStrictModeEnabled())
 		currentlyProtected := serverLabels[labels.DeletionProtectionLabel] == labels.DeletionProtectionValue
 		if !shouldHaveProtection && currentlyProtected {
 			effectiveStrict = false
@@ -91,7 +91,7 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 		mgr.EnsureUserAnnotations(obj, resolved)
 	}
 
-	if mgr.EnsureManagedAnnotations(obj, in.CRD.CatalogName) {
+	if mgr.EnsureManagedAnnotations(obj, in.CRD.BlueprintName) {
 		if err := in.Kube.PatchAnnotations(ctx, obj, obj.GetAnnotations(), metav1.PatchOptions{}); err != nil {
 			return err
 		}

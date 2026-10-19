@@ -28,9 +28,9 @@ type RegistryEntry struct {
 	FailureThreshold int
 }
 
-// RuntimeResourceCatalog provides read-only access to registered runtime
+// RuntimeResourceBlueprint provides read-only access to registered runtime
 // resources by their group-version-kind.
-type RuntimeResourceCatalog interface {
+type RuntimeResourceBlueprint interface {
 	// Get returns the registry entry for the given GVK.
 	Get(gvk string) (RegistryEntry, bool)
 }

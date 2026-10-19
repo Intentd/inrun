@@ -149,7 +149,7 @@ jobs:
 
       - name: Validate examples
         run: |
-          for k in $(find examples -name catalog.yaml | sort); do
+          for k in $(find examples -name blueprint.yaml | sort); do
             ./bin/inrun validate --file "$k"
           done
 

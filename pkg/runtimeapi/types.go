@@ -1,6 +1,6 @@
 package runtimeapi
 
-// CRListResponse is returned by GET /catalog/{crd}/cr.
+// CRListResponse is returned by GET /blueprint/{crd}/cr.
 type CRListResponse struct {
 	CRD      string      `json:"crd"`
 	GVK      string      `json:"gvk"`

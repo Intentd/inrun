@@ -6,7 +6,7 @@ metadata:
   description: <what this simulation verifies>
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   cycles: 5            # number of reconcile cycles to run
 

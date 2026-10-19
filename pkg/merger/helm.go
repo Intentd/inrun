@@ -1,8 +1,8 @@
 // pkg/merger/helm.go
 //
-// Helm-chart Catalog imports (imports.helm:) — authoring-time only. Neither
-// the runtime nor the gateway binary ever loads a Catalog with a helm:
-// import: production Catalogs are pre-merged (inrun generate bundle) into
+// Helm-chart Blueprint imports (imports.helm:) — authoring-time only. Neither
+// the runtime nor the gateway binary ever loads a Blueprint with a helm:
+// import: production Blueprints are pre-merged (inrun generate bundle) into
 // plain Kubernetes manifests before deployment — see helm_stub.go for what
 // those two builds get instead. Excluding this file from them removes the
 // entire Helm SDK (and its openpgp/containerd transitive dependencies) from
@@ -29,8 +29,8 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 )
 
-// loadHelmSource renders a Helm chart and extracts Catalog CRD definitions.
-// The chart must contain at least one template with kind: Catalog.
+// loadHelmSource renders a Helm chart and extracts Blueprint CRD definitions.
+// The chart must contain at least one template with kind: Blueprint.
 func (m *Merger) loadHelmSource(src types.HelmSource) (map[string]types.CRDEntry, error) {
 	logger.Debug().
 		Str("repo", src.Repo).
@@ -236,7 +236,7 @@ func resolveRemoteChart(src types.HelmSource, refresh bool) (string, func(), err
 	return cached, func() {}, nil
 }
 
-// renderAndExtract renders a chart from a local path and extracts Catalog CRDs.
+// renderAndExtract renders a chart from a local path and extracts Blueprint CRDs.
 func renderAndExtract(src types.HelmSource, chartPath string) (map[string]types.CRDEntry, error) {
 	settings := cli.New()
 
@@ -291,14 +291,14 @@ func renderAndExtract(src types.HelmSource, chartPath string) (map[string]types.
 		return nil, fmt.Errorf("rendering chart %q: %w", src.Chart, err)
 	}
 
-	return extractCatalogCRDs(release.Manifest, src.Chart)
+	return extractBlueprintCRDs(release.Manifest, src.Chart)
 }
 
-// renderAndExtract renders a Helm chart and extracts Catalog CRD definitions.
+// renderAndExtract renders a Helm chart and extracts Blueprint CRD definitions.
 
-// extractCatalogCRDs parses rendered Helm output and extracts
-// CRD definitions from any template with kind: Catalog.
-func extractCatalogCRDs(manifest, chartName string) (map[string]types.CRDEntry, error) {
+// extractBlueprintCRDs parses rendered Helm output and extracts
+// CRD definitions from any template with kind: Blueprint.
+func extractBlueprintCRDs(manifest, chartName string) (map[string]types.CRDEntry, error) {
 	allCRDs := make(map[string]types.CRDEntry)
 
 	// Split on YAML document separator — one chart renders multiple templates
@@ -310,30 +310,30 @@ func extractCatalogCRDs(manifest, chartName string) (map[string]types.CRDEntry, 
 			continue
 		}
 
-		catalog, err := parseCatalogDoc([]byte(doc), "helm:"+chartName)
+		blueprint, err := parseBlueprintDoc([]byte(doc), "helm:"+chartName)
 		if err != nil {
-			return nil, err // malformed Catalog — hard error
+			return nil, err // malformed Blueprint — hard error
 		}
-		if catalog == nil {
-			continue // not a Catalog — skip
+		if blueprint == nil {
+			continue // not a Blueprint — skip
 		}
 
-		for name, crd := range catalog.Spec.CRDs {
+		for name, crd := range blueprint.Spec.CRDs {
 			crd.Name = name
 			allCRDs[name] = crd
 		}
 
 		logger.Debug().
 			Str("chart", chartName).
-			Int("crds", len(catalog.Spec.CRDs)).
+			Int("crds", len(blueprint.Spec.CRDs)).
 			Msg("merger: extracted CRDs from helm template")
 	}
 
 	if len(allCRDs) == 0 {
 		return nil, fmt.Errorf(
-			"chart %q produced no Catalog templates — "+
+			"chart %q produced no Blueprint templates — "+
 				"ensure at least one template has kind: %s",
-			chartName, config.CatalogKind(),
+			chartName, config.BlueprintKind(),
 		)
 	}
 

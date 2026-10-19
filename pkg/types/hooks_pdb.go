@@ -1,12 +1,12 @@
 package types
 
 // PDBProfileEntry describes a single behavior.profile reference found in a
-// PDBTemplateSource. Used by catalog validation to fail fast on unknown profiles
+// PDBTemplateSource. Used by blueprint validation to fail fast on unknown profiles
 // and to enforce mutual exclusivity with explicit minAvailable/maxUnavailable.
 type PDBProfileEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // PDB name template (may be Empty()
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside explicit minAvailable or maxUnavailable
 }
 

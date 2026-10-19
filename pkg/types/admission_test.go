@@ -1,6 +1,6 @@
 // Tests for the validation and mutation type definitions in admission.go.
 //
-// These types form the public contract between the Catalog schema and the
+// These types form the public contract between the Blueprint schema and the
 // admission/reconcile enforcement engine. Tests verify that default behaviours
 // and policy helper methods match the documented semantics.
 package types_test
@@ -17,7 +17,7 @@ import (
 // ── EffectiveAction ───────────────────────────────────────────────────────────
 
 func TestEffectiveAction_EmptyDefaultsToDeny(t *testing.T) {
-	// Omitting action in a Catalog rule must default to deny — new rules
+	// Omitting action in a Blueprint rule must default to deny — new rules
 	// should block by default so that adding a rule is always safe.
 	assert.Equal(t, types.ValidationActionDeny, types.EffectiveAction(""))
 }

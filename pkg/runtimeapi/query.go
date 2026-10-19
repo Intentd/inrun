@@ -11,20 +11,20 @@ import (
 const timeout = 3 * time.Second
 
 // runtimeQuery implements domain.RuntimeQuery at admission time by querying
-// the runtime's own /catalog/{crd} endpoints.
+// the runtime's own /blueprint/{crd} endpoints.
 //
 // The runtime holds every CRD instance in its informer cache — queries here
 // are fast in-memory lookups on the runtime side, not live List() calls
 // against the API server. That's deliberate: reconcile time is the
 // authoritative enforcement point. Here a momentarily stale cache is
 // acceptable; worst case, a duplicate slips past admission and is caught
-// on the next reconcile, which is the same guarantee every catalog had
+// on the next reconcile, which is the same guarantee every blueprint had
 // before this existed.
 type runtimeQuery struct {
 	ctx      context.Context
 	client   *http.Client
 	endpoint string // e.g. http://inrun-runtime.inrun-system.svc:8080
-	crdName  string // catalog key (spec.crds.<key>), matches {crd} in /catalog/{crd}/cr
+	crdName  string // blueprint key (spec.crds.<key>), matches {crd} in /blueprint/{crd}/cr
 }
 
 // NewClient builds a query client targeting the given runtime endpoint

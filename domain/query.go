@@ -15,12 +15,12 @@ type RuntimeQuery interface {
 	IsUnique(field, value, selfNamespace, selfName string) (bool, error)
 
 	// Health returns the CRD's health summary as reported by the runtime's
-	// /catalog/{crd}/health endpoint. Keys match the fields observable via .health.*
+	// /blueprint/{crd}/health endpoint. Keys match the fields observable via .health.*
 	// in preReconcile gate conditions.
 	Health() map[string]interface{}
 
 	// Metrics returns the CRD's metrics as reported by the runtime's
-	// /catalog/{crd} endpoint (metrics key). Keys match the fields observable via
+	// /blueprint/{crd} endpoint (metrics key). Keys match the fields observable via
 	// .metrics.* in preReconcile gate conditions.
 	Metrics() map[string]interface{}
 }

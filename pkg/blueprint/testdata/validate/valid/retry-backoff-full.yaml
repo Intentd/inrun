@@ -1,0 +1,29 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: retry-backoff-full
+  version: 0.1.0
+  description: Valid retryBackoff full form on queue and external.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          resync: 10m
+          queue:
+            retryBackoff:
+              initial: 500ms
+              max: 30s
+              multiplier: 2.0
+              maxAttempts: 3
+          onReconcile:
+            external:
+              - name: health
+                url: http://svc/health
+                retryBackoff:
+                  initial: 1s
+                  max: 10s
+                  multiplier: 1.5
+                  maxAttempts: 3
+

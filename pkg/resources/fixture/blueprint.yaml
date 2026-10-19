@@ -1,0 +1,66 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: resource-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    ResourceProbe — living integration fixture for all pkg/resources/* packages.
+    The hook exercises every Resolve() + Update()/Create() code path in a single
+    reconcile loop. See pkg/resources/fixture/README.md for the checklist.
+
+spec:
+  crds:
+    resource-probe:
+      apiTypes:
+        group: resources.inrun.dev
+        version: v1alpha1
+        kind: ResourceProbe
+        plural: resourceprobes
+        object: ResourceProbe
+        objectList: ResourceProbeList
+        location: github.com/intentd/inrun-resource-probe/api/v1alpha1
+        alias: rpv1alpha1
+      operatorBox:
+        reconcile:
+          default: true
+          managedResources:
+            - kind: Namespace
+            - kind: ConfigMap
+            - kind: Secret
+            - kind: ServiceAccount
+            - kind: ClusterRole
+            - kind: ClusterRoleBinding
+            - kind: Role
+            - kind: RoleBinding
+            - kind: NetworkPolicy
+            - kind: ResourceQuota
+            - kind: LimitRange
+            - kind: Deployment
+            - kind: StatefulSet
+            - kind: ReplicaSet
+            - kind: Pod
+            - kind: Job
+            - kind: CronJob
+            - kind: Service
+            - kind: Ingress
+            - kind: HorizontalPodAutoscaler
+            - kind: PodDisruptionBudget
+            - kind: PersistentVolume
+            - kind: PersistentVolumeClaim
+          hooks:
+            location: github.com/intentd/inrun-resource-probe/hooks
+            function: ResourceProbeHooks
+            alias: rphooks
+          workers: 3
+          resync: 30s
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: image
+                value: "{{ .spec.image }}"
+              - path: replicas
+                value: "{{ .spec.replicas }}"
+

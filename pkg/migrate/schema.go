@@ -24,7 +24,7 @@ import (
 
 // Migrator applies serve field schema migrations to live CRs.
 //
-// For each field with migrate.from declared in the Catalog, it:
+// For each field with migrate.from declared in the Blueprint, it:
 //  1. reads the old value from the migrate.from spec path
 //  2. runs the field's value/values transform (if any) — same logic as apply
 //  3. writes the result to the field's current spec path
@@ -321,7 +321,7 @@ func (m *Migrator) migrateCR(
 
 // rollbackCR restores a CR from its migrate-snapshot annotation. For each
 // field in the snapshot it first checks whether the current spec value is still
-// the direct product of the original migration (catalog transform applied to
+// the direct product of the original migration (blueprint transform applied to
 // the snapshot value). Fields whose value changed after migration are reported
 // as drifted and left untouched.
 //
@@ -348,8 +348,8 @@ func (m *Migrator) rollbackCR(
 	}
 
 	// Start with every snapshot entry retained; delete only what is successfully
-	// restored. Entries for fields no longer in the Catalog (removed declarations,
-	// renamed fields) are preserved automatically — Catalog changes do not destroy
+	// restored. Entries for fields no longer in the Blueprint (removed declarations,
+	// renamed fields) are preserved automatically — Blueprint changes do not destroy
 	// recovery records for fields this rollback does not touch.
 	remainingSnapshot := make(map[string]interface{}, len(snapshot))
 	for k, v := range snapshot {

@@ -11,7 +11,7 @@ import "strings"
 //
 // Supported at all three levels:
 //   Stack level — applies to all CRDs in the Stack
-//   Catalog level  — applies to all CRDs in the Catalog
+//   Blueprint level  — applies to all CRDs in the Blueprint
 //   CRD level      — applies to this specific CRD
 //
 // Rules from all three levels are merged — more specific levels add to,

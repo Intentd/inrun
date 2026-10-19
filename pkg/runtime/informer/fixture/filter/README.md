@@ -9,7 +9,7 @@ the object, so CRD health stays **healthy** (not `gated`). Queue depth stays 0.
 The reconciler is never called.
 
 ```bash
-inrun validate -f pkg/runtime/informer/fixture/filter/catalog.yaml
+inrun validate -f pkg/runtime/informer/fixture/filter/blueprint.yaml
 inrun simulate -f pkg/runtime/informer/fixture/filter/simulate.yaml
 inrun e2e      -f pkg/runtime/informer/fixture/filter/e2e.yaml
 ```

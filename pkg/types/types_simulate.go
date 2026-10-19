@@ -22,9 +22,9 @@ type SimulateMeta struct {
 }
 
 type SimulateSpec struct {
-	Catalog string   `yaml:"catalog"`
-	CR      string   `yaml:"cr,omitempty"`
-	CRFiles []string `yaml:"crFiles,omitempty"`
+	Blueprint string   `yaml:"blueprint"`
+	CR        string   `yaml:"cr,omitempty"`
+	CRFiles   []string `yaml:"crFiles,omitempty"`
 	// Intent is a serve intent file (JSON or YAML) to build the CR from, the
 	// way the gateway and inrun serve play do. Used instead of cr/crFiles.
 	Intent string `yaml:"intent,omitempty"`

@@ -65,11 +65,11 @@ func (d CrossCRDDeclaration) IsValid(p string) bool {
 //
 // URL shapes:
 //
-//	Type: "cr"    → <host>/catalog/<crd>/cr/<ns>/<name>
-//	Type: "info"    → <host>/catalog/<crd>
-//	Type: "metrics" → <host>/catalog/<crd>
-//	Type: "health"  → <host>/catalog/<crd>/health
-//	Type: "events"  → <host>/catalog/<crd>/cr/<ns>/<name>/events
+//	Type: "cr"    → <host>/blueprint/<crd>/cr/<ns>/<name>
+//	Type: "info"    → <host>/blueprint/<crd>
+//	Type: "metrics" → <host>/blueprint/<crd>
+//	Type: "health"  → <host>/blueprint/<crd>/health
+//	Type: "events"  → <host>/blueprint/<crd>/cr/<ns>/<name>/events
 //
 // If Source.Endpoint is provided, ONCOP is bypassed entirely and the raw
 // endpoint is used as‑is. This enables integration with non‑Inrun operators
@@ -88,24 +88,24 @@ func BuildONCOPURL(decl CrossCRDDeclaration) string {
 
 	switch src.Protocol {
 	case ONCOPMetrics, ONCOPInfo, "":
-		return fmt.Sprintf("%s/catalog/%s", host, crd)
+		return fmt.Sprintf("%s/blueprint/%s", host, crd)
 
 	case ONCOPHealth:
-		return fmt.Sprintf("%s/catalog/%s/health", host, crd)
+		return fmt.Sprintf("%s/blueprint/%s/health", host, crd)
 
 	case ONCOPEvents:
 		if ns == "" {
-			return fmt.Sprintf("%s/catalog/%s/cr/%s/events", host, crd, name)
+			return fmt.Sprintf("%s/blueprint/%s/cr/%s/events", host, crd, name)
 		}
-		return fmt.Sprintf("%s/catalog/%s/cr/%s/%s/events", host, crd, ns, name)
+		return fmt.Sprintf("%s/blueprint/%s/cr/%s/%s/events", host, crd, ns, name)
 
 	case ONCOPCR:
 		if ns == "" {
-			return fmt.Sprintf("%s/catalog/%s/cr/%s", host, crd, name)
+			return fmt.Sprintf("%s/blueprint/%s/cr/%s", host, crd, name)
 		}
-		return fmt.Sprintf("%s/catalog/%s/cr/%s/%s", host, crd, ns, name)
+		return fmt.Sprintf("%s/blueprint/%s/cr/%s/%s", host, crd, ns, name)
 
 	default:
-		return fmt.Sprintf("%s/catalog/%s", host, crd)
+		return fmt.Sprintf("%s/blueprint/%s", host, crd)
 	}
 }

@@ -1,12 +1,12 @@
 package types
 
 // LimitRangeProfileEntry describes a single profile reference found in a
-// LimitRangeTemplateSource. Used by catalog validation to fail fast on unknown
+// LimitRangeTemplateSource. Used by blueprint validation to fail fast on unknown
 // profiles and to enforce mutual exclusivity with explicit limits.
 type LimitRangeProfileEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // LimitRange name template (may be Empty()
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside an explicit Limits list
 }
 

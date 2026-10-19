@@ -14,7 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/tools/cluster/bootstrap"
 )
 
@@ -26,7 +26,7 @@ cluster, then store the credentials in the gateway cluster so the gateway
 can route applies to it.
 
 The ClusterRole is scoped to exactly the serve-enabled CRDs declared in the
-catalog — no wildcard resources, no cluster-admin.
+blueprint — no wildcard resources, no cluster-admin.
 
 Examples:
   inrun clusters bootstrap --context kind-prod --name prod
@@ -68,12 +68,12 @@ Examples:
 			SANamespace: saNamespace,
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
 
-		return runBootstrapSingle(cmd.Context(), cat, entry, opts)
+		return runBootstrapSingle(cmd.Context(), bp, entry, opts)
 	},
 }
 
@@ -94,7 +94,7 @@ func runBootstrapValidate(path string) error {
 }
 
 // runBootstrapConfig bootstraps all clusters listed in the config file.
-// No catalog is required — rules come from each entry's rules: field (if any).
+// No blueprint is required — rules come from each entry's rules: field (if any).
 // When outPath is non-empty, the bootstrap results are written to a
 // gateway.clusters-shaped YAML file suitable for `inrun clusters check --config`.
 func runBootstrapConfig(cmd *cobra.Command, path, outPath string, opts bootstrap.RunOptions) error {
@@ -128,7 +128,7 @@ func runBootstrapConfig(cmd *cobra.Command, path, outPath string, opts bootstrap
 }
 
 // runBootstrapSingleResult is the result-returning variant used by runBootstrapConfig.
-func runBootstrapSingleResult(ctx context.Context, cat *catalog.Catalog, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) (*bootstrap.Result, error) {
+func runBootstrapSingleResult(ctx context.Context, bp *blueprint.Blueprint, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) (*bootstrap.Result, error) {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters bootstrap\n", cmdutil.Bold("⎈"))
 	fmt.Printf("  %s cluster name:   %s\n", cmdutil.Gray("→"), cmdutil.Bold(entry.Name))
@@ -140,7 +140,7 @@ func runBootstrapSingleResult(ctx context.Context, cat *catalog.Catalog, entry b
 	}
 	fmt.Println()
 
-	result, err := bootstrap.Cluster(ctx, cat, entry, opts, func(msg string) {
+	result, err := bootstrap.Cluster(ctx, bp, entry, opts, func(msg string) {
 		fmt.Printf("   %s %s\n", cmdutil.SuccessMark(), msg)
 	})
 	if err != nil {
@@ -158,12 +158,12 @@ func runBootstrapSingleResult(ctx context.Context, cat *catalog.Catalog, entry b
 	}
 
 	fmt.Println()
-	bootstrapPrintCatalogSnippet(entry.Name, result.Endpoint, result.SecretName, result.SecretNamespace, !result.HasCA)
+	bootstrapPrintBlueprintSnippet(entry.Name, result.Endpoint, result.SecretName, result.SecretNamespace, !result.HasCA)
 	return result, nil
 }
 
 // runBootstrapSingle bootstraps one cluster entry and prints the appropriate output.
-func runBootstrapSingle(ctx context.Context, cat *catalog.Catalog, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) error {
+func runBootstrapSingle(ctx context.Context, bp *blueprint.Blueprint, entry bootstrap.ClusterEntry, opts bootstrap.RunOptions) error {
 	fmt.Println()
 	fmt.Printf("%s  inrun clusters bootstrap\n", cmdutil.Bold("⎈"))
 	fmt.Printf("  %s cluster name:   %s\n", cmdutil.Gray("→"), cmdutil.Bold(entry.Name))
@@ -175,7 +175,7 @@ func runBootstrapSingle(ctx context.Context, cat *catalog.Catalog, entry bootstr
 	}
 	fmt.Println()
 
-	result, err := bootstrap.Cluster(ctx, cat, entry, opts, func(msg string) {
+	result, err := bootstrap.Cluster(ctx, bp, entry, opts, func(msg string) {
 		fmt.Printf("   %s %s\n", cmdutil.SuccessMark(), msg)
 	})
 	if err != nil {
@@ -193,14 +193,14 @@ func runBootstrapSingle(ctx context.Context, cat *catalog.Catalog, entry bootstr
 	}
 
 	fmt.Println()
-	bootstrapPrintCatalogSnippet(entry.Name, result.Endpoint, result.SecretName, result.SecretNamespace, !result.HasCA)
+	bootstrapPrintBlueprintSnippet(entry.Name, result.Endpoint, result.SecretName, result.SecretNamespace, !result.HasCA)
 	return nil
 }
 
 // ── output helpers ────────────────────────────────────────────────────────────
 
-func bootstrapPrintCatalogSnippet(name, endpoint, secretName, namespace string, insecure bool) {
-	fmt.Printf("%s  Add to your catalog:\n\n", cmdutil.Bold("⎈"))
+func bootstrapPrintBlueprintSnippet(name, endpoint, secretName, namespace string, insecure bool) {
+	fmt.Printf("%s  Add to your blueprint:\n\n", cmdutil.Bold("⎈"))
 	if insecure {
 		fmt.Printf(`gateway:
   clusters:

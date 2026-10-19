@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +26,7 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 	defer os.Remove(tmpCert)
 
 	// Fake admission registry
-	gvr := catalog.GVREntry{
+	gvr := blueprint.GVREntry{
 		Key:        "demo.inrun.dev/v1alpha1/websites",
 		Group:      "demo.inrun.dev",
 		Version:    "v1alpha1",
@@ -34,7 +34,7 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 		Operations: []string{"CREATE", "UPDATE"},
 	}
 
-	reg := catalog.NewInMemoryAdmissionRegistry()
+	reg := blueprint.NewInMemoryAdmissionRegistry()
 	reg.AddValidationGVR(gvr, &types.ValidationConfig{})
 	reg.AddMutationGVR(gvr, &types.MutationConfig{})
 

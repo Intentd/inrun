@@ -83,7 +83,7 @@ func buildSnapshotEntry(spec map[string]interface{}, f migratableField, oldVal i
 // rollback. When empty both migration annotations are removed (full rollback
 // complete). When non-empty the snapshot annotation is updated to those
 // entries — fields that drifted, were skipped, or whose declarations were
-// removed from the Catalog retain their recovery records.
+// removed from the Blueprint retain their recovery records.
 func buildRollbackPatch(cr *unstructured.Unstructured, restoredFrags []map[string]interface{}, remainingSnapshot map[string]interface{}) (map[string]interface{}, error) {
 	ann := map[string]interface{}{}
 	if len(remainingSnapshot) == 0 {

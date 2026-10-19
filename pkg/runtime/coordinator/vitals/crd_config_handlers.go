@@ -6,17 +6,17 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/merger"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CRD Raw Handler
-// Returns a single CRD definition from the merged Catalog as JSON.
+// Returns a single CRD definition from the merged Blueprint as JSON.
 // This endpoint powers the "View Source" button in the CRD detail view,
-// allowing users to see exactly how the CRD was defined in the Catalog.
+// allowing users to see exactly how the CRD was defined in the Blueprint.
 //
-// Endpoint: /catalog/{crd}/raw
+// Endpoint: /blueprint/{crd}/raw
 //
 // Example response:
 //
@@ -45,7 +45,7 @@ func BuildCRDRawHandler(m *merger.Merger, crdName string) http.HandlerFunc {
 		crd, ok := m.Get(crdName)
 		if !ok {
 			httpapi.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
-				"error": fmt.Sprintf("CRD %q not found in Catalog", crdName),
+				"error": fmt.Sprintf("CRD %q not found in Blueprint", crdName),
 			})
 			return
 		}
@@ -56,26 +56,26 @@ func BuildCRDRawHandler(m *merger.Merger, crdName string) http.HandlerFunc {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Raw Catalog Handler
-// Returns the complete merged Catalog as JSON, including metadata and all CRDs.
-// This endpoint is used by the Console to display the source Catalog
+// Raw Blueprint Handler
+// Returns the complete merged Blueprint as JSON, including metadata and all CRDs.
+// This endpoint is used by the Console to display the source Blueprint
 // that defines the current operator.
 //
-// Endpoint: /catalog/raw
+// Endpoint: /blueprint/raw
 //
 // The response contains:
 //   - apiVersion: The Inrun API version
-//   - kind: Always "Catalog" at runtime (merged from sources)
-//   - metadata: Catalog metadata (name, description, version, author, license)
+//   - kind: Always "Blueprint" at runtime (merged from sources)
+//   - metadata: Blueprint metadata (name, description, version, author, license)
 //   - spec.crds: All merged CRD definitions from all sources
 //
 // Example response:
 //
 //	{
 //	  "apiVersion": "inrun.dev/v1",
-//	  "kind": "Catalog",
+//	  "kind": "Blueprint",
 //	  "metadata": {
-//	    "name": "platform-catalog",
+//	    "name": "platform-blueprint",
 //	    "description": "Production operator suite",
 //	    "version": "1.0.0",
 //	    "author": "Platform Team"
@@ -92,12 +92,12 @@ func BuildCRDRawHandler(m *merger.Merger, crdName string) http.HandlerFunc {
 //	}
 //
 // ─────────────────────────────────────────────────────────────────────────────
-func BuildRawCatalogHandler(m *merger.Merger) http.HandlerFunc {
+func BuildRawBlueprintHandler(m *merger.Merger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		uiCatalog := m.ToUI()
+		uiBlueprint := m.ToUI()
 
 		// Use the pruned writer to remove all null/empty values
-		httpapi.WriteJSONPruned(w, http.StatusOK, uiCatalog)
+		httpapi.WriteJSONPruned(w, http.StatusOK, uiBlueprint)
 	}
 }
 
@@ -116,7 +116,7 @@ func BuildRawCatalogHandler(m *merger.Merger) http.HandlerFunc {
 //   - All validation and mutation rules merged from sources
 //   - Complete operatorBox: configuration after inheritance
 //
-// Endpoint: /catalog/{crd}/enriched
+// Endpoint: /blueprint/{crd}/enriched
 //
 // Example response (user wrote only `kind: Service`):
 //
@@ -140,13 +140,13 @@ func BuildRawCatalogHandler(m *merger.Merger) http.HandlerFunc {
 //
 // This shows what Inrun actually uses at runtime versus what the user wrote.
 // ─────────────────────────────────────────────────────────────────────────────
-func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerFunc {
+func BuildCRDEnrichedHandler(bp *blueprint.Blueprint, crdName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get the enriched CRD from the validated Catalog
-		crd, err := cat.Get(crdName)
+		// Get the enriched CRD from the validated Blueprint
+		crd, err := bp.Get(crdName)
 		if err != nil {
 			httpapi.WriteJSON(w, http.StatusNotFound, map[string]interface{}{
-				"error": fmt.Sprintf("CRD %q not found in enriched Catalog", crdName),
+				"error": fmt.Sprintf("CRD %q not found in enriched Blueprint", crdName),
 			})
 			return
 		}
@@ -157,14 +157,14 @@ func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerF
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Enriched Catalog Handler
-// Returns the complete enriched Catalog as JSON, including metadata and all CRDs
+// Enriched Blueprint Handler
+// Returns the complete enriched Blueprint as JSON, including metadata and all CRDs
 // with all default values and enrichments applied. This endpoint shows what
-// Inrun actually uses at runtime after processing the user's Catalog.
+// Inrun actually uses at runtime after processing the user's Blueprint.
 //
-// Endpoint: /catalog/enriched
+// Endpoint: /blueprint/enriched
 //
-// The response contains the same structure as /catalog/raw, but with:
+// The response contains the same structure as /blueprint/raw, but with:
 //   - All defaults applied (workers, resync, queue depth)
 //   - All API types enriched (group, version, plural from discovery API)
 //   - All validation and mutation rules merged
@@ -172,18 +172,18 @@ func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerF
 //   - Resolved dependencies with conditions
 //
 // This endpoint is useful for:
-//   - Understanding what Inrun actually does with your Catalog
+//   - Understanding what Inrun actually does with your Blueprint
 //   - Debugging why certain values are being used at runtime
 //   - Seeing the full effect of inheritance and defaults
 //   - Comparing user intent with runtime reality
 //
-// Example response (user wrote minimal Catalog with just `kind: Pod`):
+// Example response (user wrote minimal Blueprint with just `kind: Pod`):
 //
 //	{
 //	  "apiVersion": "inrun.dev/v1",
-//	  "kind": "Catalog",
+//	  "kind": "Blueprint",
 //	  "metadata": {
-//	    "name": "platform-catalog",
+//	    "name": "platform-blueprint",
 //	    "description": "Production operator suite"
 //	  },
 //	  "spec": {
@@ -210,9 +210,9 @@ func BuildCRDEnrichedHandler(cat *catalog.Catalog, crdName string) http.HandlerF
 //	}
 //
 // ─────────────────────────────────────────────────────────────────────────────
-func BuildEnrichedCatalogHandler(cat *catalog.Catalog) http.HandlerFunc {
+func BuildEnrichedBlueprintHandler(bp *blueprint.Blueprint) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Use the pruned writer to remove all null/empty values
-		httpapi.WriteJSONPruned(w, http.StatusOK, cat.ToUI())
+		httpapi.WriteJSONPruned(w, http.StatusOK, bp.ToUI())
 	}
 }

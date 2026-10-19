@@ -9,7 +9,7 @@ metadata:
     nothing about. The ConfigMap goes with the CR on delete.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 

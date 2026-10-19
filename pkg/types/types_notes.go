@@ -7,21 +7,21 @@ import (
 	"github.com/intentd/inrun/pkg/sentinel"
 )
 
-// UserDefinedFunction is a named template expression declared in a Catalog or Module.
+// UserDefinedFunction is a named template expression declared in a Blueprint or Module.
 // Once registered, the function is callable by name in any template expression
-// across the Catalog — status fields, when: conditions, normalize, e2e assertions.
+// across the Blueprint — status fields, when: conditions, normalize, e2e assertions.
 type UserDefinedFunction struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description,omitempty"`
 	// Expression is a Go template string evaluated by the Resolver.
-	// Built-in functions and other user-defined functions (same Catalog or imported) are
+	// Built-in functions and other user-defined functions (same Blueprint or imported) are
 	// available inside the expression. The result is always a string.
 	Expression string `yaml:"expression"`
 	// Shadow: true acknowledges that this function intentionally overrides a built-in.
 	Shadow bool `yaml:"shadow,omitempty"`
 }
 
-// KELFunctionRegistry holds user-defined functions merged from a Catalog and its spec.imports Modules.
+// KELFunctionRegistry holds user-defined functions merged from a Blueprint and its spec.imports Modules.
 type KELFunctionRegistry struct {
 	Include     string                `yaml:"include,omitempty"`
 	Definitions []UserDefinedFunction `yaml:"definitions,omitempty"`
@@ -58,12 +58,12 @@ func (nr KELFunctionRegistry) MergeImport(src KELFunctionRegistry, srcLabel stri
 	for _, n := range src.Definitions {
 		if prev, seenBefore := seen[n.Name]; seenBefore {
 			// The same definition arriving twice (e.g. one functions.include shared by
-			// two imported Catalogs) is reuse, not a conflict: keep one copy.
+			// two imported Blueprints) is reuse, not a conflict: keep one copy.
 			if existing, ok := result.find(n.Name); ok && existing.Expression == n.Expression && existing.Shadow == n.Shadow {
 				continue
 			}
 			return KELFunctionRegistry{}, fmt.Errorf(
-				"function conflict: %q is declared differently in %s and %s — rename one or declare a local override in the Catalog's functions: block",
+				"function conflict: %q is declared differently in %s and %s — rename one or declare a local override in the Blueprint's functions: block",
 				n.Name, prev, srcLabel,
 			)
 		}

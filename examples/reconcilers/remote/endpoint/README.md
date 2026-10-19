@@ -46,7 +46,7 @@ kubectl get service my-webapp-svc
 
 ### 4a. Prune
 
-The Catalog sets `prune.enabled`, so a child the reconciler stops returning is
+The Blueprint sets `prune.enabled`, so a child the reconciler stops returning is
 deleted. Turn off `expose` and the reconcilers leave the Service out:
 
 ```bash
@@ -59,7 +59,7 @@ kubectl get service my-webapp-svc   # NotFound after the next reconcile
 
 ### 4b. Another language
 
-Stop the bash reconciler and start one of these instead. The Catalog does not
+Stop the bash reconciler and start one of these instead. The Blueprint does not
 change.
 
 ```bash
@@ -99,7 +99,7 @@ a child it applied before and no longer finds in `resources` is deleted.
 ```
 
 The `reconcilerEndpoint` note uses `.inrun.inPod` to pick localhost or the
-in-cluster Service, so one Catalog serves both (see [`reconciler/deploy.yaml`](./reconciler/deploy.yaml)).
+in-cluster Service, so one Blueprint serves both (see [`reconciler/deploy.yaml`](./reconciler/deploy.yaml)).
 
 ### 5. Clean up
 

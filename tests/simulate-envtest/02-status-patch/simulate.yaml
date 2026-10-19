@@ -9,7 +9,7 @@ metadata:
     real API server enforces the subresource boundary and the patch still succeeds.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   cr: ../cr.yaml
   crd: ../crd.yaml
   cycles: 3

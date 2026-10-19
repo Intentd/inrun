@@ -31,7 +31,7 @@ type PipelineReconciler struct {
 	kube kubeclient.Interface
 }
 
-// NewPipelineReconciler is the constructor function registered in the Catalog.
+// NewPipelineReconciler is the constructor function registered in the Blueprint.
 func NewPipelineReconciler(kube kubeclient.Interface) domain.Reconciler {
 	return &PipelineReconciler{kube: kube}
 }

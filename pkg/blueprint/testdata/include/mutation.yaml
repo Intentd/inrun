@@ -1,0 +1,19 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: test
+spec:
+  crds:
+    platform:
+      apiTypes:
+        group: platform.inrun.dev
+        version: v1alpha1
+        kind: Platform
+        plural: platforms
+      admission:
+        mutation:
+          include: ./mutation-rules.yaml
+          rules:
+            - field: spec.logLevel
+              default: info
+

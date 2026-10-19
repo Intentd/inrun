@@ -44,7 +44,7 @@
 //
 // Security: use auth.secretRef to read credentials from a Kubernetes Secret,
 // or auth.env to read from a pod environment variable. Never put raw secrets
-// in Catalog YAML.
+// in Blueprint YAML.
 package types
 
 // FiresConfig controls at which lifecycle points an external call is executed.
@@ -161,7 +161,7 @@ type ExternalCallSpec struct {
 
 	// Include is a path to a YAML file containing a top-level "calls:" list.
 	// When set, this entry is replaced in-place by the listed calls.
-	// Resolved relative to the catalog file's directory. Cleared after expansion.
+	// Resolved relative to the blueprint file's directory. Cleared after expansion.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
 }
 

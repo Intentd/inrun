@@ -1,0 +1,83 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: job-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    JobProbe — integration test for job notes and enriched job pod notes.
+    Creates a Job with enrich: [pods].
+    Apply the CR and inspect: kubectl get jobprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    job-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - pods
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            jobs:
+              - name: "{{ .metadata.name }}-probe"
+                image: alpine:3.19
+                command: ["/bin/sh", "-c", "echo 'job probe complete'; exit 0"]
+        emit:
+          status:
+            fields:
+              # ── Phase state machine ─────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Running"
+                when:
+                  - field: "{{ jobActive .children.job }}"
+                    equals: "true"
+
+              - path: phase
+                value: "Succeeded"
+                when:
+                  - field: "{{ jobSucceeded .children.job }}"
+                    equals: "true"
+
+              - path: phase
+                value: "Failed"
+                when:
+                  - field: "{{ jobFailed .children.job }}"
+                    equals: "true"
+                  - field: "{{ jobSucceeded .children.job }}"
+                    equals: "false"
+
+              # ── job notes ───────────────────────────────────────────────────
+              - path: jobSucceeded
+                value: "{{ jobSucceeded .children.job }}"
+
+              - path: jobFailed
+                value: "{{ jobFailed .children.job }}"
+
+              - path: jobActive
+                value: "{{ jobActive .children.job }}"
+
+              # ── enriched job pod notes (require enrich: [pods]) ─────────────
+              - path: exitCode
+                value: "{{ jobFirstExitCode .children.job._pods }}"
+
+              - path: activePodNames
+                value: '{{ join (jobActivePodNames .children.job._pods) ", " }}'
+
+              - path: succeededPodNames
+                value: '{{ join (jobSucceededPodNames .children.job._pods) ", " }}'
+
+              - path: failedPodNames
+                value: '{{ join (jobFailedPodNames .children.job._pods) ", " }}'
+

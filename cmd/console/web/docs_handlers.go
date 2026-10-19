@@ -15,8 +15,8 @@ type ChildResourceEntry struct {
 	Phases []string // which lifecycle phases declare it: "onCreate", "onReconcile", "onDelete"
 }
 
-// DocsCatalogEntry is a single catalog shown on the docs landing page.
-type DocsCatalogEntry struct {
+// DocsBlueprintEntry is a single blueprint shown on the docs landing page.
+type DocsBlueprintEntry struct {
 	Name        string
 	Description string
 	Version     string
@@ -26,21 +26,21 @@ type DocsCatalogEntry struct {
 
 // DocsCRDEntry is a CRD link on the docs landing page.
 type DocsCRDEntry struct {
-	Name        string
-	CatalogName string
-	State       string
+	Name          string
+	BlueprintName string
+	State         string
 }
 
 // DocsLandingData is the view-model for the docs landing page.
 type DocsLandingData struct {
-	Catalogs       []DocsCatalogEntry
+	Blueprints     []DocsBlueprintEntry
 	ConsoleVersion string
 }
 
 // CRDDocsData is the view-model for a single CRD docs page.
 type CRDDocsData struct {
-	CatalogName      string
-	CatalogVersion   string
+	BlueprintName    string
+	BlueprintVersion string
 	CRD              *CRDDetail
 	KubectlKind      string
 	KubectlKindLower string
@@ -62,28 +62,28 @@ func (c *Console) handleDocsLanding(w http.ResponseWriter, r *http.Request) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	var entries []DocsCatalogEntry
+	var entries []DocsBlueprintEntry
 	for _, inst := range c.instances {
-		if inst.Catalog == nil {
+		if inst.Blueprint == nil {
 			continue
 		}
-		cat := inst.Catalog
+		bp := inst.Blueprint
 		var crdEntries []DocsCRDEntry
-		for _, c := range cat.CRDs {
+		for _, c := range bp.CRDs {
 			crdEntries = append(crdEntries, DocsCRDEntry{
-				Name:        c.Name,
-				CatalogName: cat.Name,
-				State:       c.State,
+				Name:          c.Name,
+				BlueprintName: bp.Name,
+				State:         c.State,
 			})
 		}
 		sort.Slice(crdEntries, func(i, j int) bool {
 			return crdEntries[i].Name < crdEntries[j].Name
 		})
-		entries = append(entries, DocsCatalogEntry{
-			Name:        cat.Name,
-			Description: cat.Description,
-			Version:     cat.Version,
-			Author:      cat.Author,
+		entries = append(entries, DocsBlueprintEntry{
+			Name:        bp.Name,
+			Description: bp.Description,
+			Version:     bp.Version,
+			Author:      bp.Author,
 			CRDs:        crdEntries,
 		})
 	}
@@ -92,25 +92,25 @@ func (c *Console) handleDocsLanding(w http.ResponseWriter, r *http.Request) {
 	})
 
 	c.renderTemplate(w, "docs.html", DocsLandingData{
-		Catalogs:       entries,
+		Blueprints:     entries,
 		ConsoleVersion: ccversion.Short(),
 	})
 }
 
-// handleCatalogDocs serves /console/docs/{catalog} with the docs landing.
-func (c *Console) handleCatalogDocs(w http.ResponseWriter, r *http.Request, _ string) {
+// handleBlueprintDocs serves /console/docs/{blueprint} with the docs landing.
+func (c *Console) handleBlueprintDocs(w http.ResponseWriter, r *http.Request, _ string) {
 	c.handleDocsLanding(w, r)
 }
 
-// handleCRDDocs renders /console/docs/{catalog}/{crd}.
-func (c *Console) handleCRDDocs(w http.ResponseWriter, r *http.Request, catalogName, crdName string) {
-	inst, ok := c.instanceByCatalogName(catalogName)
+// handleCRDDocs renders /console/docs/{blueprint}/{crd}.
+func (c *Console) handleCRDDocs(w http.ResponseWriter, r *http.Request, blueprintName, crdName string) {
+	inst, ok := c.instanceByBlueprintName(blueprintName)
 	if !ok {
 		c.handleNotFound(w, r)
 		return
 	}
 
-	crd, err := inst.Client.FetchCRDDetail(crdName, endpointInfoFor(inst.Catalog, crdName), summaryFor(inst.Catalog, crdName))
+	crd, err := inst.Client.FetchCRDDetail(crdName, endpointInfoFor(inst.Blueprint, crdName), summaryFor(inst.Blueprint, crdName))
 	if err != nil {
 		Warnf("docs fetch CRD %s: %v", crdName, err)
 		crd = &CRDDetail{
@@ -126,8 +126,8 @@ func (c *Console) handleCRDDocs(w http.ResponseWriter, r *http.Request, catalogN
 	children := extractChildResources(crd.OperatorBox)
 
 	c.renderTemplate(w, "crd_docs.html", CRDDocsData{
-		CatalogName:      catalogName,
-		CatalogVersion:   inst.Catalog.Version,
+		BlueprintName:    blueprintName,
+		BlueprintVersion: inst.Blueprint.Version,
 		CRD:              crd,
 		KubectlKind:      kubectlKind,
 		KubectlKindLower: strings.ToLower(kubectlKind),
@@ -142,7 +142,7 @@ func (c *Console) handleCRDDocs(w http.ResponseWriter, r *http.Request, catalogN
 		HasChildren:    len(children) > 0,
 		ChildResources: children,
 		ConsoleVersion: ccversion.Short(),
-		RuntimeVersion: inst.Catalog.RuntimeVersion,
+		RuntimeVersion: inst.Blueprint.RuntimeVersion,
 	})
 }
 

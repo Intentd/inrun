@@ -52,7 +52,7 @@ make registry
 make build
 ```
 
-`make registry` runs `inrun generate registry --file catalog.yaml` to produce the type registry and entrypoint that includes `ResourceProbe`. `make build` compiles a custom `inrun` binary with it. The standard `inrun` cannot run this fixture without this step.
+`make registry` runs `inrun generate registry --file blueprint.yaml` to produce the type registry and entrypoint that includes `ResourceProbe`. `make build` compiles a custom `inrun` binary with it. The standard `inrun` cannot run this fixture without this step.
 
 ### Step 2 — Verify in-memory
 

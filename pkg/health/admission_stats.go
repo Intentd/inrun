@@ -149,7 +149,7 @@ func (s *AdmissionStats) recordMutationLatency(d time.Duration) {
 // ── Snapshot ──────────────────────────────────────────────────────────────────
 
 // AdmissionStatsSnapshot is a read-only point-in-time snapshot.
-// Serialised into the /catalog/{crd} JSON response under the "admission" key.
+// Serialised into the /blueprint/{crd} JSON response under the "admission" key.
 type AdmissionStatsSnapshot struct {
 	// Validation
 	ValidationTotal   int64   `json:"validationTotal"`

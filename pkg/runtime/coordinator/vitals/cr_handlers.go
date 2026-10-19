@@ -2,9 +2,9 @@
 //
 // CR-level endpoints — list, detail, and events per CRD instance.
 //
-// These endpoints extend the existing /catalog/{crd} surface with:
+// These endpoints extend the existing /blueprint/{crd} surface with:
 //
-//   GET /catalog/{crd}/cr
+//   GET /blueprint/{crd}/cr
 //       List all CR instances for a CRD — the kubectl get equivalent.
 //       Reads from the informer cache — no API server calls.
 //       Returns name, namespace, phase, ready, age, generation.
@@ -12,20 +12,20 @@
 //       against each instance's full object and returns it as "value" —
 //       used by the gateway's unique: true admission check.
 //
-//   GET /catalog/{crd}/cr/{name}           (cluster-scoped CRDs)
-//   GET /catalog/{crd}/cr/{namespace}/{name} (namespaced CRDs)
+//   GET /blueprint/{crd}/cr/{name}           (cluster-scoped CRDs)
+//   GET /blueprint/{crd}/cr/{namespace}/{name} (namespaced CRDs)
 //       Full CR detail: status fields, conditions, children.
 //       Children are read on demand from the API server.
 //
-//   GET /catalog/{crd}/cr/{name}/events
-//   GET /catalog/{crd}/cr/{namespace}/{name}/events
+//   GET /blueprint/{crd}/cr/{name}/events
+//   GET /blueprint/{crd}/cr/{namespace}/{name}/events
 //       Recent Kubernetes events for this CR — both emitted by Inrun
 //       (Reconciled, ReconcileError) and by Kubernetes itself.
 //
-// Registration — add to wherever BuildCatalogHandler is registered:
+// Registration — add to wherever BuildBlueprintHandler is registered:
 //
 //   crHandler := crdhealth.NewCRHandler(kube, reg, rcMap)
-//   mux.Handle("/catalog/", crHandler.Route(existingCatalogMux))
+//   mux.Handle("/blueprint/", crHandler.Route(existingBlueprintMux))
 //
 // Or call BuildCRListHandler / BuildCRDetailHandler / BuildCREventsHandler
 // directly alongside the existing per-CRD handler registrations.
@@ -72,7 +72,7 @@ type ChildSummary struct {
 	Ready     bool                   `json:"ready"`
 }
 
-// CRDetailResponse is returned by GET /catalog/{crd}/cr/{namespace}/{name}.
+// CRDetailResponse is returned by GET /blueprint/{crd}/cr/{namespace}/{name}.
 type CRDetailResponse struct {
 	Name              string            `json:"name"`
 	Namespace         string            `json:"namespace,omitempty"`
@@ -105,7 +105,7 @@ type CREvent struct {
 	Age       string `json:"age"`
 }
 
-// CREventsResponse is returned by GET /catalog/{crd}/cr/{namespace}/{name}/events.
+// CREventsResponse is returned by GET /blueprint/{crd}/cr/{namespace}/{name}/events.
 type CREventsResponse struct {
 	Name      string    `json:"name"`
 	Namespace string    `json:"namespace,omitempty"`
@@ -115,7 +115,7 @@ type CREventsResponse struct {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CR List Handler
-// GET /catalog/{crd}/cr
+// GET /blueprint/{crd}/cr
 //
 // Lists all CR instances from the informer cache.
 // No API server calls — purely in-memory.
@@ -169,8 +169,8 @@ func BuildCRListHandler(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CR Detail Handler
-// GET /catalog/{crd}/cr/{name}              (cluster-scoped)
-// GET /catalog/{crd}/cr/{namespace}/{name}  (namespaced)
+// GET /blueprint/{crd}/cr/{name}              (cluster-scoped)
+// GET /blueprint/{crd}/cr/{namespace}/{name}  (namespaced)
 //
 // Returns the full CR status and its child resources.
 // CR is read from the informer cache — no API server call.
@@ -238,9 +238,9 @@ func BuildCRDetailHandler(
 	}
 }
 
-// BuildCRDetailAndEventsHandler handles all sub-paths under /catalog/{crd}/cr/
+// BuildCRDetailAndEventsHandler handles all sub-paths under /blueprint/{crd}/cr/
 // Dispatches to detail or events based on whether the path ends with /events.
-// Register at "/catalog/{crd}/cr/" (with trailing slash).
+// Register at "/blueprint/{crd}/cr/" (with trailing slash).
 func BuildCRDetailAndEventsHandler(
 	crd types.CRDEntry,
 	inf cache.SharedIndexInformer,
@@ -270,8 +270,8 @@ func BuildCRDetailAndEventsHandler(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CR Events Handler
-// GET /catalog/{crd}/cr/{name}/events              (cluster-scoped)
-// GET /catalog/{crd}/cr/{namespace}/{name}/events  (namespaced)
+// GET /blueprint/{crd}/cr/{name}/events              (cluster-scoped)
+// GET /blueprint/{crd}/cr/{namespace}/{name}/events  (namespaced)
 //
 // Returns recent Kubernetes events involving this CR.
 // Events are listed from the API server using field selectors on

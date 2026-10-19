@@ -39,7 +39,7 @@ const (
 // simulatable returns a copy of crd whose templates, CRD-level and per serve
 // target, leave out what a simulation cannot run: cross-namespace copies need
 // a live API server to read their source. The notes say what was left out.
-// The Catalog's own entry is not touched.
+// The Blueprint's own entry is not touched.
 func simulatable(crd types.CRDEntry) (types.CRDEntry, []string) {
 	var notes []string
 	filter := func(box *types.OperatorBoxConfig) *types.OperatorBoxConfig {

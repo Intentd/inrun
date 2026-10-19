@@ -1,0 +1,30 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: serve-field-translation-valid
+  version: 0.1.0
+  description: Valid serve field translation — value, values, and gate-only.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        target: widget
+        fields:
+          # value: single transform expression
+          timeout:
+            path: timeoutSeconds
+            value: '{{ .value }}'
+
+          # values: fanout — one intent field → multiple spec paths
+          image:
+            values:
+              image.registry:   '{{ .value }}'
+              image.repository: '{{ .intent.image }}'
+              image.tag:        'latest'
+
+          # gate-only: exposed in form, consumed by validation rules, not written to spec
+          productionApproval:
+            label: "Approval ticket"

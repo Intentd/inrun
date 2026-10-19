@@ -1,0 +1,310 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: data-platform
+  author: intentd
+  version: 0.1.0
+  tags:
+    - data
+    - pipeline
+    - analytics
+    - secrets
+    - rotation
+  description: >
+    A 10-CRD data platform operator. Manages the full data lifecycle: ingestion
+    (Source, Dataset), processing (Pipeline, Transform, Schema), delivery (Sink),
+    scheduling (Schedule, DataJob), and observability (Alert, Dashboard).
+    Imports local modules for worker pools and rotating credentials.
+
+spec:
+  crds:
+    pipeline:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Pipeline
+        plural: pipelines
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          imports:
+            - module: ../modules/rotating-credentials/module.yaml
+              with:
+                rotateAfter: "30d"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-pipeline"
+                data:
+                  SOURCE: "{{ .spec.source }}"
+                  SINK: "{{ .spec.sink }}"
+                  BATCH_SIZE: "{{ .spec.batchSize }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: source
+                value: "{{ .spec.source }}"
+              - path: sink
+                value: "{{ .spec.sink }}"
+
+    dataset:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Dataset
+        plural: datasets
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          imports:
+            - module: ../modules/rotating-api-key/module.yaml
+              with:
+                rotateAfter: "180d"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-dataset"
+                data:
+                  FORMAT: "{{ .spec.format }}"
+                  LOCATION: "{{ .spec.location }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Available"
+              - path: format
+                value: "{{ .spec.format }}"
+
+    schema:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Schema
+        plural: schemas
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-schema"
+                data:
+                  VERSION: "{{ .spec.version }}"
+                  COMPATIBILITY: BACKWARD
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Registered"
+              - path: version
+                value: "{{ .spec.version }}"
+
+    transform:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Transform
+        plural: transforms
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          imports:
+            - module: ../modules/worker-pool/module.yaml
+              with:
+                image: "{{ .spec.image }}"
+                workers: "{{ .spec.workers }}"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-transform"
+                data:
+                  TYPE: "{{ .spec.type }}"
+                  PARALLELISM: "{{ .spec.workers }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+
+    sink:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Sink
+        plural: sinks
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          imports:
+            - module: ../modules/rotating-credentials/module.yaml
+              with:
+                rotateAfter: "60d"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-sink"
+                data:
+                  TARGET: "{{ .spec.target }}"
+                  FORMAT: "{{ .spec.format }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Connected"
+              - path: target
+                value: "{{ .spec.target }}"
+
+    source:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Source
+        plural: sources
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          imports:
+            - module: ../modules/rotating-credentials/module.yaml
+              with:
+                rotateAfter: "60d"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-source"
+                data:
+                  ENDPOINT: "{{ .spec.endpoint }}"
+                  POLL_INTERVAL: "{{ .spec.pollInterval }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Connected"
+              - path: endpoint
+                value: "{{ .spec.endpoint }}"
+
+    data-job:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: DataJob
+        plural: datajobs
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          imports:
+            - module: ../modules/worker-pool/module.yaml
+              with:
+                image: "{{ .spec.image }}"
+                workers: "{{ .spec.parallelism }}"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-job"
+                data:
+                  TIMEOUT: "{{ .spec.timeout }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: parallelism
+                value: "{{ .spec.parallelism }}"
+
+    schedule:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Schedule
+        plural: schedules
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-schedule"
+                data:
+                  CRON: "{{ .spec.cron }}"
+                  TARGET: "{{ .spec.target }}"
+                  TIMEZONE: UTC
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Active"
+              - path: cron
+                value: "{{ .spec.cron }}"
+              - path: target
+                value: "{{ .spec.target }}"
+
+    alert:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Alert
+        plural: alerts
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-alert"
+                data:
+                  SEVERITY: "{{ .spec.severity }}"
+                  CONDITION: "{{ .spec.condition }}"
+                  CHANNEL: "{{ .spec.channel }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Active"
+              - path: severity
+                value: "{{ .spec.severity }}"
+
+    dashboard:
+      namespaced: true
+      apiTypes:
+        group: data.demo.inrun.dev
+        version: v1alpha1
+        kind: Dashboard
+        plural: dashboards
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-05
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-dashboard"
+                data:
+                  TITLE: "{{ .spec.title }}"
+                  REFRESH: "{{ .spec.refreshInterval }}"
+                  PANELS: "{{ .spec.panelCount }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Published"
+              - path: title
+                value: "{{ .spec.title }}"

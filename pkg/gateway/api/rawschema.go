@@ -6,7 +6,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,11 +75,11 @@ type RawSchemaSection struct {
 func rawSchemaHandler(
 	kube kubeclient.Interface,
 	clusters *ClusterRegistry,
-	cat *catalog.Catalog,
+	bp *blueprint.Blueprint,
 ) http.HandlerFunc {
 	var notes types.KELFunctionRegistry
-	if !cat.Empty() {
-		notes = cat.UserFunctions()
+	if !bp.Empty() {
+		notes = bp.UserFunctions()
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -97,10 +97,10 @@ func rawSchemaHandler(
 
 		var crd *types.CRDEntry
 		if apiVersion != "" && kind != "" {
-			crd = cat.LookupByAPIVersionAndKind(apiVersion, kind).Entry()
+			crd = bp.LookupByAPIVersionAndKind(apiVersion, kind).Entry()
 			if crd == nil {
 				// Try kind-only as fallback, but note the mismatch
-				crd = cat.LookupByKind(kind).Entry()
+				crd = bp.LookupByKind(kind).Entry()
 				if crd != nil {
 					// ─── Return the warning as the response ──────────────
 					writeJSON(w, http.StatusBadRequest, httpapi.H{
@@ -113,12 +113,12 @@ func rawSchemaHandler(
 				}
 			}
 		} else {
-			crd = cat.LookupByKind(kind).Entry()
+			crd = bp.LookupByKind(kind).Entry()
 		}
 
 		if crd == nil {
 			writeJSONError(w, http.StatusNotFound, "kind not found",
-				fmt.Sprintf("kind %q not found in the Catalog", kind),
+				fmt.Sprintf("kind %q not found in the Blueprint", kind),
 			)
 			return
 		}

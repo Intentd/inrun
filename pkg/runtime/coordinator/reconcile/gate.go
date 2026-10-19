@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// objectFromCache retrieves the live CR from the informer cache for the given
-// key. Returns nil if the entry has no informer or the key is not found.
+// objectFromCache returns a copy of the live CR in the informer cache for the
+// given key. Returns nil if the entry has no informer or the key is not found.
 func objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Unstructured {
 	if entry.Informer == nil {
 		return nil
@@ -18,7 +18,7 @@ func objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Uns
 	if err != nil || !exists || raw == nil {
 		return nil
 	}
-	obj, ok := domain.ToUnstructured(raw)
+	obj, ok := domain.FromCache(raw)
 	if !ok {
 		return nil
 	}
@@ -29,7 +29,7 @@ func objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Uns
 // given CR. Returns (true, reason) when gated — reconciler must not be called.
 // Returns (false, "") when conditions pass.
 //
-// Delegates to Catalog.EvaluatePreReconcile which holds the full resolver chain
+// Delegates to Blueprint.EvaluatePreReconcile which holds the full resolver chain
 // (profiles, notes, serve intent) — no duplication of eval logic here.
 func evaluatePreReconcileCheck(
 	ctx context.Context,
@@ -38,9 +38,9 @@ func evaluatePreReconcileCheck(
 	crdName string,
 	sentinels map[string]string,
 ) (gated bool, reason string) {
-	if d.Cat == nil || obj == nil {
+	if d.Blueprint == nil || obj == nil {
 		return false, ""
 	}
-	allowed, reason := d.Cat.EvaluatePreReconcile(ctx, crdName, obj, d.Kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
+	allowed, reason := d.Blueprint.EvaluatePreReconcile(ctx, crdName, obj, d.Kube.Clientset(), domain.EvaluateOptions{Sentinels: sentinels})
 	return !allowed, reason
 }

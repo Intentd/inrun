@@ -40,9 +40,9 @@ Subcommands:
 var tokenVerifyCmd = &cobra.Command{
 	Use:   "verify",
 	Short: "Verify a JWT against the configured token entries",
-	Long: `Verify a JWT against gateway.api.auth.tokens in the catalog.
+	Long: `Verify a JWT against gateway.api.auth.tokens in the blueprint.
 
-Local mode (default): loads the catalog, fetches JWKS from the real provider,
+Local mode (default): loads the blueprint, fetches JWKS from the real provider,
 verifies the token signature and claims, and shows which entry matched.
 
 Live mode (--api): sends the token to a running gateway and reports accept/reject.
@@ -50,7 +50,7 @@ Use inrun proxy to expose the gateway locally first.
 
 Examples:
   inrun token verify
-  inrun token verify -f catalog.yaml -t token.jwt
+  inrun token verify -f blueprint.yaml -t token.jwt
   inrun token verify --api https://gateway.myorg.io -t token.jwt
   inrun token verify --api http://localhost:8443`,
 	SilenceUsage: true,
@@ -112,17 +112,17 @@ func runTokenVerifyLocal(cmd *cobra.Command, jwt, audienceOverride, tokenFile st
 		return fmt.Errorf("%s %q does not look like a JWT — could not extract iss claim", cmdutil.FailureMark(), tokenFile)
 	}
 
-	cat, err := cmdutil.BuildCatalog(cmd)
+	bp, err := cmdutil.BuildBlueprint(cmd)
 	if err != nil {
 		return fmt.Errorf("%s %w", cmdutil.FailureMark(), err)
 	}
 
-	if !cat.IsGatewayEnabled() || !cat.Gateway.HasAPI() || cat.Gateway.API.Auth.Empty() {
-		return fmt.Errorf("%s no gateway token auth configured in this catalog", cmdutil.FailureMark())
+	if !bp.IsGatewayEnabled() || !bp.Gateway.HasAPI() || bp.Gateway.API.Auth.Empty() {
+		return fmt.Errorf("%s no gateway token auth configured in this blueprint", cmdutil.FailureMark())
 	}
 
 	var candidates []types.APIToken
-	for _, t := range cat.Gateway.API.Auth.Tokens {
+	for _, t := range bp.Gateway.API.Auth.Tokens {
 		if t.IsOIDC() && t.OIDCIssuer() == iss {
 			candidates = append(candidates, t)
 		}
@@ -206,7 +206,7 @@ Vault, which uses a non-standard discovery path.
 
 Example:
   inrun token probe --name vault-ci
-  inrun token probe -f catalog.yaml --name gh-ci`,
+  inrun token probe -f blueprint.yaml --name gh-ci`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
@@ -214,19 +214,19 @@ Example:
 			return fmt.Errorf("%s --name is required", cmdutil.FailureMark())
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return fmt.Errorf("%s %w", cmdutil.FailureMark(), err)
 		}
 
-		if !cat.IsGatewayEnabled() || !cat.Gateway.HasAPI() || cat.Gateway.API.Auth.Empty() {
-			return fmt.Errorf("%s no gateway token auth configured in this catalog", cmdutil.FailureMark())
+		if !bp.IsGatewayEnabled() || !bp.Gateway.HasAPI() || bp.Gateway.API.Auth.Empty() {
+			return fmt.Errorf("%s no gateway token auth configured in this blueprint", cmdutil.FailureMark())
 		}
 
 		var entry *types.APIToken
-		for i, t := range cat.Gateway.API.Auth.Tokens {
+		for i, t := range bp.Gateway.API.Auth.Tokens {
 			if t.Name == name {
-				entry = &cat.Gateway.API.Auth.Tokens[i]
+				entry = &bp.Gateway.API.Auth.Tokens[i]
 				break
 			}
 		}
@@ -328,20 +328,20 @@ Shows each token's name, type, provider kind, and allow summary.
 
 Example:
   inrun token list
-  inrun token list -f catalog.yaml`,
+  inrun token list -f blueprint.yaml`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return fmt.Errorf("%s %w", cmdutil.FailureMark(), err)
 		}
 
-		if !cat.IsGatewayEnabled() || !cat.Gateway.HasAPI() || cat.Gateway.API.Auth.Empty() {
+		if !bp.IsGatewayEnabled() || !bp.Gateway.HasAPI() || bp.Gateway.API.Auth.Empty() {
 			fmt.Printf("\n  %s no gateway token auth configured\n\n", cmdutil.Dim("—"))
 			return nil
 		}
 
-		tokens := cat.Gateway.API.Auth.Tokens
+		tokens := bp.Gateway.API.Auth.Tokens
 		fmt.Printf("\n  %s  %s\n\n", cmdutil.Gray("token list"), cmdutil.Dim(fmt.Sprintf("%d entries", len(tokens))))
 
 		type row struct{ name, typ, provider, allow string }

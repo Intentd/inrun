@@ -16,9 +16,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// CatalogRegistry is the minimal read interface prepare needs for cross-CRD
-// observation. *coordinator.ResourceCatalog satisfies this.
-type CatalogRegistry interface {
+// BlueprintRegistry is the minimal read interface prepare needs for cross-CRD
+// observation. *coordinator.ResourceBlueprint satisfies this.
+type BlueprintRegistry interface {
 	GetInformerByName(name string) (cache.SharedIndexInformer, bool)
 	GetInformerByLabelSelector(key, value string) (cache.SharedIndexInformer, bool)
 	GetCrossAccessByName(name string) *bool
@@ -36,7 +36,7 @@ func readCross(
 	obj domain.Object,
 	decls []types.CrossCRDDeclaration,
 	resolver *template.Resolver,
-	registry CatalogRegistry,
+	registry BlueprintRegistry,
 	cs kubernetes.Interface,
 ) map[string]interface{} {
 	if len(decls) == 0 {

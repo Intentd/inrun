@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-const catalogWithFunctionsYAML = `apiVersion: inrun.dev/v1
-kind: Catalog
+const blueprintWithFunctionsYAML = `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
   name: noted
 functions:
@@ -24,11 +24,11 @@ spec:
         group: example.io
 `
 
-// TestCatalog_InlineNotes_ForwardedToToNotes verifies that functions: declared
-// directly in a Catalog are returned by ToFunctions() after Merge().
-func TestCatalog_InlineNotes_ForwardedToToNotes(t *testing.T) {
+// TestBlueprint_InlineNotes_ForwardedToToNotes verifies that functions: declared
+// directly in a Blueprint are returned by ToFunctions() after Merge().
+func TestBlueprint_InlineNotes_ForwardedToToNotes(t *testing.T) {
 	dir := t.TempDir()
-	path := writeTempCatalog(t, dir, "catalog.yaml", catalogWithFunctionsYAML)
+	path := writeTempBlueprint(t, dir, "blueprint.yaml", blueprintWithFunctionsYAML)
 
 	m := New(path)
 	if err := m.Merge(); err != nil {
@@ -44,21 +44,21 @@ func TestCatalog_InlineNotes_ForwardedToToNotes(t *testing.T) {
 		names[n.Name] = true
 	}
 	if !names["host"] {
-		t.Error("expected function 'host' from Catalog")
+		t.Error("expected function 'host' from Blueprint")
 	}
 	if !names["img"] {
-		t.Error("expected function 'img' from Catalog")
+		t.Error("expected function 'img' from Blueprint")
 	}
 }
 
 // TestStack_InlineNotes_ForwardedToToNotes verifies that functions: declared on
-// a Stack are visible via ToFunctions() after the Catalog files are imported.
+// a Stack are visible via ToFunctions() after the Blueprint files are imported.
 func TestStack_InlineNotes_ForwardedToToFunctions(t *testing.T) {
 	dir := t.TempDir()
-	catalogPath := writeTempCatalog(t, dir, "catalog.yaml", catalogWithFunctionsYAML)
+	blueprintPath := writeTempBlueprint(t, dir, "blueprint.yaml", blueprintWithFunctionsYAML)
 
-	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nfunctions:\n  definitions:\n    - name: env\n      expression: \"prod\"\nimports:\n  files:\n    - url: " + catalogPath + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nfunctions:\n  definitions:\n    - name: env\n      expression: \"prod\"\nimports:\n  files:\n    - url: " + blueprintPath + "\n"
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	if err := m.Merge(); err != nil {
@@ -73,22 +73,22 @@ func TestStack_InlineNotes_ForwardedToToFunctions(t *testing.T) {
 	if !names["env"] {
 		t.Error("expected Stack inline note 'env'")
 	}
-	// Notes from the imported Catalog must also be present.
+	// Notes from the imported Blueprint must also be present.
 	if !names["host"] {
-		t.Error("expected Catalog note 'host' to pass through")
+		t.Error("expected Blueprint note 'host' to pass through")
 	}
 }
 
-// TestStack_InlineNotes_OverrideCatalogNote verifies that when a Stack
-// declares a note with the same name as one in an imported Catalog, the
+// TestStack_InlineNotes_OverrideBlueprintNote verifies that when a Stack
+// declares a note with the same name as one in an imported Blueprint, the
 // Stack's expression is the one returned (last-wins via FuncMap ordering).
-func TestStack_InlineNotes_OverrideCatalogNote(t *testing.T) {
+func TestStack_InlineNotes_OverrideBlueprintNote(t *testing.T) {
 	dir := t.TempDir()
-	catalogPath := writeTempCatalog(t, dir, "catalog.yaml", catalogWithFunctionsYAML)
+	blueprintPath := writeTempBlueprint(t, dir, "blueprint.yaml", blueprintWithFunctionsYAML)
 
-	// host is also declared in the Catalog; Stack's value must win (appended last).
-	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nfunctions:\n  definitions:\n    - name: host\n      expression: \"{{ .metadata.name }}.prod.example.com\"\nimports:\n  files:\n    - url: " + catalogPath + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	// host is also declared in the Blueprint; Stack's value must win (appended last).
+	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nfunctions:\n  definitions:\n    - name: host\n      expression: \"{{ .metadata.name }}.prod.example.com\"\nimports:\n  files:\n    - url: " + blueprintPath + "\n"
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	if err := m.Merge(); err != nil {
@@ -96,7 +96,7 @@ func TestStack_InlineNotes_OverrideCatalogNote(t *testing.T) {
 	}
 
 	funcs := m.ToFunctions()
-	// The Stack function is appended after Catalog functions, so it appears last in the registry.
+	// The Stack function is appended after Blueprint functions, so it appears last in the registry.
 	// Confirm the last entry for 'host' comes from the Stack.
 	var lastHost string
 	for _, n := range funcs.Definitions {
@@ -109,15 +109,15 @@ func TestStack_InlineNotes_OverrideCatalogNote(t *testing.T) {
 	}
 }
 
-// TestStack_CrossCatalogNoteConflict_Errors verifies that two imported Catalogs
+// TestStack_CrossBlueprintNoteConflict_Errors verifies that two imported Blueprints
 // declaring the same function name returns an error. Unlike the Stack's own functions:
-// block (which intentionally overrides), cross-Catalog conflicts are ambiguous and
+// block (which intentionally overrides), cross-Blueprint conflicts are ambiguous and
 // must be surfaced rather than silently resolved by import order.
-func TestStack_CrossCatalogNoteConflict_Errors(t *testing.T) {
+func TestStack_CrossBlueprintNoteConflict_Errors(t *testing.T) {
 	dir := t.TempDir()
 
-	src1 := writeTempCatalog(t, dir, "src1.yaml", `apiVersion: inrun.dev/v1
-kind: Catalog
+	src1 := writeTempBlueprint(t, dir, "src1.yaml", `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
   name: src1
 functions:
@@ -131,8 +131,8 @@ spec:
         kind: Alpha
         group: example.io
 `)
-	src2 := writeTempCatalog(t, dir, "src2.yaml", `apiVersion: inrun.dev/v1
-kind: Catalog
+	src2 := writeTempBlueprint(t, dir, "src2.yaml", `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
   name: src2
 functions:
@@ -148,12 +148,12 @@ spec:
 `)
 
 	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nimports:\n  files:\n    - url: " + src1 + "\n    - url: " + src2 + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	err := m.Merge()
 	if err == nil {
-		t.Fatal("expected conflict error for function 'host' declared in two Catalogs, got nil")
+		t.Fatal("expected conflict error for function 'host' declared in two Blueprints, got nil")
 	}
 	if !strings.Contains(err.Error(), "host") {
 		t.Errorf("expected error to mention conflicting function name 'host', got: %v", err)
@@ -161,7 +161,7 @@ spec:
 }
 
 // TestStack_SpecImports_Rejected verifies that a Stack with spec.imports
-// is rejected with an error. spec.imports is reserved for Catalogs only.
+// is rejected with an error. spec.imports is reserved for Blueprints only.
 func TestStack_SpecImports_Rejected(t *testing.T) {
 	dir := t.TempDir()
 
@@ -179,7 +179,7 @@ spec:
         kind: Widget
         group: example.io
 `
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	err := m.Merge()
@@ -191,18 +191,18 @@ spec:
 	}
 }
 
-// TestStack_SharedNotesInclude_Reused verifies that two imported Catalogs
+// TestStack_SharedNotesInclude_Reused verifies that two imported Blueprints
 // including the same notes file contribute one function, not a conflict, and
-// that an imported Catalog's functions.include is expanded against its own directory.
+// that an imported Blueprint's functions.include is expanded against its own directory.
 func TestStack_SharedNotesInclude_Reused(t *testing.T) {
 	dir := t.TempDir()
-	writeTempCatalog(t, dir, "functions.yaml", `definitions:
+	writeTempBlueprint(t, dir, "functions.yaml", `definitions:
   - name: inBusinessHours
     expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
 `)
-	catalog := func(name, kind string) string {
+	blueprint := func(name, kind string) string {
 		return `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
   name: ` + name + `
 functions:
@@ -215,10 +215,10 @@ spec:
         group: example.io
 `
 	}
-	src1 := writeTempCatalog(t, dir, "src1.yaml", catalog("alpha", "Alpha"))
-	src2 := writeTempCatalog(t, dir, "src2.yaml", catalog("beta", "Beta"))
+	src1 := writeTempBlueprint(t, dir, "src1.yaml", blueprint("alpha", "Alpha"))
+	src2 := writeTempBlueprint(t, dir, "src2.yaml", blueprint("beta", "Beta"))
 	stack := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: k\nimports:\n  files:\n    - url: " + src1 + "\n    - url: " + src2 + "\n"
-	stackPath := writeTempCatalog(t, dir, "stack.yaml", stack)
+	stackPath := writeTempBlueprint(t, dir, "stack.yaml", stack)
 
 	m := New(stackPath)
 	if err := m.Merge(); err != nil {

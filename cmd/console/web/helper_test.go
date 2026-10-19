@@ -3,26 +3,26 @@ package web
 import "testing"
 
 func TestSummaryFor(t *testing.T) {
-	cat := &CatalogResponse{CRDs: []CRDSummary{
+	bp := &BlueprintResponse{CRDs: []CRDSummary{
 		{Name: "AppRequest"},
 		{Name: "platformresource"},
 	}}
 
-	t.Run("nil catalog returns nil", func(t *testing.T) {
+	t.Run("nil blueprint returns nil", func(t *testing.T) {
 		if got := summaryFor(nil, "anything"); got != nil {
 			t.Errorf("got %v, want nil", got)
 		}
 	})
 
 	t.Run("case-insensitive match", func(t *testing.T) {
-		got := summaryFor(cat, "apprequest")
+		got := summaryFor(bp, "apprequest")
 		if got == nil || got.Name != "AppRequest" {
 			t.Errorf("got %v, want the AppRequest summary", got)
 		}
 	})
 
 	t.Run("not found returns nil", func(t *testing.T) {
-		if got := summaryFor(cat, "nope"); got != nil {
+		if got := summaryFor(bp, "nope"); got != nil {
 			t.Errorf("got %v, want nil", got)
 		}
 	})
@@ -70,11 +70,11 @@ func TestSynthInfoFromSummary(t *testing.T) {
 }
 
 func TestEndpointInfoFor(t *testing.T) {
-	cat := &CatalogResponse{CRDs: []CRDSummary{
+	bp := &BlueprintResponse{CRDs: []CRDSummary{
 		{Name: "AppRequest", Endpoints: EndpointInfo{HealthEnabled: false, InfoEnabled: true}},
 	}}
 
-	t.Run("nil catalog defaults to fully enabled", func(t *testing.T) {
+	t.Run("nil blueprint defaults to fully enabled", func(t *testing.T) {
 		got := endpointInfoFor(nil, "AppRequest")
 		if !got.HealthEnabled || !got.InfoEnabled {
 			t.Errorf("got %+v, want both enabled by default", got)
@@ -82,14 +82,14 @@ func TestEndpointInfoFor(t *testing.T) {
 	})
 
 	t.Run("not found defaults to fully enabled", func(t *testing.T) {
-		got := endpointInfoFor(cat, "nope")
+		got := endpointInfoFor(bp, "nope")
 		if !got.HealthEnabled || !got.InfoEnabled {
 			t.Errorf("got %+v, want both enabled by default", got)
 		}
 	})
 
 	t.Run("found returns the declared endpoints, case-insensitive", func(t *testing.T) {
-		got := endpointInfoFor(cat, "apprequest")
+		got := endpointInfoFor(bp, "apprequest")
 		if got.HealthEnabled || !got.InfoEnabled {
 			t.Errorf("got %+v, want HealthEnabled=false InfoEnabled=true", got)
 		}

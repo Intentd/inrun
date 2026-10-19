@@ -36,7 +36,7 @@ We're actively looking for contributions in these areas:
 - [ ] **Mobile responsive improvements**
 
 #### Nice to Have
-- [ ] **Catalog diff view** – Compare Catalogs across environments
+- [ ] **Blueprint diff view** – Compare Blueprints across environments
 - [ ] **Audit logging** – Track who viewed what and when
 - [ ] **Bookmarkable state** – Save filter/search in URL
 - [ ] **Keyboard shortcuts** – Power user navigation
@@ -107,11 +107,11 @@ When modifying HTML templates:
 ```bash
 # Terminal 1 – Inrun Runtime 1
 export INRUN_PORT=8080
-inrun -f catalog1.yaml
+inrun -f blueprint1.yaml
 
 # Terminal 2 – Inrun Runtime 2
 export INRUN_PORT=8081
-inrun -f catalog2.yaml
+inrun -f blueprint2.yaml
 
 # Terminal 3 – Console
 cd console

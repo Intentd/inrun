@@ -10,7 +10,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/types"
 
@@ -30,8 +30,8 @@ type Controller struct {
 	informerFactory  *informer.Factory
 	observer         *observe.Observer
 	event            *event.Event
-	catalog          *ResourceCatalog
-	cat              *catalog.Catalog
+	blueprint        *ResourceBlueprint
+	bp               *blueprint.Blueprint
 	queueRegistry    *queue.QueueRegistry
 	defaultWorkqueue *queue.Workqueue
 	failureThreshold map[string]int
@@ -59,8 +59,8 @@ func NewController(
 	kube *kubeclient.Kubeclient,
 	informerFactory *informer.Factory,
 	observer *observe.Observer,
-	catalog *ResourceCatalog,
-	cat *catalog.Catalog,
+	blueprint *ResourceBlueprint,
+	bp *blueprint.Blueprint,
 	event *event.Event,
 	hs domain.Health,
 	crdHealthMap map[string]*vitals.CRDHealth,
@@ -73,8 +73,8 @@ func NewController(
 		kube:             kube,
 		informerFactory:  informerFactory,
 		observer:         observer,
-		catalog:          catalog,
-		cat:              cat,
+		blueprint:        blueprint,
+		bp:               bp,
 		event:            event,
 		hs:               hs,
 		defaultWorkqueue: defaultWorkqueue,
@@ -91,7 +91,7 @@ func NewController(
 	}
 
 	// Load registry entries
-	for gvk, entry := range catalog.Entries() {
+	for gvk, entry := range blueprint.Entries() {
 		k.crds = append(k.crds, entry.CRD)
 		k.failureThreshold[gvk] = entry.CRD.SetFailureThreshold(0)
 	}
@@ -122,7 +122,7 @@ func (c *Controller) Start(ctx context.Context) error {
 
 	// Build reconcilers now — kube, ev, and REST clients are all live
 	logger.Debug().Msg("building reconcilers...")
-	for gvk, entry := range c.catalog.Entries() {
+	for gvk, entry := range c.blueprint.Entries() {
 		rec := entry.ReconcilerFactory() // ← safe here, manager has started everything
 		c.mu.Lock()
 		c.reconcilers[gvk] = rec

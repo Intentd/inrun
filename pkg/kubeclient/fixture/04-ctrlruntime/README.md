@@ -37,7 +37,7 @@ make registry
 
 ```bash
 make clean && make build
-inrun validate catalog.yaml
+inrun validate blueprint.yaml
 inrun simulate
 ```
 

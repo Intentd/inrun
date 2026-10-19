@@ -13,7 +13,7 @@ type ProbeProfileEntry struct {
 	Resource     string // e.g. "Deployment", "StatefulSet"
 	ResourceName string // template name field (may be Empty()
 	ProbeType    string // "startup", "liveness", "readiness"
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside explicit timing overrides
 }
 

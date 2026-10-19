@@ -12,13 +12,13 @@ import (
 func writeSpec(t *testing.T, spec string) string {
 	t.Helper()
 	dir := t.TempDir()
-	for _, f := range []string{"catalog.yaml", "intent.json", "cr.yaml"} {
+	for _, f := range []string{"blueprint.yaml", "intent.json", "cr.yaml"} {
 		if err := os.WriteFile(filepath.Join(dir, f), []byte("{}"), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	p := filepath.Join(dir, "simulate.yaml")
-	doc := "apiVersion: inrun.dev/v1\nkind: Simulate\nmetadata:\n  name: s\nspec:\n  catalog: catalog.yaml\n" + spec
+	doc := "apiVersion: inrun.dev/v1\nkind: Simulate\nmetadata:\n  name: s\nspec:\n  blueprint: blueprint.yaml\n" + spec
 	if err := os.WriteFile(p, []byte(doc), 0o600); err != nil {
 		t.Fatal(err)
 	}

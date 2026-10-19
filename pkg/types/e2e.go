@@ -48,7 +48,7 @@ type SetupConfig struct {
 	Apply []SetupApplyEntry `yaml:"apply,omitempty"`
 
 	// Helm is an ordered list of Helm charts to install before Inrun starts.
-	// Executed as helm upgrade --install — not rendered for Catalog extraction.
+	// Executed as helm upgrade --install — not rendered for Blueprint extraction.
 	Helm []SetupHelmInstall `yaml:"helm,omitempty"`
 
 	// Wait blocks until all listed resources exist and satisfy conditions.
@@ -114,7 +114,7 @@ func (e *SetupApplyEntry) UnmarshalYAML(value *yaml.Node) error {
 }
 
 // SetupHelmInstall installs a Helm chart as a real release into the cluster.
-// Unlike HelmSource (which renders charts to extract Catalog documents),
+// Unlike HelmSource (which renders charts to extract Blueprint documents),
 // this runs helm upgrade --install for a prerequisite chart.
 type SetupHelmInstall struct {
 	// Repo is the Helm repository URL. Omit for local chart paths.
@@ -184,7 +184,7 @@ type SetupWait struct {
 }
 
 // E2E is the top-level document type for declarative end-to-end tests.
-// Committed alongside the catalog, it drives `inrun e2e` — the same command
+// Committed alongside the blueprint, it drives `inrun e2e` — the same command
 // that runs locally, in CI, and inside the GitHub Action.
 type E2E struct {
 	APIVersion string      `yaml:"apiVersion"`
@@ -262,9 +262,9 @@ type E2ECustomConfig struct {
 type E2ESpec struct {
 	// Core operator spec — the three files that define every Inrun operator.
 
-	// Catalog is the path to the catalog.yaml file.
+	// Blueprint is the path to the blueprint.yaml file.
 	// Optional when spec.custom.target is set.
-	Catalog string `yaml:"catalog,omitempty"`
+	Blueprint string `yaml:"blueprint,omitempty"`
 	// CRD is the path to the CRD YAML file for this operator.
 	// Applied before the bundle and before Inrun starts.
 	CRD string `yaml:"crd,omitempty"`
@@ -306,7 +306,7 @@ type E2ESpec struct {
 	ValuesFiles []string `yaml:"valuesFiles,omitempty"`
 
 	// Notes declares user-defined note functions available in when:/or: expressions.
-	// Same syntax as a Catalog notes block — same FuncMap registration, same functions.
+	// Same syntax as a Blueprint notes block — same FuncMap registration, same functions.
 	Notes KELFunctionRegistry `yaml:"notes,omitempty"`
 
 	// Expect is the list of expectations to check after each lifecycle event.
@@ -416,7 +416,7 @@ type E2EExpectation struct {
 	Kubectl *E2EKubectl `yaml:"kubectl,omitempty"`
 
 	// When / Or gate this expectation using the same []Condition type as
-	// catalog when:/or:. An expectation whose conditions do not pass is
+	// blueprint when:/or:. An expectation whose conditions do not pass is
 	// skipped — not failed. Notes declared in spec.notes are available as
 	// template expressions: field: '{{ inBusinessHours }}'.
 	// Empty blocks always pass.

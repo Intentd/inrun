@@ -7,7 +7,7 @@ metadata:
     the CR is built from the intent, sent with the dev token.
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   intent: ../intent.yaml
   token: dev
   cycles: 5

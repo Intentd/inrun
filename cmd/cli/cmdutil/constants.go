@@ -3,7 +3,7 @@
 package cmdutil
 
 const (
-	SchemaRefCatalog       = "https://inrun.dev/docs/reference/schema/catalog/"
+	SchemaRefBlueprint     = "https://inrun.dev/docs/reference/schema/blueprint/"
 	SchemaRefStack         = "https://inrun.dev/docs/reference/schema/stack/"
 	SchemaRefModule        = "https://inrun.dev/docs/reference/schema/module/"
 	SchemaRefE2E           = "https://inrun.dev/docs/reference/schema/e2e/"

@@ -1,7 +1,7 @@
 // Package bootstrap provisions least-privilege gateway access on remote clusters.
 //
 // Given a target cluster's kubeconfig context it creates a ServiceAccount,
-// ClusterRole scoped to the catalog's serve-enabled CRDs, ClusterRoleBinding,
+// ClusterRole scoped to the blueprint's serve-enabled CRDs, ClusterRoleBinding,
 // and a long-lived token Secret. It then stores the credential in the gateway
 // cluster so the gateway can route applies to the target.
 //
@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 )
 
 // RunOptions holds the runtime settings for a bootstrap run.
@@ -45,17 +45,17 @@ type Result struct {
 }
 
 // Cluster provisions gateway access on a target cluster for the given ClusterEntry.
-// When k is non-nil, ClusterRole rules are derived from the catalog's serve-enabled CRDs.
+// When k is non-nil, ClusterRole rules are derived from the blueprint's serve-enabled CRDs.
 // When k is nil, rules are taken from entry.Rules. If both are absent, ClusterRole and
 // ClusterRoleBinding are skipped — only the SA and token Secret are provisioned.
-func Cluster(ctx context.Context, cat *catalog.Catalog, entry ClusterEntry, opts RunOptions, log func(string)) (*Result, error) {
+func Cluster(ctx context.Context, bp *blueprint.Blueprint, entry ClusterEntry, opts RunOptions, log func(string)) (*Result, error) {
 	if opts.Namespace == "" {
 		opts.Namespace = "default"
 	}
 
 	var rules []rbacv1.PolicyRule
-	if cat != nil {
-		rules = buildClusterRoleRules(cat)
+	if bp != nil {
+		rules = buildClusterRoleRules(bp)
 	} else {
 		rules = entry.Rules
 	}
@@ -150,12 +150,12 @@ func connectGateway() (kubernetes.Interface, error) {
 	return cs, nil
 }
 
-func buildClusterRoleRules(cat *catalog.Catalog) []rbacv1.PolicyRule {
+func buildClusterRoleRules(bp *blueprint.Blueprint) []rbacv1.PolicyRule {
 	type groupEntry struct{ resources []string }
 	groups := map[string]*groupEntry{}
 	verbs := []string{"get", "list", "watch", "create", "update", "patch", "delete"}
 
-	for _, crd := range cat.ServeEnabledCRDs() {
+	for _, crd := range bp.ServeEnabledCRDs() {
 		gvr := crd.GVR()
 		if groups[gvr.Group] == nil {
 			groups[gvr.Group] = &groupEntry{}

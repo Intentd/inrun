@@ -1,0 +1,39 @@
+# Schema reference: https://inrun.dev/docs/reference/schema/blueprint/
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: webapp-constructor
+  author: myorg
+  version: 1.0.0
+  description: >
+    A controller-runtime WebApp reconciler running unchanged in Inrun.
+  tags:
+    - migration
+    - constructor
+    - typed
+
+spec:
+  crds:
+    constructorApp:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      apiTypes:
+        object: WebApp
+        objectList: WebAppList
+        location: github.com/intentd/from-controller-runtime-demo/api/v1alpha1
+        alias: demov1alpha1
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - default
+        reconcile:
+          # default: false — the Generic Reconciler is not used.
+          # The constructor below owns the full reconcile loop.
+          default: false
+          managedResources:
+            - kind: Deployment
+            - kind: Service
+          constructor:
+            location: github.com/intentd/from-controller-runtime-demo/reconciler
+            function: NewWebAppReconciler

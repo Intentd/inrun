@@ -26,7 +26,7 @@ spec:
       {{- end }}
   egress:
     # Allow all egress — Inrun must reach the Kubernetes API server
-    # and any remote Catalog sources (URLs, Helm repos)
+    # and any remote Blueprint sources (URLs, Helm repos)
     - {}
 {{- end }}
 ---

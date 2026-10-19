@@ -1,12 +1,12 @@
 package types
 
 // ResourceQuotaProfileEntry describes a single profile reference found in a
-// ResourceQuotaTemplateSource. Used by catalog validation to fail fast on unknown
+// ResourceQuotaTemplateSource. Used by blueprint validation to fail fast on unknown
 // profiles and to enforce mutual exclusivity with explicit hard limits.
 type ResourceQuotaProfileEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // ResourceQuota name template (may be Empty()
-	Profile      string // raw profile name as written in the catalog
+	Profile      string // raw profile name as written in the blueprint
 	Mixed        bool   // true when profile is set alongside an explicit hard map
 }
 

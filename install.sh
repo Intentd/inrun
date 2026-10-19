@@ -305,7 +305,7 @@ print_summary() {
     echo
     echo -e "  ${BOLD}Get started:${RESET}"
     echo -e "    inrun init my-operator             Scaffold a new operator"
-    echo -e "    inrun validate     Validate a Catalog"
+    echo -e "    inrun validate     Validate a Blueprint"
     echo -e "    inrun           Start the operator runtime"
     echo -e "    inrun push name:v1 ./dir  Push a pattern to the registry"
     echo

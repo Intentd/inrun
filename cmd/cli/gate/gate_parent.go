@@ -17,5 +17,5 @@ var gatewayCmd = &cobra.Command{
 
 func init() {
 	cmdutil.RootCmd.AddCommand(gatewayCmd)
-	gatewayCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to catalog.yaml (repeatable)")
+	gatewayCmd.Flags().StringSliceP("file", "f", nil, "Path(s) to blueprint.yaml (repeatable)")
 }

@@ -18,8 +18,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/cmd/cli/validate"
 
-	"github.com/intentd/inrun/pkg/catalog"
-	"github.com/intentd/inrun/pkg/catalog/pipeline"
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/registry/e2e"
 	"github.com/intentd/inrun/pkg/registry/simulate"
@@ -53,7 +53,7 @@ should produce so the run is repeatable and verifiable:
 
   inrun simulate                              # simulate.yaml auto-detected
   inrun simulate -f simulate.yaml             # explicit — assert mode when expect: is set
-  inrun simulate -f catalog.yaml --cr cr.yaml # direct flags; op-print only
+  inrun simulate -f blueprint.yaml --cr cr.yaml # direct flags; op-print only
   inrun simulate ./...                        # discovers all simulate.yaml files recursively`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cliOpts := CliSimulateOptions{}
@@ -79,30 +79,30 @@ should produce so the run is repeatable and verifiable:
 			return runSimulateDiscovery(cmd.Context(), ".", skipRaw, cliOpts)
 		}
 
-		catalogFile, _ := cmd.Flags().GetString("file")
-		if catalogFile == "" {
-			// Auto-detect: simulate.yaml (here, then test/) → catalog.yaml/stack.yaml
+		blueprintFile, _ := cmd.Flags().GetString("file")
+		if blueprintFile == "" {
+			// Auto-detect: simulate.yaml (here, then test/) → blueprint.yaml/stack.yaml
 			switch sim := cmdutil.FindFile(cmdutil.FileSimulate, cmdutil.DirTest); {
 			case sim != "":
-				catalogFile = sim
+				blueprintFile = sim
 			default:
 				if d := cmdutil.DefaultFilePaths(); len(d) > 0 {
-					catalogFile = d[0]
+					blueprintFile = d[0]
 				}
 			}
 		}
-		if catalogFile == "" {
-			return fmt.Errorf(cmdutil.ErrNoCatalog)
+		if blueprintFile == "" {
+			return fmt.Errorf(cmdutil.ErrNoBlueprint)
 		}
 
 		// Simulate kind: assert mode
-		if simulate.IsSimulateDoc(catalogFile) {
-			return RunSimulateFromSpec(cmd.Context(), catalogFile, cliOpts)
+		if simulate.IsSimulateDoc(blueprintFile) {
+			return RunSimulateFromSpec(cmd.Context(), blueprintFile, cliOpts)
 		}
 
 		// Reject E2E files with a clear message
-		if e2e.IsE2EDoc(catalogFile) {
-			return fmt.Errorf("%s is an E2E file — use 'inrun e2e' for cluster testing, or run 'inrun simulate init' to generate a simulate.yaml", catalogFile)
+		if e2e.IsE2EDoc(blueprintFile) {
+			return fmt.Errorf("%s is an E2E file — use 'inrun e2e' for cluster testing, or run 'inrun simulate init' to generate a simulate.yaml", blueprintFile)
 		}
 
 		crFile, _ := cmd.Flags().GetString("cr")
@@ -113,28 +113,28 @@ should produce so the run is repeatable and verifiable:
 			return fmt.Errorf("--cr is required")
 		}
 
-		return RunSimulate(cmd.Context(), catalogFile, crFile, cliOpts)
+		return RunSimulate(cmd.Context(), blueprintFile, crFile, cliOpts)
 	},
 }
 
-func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSimulateOptions) error {
+func RunSimulate(ctx context.Context, blueprintFile, crFile string, cliOpts CliSimulateOptions) error {
 	maxCycles := cliOpts.MaxCycles
 	if maxCycles <= 0 {
 		maxCycles = 10
 	}
 
-	m := merger.New(catalogFile)
+	m := merger.New(blueprintFile)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging Catalog: %w", err)
+		return fmt.Errorf("merging Blueprint: %w", err)
 	}
-	crdPaths := CatalogCRDPaths(m)
-	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
+	crdPaths := BlueprintCRDPaths(m)
+	bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
-		var typedErr *catalog.TypedOperatorError
+		var typedErr *blueprint.TypedOperatorError
 		if errors.As(err, &typedErr) {
 			cmdutil.PrintTypedOperatorHint(typedErr, "inrun simulate")
 		}
-		return fmt.Errorf("parsing Catalog: %w", err)
+		return fmt.Errorf("parsing Blueprint: %w", err)
 	}
 
 	crData, err := cmdutil.ReadLocal(crFile)
@@ -153,13 +153,13 @@ func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSim
 	if cliOpts.CRDName != "" {
 		targets = []string{cliOpts.CRDName}
 	} else {
-		targets = cat.CRDNames()
+		targets = bp.CRDNames()
 	}
 
 	baseOpts := simulate.RunOptions{SkipExternal: cliOpts.SkipExternal, Target: cliOpts.Target}
 
 	for _, name := range targets {
-		crdEntry, ok := cat.CRDEntry(name)
+		crdEntry, ok := bp.CRDEntry(name)
 		if !ok {
 			continue
 		}
@@ -174,14 +174,14 @@ func RunSimulate(ctx context.Context, catalogFile, crFile string, cliOpts CliSim
 		crdOpts := baseOpts
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
-		if err := SimulateOne(ctx, cat, name, in.CR, maxCycles, crdOpts, cliOpts, crdPaths, nil); err != nil {
+		if err := SimulateOne(ctx, bp, name, in.CR, maxCycles, crdOpts, cliOpts, crdPaths, nil); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func SimulateOne(ctx context.Context, cat *catalog.Catalog, crdName string, cr *unstructured.Unstructured, maxCycles int, opts simulate.RunOptions, cliOpts CliSimulateOptions, crdPaths []string, expect *types.SimulateExpect) error {
+func SimulateOne(ctx context.Context, bp *blueprint.Blueprint, crdName string, cr *unstructured.Unstructured, maxCycles int, opts simulate.RunOptions, cliOpts CliSimulateOptions, crdPaths []string, expect *types.SimulateExpect) error {
 	if cliOpts.UseEnvtest {
 		version := cliOpts.K8sVersion
 		if version == "" {
@@ -193,7 +193,7 @@ func SimulateOne(ctx context.Context, cat *catalog.Catalog, crdName string, cr *
 	}
 
 	// Emit notes for operatorBox blocks that cannot execute in the fake cluster.
-	crdEntry, _ := cat.CRDEntry(crdName)
+	crdEntry, _ := bp.CRDEntry(crdName)
 	if crdEntry.Box().EffectiveOnReconcile() != nil && len(crdEntry.Box().EffectiveOnReconcile().External) > 0 {
 		if opts.SkipExternal {
 			fmt.Printf("  %s\n", cmdutil.Dim("note: external: calls stubbed — result fields will be empty"))
@@ -223,9 +223,9 @@ func SimulateOne(ctx context.Context, cat *catalog.Catalog, crdName string, cr *
 		if len(crdPaths) == 0 {
 			return fmt.Errorf("%s --envtest requires spec.crd or spec.crdFiles to be set", cmdutil.FailureMark())
 		}
-		result, err = simulate.RunWithEnvtest(ctx, cat, crdName, cr, maxCycles, opts, crdPaths, cliOpts.K8sVersion)
+		result, err = simulate.RunWithEnvtest(ctx, bp, crdName, cr, maxCycles, opts, crdPaths, cliOpts.K8sVersion)
 	} else {
-		result, err = simulate.Run(ctx, cat, crdName, cr, maxCycles, opts)
+		result, err = simulate.Run(ctx, bp, crdName, cr, maxCycles, opts)
 	}
 	if err != nil {
 		if spin != nil {
@@ -369,7 +369,7 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		Target:       effectiveTarget,
 	}
 
-	catalogPath := filepath.Join(dir, doc.Spec.Catalog)
+	blueprintPath := filepath.Join(dir, doc.Spec.Blueprint)
 
 	// Resolve CRD paths (for --envtest) relative to the simulate.yaml directory.
 	crdPaths := make([]string, 0, len(doc.Spec.AllCRDPaths()))
@@ -381,21 +381,21 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		crdPaths = append(crdPaths, abs)
 	}
 
-	m := merger.New(catalogPath)
+	m := merger.New(blueprintPath)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging Catalog: %w", err)
+		return fmt.Errorf("merging Blueprint: %w", err)
 	}
 	if len(crdPaths) == 0 {
-		crdPaths = CatalogCRDPaths(m)
+		crdPaths = BlueprintCRDPaths(m)
 	}
 
-	cat, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
+	bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
 	if err != nil {
-		var typedErr *catalog.TypedOperatorError
+		var typedErr *blueprint.TypedOperatorError
 		if errors.As(err, &typedErr) {
 			cmdutil.PrintTypedOperatorHint(typedErr, "inrun simulate")
 		}
-		return fmt.Errorf("parsing Catalog: %w", err)
+		return fmt.Errorf("parsing Blueprint: %w", err)
 	}
 
 	var crs map[string][]*unstructured.Unstructured
@@ -405,13 +405,13 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 			return fmt.Errorf("%s: spec.intent is not supported in this build", path)
 		}
 		obj, err := PlayIntent(PlayRequest{
-			Catalog:     cat,
-			CatalogFile: catalogPath,
-			IntentFile:  filepath.Join(dir, doc.Spec.Intent),
-			Token:       doc.Spec.Token,
-			Op:          types.ServeOpCreate,
-			Cycles:      doc.Spec.Cycles,
-			Verbose:     cliOpts.Verbose,
+			Blueprint:     bp,
+			BlueprintFile: blueprintPath,
+			IntentFile:    filepath.Join(dir, doc.Spec.Intent),
+			Token:         doc.Spec.Token,
+			Op:            types.ServeOpCreate,
+			Cycles:        doc.Spec.Cycles,
+			Verbose:       cliOpts.Verbose,
 		})
 		if err != nil {
 			return fmt.Errorf("playing %s: %w", doc.Spec.Intent, err)
@@ -429,12 +429,12 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 	if cliOpts.CRDName != "" {
 		targets = []string{cliOpts.CRDName}
 	} else {
-		targets = cat.CRDNames()
+		targets = bp.CRDNames()
 	}
 
 	var failed []string
 	for _, name := range targets {
-		crdEntry, ok := cat.CRDEntry(name)
+		crdEntry, ok := bp.CRDEntry(name)
 		if !ok {
 			continue
 		}
@@ -449,7 +449,7 @@ func RunSimulateFromSpec(ctx context.Context, path string, cliOpts CliSimulateOp
 		crdOpts.Peers = in.Peers
 		crdOpts.ExistingInstances = in.Existing
 		expect := simulate.ExpectForCRD(doc.Spec.Expect, name)
-		if err := SimulateOne(ctx, cat, name, in.CR, cycles, crdOpts, cliOpts, crdPaths, expect); err != nil {
+		if err := SimulateOne(ctx, bp, name, in.CR, cycles, crdOpts, cliOpts, crdPaths, expect); err != nil {
 			failed = append(failed, name)
 		}
 	}
@@ -566,7 +566,7 @@ var simulateInitCmd = &cobra.Command{
 observed cycle-1 create operations as expect: rules. Edit and refine from there.
 
   inrun simulate init
-  inrun simulate init -f catalog.yaml --cr cr.yaml
+  inrun simulate init -f blueprint.yaml --cr cr.yaml
   inrun simulate init --force              # overwrite existing simulate.yaml
   inrun simulate init --suite              # aggregate all simulate.yaml files under .
   inrun simulate init --suite ./examples/  # aggregate under a specific dir`,
@@ -575,25 +575,25 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 			return simulateInitSuite(cmd, args)
 		}
 
-		catalogFile, _ := cmd.Flags().GetString("file")
+		blueprintFile, _ := cmd.Flags().GetString("file")
 		crFile, _ := cmd.Flags().GetString("cr")
 		force, _ := cmd.Flags().GetBool("force")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 		var err error
-		catalogFile, err = cmdutil.ResolveCatalogFile(catalogFile)
+		blueprintFile, err = cmdutil.ResolveBlueprintFile(blueprintFile)
 		if err != nil {
 			return err
 		}
 		if crFile == "" {
-			crFile = projectFile(catalogFile, cmdutil.FileCr, cmdutil.DirManifests)
+			crFile = projectFile(blueprintFile, cmdutil.FileCr, cmdutil.DirManifests)
 		} else if abs, err := filepath.Abs(crFile); err == nil {
 			crFile = abs
 		}
 
-		cat, err := catalog.ParseFile(catalogFile)
+		bp, err := blueprint.ParseFile(blueprintFile)
 		if err != nil {
-			return fmt.Errorf("parsing Catalog: %w", err)
+			return fmt.Errorf("parsing Blueprint: %w", err)
 		}
 		crData, err := cmdutil.ReadLocal(crFile)
 		if err != nil {
@@ -612,12 +612,12 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 		}
 
 		opts := simulate.RunOptions{}
-		targets := cat.CRDNames()
+		targets := bp.CRDNames()
 
 		var results []crdOps
 
 		for _, name := range targets {
-			crdEntry, ok := cat.CRDEntry(name)
+			crdEntry, ok := bp.CRDEntry(name)
 			if !ok {
 				continue
 			}
@@ -628,7 +628,7 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 			crdOpts := opts
 			crdOpts.Peers = in.Peers
 			crdOpts.ExistingInstances = in.Existing
-			result, err := simulate.Run(cmd.Context(), cat, name, in.CR, 10, crdOpts)
+			result, err := simulate.Run(cmd.Context(), bp, name, in.CR, 10, crdOpts)
 			if err != nil && crdEntry.WithRemoteDecl() {
 				fmt.Printf("  %s %s: remote reconciler unreachable — start it and re-run (%v)\n", cmdutil.Dim("note:"), name, err)
 				continue
@@ -646,10 +646,10 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 		}
 
 		// Paths in the spec are relative to the spec file, so the file is portable.
-		relCatalog := relFromDir(cmdutil.DirTest, catalogFile)
+		relBlueprint := relFromDir(cmdutil.DirTest, blueprintFile)
 		relCR := relFromDir(cmdutil.DirTest, crFile)
 
-		doc := generateSimulateDoc(relCatalog, relCR, cat.Metadata().Name, results)
+		doc := generateSimulateDoc(relBlueprint, relCR, bp.Metadata().Name, results)
 
 		var buf bytes.Buffer
 		enc := yaml.NewEncoder(&buf)
@@ -782,7 +782,7 @@ func simulateInitSuite(cmd *cobra.Command, args []string) error {
 }
 
 // generateSimulateDoc builds a Simulate document from observed cycle-1 creates.
-func generateSimulateDoc(catalogPath, crPath, catalogName string, results []crdOps) map[string]interface{} {
+func generateSimulateDoc(blueprintPath, crPath, blueprintName string, results []crdOps) map[string]interface{} {
 	trueVal := true
 
 	makeOps := func(ops []simulate.Op) []map[string]interface{} {
@@ -802,9 +802,9 @@ func generateSimulateDoc(catalogPath, crPath, catalogName string, results []crdO
 	}
 
 	spec := map[string]interface{}{
-		"catalog": catalogPath,
-		"cr":      crPath,
-		"cycles":  5,
+		"blueprint": blueprintPath,
+		"cr":        crPath,
+		"cycles":    5,
 	}
 
 	if len(results) == 1 {
@@ -838,7 +838,7 @@ func generateSimulateDoc(catalogPath, crPath, catalogName string, results []crdO
 		"apiVersion": "inrun.dev/v1",
 		"kind":       "Simulate",
 		"metadata": map[string]interface{}{
-			"name":        catalogName + "-sim",
+			"name":        blueprintName + "-sim",
 			"description": "Generated by inrun simulate init — edit to refine",
 		},
 		"spec": spec,
@@ -903,16 +903,16 @@ func init() {
 	cmdutil.RootCmd.AddCommand(simulateCmd)
 	simulateCmd.AddCommand(simulateInitCmd)
 
-	simulateInitCmd.Flags().StringP("file", "f", "", "Path to catalog.yaml or stack.yaml")
+	simulateInitCmd.Flags().StringP("file", "f", "", "Path to blueprint.yaml or stack.yaml")
 	simulateInitCmd.Flags().String("cr", "", "Path to the CR YAML file")
 	simulateInitCmd.Flags().Bool("force", false, "Overwrite existing simulate.yaml")
 	simulateInitCmd.Flags().Bool("dry-run", false, "Print the generated simulate.yaml to stdout instead of writing the file")
 	simulateInitCmd.Flags().Bool("suite", false, "Aggregate all simulate.yaml leaf files found under the given dir (default: .)")
 	simulateInitCmd.Flags().StringSlice("skip", []string{}, "Comma-separated path patterns to exclude from suite discovery")
 
-	simulateCmd.Flags().StringP("file", "f", "", "Path to catalog.yaml")
+	simulateCmd.Flags().StringP("file", "f", "", "Path to blueprint.yaml")
 	simulateCmd.Flags().String("cr", "", "Path to the CR YAML file to simulate")
-	simulateCmd.Flags().String("crd", "", "CRD name to simulate (default: all CRDs in Catalog)")
+	simulateCmd.Flags().String("crd", "", "CRD name to simulate (default: all CRDs in Blueprint)")
 	simulateCmd.Flags().Int("cycles", 10, "Maximum number of reconcile cycles")
 	simulateCmd.Flags().StringP("target", "t", "", "Target that provides the operatorbox for simulate")
 	simulateCmd.Flags().StringSlice("skip", []string{}, "Comma-separated path patterns to skip during ./... discovery (e.g. vendor,cr-e2e.yaml)")
@@ -928,10 +928,10 @@ func init() {
 	cmdutil.ShadowGlobalCommandFlags(simulateCmd)
 }
 
-// projectFile returns name next to the Catalog, or in its sub directory dir
-// when only that exists. The path next to the Catalog is the fallback.
-func projectFile(catalogFile, name, dir string) string {
-	base := filepath.Dir(catalogFile)
+// projectFile returns name next to the Blueprint, or in its sub directory dir
+// when only that exists. The path next to the Blueprint is the fallback.
+func projectFile(blueprintFile, name, dir string) string {
+	base := filepath.Dir(blueprintFile)
 	if p := filepath.Join(base, dir, name); cmdutil.FileExists(p) && !cmdutil.FileExists(filepath.Join(base, name)) {
 		return p
 	}

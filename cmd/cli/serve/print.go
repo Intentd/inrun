@@ -44,10 +44,10 @@ func printPlayHeader(file, target, token, op string) {
 	fmt.Println()
 }
 
-func printPlayHeaderForSimulate(catalog, intentFile, target, token string, cycles int) {
+func printPlayHeaderForSimulate(blueprint, intentFile, target, token string, cycles int) {
 	fmt.Println()
 	fmt.Printf("%s  inrun simulate\n", cmdutil.Bold("▶"))
-	fmt.Printf("  %s %s\n", cmdutil.Gray("catalog:"), cmdutil.Cyan(relPath(catalog)))
+	fmt.Printf("  %s %s\n", cmdutil.Gray("blueprint:"), cmdutil.Cyan(relPath(blueprint)))
 	fmt.Printf("  %s %s  %s\n", cmdutil.Gray("intent: "), cmdutil.Cyan(relPath(intentFile)),
 		cmdutil.Gray(fmt.Sprintf("(target %s, token %s)", target, token)))
 	fmt.Printf("  %s %d\n", cmdutil.Gray("cycles: "), cycles)

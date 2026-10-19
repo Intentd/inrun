@@ -1,0 +1,95 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: profile-probe-probes
+  author: intentd
+  version: 0.1.0
+  description: >
+    ProfileProbe — living integration test for probe timing profiles.
+    Creates one Deployment per probe profile. Inspect each Deployment's
+    liveness probe to verify timing expansion.
+    kubectl get deployment -l inrun.dev/managed-by=my-probe -o yaml
+
+spec:
+  crds:
+    profile-probe-probes:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 1
+          resync: 30s
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-fast"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  liveness:
+                    type: http
+                    path: /healthz
+                    profile: fast
+                  readiness:
+                    type: http
+                    path: /readyz
+                    profile: fast
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-standard"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  liveness:
+                    type: http
+                    path: /healthz
+                    profile: standard
+                  readiness:
+                    type: http
+                    path: /readyz
+                    profile: standard
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-patient"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  liveness:
+                    type: http
+                    path: /healthz
+                    profile: patient
+                  readiness:
+                    type: http
+                    path: /readyz
+                    profile: patient
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-slow-start"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  startup:
+                    type: http
+                    path: /healthz
+                    profile: slow-start
+                  liveness:
+                    type: http
+                    path: /healthz
+                    profile: standard
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployments.my-probe-standard }}"
+                    equals: "true"
+

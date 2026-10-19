@@ -1,6 +1,8 @@
 package template
 
 import (
+	"context"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,5 +45,23 @@ func TestValidResolverName(t *testing.T) {
 				assert.NoError(t, err)
 			}
 		})
+	}
+}
+
+func TestNewResolver_LeavesTheObjectUnchanged(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{"name": "web"},
+	}}
+	r, err := NewResolver(context.Background(), obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := r.Data()["inrun"]; !ok {
+		t.Fatal("resolver data has no .inrun")
+	}
+	for _, key := range []string{"inputs", "inrun"} {
+		if _, ok := obj.Object[key]; ok {
+			t.Errorf("NewResolver added %q to the object it was given", key)
+		}
 	}
 }

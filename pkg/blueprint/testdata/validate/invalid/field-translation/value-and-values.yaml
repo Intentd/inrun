@@ -1,0 +1,19 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: value-and-values
+  version: 0.1.0
+  description: Invalid — value and values declared on the same field.
+spec:
+  crds:
+    widget:
+      crdFile: ../../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        target: widget
+        fields:
+          image:
+            value: '{{ .value }}'
+            values:
+              image.registry: '{{ .value }}'

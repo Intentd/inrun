@@ -46,7 +46,7 @@ func ExtractTagVersion(ref string) string {
 
 // helper to persist metadata.version into the primary file
 // dir: directory containing the primary file
-// primaryFile: filename (e.g., "module.yaml" or "catalog.yaml")
+// primaryFile: filename (e.g., "module.yaml" or "blueprint.yaml")
 // newVersion: version string to write into metadata.version
 // uses WriteFileAndFormat so the file is formatted after the change.
 func PersistMetadataVersion(dir, primaryFile, newVersion string) error {

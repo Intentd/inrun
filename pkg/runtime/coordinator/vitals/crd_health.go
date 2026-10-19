@@ -39,8 +39,8 @@ import (
 //     Map value: slice of ActiveWarning, one per violated warn rule
 //
 // This struct powers:
-//   - /catalog/<crd> endpoint
-//   - /catalog/<crd>/health endpoint
+//   - /blueprint/<crd> endpoint
+//   - /blueprint/<crd>/health endpoint
 //   - dashboard status
 //   - operator self‑diagnostics
 type CRDHealth struct {
@@ -77,7 +77,7 @@ type CRDHealth struct {
 	hasUnhealthyDeps atomic.Bool // Overall dependency health status
 	healthySignaled  atomic.Bool
 
-	// Track catalog health through the inrunHealth tracker
+	// Track blueprint health through the inrunHealth tracker
 	inrunHealth *RuntimeHealth
 
 	// workerInfoFn returns the live WorkerInfo for this operatorbox.
@@ -86,7 +86,7 @@ type CRDHealth struct {
 	workerInfoFn func() *autoscaler.WorkerInfo
 
 	// autoMetricsFn returns the live AutoMetrics as a string-keyed map.
-	// Used to populate the "metrics" key in the /catalog/{crd} response so
+	// Used to populate the "metrics" key in the /blueprint/{crd} response so
 	// cross-binary autoscale conditions can read them via HTTP fallback.
 	autoMetricsFn func() map[string]interface{}
 
@@ -118,7 +118,7 @@ func (h *CRDHealth) SetAutoMetricsFn(fn func() map[string]interface{}) {
 }
 
 // GetAutoMetrics returns the live AutoMetrics map, or nil when not available.
-// Included in the /catalog/{crd} response as "metrics" so cross-binary
+// Included in the /blueprint/{crd} response as "metrics" so cross-binary
 // autoscale conditions can observe this CRD's metrics via HTTP fallback.
 func (h *CRDHealth) GetAutoMetrics() map[string]interface{} {
 	if h.autoMetricsFn == nil {
@@ -147,9 +147,9 @@ func (h *CRDHealth) RecordSuccess() {
 	h.degraded.Store(false)
 	h.gated.Store(false)
 
-	// If all online for this catalog
+	// If all online for this blueprint
 	if h.inrunHealth.allOnline.Load() {
-		h.inrunHealth.catReady.Store(true)
+		h.inrunHealth.bpReady.Store(true)
 	}
 }
 
@@ -163,10 +163,10 @@ func (h *CRDHealth) RecordFailure(err error, degradeThreshold int) {
 	h.lastError.Store(err.Error())
 	h.lastReconcile.Store(time.Now())
 
-	// If too many failures in a row, mark the reconciler and catalog unhealthy.
+	// If too many failures in a row, mark the reconciler and blueprint unhealthy.
 	if h.consecutiveFails.Load() >= int64(degradeThreshold) {
 		h.inrunHealth.mu.Lock()
-		h.inrunHealth.catReady.Store(false)
+		h.inrunHealth.bpReady.Store(false)
 		h.inrunHealth.mu.Unlock()
 
 		h.crdCheckMu.Lock()

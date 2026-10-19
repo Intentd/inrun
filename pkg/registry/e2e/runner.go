@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/registry/module"
 	"github.com/intentd/inrun/pkg/template"
@@ -37,8 +37,8 @@ type Runner struct {
 	workers       int    // number of kind worker nodes to provision (0 = control-plane only)
 	kindVersion   string // kind binary version to use ("" = DefaultKindVersion)
 
-	catalogFile string
-	crFiles     []string
+	blueprintFile string
+	crFiles       []string
 
 	// Inrun installation options
 	inrunVersion string
@@ -66,7 +66,7 @@ type Runner struct {
 	sharedInrun bool
 
 	// noRuntime skips starting the Inrun runtime. Only the gateway is started
-	// when the catalog enables it. The CR lifecycle steps (AfterCRApplied, AfterCRDeleted)
+	// when the blueprint enables it. The CR lifecycle steps (AfterCRApplied, AfterCRDeleted)
 	// become no-ops — the CR is optional and gateway intents drive the expectations instead.
 	noRuntime bool
 
@@ -154,7 +154,7 @@ func New(e2eFile string, opts Options) (*Runner, error) {
 	return r, nil
 }
 
-// resolveSource resolves the catalog and CR file paths from the spec.
+// resolveSource resolves the blueprint and CR file paths from the spec.
 func (r *Runner) resolveSource() error {
 	spec := r.e2e.Spec
 
@@ -168,37 +168,37 @@ func (r *Runner) resolveSource() error {
 			cwd, _ := os.Getwd()
 			candidate = filepath.Join(cwd, "examples", spec.Init.Pack, spec.Init.Example)
 		}
-		r.catalogFile = filepath.Join(candidate, "catalog.yaml")
+		r.blueprintFile = filepath.Join(candidate, "blueprint.yaml")
 		r.crFiles = []string{filepath.Join(candidate, "cr.yaml")}
 
-	case spec.Catalog != "" && len(spec.AllCRPaths()) > 0:
-		r.catalogFile = r.abs(spec.Catalog)
+	case spec.Blueprint != "" && len(spec.AllCRPaths()) > 0:
+		r.blueprintFile = r.abs(spec.Blueprint)
 		for _, p := range spec.AllCRPaths() {
 			r.crFiles = append(r.crFiles, r.abs(p))
 		}
 
-	case spec.Catalog != "":
-		// Catalog without a CR: the CRs come from the gateway (an intent sent
+	case spec.Blueprint != "":
+		// Blueprint without a CR: the CRs come from the gateway (an intent sent
 		// by an expectation) or from the expectations themselves.
-		r.catalogFile = r.abs(spec.Catalog)
+		r.blueprintFile = r.abs(spec.Blueprint)
 
 	case spec.Custom != nil && spec.Custom.Target != "":
-		// custom.target: both catalog and cr are optional.
+		// custom.target: both blueprint and cr are optional.
 		for _, p := range spec.AllCRPaths() {
 			r.crFiles = append(r.crFiles, r.abs(p))
 		}
 
 	case len(r.e2e.Imports) > 0:
-		// Pure aggregator — no own catalog/CR, just orchestrates imports.
+		// Pure aggregator — no own blueprint/CR, just orchestrates imports.
 		return nil
 
 	default:
-		return fmt.Errorf("e2e spec must declare a catalog, init or custom target, or have imports")
+		return fmt.Errorf("e2e spec must declare a blueprint, init or custom target, or have imports")
 	}
 
-	if r.catalogFile != "" {
-		if _, err := os.Stat(r.catalogFile); err != nil {
-			return fmt.Errorf("catalog file not found: %s", r.catalogFile)
+	if r.blueprintFile != "" {
+		if _, err := os.Stat(r.blueprintFile); err != nil {
+			return fmt.Errorf("blueprint file not found: %s", r.blueprintFile)
 		}
 	}
 	for _, p := range r.crFiles {
@@ -334,7 +334,7 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 			// Console is never needed in e2e — disable it unconditionally.
 			r.helmArgs = append(r.helmArgs, "--set", "console.enabled=false")
 
-			gatewayEnabled, err := resolveGatewayEnabled(r.catalogFile)
+			gatewayEnabled, err := resolveGatewayEnabled(r.blueprintFile)
 			if err != nil {
 				return nil, err
 			}
@@ -611,15 +611,15 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 	return result, importErr
 }
 
-// resolveGatewayEnabled inspects the catalog file and returns true if the
+// resolveGatewayEnabled inspects the blueprint file and returns true if the
 // gateway block is present. This allows Helm installation to automatically
-// enable the gateway chart when required by the catalog.
-func resolveGatewayEnabled(catalogFile string) (bool, error) {
+// enable the gateway chart when required by the blueprint.
+func resolveGatewayEnabled(blueprintFile string) (bool, error) {
 	var raw struct {
 		Gateway *types.GatewayConfig `yaml:"gateway,omitempty"`
 	}
 
-	data, err := readLocal(catalogFile)
+	data, err := readLocal(blueprintFile)
 	if err != nil {
 		return false, err
 	}
@@ -686,7 +686,7 @@ func (r *Runner) ensureCluster(ctx context.Context) error {
 }
 
 // applyCRD applies the operator's CRD to the cluster and returns the paths applied.
-// Uses spec.AllCRDPaths() if declared; falls back to crdFile entries in the catalog.
+// Uses spec.AllCRDPaths() if declared; falls back to crdFile entries in the blueprint.
 func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 	if crdPaths := r.e2e.Spec.AllCRDPaths(); len(crdPaths) > 0 {
 		var applied []string
@@ -702,9 +702,9 @@ func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 		return applied, nil
 	}
 
-	// Fallback: read crdFile references from the catalog.
-	// When kubernetesTarget is true and no catalog is provided, there is nothing to fall back to.
-	if r.catalogFile == "" {
+	// Fallback: read crdFile references from the blueprint.
+	// When kubernetesTarget is true and no blueprint is provided, there is nothing to fall back to.
+	if r.blueprintFile == "" {
 		return nil, nil
 	}
 	var raw struct {
@@ -714,14 +714,14 @@ func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 			} `yaml:"crds"`
 		} `yaml:"spec"`
 	}
-	data, err := readLocal(r.catalogFile)
+	data, err := readLocal(r.blueprintFile)
 	if err != nil {
 		return nil, err
 	}
 	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
-	catalogDir := filepath.Dir(r.catalogFile)
+	blueprintDir := filepath.Dir(r.blueprintFile)
 	var applied []string
 	for name, entry := range raw.Spec.CRDs {
 		if entry.CRDFile == "" {
@@ -729,7 +729,7 @@ func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 		}
 		path := entry.CRDFile
 		if !filepath.IsAbs(path) && !strings.HasPrefix(path, "http") {
-			path = filepath.Join(catalogDir, path)
+			path = filepath.Join(blueprintDir, path)
 		}
 		fmt.Printf("→ Applying CRD '%s' from %s...\n", name, entry.CRDFile)
 		if out, err := kubectl(ctx, "apply", "-f", path); err != nil {
@@ -743,36 +743,36 @@ func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 }
 
 func (r *Runner) generateBundle(ctx context.Context) (string, error) {
-	// Anchor the catalog directory as an absolute path. r.catalogFile may be
+	// Anchor the blueprint directory as an absolute path. r.blueprintFile may be
 	// relative when inrun e2e is invoked without an explicit -f path; all temp
 	// file creation and cmd.Dir must use an absolute base to avoid double-nested
 	// paths when cmd.Dir is set.
-	catalogDir, err := filepath.Abs(filepath.Dir(r.catalogFile))
+	blueprintDir, err := filepath.Abs(filepath.Dir(r.blueprintFile))
 	if err != nil {
-		return "", fmt.Errorf("resolving catalog directory: %w", err)
+		return "", fmt.Errorf("resolving blueprint directory: %w", err)
 	}
 
 	// Resolve any crdFile references to inline apiTypes before bundling.
 	// The Inrun runtime runs inside a container and cannot read local files —
 	// all type information must be embedded in the ConfigMap.
-	resolved, err := catalog.ResolveCRDFiles(r.catalogFile)
+	resolved, err := blueprint.ResolveCRDFiles(r.blueprintFile)
 	if err != nil {
 		return "", fmt.Errorf("resolving crdFile references: %w", err)
 	}
 
-	// Create the temp file in the catalog's directory (absolute) so that
+	// Create the temp file in the blueprint's directory (absolute) so that
 	// relative imports.files paths resolve correctly when inrun generate bundle runs.
-	resolvedCatalog, err := os.CreateTemp(catalogDir, "inrun-e2e-catalog-*.yaml")
+	resolvedBlueprint, err := os.CreateTemp(blueprintDir, "inrun-e2e-blueprint-*.yaml")
 	if err != nil {
 		return "", err
 	}
-	if _, err := resolvedCatalog.Write(resolved); err != nil {
-		resolvedCatalog.Close()
-		os.Remove(resolvedCatalog.Name())
+	if _, err := resolvedBlueprint.Write(resolved); err != nil {
+		resolvedBlueprint.Close()
+		os.Remove(resolvedBlueprint.Name())
 		return "", err
 	}
-	resolvedCatalog.Close()
-	defer os.Remove(resolvedCatalog.Name())
+	resolvedBlueprint.Close()
+	defer os.Remove(resolvedBlueprint.Name())
 
 	bundleFile, err := os.CreateTemp("", "inrun-e2e-bundle-*.yaml")
 	if err != nil {
@@ -780,18 +780,18 @@ func (r *Runner) generateBundle(ctx context.Context) (string, error) {
 	}
 	bundleFile.Close()
 
-	fmt.Printf("→ Generating bundle from %s...\n", r.catalogFile)
+	fmt.Printf("→ Generating bundle from %s...\n", r.blueprintFile)
 	inrunBin, err := os.Executable()
 	if err != nil {
 		inrunBin = "inrun"
 	}
 	cmd := exec.CommandContext(ctx, inrunBin, "generate", "bundle",
-		"-f", resolvedCatalog.Name(),
+		"-f", resolvedBlueprint.Name(),
 		"-o", bundleFile.Name(),
 	)
-	// Run from the catalog's directory (absolute) so relative imports.files
-	// paths (e.g. ./platform-team/catalog.yaml) resolve correctly.
-	cmd.Dir = catalogDir
+	// Run from the blueprint's directory (absolute) so relative imports.files
+	// paths (e.g. ./platform-team/blueprint.yaml) resolve correctly.
+	cmd.Dir = blueprintDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -803,12 +803,12 @@ func (r *Runner) generateBundle(ctx context.Context) (string, error) {
 }
 
 // pullOCIImports pre-pulls all OCI module and registry imports referenced in
-// the catalog file so that bundle generation never needs to do OCI calls.
+// the blueprint file so that bundle generation never needs to do OCI calls.
 // Uses the same resolution logic as the merge path, including bare-name shorthands.
 func (r *Runner) pullOCIImports(_ context.Context) error {
-	imports, err := registry.ExtractOCIImports(r.catalogFile)
+	imports, err := registry.ExtractOCIImports(r.blueprintFile)
 	if err != nil {
-		return fmt.Errorf("extracting OCI imports from %s: %w", r.catalogFile, err)
+		return fmt.Errorf("extracting OCI imports from %s: %w", r.blueprintFile, err)
 	}
 	if imports.Empty() {
 		return nil
@@ -924,9 +924,9 @@ func (r *Runner) provider() string {
 
 // isPureAggregator returns true when this E2E has no spec of its own —
 // it exists only to run imported E2E files.
-// A kubernetesTarget spec is never a pure aggregator even when cr and catalog are omitted.
+// A kubernetesTarget spec is never a pure aggregator even when cr and blueprint are omitted.
 func (r *Runner) isPureAggregator() bool {
-	return r.catalogFile == "" && len(r.crFiles) == 0 && !r.kubernetesTarget
+	return r.blueprintFile == "" && len(r.crFiles) == 0 && !r.kubernetesTarget
 }
 
 func (r *Runner) abs(path string) string {

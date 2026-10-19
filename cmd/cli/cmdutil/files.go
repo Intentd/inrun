@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	FileCatalog    = "catalog.yaml"
+	FileBlueprint  = "blueprint.yaml"
 	fileStack      = "stack.yaml"
 	FileE2e        = "e2e.yaml"
 	FileSimulate   = "simulate.yaml"
@@ -20,7 +20,7 @@ const (
 	FileDockerfile = "Dockerfile"
 	FileValues     = "values.yaml"
 
-	// A project keeps catalog.yaml at its root, what it applies to the cluster
+	// A project keeps blueprint.yaml at its root, what it applies to the cluster
 	// (crd.yaml, cr.yaml, setup files) in manifests/, and its simulate.yaml,
 	// e2e.yaml and test values in test/.
 	DirManifests = "manifests"
@@ -41,15 +41,15 @@ func FindFile(name string, dirs ...string) string {
 	return ""
 }
 
-// ResolveCatalogPaths resolves the catalog file paths in the following order:
+// ResolveBlueprintPaths resolves the blueprint file paths in the following order:
 //
 //  1. Explicit CLI paths (highest priority)
-//  2. Default file paths in the working directory (catalog.yaml, stack.yaml, etc.)
-//  3. Paths defined in the Config (cfg.Catalog().Paths())
+//  2. Default file paths in the working directory (blueprint.yaml, stack.yaml, etc.)
+//  3. Paths defined in the Config (cfg.Blueprint().Paths())
 //
-// Returns an error if no catalog file can be resolved.
-func ResolveCatalogPaths(cliPaths []string) ([]string, error) {
-	cfgPaths := Cfg.Catalog().Paths()
+// Returns an error if no blueprint file can be resolved.
+func ResolveBlueprintPaths(cliPaths []string) ([]string, error) {
+	cfgPaths := Cfg.Blueprint().Paths()
 
 	// 1. CLI-provided paths — convert to absolute so all downstream relative
 	// path resolutions (crdFile, crFiles, setup, Stack imports) use the
@@ -76,14 +76,14 @@ func ResolveCatalogPaths(cliPaths []string) ([]string, error) {
 		return cfgPaths, nil
 	}
 
-	return nil, fmt.Errorf(ErrNoCatalog)
+	return nil, fmt.Errorf(ErrNoBlueprint)
 }
 
-// DefaultFilePaths returns the default catalog file if one exists in the
-// current directory and no -f flag was provided. Tries catalog.yaml first,
+// DefaultFilePaths returns the default blueprint file if one exists in the
+// current directory and no -f flag was provided. Tries blueprint.yaml first,
 // then stack.yaml — the same precedence as Docker's Dockerfile / compose.yaml.
 func DefaultFilePaths() []string {
-	for _, name := range []string{FileCatalog, fileStack} {
+	for _, name := range []string{FileBlueprint, fileStack} {
 		if _, err := os.Stat(name); err == nil {
 			return []string{name}
 		}
@@ -91,20 +91,20 @@ func DefaultFilePaths() []string {
 	return nil
 }
 
-const ErrNoCatalog = "no catalog.yaml or stack.yaml found in current directory\n" +
+const ErrNoBlueprint = "no blueprint.yaml or stack.yaml found in current directory\n" +
 	"pass -f <file> or create one with inrun init"
 
-// ResolveCatalogFile resolves a single catalog file path from a CLI flag value.
+// ResolveBlueprintFile resolves a single blueprint file path from a CLI flag value.
 // If flagValue is empty it falls back to defaultFilePaths(). The resolved path
 // is always returned as an absolute path.
-func ResolveCatalogFile(flagValue string) (string, error) {
+func ResolveBlueprintFile(flagValue string) (string, error) {
 	if flagValue == "" {
 		if d := DefaultFilePaths(); len(d) > 0 {
 			flagValue = d[0]
 		}
 	}
 	if flagValue == "" {
-		return "", fmt.Errorf(ErrNoCatalog)
+		return "", fmt.Errorf(ErrNoBlueprint)
 	}
 	if abs, err := filepath.Abs(flagValue); err == nil {
 		return abs, nil

@@ -29,7 +29,7 @@ func Init(filenames ...string) (*Config, error) {
 		},
 		// ── Unified security configuration ───────────────────────────────────
 		// ENV vars populate SecurityConfig as defaults.
-		// Catalog YAML values are merged on top in BuildRuntimeCatalog.
+		// Blueprint YAML values are merged on top in BuildRuntimeBlueprint.
 		//
 		// ENV → SecurityConfig mapping:
 		//   ENABLE_DELETION_PROTECTION  → security.DeletionProtection.Enabled
@@ -84,10 +84,10 @@ func Init(filenames ...string) (*Config, error) {
 			renewDeadline: GetDurEnvSeconds("RENEW_DEADLINE", 40),
 			retryPeriod:   GetDurEnvSeconds("RETRY_PERIOD", 10),
 		},
-		catalog: catalogConfig{
+		blueprint: blueprintConfig{
 			defaultQueueDepth:       GetIntEnv("QUEUE_DEPTH", 100),
 			defaultFailureThreshold: GetIntEnv("FAILURE_THRESHOLD", 5),
-			paths:                   GetStrSliceEnv("CATALOG_PATH", []string{}),
+			paths:                   GetStrSliceEnv("BLUEPRINT_PATH", []string{}),
 			defaultResync:           GetDurEnvSeconds("DEFAULT_RESYNC", 15),
 			defaultWorkers:          GetIntEnv("DEFAULT_WORKERS", 3),
 			shutdownTimeout:         GetDurEnvSeconds("SHUTDOWN_TIMEOUT", 30),

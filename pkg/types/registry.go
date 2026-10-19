@@ -9,7 +9,7 @@ import "strings"
 // determined by the oci field (false by default — git pull).
 //
 // After pulling, Inrun validates the five required files exist and are
-// non-empty. It then loads either catalog.yaml (default) or stack.yaml
+// non-empty. It then loads either blueprint.yaml (default) or stack.yaml
 // based on useStack. Exactly one is loaded — not both.
 //
 // Plain string — URL is the entire entry, OCI scheme detected from prefix:
@@ -75,7 +75,7 @@ type RegistrySource struct {
 	OCI bool `yaml:"oci,omitempty" json:"oci,omitempty"`
 
 	// UseStack — when true, load stack.yaml from the pulled pattern.
-	// When false (default), load catalog.yaml.
+	// When false (default), load blueprint.yaml.
 	//
 	// Exactly one file is loaded — not both.
 	//
@@ -91,7 +91,7 @@ type RegistrySource struct {
 	//
 	// Warning: loading a Stack from a registry source means that
 	// Stack's own sources are also resolved. A Stack that sources
-	// other Catalogs will pull those too. Understand the upstream
+	// other Blueprints will pull those too. Understand the upstream
 	// dependency tree before enabling this.
 	UseStack bool `yaml:"useStack,omitempty" json:"useStack,omitempty"`
 
@@ -100,10 +100,10 @@ type RegistrySource struct {
 	// Auth credentials are resolved from environment variables — never literals.
 	Auth *FileSourceAuth `yaml:"auth,omitempty" json:"auth,omitempty"`
 
-	// Catalog — map of catalog names to their version references.
-	// Key: catalog name (directory name under registry/catalogs/).
+	// Blueprint — map of blueprint names to their version references.
+	// Key: blueprint name (directory name under registry/blueprints/).
 	// Value: version reference (branch, sha, or version tag).
-	Catalog map[string]RegistryRef `yaml:"catalog,omitempty" json:"catalog,omitempty"`
+	Blueprint map[string]RegistryRef `yaml:"blueprint,omitempty" json:"blueprint,omitempty"`
 
 	// Future source types (not yet implemented):
 	// Hooks map[string]RegistryRef `yaml:"hooks,omitempty"`
@@ -247,10 +247,10 @@ func (r RegistrySource) defaultVersion() string {
 }
 
 // SourceFile returns the filename Inrun should load after pulling the pattern.
-// Either "catalog.yaml" or "stack.yaml" — never both.
+// Either "blueprint.yaml" or "stack.yaml" — never both.
 func (r RegistrySource) SourceFile() string {
 	if r.UseStack {
 		return "stack.yaml"
 	}
-	return "catalog.yaml"
+	return "blueprint.yaml"
 }

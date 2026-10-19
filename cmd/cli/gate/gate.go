@@ -22,24 +22,24 @@ func runGateway(cmd *cobra.Command, args []string) error {
 		paths = cmdutil.DefaultFilePaths()
 	}
 	if len(paths) == 0 {
-		paths = cmdutil.Cfg.Catalog().Paths()
+		paths = cmdutil.Cfg.Blueprint().Paths()
 	}
 	if len(paths) == 0 {
-		return fmt.Errorf(cmdutil.ErrNoCatalog)
+		return fmt.Errorf(cmdutil.ErrNoBlueprint)
 	}
 
 	doMigrate, _ := cmd.Flags().GetBool("migrate")
 
 	m := merger.New(paths...)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging catalogs: %w", err)
+		return fmt.Errorf("merging blueprints: %w", err)
 	}
 
 	logger.Debug().
-		Str("catalogs", strings.Join(paths, ", ")).
+		Str("blueprints", strings.Join(paths, ", ")).
 		Int("total", m.Count()).
 		Int("enabled", m.EnabledCount()).
-		Msg("catalogs merged")
+		Msg("blueprints merged")
 
 	internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx, doMigrate)
 	return nil

@@ -1,6 +1,6 @@
 // webhook/namespace_protection.go — /namespace-protection webhook handler.
 //
-// Registered only when security.namespaceProtection.enabled: true in the Catalog.
+// Registered only when security.namespaceProtection.enabled: true in the Blueprint.
 // Intercepts CREATE and UPDATE on CRDs that declare allowedNamespaces or
 // restrictedNamespaces, and rejects operations in forbidden namespaces.
 //

@@ -125,7 +125,7 @@ type ValueFrom struct {
 // extensions with no Kubernetes equivalent — Kubernetes' envFrom is a blanket
 // import with no per-key rename mechanism, so a ref that sets Keys is expanded
 // into individual env entries at build time instead of a native envFrom source.
-// Suffix without Keys is a validation error — see pkg/catalog/validate_envfrom.go.
+// Suffix without Keys is a validation error — see pkg/blueprint/validate_envfrom.go.
 type EnvFromRef struct {
 	Name     string   `yaml:"name" json:"name" validate:"required"`
 	Prefix   string   `yaml:"prefix,omitempty" json:"prefix,omitempty"`

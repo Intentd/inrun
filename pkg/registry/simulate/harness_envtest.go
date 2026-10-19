@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/intent"
@@ -54,7 +54,7 @@ const (
 // crdPaths must contain at least one CRD YAML — set via spec.crd / spec.crdFiles.
 // Binaries are auto-downloaded to ~/.inrun/envtest-bins on first run; KUBEBUILDER_ASSETS
 // overrides this.
-func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
+func RunWithEnvtest(ctx context.Context, bp *blueprint.Blueprint, crdName string,
 	cr *unstructured.Unstructured, maxCycles int, opts RunOptions, crdPaths []string, k8sVersion string) (*Result, error) {
 
 	prev := log.Logger
@@ -95,9 +95,9 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	}
 	defer env.Stop() //nolint:errcheck
 
-	crdEntry, ok := cat.CRDEntry(crdName)
+	crdEntry, ok := bp.CRDEntry(crdName)
 	if !ok {
-		return nil, fmt.Errorf("CRD %q not found in Catalog", crdName)
+		return nil, fmt.Errorf("CRD %q not found in Blueprint", crdName)
 	}
 	result := &Result{}
 	if opts.Target != "" {
@@ -109,7 +109,7 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	// out of a copy of the entry; the notes say what was omitted and why.
 	crdEntry, result.Notes = simulatable(crdEntry)
 
-	scheme, err := cat.Scheme()
+	scheme, err := bp.Scheme()
 	if err != nil {
 		return nil, fmt.Errorf("building scheme: %w", err)
 	}
@@ -177,7 +177,7 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	// them; the factory also holds the watches observe adds. Their queues are
 	// never drained: each cycle runs the pass directly.
 	qr := queue.NewQueueRegistry()
-	infFactory := crds.NewFactory(config.NewDefaultConfig(), cat, realKube, scheme,
+	infFactory := crds.NewFactory(config.NewDefaultConfig(), bp, realKube, scheme,
 		queue.NewWorkqueue("default-harness-workqueue"), qr)
 	inf := crds.Informer(ctx, crdEntry, realKube, infFactory, qr)
 	infFactory.Start(ctx)
@@ -188,7 +188,7 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 		Kube:          realKube,
 		Informer:      infFactory,
 		QueueRegistry: qr,
-		Catalog:       cat,
+		Blueprint:     bp,
 	})
 	obs.Observe(ctx, crdEntry)
 
@@ -198,11 +198,11 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	}
 
 	peerRegistry := coordinator.NewCoordinatorRegistry()
-	for _, peerName := range cat.CRDNames() {
+	for _, peerName := range bp.CRDNames() {
 		if peerName == crdEntry.Name {
 			continue
 		}
-		peerEntry, ok := cat.CRDEntry(peerName)
+		peerEntry, ok := bp.CRDEntry(peerName)
 		if !ok {
 			continue
 		}
@@ -228,7 +228,7 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 		Event:        event.Discard(),
 		StoreFor:     infFactory.StoreFor,
 		IndexerFor:   infFactory.IndexerFor,
-		Catalog:      cat,
+		Blueprint:    bp,
 		OwnNamespace: outsidePodNamespace,
 	})
 	if err != nil {
@@ -245,10 +245,10 @@ func RunWithEnvtest(ctx context.Context, cat *catalog.Catalog, crdName string,
 	}
 
 	deps := reconcile.Deps{
-		Kube:     recKube,
-		Event:    event.Discard(),
-		Cat:      cat,
-		Registry: peerRegistry,
+		Kube:      recKube,
+		Event:     event.Discard(),
+		Blueprint: bp,
+		Registry:  peerRegistry,
 	}
 	input := reconcile.Input{
 		GVK:        crdEntry.GVKString(),

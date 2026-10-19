@@ -76,7 +76,7 @@ func resolveTargets(
 				i, rr.obj.GetName(), rr.obj.GroupVersionKind(), err)
 		}
 		if !isAllowedResource(allowed, mapping.Resource) {
-			return nil, fmt.Errorf("resources[%d] %q (%s/%s) is not declared in managedResources — add it to the Catalog before the reconciler can create it",
+			return nil, fmt.Errorf("resources[%d] %q (%s/%s) is not declared in managedResources — add it to the Blueprint before the reconciler can create it",
 				i, rr.obj.GetName(), mapping.Resource.Group, mapping.Resource.Resource)
 		}
 		targets = append(targets, rr)

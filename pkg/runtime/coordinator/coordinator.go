@@ -11,7 +11,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
@@ -25,13 +25,13 @@ import (
 type DependencyCoordinator struct {
 	*Controller
 
-	depGraph       *catalog.DependencyGraph
+	depGraph       *blueprint.DependencyGraph
 	defaultWorkers int
 	startedAt      time.Time
 	queueReg       *queue.QueueRegistry
 	drainTimeout   time.Duration
 
-	// Inrun and catalog health
+	// Inrun and blueprint health
 	anyOnline   atomic.Bool
 	allOnline   atomic.Bool
 	inrunHealth *vitals.RuntimeHealth
@@ -53,8 +53,8 @@ func NewDependencyCoordinator(
 	kube *kubeclient.Kubeclient,
 	factory *informer.Factory,
 	observer *observe.Observer,
-	catalog *ResourceCatalog,
-	cat *catalog.Catalog,
+	blueprint *ResourceBlueprint,
+	bp *blueprint.Blueprint,
 	events *event.Event,
 	hs domain.Health,
 	queueRegistry *queue.QueueRegistry,
@@ -62,13 +62,13 @@ func NewDependencyCoordinator(
 	crdHealthMap map[string]*vitals.CRDHealth,
 	inrunHealth *vitals.RuntimeHealth,
 	defaultWorkers int,
-	depGraph *catalog.DependencyGraph,
+	depGraph *blueprint.DependencyGraph,
 	drainTimeout time.Duration,
 ) *DependencyCoordinator {
 
 	coord := &DependencyCoordinator{
 		Controller: NewController(
-			kube, factory, observer, catalog, cat,
+			kube, factory, observer, blueprint, bp,
 			events, hs, crdHealthMap, inrunHealth,
 			queueRegistry, defaultWorkqueue, defaultWorkers,
 		),
@@ -132,7 +132,7 @@ func (dc *DependencyCoordinator) Coordinate(ctx context.Context) {
 
 	// Collect custom child CRDs and detect which are missing at startup.
 	// These are GVKs declared in onReconcile.custom / onCreate.custom blocks across all CRDs.
-	dc.missingChildGVKs = collectCustomChildGVKs(dc.catalog)
+	dc.missingChildGVKs = collectCustomChildGVKs(dc.blueprint)
 	for gvkStr, gvk := range dc.missingChildGVKs {
 		gvkCopy := gvk
 		ok, _ := dc.crdExists(&gvkCopy)
@@ -173,7 +173,7 @@ func (dc *DependencyCoordinator) Coordinate(ctx context.Context) {
 		}
 
 		// CRD exists — start workers
-		workers := dc.catalog.GetWorkers(gvk, dc.defaultWorkers)
+		workers := dc.blueprint.GetWorkers(gvk, dc.defaultWorkers)
 		logger.Info().Str("gvk", gvk).Int("workers", workers).Msg("starting workers")
 		dc.startCRDWorkers(ctx, gvk, workers)
 
@@ -201,15 +201,15 @@ func (dc *DependencyCoordinator) Coordinate(ctx context.Context) {
 		logger.Warn().Str("component", dc.Name()).Msg("started — all CRDs missing, waiting for retry loop")
 	}
 
-	// Compute final catalog health
+	// Compute final blueprint health
 	if onlineCRDs == totalCRDs {
 		dc.allOnline.Store(true)
 		dc.inrunHealth.SetAllOnline()
-		dc.inrunHealth.SetCatalogReady()
+		dc.inrunHealth.SetBlueprintReady()
 	} else {
 		dc.allOnline.Store(false)
 		dc.inrunHealth.SetAllNotOnline()
-		dc.inrunHealth.SetCatalogDegraded()
+		dc.inrunHealth.SetBlueprintDegraded()
 	}
 
 	// Block until leadership lost
@@ -278,7 +278,7 @@ func (dc *DependencyCoordinator) NameToGVK(name string) schema.GroupVersionKind 
 
 // GVKToCRD returns the CRD entry for a given gvk
 func (dc *DependencyCoordinator) GVKToCRD(gvk schema.GroupVersionKind) types.CRDEntry {
-	entry, ok := dc.catalog.Get(gvk.String())
+	entry, ok := dc.blueprint.Get(gvk.String())
 	if !ok {
 		return types.CRDEntry{}
 	}

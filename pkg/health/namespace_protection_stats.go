@@ -51,7 +51,7 @@ func (s *NamespaceProtectionStats) GetStats() NamespaceProtectionStatsSnapshot {
 }
 
 // NamespaceProtectionStatsSnapshot is a read-only point-in-time snapshot.
-// Serialised into the /catalog/{crd} JSON response under the "namespaceProtection" key.
+// Serialised into the /blueprint/{crd} JSON response under the "namespaceProtection" key.
 type NamespaceProtectionStatsSnapshot struct {
 	TotalRequests int64 `json:"total"`
 	Blocked       int64 `json:"blocked"`

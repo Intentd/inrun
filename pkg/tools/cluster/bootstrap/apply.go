@@ -54,7 +54,7 @@ func applyClusterRole(ctx context.Context, cs kubernetes.Interface, e ClusterEnt
 		if _, updateErr := cs.RbacV1().ClusterRoles().Update(ctx, existing, metav1.UpdateOptions{}); updateErr != nil {
 			return fmt.Errorf("updating ClusterRole: %w", updateErr)
 		}
-		log(fmt.Sprintf("ClusterRole %s: updated (rules reflect current catalog)", name))
+		log(fmt.Sprintf("ClusterRole %s: updated (rules reflect current blueprint)", name))
 		return nil
 	}
 	if err != nil {

@@ -33,7 +33,7 @@ func enrichGroupWithNode(ctx context.Context, kube kubeclient.Interface, m map[s
 			continue
 		}
 		// Cache to avoid fetching the same node multiple times when
-		// a catalog declares multiple pods on the same node.
+		// a blueprint declares multiple pods on the same node.
 		if cached, ok := nodeCache[nodeName]; ok {
 			obj["_node"] = cached
 			continue

@@ -12,7 +12,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// TypeRegistry generates zz_generated_typeregistry.go from the merged Catalog.
+// TypeRegistry generates zz_generated_typeregistry.go from the merged Blueprint.
 //
 // When generation is needed (and why):
 //
@@ -31,7 +31,7 @@ import (
 // When generation is NOT needed:
 //
 //	Dynamic template CRDs (only onCreate/onReconcile/onDelete declared)
-//	  generic.Reconciler.runTemplateReconcile() reads the Catalog's operatorBox:Config
+//	  generic.Reconciler.runTemplateReconcile() reads the Blueprint's operatorBox:Config
 //	  directly at runtime and calls the InrunRegistry functions itself.
 //	  No generated file. No inrun generate registry. Just inrun.
 func TypeRegistry(crds map[string]types.CRDEntry, dryRun bool) (bool, error) {
@@ -239,7 +239,7 @@ func TypeRegistry(crds map[string]types.CRDEntry, dryRun bool) (bool, error) {
 	}
 
 	// ── Nothing to generate ───────────────────────────────────────────────────
-	// Pure dynamic template Catalogs produce zero entries — this is correct.
+	// Pure dynamic template Blueprints produce zero entries — this is correct.
 	// generic.Reconciler handles them at runtime. Exit cleanly, no file written.
 	if len(entries) == 0 && len(recEntries) == 0 && len(hookEntries) == 0 &&
 		len(targetHookEntries) == 0 && len(targetRecEntries) == 0 {
@@ -328,7 +328,7 @@ func validateConstructorEntry(c *types.ConstructorDeclaration, crdName string) e
 }
 
 // dedupeImport returns an error if the same alias is used for two different
-// import paths. This catches cases where two CRDs in the same Catalog have
+// import paths. This catches cases where two CRDs in the same Blueprint have
 // conflicting aliases — the user must set an explicit alias to resolve.
 func dedupeImport(seen map[string]string, alias, location, crdName string) error {
 	if existing, ok := seen[alias]; ok && existing != location {
@@ -342,7 +342,7 @@ func dedupeImport(seen map[string]string, alias, location, crdName string) error
 }
 
 // resolveAlias returns the import alias to use for a package.
-// Priority: explicit alias from Catalog → derived from the last two path segments.
+// Priority: explicit alias from Blueprint → derived from the last two path segments.
 //
 // Examples:
 //

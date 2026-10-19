@@ -4,7 +4,7 @@ Demonstrates `operator: unique` enforced at **both** points: reconcile time
 (a live, authoritative check against the API server) and admission time (a
 fast, best-effort check against the runtime's own informer cache, reached
 over HTTP — see [`pkg/gateway/webhook/uniqueness.go`](../../../../gateway/webhook/uniqueness.go) and
-`GET /catalog/{crd}/cr?field=` in `pkg/runtime/coordinator`).
+`GET /blueprint/{crd}/cr?field=` in `pkg/runtime/coordinator`).
 
 `cr.yaml` (`site-a`, `spec.domain: a.example.com`) is applied first and
 reconciles to `Ready`. `cr-duplicate.yaml` (`site-b`, same domain) is then

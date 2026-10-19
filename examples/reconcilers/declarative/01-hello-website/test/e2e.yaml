@@ -5,7 +5,7 @@ metadata:
   description: Deploy a single nginx website and verify the deployment and service comes up and are cleaned up on delete
 
 spec:
-  catalog: ../catalog.yaml
+  blueprint: ../blueprint.yaml
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 

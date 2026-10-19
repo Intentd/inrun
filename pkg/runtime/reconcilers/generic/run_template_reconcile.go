@@ -24,7 +24,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// runTemplateReconcile interprets the Catalog's onCreate and onReconcile blocks.
+// runTemplateReconcile interprets the Blueprint's onCreate and onReconcile blocks.
 // Returns the enriched resolver so callers (reconcileImpl) can pass cross/external
 // data into patchStatusWithChildren for status field evaluation.
 func (r *Reconciler[PTR]) runTemplateReconcile(ctx context.Context, resolver *template.Resolver, obj domain.Object, box types.OperatorBoxConfig) (*template.Resolver, error) {
@@ -86,8 +86,8 @@ func (r *Reconciler[PTR]) runResourceGroup(
 	guard := r.namespaceGuardFunc()
 
 	labelMgr := labels.NewManager(labels.Config{
-		Standalone:                r.cat.IsStandaloneGateway(),
-		DeletionProtectionEnabled: r.cat.IsDeletionProtectionEnabled(),
+		Standalone:                r.bp.IsStandaloneGateway(),
+		DeletionProtectionEnabled: r.bp.IsDeletionProtectionEnabled(),
 	})
 
 	// Create namespaces first
@@ -138,7 +138,7 @@ func (r *Reconciler[PTR]) runResourceGroup(
 	}
 	if err := runCustomResources(ctx, kube, resolver, obj,
 		children.ExpandForEachCustomResources(resolver, t.CustomResource), update, guard, labelMgr,
-		r.cat.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
+		r.bp.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
 		return err
 	}
 	if err := runners.RunReplicaSets(ctx, kube, resolver, obj,

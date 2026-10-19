@@ -1,0 +1,17 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-gateway-cluster-no-endpoint
+  version: 1.0.0
+  description: Tests that a cluster entry without an endpoint fails validation.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+gateway:
+  enabled: true
+  clusters:
+    prod:
+      secretRef:
+        name: prod-cluster-credentials
+        key: kubeconfig

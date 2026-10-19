@@ -11,10 +11,10 @@ import (
 	"github.com/intentd/inrun/pkg/merger"
 )
 
-// writeCatalogFile creates a minimal Catalog YAML temp file with the given CRD names.
-func writeCatalogFile(t *testing.T, name string, crdNames ...string) string {
+// writeBlueprintFile creates a minimal Blueprint YAML temp file with the given CRD names.
+func writeBlueprintFile(t *testing.T, name string, crdNames ...string) string {
 	t.Helper()
-	content := "apiVersion: inrun.dev/v1\nkind: Catalog\nmetadata:\n  name: " + name + "\nspec:\n  crds:\n"
+	content := "apiVersion: inrun.dev/v1\nkind: Blueprint\nmetadata:\n  name: " + name + "\nspec:\n  crds:\n"
 	for _, n := range crdNames {
 		content += "    " + n + ":\n      enabled: true\n"
 	}
@@ -29,9 +29,9 @@ func writeCatalogFile(t *testing.T, name string, crdNames ...string) string {
 }
 
 func TestStack_InlineOverride_WinsOverSource(t *testing.T) {
-	sourceCatalog := writeCatalogFile(t, "source", "website", "database")
+	sourceBlueprint := writeBlueprintFile(t, "source", "website", "database")
 
-	stackContent := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: override-test\nimports:\n  files:\n    - url: " + sourceCatalog + "\nspec:\n  crds:\n    website:\n      enabled: false\n"
+	stackContent := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: override-test\nimports:\n  files:\n    - url: " + sourceBlueprint + "\nspec:\n  crds:\n    website:\n      enabled: false\n"
 	f, err := os.CreateTemp("", "*.yaml")
 	if err != nil {
 		t.Fatalf("creating temp file: %v", err)
@@ -67,8 +67,8 @@ func TestStack_InlineOverride_WinsOverSource(t *testing.T) {
 }
 
 func TestStack_MultipleFileSources_AllMerged(t *testing.T) {
-	srcA := writeCatalogFile(t, "source-a", "crd-a1", "crd-a2")
-	srcB := writeCatalogFile(t, "source-b", "crd-b1")
+	srcA := writeBlueprintFile(t, "source-a", "crd-a1", "crd-a2")
+	srcB := writeBlueprintFile(t, "source-b", "crd-b1")
 
 	content := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: multi-source\nimports:\n  files:\n    - url: " + srcA + "\n    - url: " + srcB + "\nspec:\n  crds: {}\n"
 	f, _ := os.CreateTemp("", "*.yaml")
@@ -114,11 +114,11 @@ spec:
 	}
 }
 
-func TestStack_CatalogCannotDeclareSourcesBlock(t *testing.T) {
+func TestStack_BlueprintCannotDeclareSourcesBlock(t *testing.T) {
 	content := `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: bad-catalog
+  name: bad-blueprint
 sources:
   files:
     - url: ./some-file.yaml
@@ -134,6 +134,6 @@ spec:
 
 	m := merger.New(f.Name())
 	if err := m.Merge(); err == nil {
-		t.Error("expected error: kind Catalog cannot declare sources block")
+		t.Error("expected error: kind Blueprint cannot declare sources block")
 	}
 }

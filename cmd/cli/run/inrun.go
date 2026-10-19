@@ -15,27 +15,27 @@ import (
 )
 
 // runRuntime is the runtime build's root command: bare `inrun` runs the
-// runtime. Without -f it reads catalog.yaml (or stack.yaml) from the current
+// runtime. Without -f it reads blueprint.yaml (or stack.yaml) from the current
 // directory.
 func runRuntime(cmd *cobra.Command, args []string) error {
-	// Resolve catalog paths
+	// Resolve blueprint paths
 	paths, _ := cmd.Flags().GetStringSlice("file")
-	paths, err := cmdutil.ResolveCatalogPaths(paths)
+	paths, err := cmdutil.ResolveBlueprintPaths(paths)
 	if err != nil {
 		return err
 	}
 
-	// Merge catalogs
+	// Merge blueprints
 	m := merger.New(paths...)
 	if err := m.Merge(); err != nil {
-		return fmt.Errorf("merging catalogs: %w", err)
+		return fmt.Errorf("merging blueprints: %w", err)
 	}
 
 	logger.Debug().
-		Str("catalogs", strings.Join(paths, ", ")).
+		Str("blueprints", strings.Join(paths, ", ")).
 		Int("total", m.Count()).
 		Int("enabled", m.EnabledCount()).
-		Msg("catalogs merged")
+		Msg("blueprints merged")
 
 	internal.RunRuntime(cmdutil.Cfg, m, cmdutil.Ctx)
 	return nil

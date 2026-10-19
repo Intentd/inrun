@@ -1,0 +1,39 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: gateway-clusters-target-ref
+  version: 1.0.0
+  description: Valid serve.clusters and target.clusters — two clusters in serve, each target scoped to one.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        clusters:
+          - prod
+          - staging
+        target:
+          primary:
+            primary: true
+            clusters:
+              - staging
+          replica:
+            clusters:
+              - prod
+gateway:
+  enabled: true
+  api:
+    enabled: true
+  clusters:
+    prod:
+      endpoint: https://prod.internal:6443
+      secretRef:
+        name: prod-credentials
+        key: kubeconfig
+    staging:
+      endpoint: https://staging.internal:6443
+      secretRef:
+        name: staging-credentials
+        key: kubeconfig

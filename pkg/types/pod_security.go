@@ -5,7 +5,7 @@ package types
 // Profile and explicit fields are mutually exclusive.
 type PodSecurityContext struct {
 	// Profile — named security preset. One of: baseline, restricted, hardened.
-	// Expands into the corresponding pod security fields at catalog load time.
+	// Expands into the corresponding pod security fields at blueprint load time.
 	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
 
 	// RunAsNonRoot — if true, the pod's containers must run as a non-root user.
@@ -27,7 +27,7 @@ type PodSecurityContext struct {
 // Profile and explicit fields are mutually exclusive.
 type ContainerSecurityContext struct {
 	// Profile — named security preset. One of: baseline, restricted, hardened.
-	// Expands into the corresponding container security fields at catalog load time.
+	// Expands into the corresponding container security fields at blueprint load time.
 	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
 
 	// AllowPrivilegeEscalation — controls whether a process can gain more

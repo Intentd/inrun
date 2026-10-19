@@ -21,7 +21,7 @@ type Result struct {
 	Cleanup *Cleanup
 
 	// Status is an optional set of fields to merge into the CR's status after
-	// reconcile. Keys are applied after catalog emit.status fields — these win
+	// reconcile. Keys are applied after blueprint emit.status fields — these win
 	// on conflict. Ignored when nil or empty.
 	Status map[string]interface{}
 

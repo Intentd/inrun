@@ -452,7 +452,7 @@ func (r *ReconcilerConfig) Empty() bool   { return r == nil }
 //
 // CRDs in, operators out.
 //
-// Each CRD entry in a Catalog gets its own operatorBox:
+// Each CRD entry in a Blueprint gets its own operatorBox:
 // an isolated informer, queue, worker pool, reconciler, health state, and metrics —
 // independent of every other CRD in the same process.
 //

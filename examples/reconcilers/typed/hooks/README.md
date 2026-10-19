@@ -1,11 +1,11 @@
 # hooks
 
-A `Database` operator split between YAML and Go. The Catalog declares the
+A `Database` operator split between YAML and Go. The Blueprint declares the
 ServiceAccount; the `OnReconcile` and `OnDelete` hooks in
 `hooks/database_hooks.go` build the StatefulSet, Service and optional backup
 CronJob, and refer to the ServiceAccount by name (`<cr>-sa`).
 
-Types are in `api/v1alpha1/`; `catalog.yaml` points at both.
+Types are in `api/v1alpha1/`; `blueprint.yaml` points at both.
 
 ### 1. Generate the registry
 
@@ -57,10 +57,10 @@ Build and push the image:
 make release IMAGE=<registry>/<image>:<tag>
 ```
 
-Apply the RBAC and Catalog bundle:
+Apply the RBAC and Blueprint bundle:
 
 ```bash
-inrun generate bundle -f catalog.yaml -o bundle.yaml
+inrun generate bundle -f blueprint.yaml -o bundle.yaml
 ```
 
 ```bash

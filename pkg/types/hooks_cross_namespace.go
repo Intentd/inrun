@@ -10,7 +10,7 @@ package types
 //
 // Any future resource type that adds fromNamespace / toNamespaces fields must:
 //  1. Implement CrossNamespaceChecker on its *TemplateSource type.
-//  2. Add its slice to FilterSimulatable and the catalog validator.
+//  2. Add its slice to FilterSimulatable and the blueprint validator.
 //
 // validate enforces that fromNamespace and toNamespaces must always be set
 // together (see validate_cross_namespace.go), so checking either field alone

@@ -346,7 +346,7 @@ func (r *MyReconciler) DoSomething() {}
 	}
 }
 
-func TestGenerate_CatalogContainsConstructor(t *testing.T) {
+func TestGenerate_BlueprintContainsConstructor(t *testing.T) {
 	res := &Result{
 		ReceiverType: "WebAppReconciler",
 		PkgName:      "controller",
@@ -357,11 +357,11 @@ func TestGenerate_CatalogContainsConstructor(t *testing.T) {
 		InrunVersion: "v0.8.0",
 	})
 
-	if !strings.Contains(files.Catalog, "function: NewWebAppReconciler") {
-		t.Error("catalog.yaml should contain constructor function name")
+	if !strings.Contains(files.Blueprint, "function: NewWebAppReconciler") {
+		t.Error("blueprint.yaml should contain constructor function name")
 	}
-	if !strings.Contains(files.Catalog, "default: false") {
-		t.Error("catalog.yaml should have default: false for constructor")
+	if !strings.Contains(files.Blueprint, "default: false") {
+		t.Error("blueprint.yaml should have default: false for constructor")
 	}
 	if !strings.Contains(files.GoMod, "v0.8.0") {
 		t.Error("go.mod should contain Inrun version")
@@ -414,28 +414,28 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		t.Errorf("Primary.Alias = %q, want demov1alpha1", p.Alias)
 	}
 
-	// catalog.yaml should use the detected values
+	// blueprint.yaml should use the detected values
 	files := Generate(res, Options{
 		ModulePath:   "github.com/example/webapp-operator",
 		OperatorName: "webapp-operator",
 	})
-	if !strings.Contains(files.Catalog, "kind: WebApp") {
-		t.Error("catalog should contain kind: WebApp from For()")
+	if !strings.Contains(files.Blueprint, "kind: WebApp") {
+		t.Error("blueprint should contain kind: WebApp from For()")
 	}
-	if !strings.Contains(files.Catalog, "object: WebApp") {
-		t.Error("catalog should contain object: WebApp")
+	if !strings.Contains(files.Blueprint, "object: WebApp") {
+		t.Error("blueprint should contain object: WebApp")
 	}
-	if !strings.Contains(files.Catalog, "objectList: WebAppList") {
-		t.Error("catalog should contain objectList: WebAppList")
+	if !strings.Contains(files.Blueprint, "objectList: WebAppList") {
+		t.Error("blueprint should contain objectList: WebAppList")
 	}
-	if !strings.Contains(files.Catalog, "version: v1alpha1") {
-		t.Error("catalog should contain version: v1alpha1")
+	if !strings.Contains(files.Blueprint, "version: v1alpha1") {
+		t.Error("blueprint should contain version: v1alpha1")
 	}
-	if !strings.Contains(files.Catalog, "location: github.com/example/operator/api/v1alpha1") {
-		t.Error("catalog should contain the detected location")
+	if !strings.Contains(files.Blueprint, "location: github.com/example/operator/api/v1alpha1") {
+		t.Error("blueprint should contain the detected location")
 	}
-	if !strings.Contains(files.Catalog, "alias: demov1alpha1") {
-		t.Error("catalog should contain alias: demov1alpha1")
+	if !strings.Contains(files.Blueprint, "alias: demov1alpha1") {
+		t.Error("blueprint should contain alias: demov1alpha1")
 	}
 }
 
@@ -495,7 +495,7 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 }
 
-func TestGenerate_CatalogWithOwnsWatches(t *testing.T) {
+func TestGenerate_BlueprintWithOwnsWatches(t *testing.T) {
 	res := &Result{
 		ReceiverType: "WebAppReconciler",
 		PkgName:      "controller",
@@ -512,17 +512,17 @@ func TestGenerate_CatalogWithOwnsWatches(t *testing.T) {
 		OperatorName: "webapp-operator",
 	})
 
-	if !strings.Contains(files.Catalog, "kind: Deployment") {
-		t.Error("catalog should contain Deployment from Owns()")
+	if !strings.Contains(files.Blueprint, "kind: Deployment") {
+		t.Error("blueprint should contain Deployment from Owns()")
 	}
-	if !strings.Contains(files.Catalog, "kind: Service") {
-		t.Error("catalog should contain Service from Owns()")
+	if !strings.Contains(files.Blueprint, "kind: Service") {
+		t.Error("blueprint should contain Service from Owns()")
 	}
-	if !strings.Contains(files.Catalog, "watch:") {
-		t.Error("catalog should contain watch: block from Watches()")
+	if !strings.Contains(files.Blueprint, "watch:") {
+		t.Error("blueprint should contain watch: block from Watches()")
 	}
-	if !strings.Contains(files.Catalog, "kind: Config") {
-		t.Error("catalog should contain Config in watch: block")
+	if !strings.Contains(files.Blueprint, "kind: Config") {
+		t.Error("blueprint should contain Config in watch: block")
 	}
 }
 

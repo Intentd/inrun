@@ -50,7 +50,7 @@ kubectl apply -f pkg/gateway/fixture/setup.yaml
 ### Step 2 — start Inrun with the gateway fixture
 
 ```bash
-inrun -f pkg/gateway/fixture/catalog.yaml
+inrun -f pkg/gateway/fixture/blueprint.yaml
 ```
 
 ### Step 3 — apply the test CRs

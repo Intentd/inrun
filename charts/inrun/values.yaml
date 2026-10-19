@@ -89,13 +89,13 @@ runtime:
     renewDeadline: 10
     retryPeriod: 5
 
-  # Catalog (runtime only)
-  catalog:
-    existingConfigMap: ""               # ConfigMap from 'inrun generate bundle'; default <release>-catalog
-    configMapKey: catalog.yaml
-    mountPath: /etc/inrun/catalog
+  # Blueprint (runtime only)
+  blueprint:
+    existingConfigMap: ""               # ConfigMap from 'inrun generate bundle'; default <release>-blueprint
+    configMapKey: blueprint.yaml
+    mountPath: /etc/inrun/blueprint
 
-  # Gateway endpoint advertised in the runtime /catalog response.
+  # Gateway endpoint advertised in the runtime /blueprint response.
   # Set to the HTTP base URL of the companion gateway deployment so the
   # console can discover and merge gateway stats.
   # Overrides INRUN_GATEWAY_ENDPOINT env. Empty = no gateway configured.
@@ -259,11 +259,11 @@ gateway:
     certKey: tls.crt              # key in secret for certificate
     keyKey: tls.key               # key in secret for private key
 
-  # Catalog (needed to know which CRDs have webhooks)
-  catalog:
-    existingConfigMap: ""               # default: runtime.catalog's ConfigMap
-    configMapKey: catalog.yaml
-    mountPath: /etc/inrun/catalog
+  # Blueprint (needed to know which CRDs have webhooks)
+  blueprint:
+    existingConfigMap: ""               # default: runtime.blueprint's ConfigMap
+    configMapKey: blueprint.yaml
+    mountPath: /etc/inrun/blueprint
 
   # Registry
   registry:

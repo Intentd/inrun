@@ -4,7 +4,7 @@ The CR tells you *what* to run. It cannot tell you *when* the business is open o
 *whether* a feature flag is enabled. Those answers come from the world — and
 `args:` is how they reach the hook.
 
-The Catalog declares a user-defined note for business hours and an external call
+The Blueprint declares a user-defined note for business hours and an external call
 for the feature flag. The runtime evaluates both before invoking the hook:
 
 ```yaml
@@ -27,7 +27,7 @@ reconcile:
 ```
 
 The hook reads both from `req.Args` — no time library, no HTTP client,
-no flag-service SDK. When the business-hours window changes, only the Catalog
+no flag-service SDK. When the business-hours window changes, only the Blueprint
 changes. The binary is identical across environments and schedules.
 
 ```go
@@ -54,7 +54,7 @@ make registry
 
 ```bash
 make clean && make build
-inrun validate catalog.yaml
+inrun validate blueprint.yaml
 inrun simulate --dev-server
 ```
 

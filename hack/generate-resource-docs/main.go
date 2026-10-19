@@ -118,7 +118,7 @@ func renderKindPage(k kindSpec) (string, error) {
 	}
 
 	// Struct doc comments open with "<StructName> declares/represents..." —
-	// StructName is a Go identifier a catalog author never writes or sees
+	// StructName is a Go identifier a blueprint author never writes or sees
 	// (they write the YAML key). Swap it for "This" so the published page
 	// doesn't leak internal type names into user-facing docs.
 	introMD := strings.ReplaceAll(renderDocText(docText(doc)), k.StructName, "This")
@@ -211,7 +211,7 @@ func renderDocText(text string) string {
 // fencifyCodeBlocks converts comment.Printer's tab-indented code blocks
 // (the only style it emits — no fenced-block option) into fenced ```yaml
 // blocks, since every code example in this codebase's doc comments is a
-// Catalog YAML snippet. Leaves everything else untouched.
+// Blueprint YAML snippet. Leaves everything else untouched.
 func fencifyCodeBlocks(md string) string {
 	lines := strings.Split(md, "\n")
 	var out []string
@@ -266,15 +266,15 @@ func typeString(fset *token.FileSet, expr ast.Expr) string {
 
 // namedYAMLShapes maps named Go types whose underlying YAML shape isn't
 // visible from their literal type text (e.g. "Labels" reads like a struct
-// name, not a map) to the shape word a catalog author should see instead.
+// name, not a map) to the shape word a blueprint author should see instead.
 var namedYAMLShapes = map[string]string{
 	"Labels":     "map",
 	"EnvVarList": "list",
 }
 
-// yamlTypeLabel translates a field's Go type into the shape a catalog author
+// yamlTypeLabel translates a field's Go type into the shape a blueprint author
 // actually writes in YAML (string, boolean, number, list, map, object).
-// Catalog authors never write Go, so no Go syntax (*, [], map[...], struct
+// Blueprint authors never write Go, so no Go syntax (*, [], map[...], struct
 // names) should ever reach the published docs.
 func yamlTypeLabel(goType string) string {
 	t := strings.TrimPrefix(strings.TrimSpace(goType), "*")
@@ -361,7 +361,7 @@ func buildPage(k kindSpec, introMD string, fields []fieldInfo) string {
 func renderIndex(kinds []kindSpec) string {
 	var b strings.Builder
 	b.WriteString("# Resources\n\n")
-	b.WriteString("Kubernetes built-ins and custom resources declarable under `onCreate`, `onReconcile`, and `onDelete` in a Catalog. Each page documents one resource kind's full set of fields — the same schema is reused across all three lifecycle blocks, so a resource's fields don't change depending on which one it's declared under.\n\n")
+	b.WriteString("Kubernetes built-ins and custom resources declarable under `onCreate`, `onReconcile`, and `onDelete` in a Blueprint. Each page documents one resource kind's full set of fields — the same schema is reused across all three lifecycle blocks, so a resource's fields don't change depending on which one it's declared under.\n\n")
 	b.WriteString("## Reference\n\n")
 	b.WriteString("| Kind | YAML key |\n|---|---|\n")
 	for _, k := range kinds {

@@ -7,7 +7,7 @@ metadata:
     and querying current_database() and pg_stat_activity from the WebApp reconciler.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   crd: ./crd.yaml
   cr: ./e2e/cr-e2e.yaml
 

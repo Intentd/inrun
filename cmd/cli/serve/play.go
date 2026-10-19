@@ -11,7 +11,7 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +38,7 @@ accepts either as a request body too.
 No cluster connection is required. No CR is applied or fetched.
 
 Stages (create/update):
-  1. Target resolution    — resolve target/alias from catalog
+  1. Target resolution    — resolve target/alias from blueprint
   2. Token check          — verify the named token can perform the operation
   3. CR construction      — build the full CR from field declarations
   4. Provenance           — stamp serve-target and serve-alias annotations
@@ -46,7 +46,7 @@ Stages (create/update):
   6. Response payload     — evaluate serve.view.payload expressions
 
 Stages (get/list/delete):
-  1. Target resolution  — resolve target/alias from catalog
+  1. Target resolution  — resolve target/alias from blueprint
   2. Token check        — verify the named token can perform the operation
   3. Response config    — show what the caller would receive
 
@@ -91,7 +91,7 @@ Example intent.json:
 			return fmt.Errorf("%s --token is required", cmdutil.FailureMark())
 		}
 
-		cat, err := cmdutil.BuildCatalog(cmd)
+		bp, err := cmdutil.BuildBlueprint(cmd)
 		if err != nil {
 			return err
 		}
@@ -103,26 +103,26 @@ Example intent.json:
 		}
 
 		if op == types.ServeOpCreate || op == types.ServeOpUpdate {
-			// Resolve first catalog path for simulate handoff (--file is a StringSlice on serve commands)
-			catalogFile := ""
+			// Resolve first blueprint path for simulate handoff (--file is a StringSlice on serve commands)
+			blueprintFile := ""
 			paths, _ := cmd.Flags().GetStringSlice("file")
 			if len(paths) == 0 {
 				paths = cmdutil.DefaultFilePaths()
 			}
 			if len(paths) == 0 {
-				return fmt.Errorf(cmdutil.ErrNoCatalog)
+				return fmt.Errorf(cmdutil.ErrNoBlueprint)
 			}
-			catalogFile = paths[0]
+			blueprintFile = paths[0]
 
-			return playWrite(cmd.Context(), cat, catalogFile, intentFile, targetOverride, tokenName, op, simulateFlag, simulateConfig, simOpts)
+			return playWrite(cmd.Context(), bp, blueprintFile, intentFile, targetOverride, tokenName, op, simulateFlag, simulateConfig, simOpts)
 		}
-		return playRead(cat, targetOverride, tokenName, op, namespace, name)
+		return playRead(bp, targetOverride, tokenName, op, namespace, name)
 	},
 }
 
 // ── create / update path ─────────────────────────────────────────────────────
 
-func playWrite(ctx context.Context, cat *catalog.Catalog, catalogFile, intentFile, targetOverride, tokenName string, op types.ServeOperation, doSimulate bool, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
+func playWrite(ctx context.Context, bp *blueprint.Blueprint, blueprintFile, intentFile, targetOverride, tokenName string, op types.ServeOperation, doSimulate bool, simulateConfig string, simOpts testsuite.CliSimulateOptions) error {
 	if intentFile == "" {
 		intentFile = resolveDefaultIntentFile()
 		if intentFile == "" {
@@ -145,7 +145,7 @@ func playWrite(ctx context.Context, cat *catalog.Catalog, catalogFile, intentFil
 
 	printPlayHeader(intentFile, target, tokenName, op)
 
-	obj, crd, alias, err := planChain(cat, raw, tokenName, op, stageNarrator{})
+	obj, crd, alias, err := planChain(bp, raw, tokenName, op, stageNarrator{})
 	if err != nil {
 		return err
 	}
@@ -159,14 +159,14 @@ func playWrite(ctx context.Context, cat *catalog.Catalog, catalogFile, intentFil
 	fmt.Println()
 
 	if doSimulate {
-		return playRunSimulate(ctx, catalogFile, obj, simulateConfig, simOpts)
+		return playRunSimulate(ctx, blueprintFile, obj, simulateConfig, simOpts)
 	}
 	return nil
 }
 
 // ── get / list / delete path ─────────────────────────────────────────────────
 
-func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOperation, namespace, name string) error {
+func playRead(bp *blueprint.Blueprint, target, tokenName string, op types.ServeOperation, namespace, name string) error {
 	if strings.TrimSpace(target) == "" {
 		return fmt.Errorf("%s --target is required for %s", cmdutil.FailureMark(), op)
 	}
@@ -178,9 +178,9 @@ func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOper
 
 	// Stage 1: Target resolution
 	printStage(1, "Target resolution")
-	resolution := cat.LookupByTargetOrAlias(target)
+	resolution := bp.LookupByTargetOrAlias(target)
 	if resolution == nil {
-		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(cat.AvailableTargets(), ", ")))
+		printStageError(fmt.Sprintf("unknown target %q\n  available: %s", target, strings.Join(bp.AvailableTargets(), ", ")))
 		return fmt.Errorf("target %q not found", target)
 	}
 	crd, alias := resolution.CRD, resolution.Alias
@@ -188,7 +188,7 @@ func playRead(cat *catalog.Catalog, target, tokenName string, op types.ServeOper
 
 	// Stage 2: Token check
 	printStage(2, "Token check")
-	if err := checkToken(cat, crd, alias, tokenName, op, namespace); err != nil {
+	if err := checkToken(bp, crd, alias, tokenName, op, namespace); err != nil {
 		printStageError(err.Error())
 		return err
 	}

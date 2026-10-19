@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
@@ -51,19 +51,19 @@ func readSpecCRs(dir string, paths []string) (map[string][]*unstructured.Unstruc
 var PlayIntent func(PlayRequest) (*unstructured.Unstructured, error)
 
 type PlayRequest struct {
-	Catalog     *catalog.Catalog     // the catalog the intent is resolved against
-	CatalogFile string               // path to the catalog.yaml
-	IntentFile  string               // path to the intent YAML/JSON
-	Token       string               // serve token to check the op against
-	Op          types.ServeOperation // create / update / delete
-	Cycles      int                  // reconcile cycles for simulate
-	Verbose     bool                 // print each stage
+	Blueprint     *blueprint.Blueprint // the blueprint the intent is resolved against
+	BlueprintFile string               // path to the blueprint.yaml
+	IntentFile    string               // path to the intent YAML/JSON
+	Token         string               // serve token to check the op against
+	Op            types.ServeOperation // create / update / delete
+	Cycles        int                  // reconcile cycles for simulate
+	Verbose       bool                 // print each stage
 }
 
-// CatalogCRDPaths returns the CRD files the Catalog's CRDs point at with
-// crdFile, resolved like the Catalog parser does. --envtest installs them when
+// BlueprintCRDPaths returns the CRD files the Blueprint's CRDs point at with
+// crdFile, resolved like the Blueprint parser does. --envtest installs them when
 // a Simulate spec lists no crd or crdFiles.
-func CatalogCRDPaths(m *merger.Merger) []string {
+func BlueprintCRDPaths(m *merger.Merger) []string {
 	dir := m.FirstEntryDir()
 	seen := map[string]bool{}
 	var paths []string

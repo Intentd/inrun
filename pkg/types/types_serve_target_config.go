@@ -227,7 +227,7 @@ type ServeTargetConfig struct {
 	// Modes controls which apply modes are allowed for this target.
 	Modes *ServeModes `yaml:"modes,omitempty" json:"modes,omitempty"`
 
-	// Include is a path (relative to the catalog file) to a YAML file with
+	// Include is a path (relative to the blueprint file) to a YAML file with
 	// tokens: and/or config: keys. Inline fields take precedence on merge.
 	Include string `yaml:"include,omitempty" json:"include,omitempty"`
 

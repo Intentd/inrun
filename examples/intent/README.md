@@ -1,7 +1,7 @@
 # Intent
 
 The intent loop end to end. A caller sends a flat intent to the gateway, which
-turns it into a `Website` CR. The Catalog maps the CR to flat args for a Python
+turns it into a `Website` CR. The Blueprint maps the CR to flat args for a Python
 reconciler ([`reconciler/main.py`](./reconciler/main.py)), whose result
 Inrun applies. The caller reads back a view.
 
@@ -13,13 +13,13 @@ caller ◀──view──── gateway ◀── status ◀────result�
 
 The caller never writes `apiVersion`, `kind` or `spec`, and the reconciler
 never reads the CR: each side sees only its own flat fields, and
-`catalog.yaml` maps between them.
+`blueprint.yaml` maps between them.
 
 ## Without a cluster
 
 ### List the tokens
 
-The tokens the gateway accepts, declared in `catalog.yaml`.
+The tokens the gateway accepts, declared in `blueprint.yaml`.
 
 ```bash
 inrun token list
@@ -71,10 +71,10 @@ RECONCILER_TOKEN=inrun-demo-token python3 reconciler/main.py
 
 ### 3. Start Inrun
 
-In a second terminal, with the same tokens. Applies the CRD and the reconciler's token Secret, and starts the runtime on :8080. Because the Catalog serves a CRD, it also starts the gateway on :8082 (`INRUN_GATEWAY_PORT` changes it) and the console on :8081.
+In a second terminal, with the same tokens. Applies the CRD and the reconciler's token Secret, and starts the runtime on :8080. Because the Blueprint serves a CRD, it also starts the gateway on :8082 (`INRUN_GATEWAY_PORT` changes it) and the console on :8081.
 
 ```bash
-inrun -f catalog.yaml
+inrun -f blueprint.yaml
 ```
 
 ### 4. Send the intent

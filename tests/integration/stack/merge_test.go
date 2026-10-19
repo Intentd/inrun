@@ -1,7 +1,7 @@
 //go:build integration
 
 // tests/integration/stack/merge_test.go
-// Integration tests for the Merger: loading Catalog and Stack files from disk,
+// Integration tests for the Merger: loading Blueprint and Stack files from disk,
 // resolving sources, merging CRD lists, and enforcing deduplication rules.
 package stack_test
 
@@ -13,10 +13,10 @@ import (
 	"github.com/intentd/inrun/pkg/merger"
 )
 
-const catalogYAML = `apiVersion: inrun.dev/v1
-kind: Catalog
+const blueprintYAML = `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
-  name: test-catalog
+  name: test-blueprint
 spec:
   crds:
     website:
@@ -25,10 +25,10 @@ spec:
       enabled: true
 `
 
-const catalogDisabledYAML = `apiVersion: inrun.dev/v1
-kind: Catalog
+const blueprintDisabledYAML = `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
-  name: test-disabled-catalog
+  name: test-disabled-blueprint
 spec:
   crds:
     website:
@@ -39,7 +39,7 @@ spec:
 
 func writeTemp(t *testing.T, content string) string {
 	t.Helper()
-	f, err := os.CreateTemp("", "catalog-*.yaml")
+	f, err := os.CreateTemp("", "blueprint-*.yaml")
 	if err != nil {
 		t.Fatalf("creating temp file: %v", err)
 	}
@@ -51,8 +51,8 @@ func writeTemp(t *testing.T, content string) string {
 	return f.Name()
 }
 
-func TestMerger_SingleCatalog_LoadsAllCRDs(t *testing.T) {
-	path := writeTemp(t, catalogYAML)
+func TestMerger_SingleBlueprint_LoadsAllCRDs(t *testing.T) {
+	path := writeTemp(t, blueprintYAML)
 	m := merger.New(path)
 	if err := m.Merge(); err != nil {
 		t.Fatalf("Merge() failed: %v", err)
@@ -63,7 +63,7 @@ func TestMerger_SingleCatalog_LoadsAllCRDs(t *testing.T) {
 }
 
 func TestMerger_DisabledCRD_ExcludedFromEnabled(t *testing.T) {
-	path := writeTemp(t, catalogDisabledYAML)
+	path := writeTemp(t, blueprintDisabledYAML)
 	m := merger.New(path)
 	if err := m.Merge(); err != nil {
 		t.Fatalf("Merge() failed: %v", err)
@@ -77,7 +77,7 @@ func TestMerger_DisabledCRD_ExcludedFromEnabled(t *testing.T) {
 }
 
 func TestMerger_GetCRD_ByName(t *testing.T) {
-	path := writeTemp(t, catalogYAML)
+	path := writeTemp(t, blueprintYAML)
 	m := merger.New(path)
 	if err := m.Merge(); err != nil {
 		t.Fatalf("Merge() failed: %v", err)
@@ -96,20 +96,20 @@ func TestMerger_GetCRD_ByName(t *testing.T) {
 	}
 }
 
-func TestMerger_TwoCatalogFiles_Merged(t *testing.T) {
+func TestMerger_TwoBlueprintFiles_Merged(t *testing.T) {
 	a := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: catalog-a
+  name: blueprint-a
 spec:
   crds:
     alpha:
       enabled: true
 `)
 	b := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: catalog-b
+  name: blueprint-b
 spec:
   crds:
     beta:
@@ -120,24 +120,24 @@ spec:
 		t.Fatalf("Merge() failed: %v", err)
 	}
 	if m.Count() != 2 {
-		t.Errorf("expected 2 CRDs from two catalog files, got %d", m.Count())
+		t.Errorf("expected 2 CRDs from two blueprint files, got %d", m.Count())
 	}
 }
 
 func TestMerger_DuplicateCRD_AcrossEntryPoints_ReturnsError(t *testing.T) {
 	a := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: catalog-a
+  name: blueprint-a
 spec:
   crds:
     website:
       enabled: true
 `)
 	b := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: catalog-b
+  name: blueprint-b
 spec:
   crds:
     website:
@@ -149,17 +149,17 @@ spec:
 	}
 }
 
-func TestMerger_StackFileSource_LoadsCatalog(t *testing.T) {
-	catalogPath := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+func TestMerger_StackFileSource_LoadsBlueprint(t *testing.T) {
+	blueprintPath := writeTemp(t, `apiVersion: inrun.dev/v1
+kind: Blueprint
 metadata:
-  name: source-catalog
+  name: source-blueprint
 spec:
   crds:
     sourced-crd:
       enabled: true
 `)
-	stackContent := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: test-stack\nimports:\n  files:\n    - url: " + catalogPath + "\nspec:\n  crds: {}\n"
+	stackContent := "apiVersion: inrun.dev/v1\nkind: Stack\nmetadata:\n  name: test-stack\nimports:\n  files:\n    - url: " + blueprintPath + "\nspec:\n  crds: {}\n"
 	stackPath := writeTemp(t, stackContent)
 
 	m := merger.New(stackPath)
@@ -167,7 +167,7 @@ spec:
 		t.Fatalf("Merge() failed: %v", err)
 	}
 	if m.Count() != 1 {
-		t.Errorf("expected 1 CRD from sourced Catalog, got %d", m.Count())
+		t.Errorf("expected 1 CRD from sourced Blueprint, got %d", m.Count())
 	}
 	if _, ok := m.Get("sourced-crd"); !ok {
 		t.Error("expected to find 'sourced-crd'")
@@ -176,18 +176,18 @@ spec:
 
 func TestMerger_Add_AppendsEntryPoints(t *testing.T) {
 	a := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: catalog-a
+  name: blueprint-a
 spec:
   crds:
     alpha:
       enabled: true
 `)
 	b := writeTemp(t, `apiVersion: inrun.dev/v1
-kind: Catalog
+kind: Blueprint
 metadata:
-  name: catalog-b
+  name: blueprint-b
 spec:
   crds:
     beta:

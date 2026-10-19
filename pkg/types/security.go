@@ -1,6 +1,6 @@
 // pkg/types/security.go
 //
-// Security configuration at the Catalog level.
+// Security configuration at the Blueprint level.
 //
 // The unified security block covers four concerns:
 //
@@ -26,9 +26,9 @@
 //	    enabled: true            # default: ENABLE_CONVERSION env / false
 //	    conversionWindow: 100    # default: CONVERSION_WINDOW env / 100
 //
-// Precedence: catalog YAML value > ENV value > hard default.
+// Precedence: blueprint YAML value > ENV value > hard default.
 // ENV values populate SecurityConfig during Init() and act as defaults.
-// Catalog values are merged on top in BuildRuntimeCatalog.
+// Blueprint values are merged on top in BuildRuntimeBlueprint.
 package types
 
 // CertManagerConfig controls Inrun's built-in TLS certificate lifecycle.
@@ -55,8 +55,8 @@ type CertManagerConfig struct {
 	ValidFor string `yaml:"validFor,omitempty" json:"validFor,omitempty"`
 }
 
-// CatalogSecurity holds the full security configuration for a Catalog.
-type CatalogSecurity struct {
+// BlueprintSecurity holds the full security configuration for a Blueprint.
+type BlueprintSecurity struct {
 	// ServiceName defines the runtime and gateway service names for the Inrun deployment.
 	ServiceName *ServiceName `yaml:"serviceName,omitempty" json:"serviceName,omitempty"`
 
@@ -146,7 +146,7 @@ type DeletionProtectionConfig struct {
 	// StrictMode controls whether removing the deletion-protection label from a resource
 	// is itself treated as a deletion attempt and blocked.
 	// When true, the only way to remove the label (and thus unprotect a resource) is to
-	// disable strictMode in the Catalog and restart Inrun Gateway.
+	// disable strictMode in the Blueprint and restart Inrun Gateway.
 	// Default: false.
 	StrictMode bool `yaml:"strictMode,omitempty" json:"strictMode,omitempty"`
 }
@@ -163,12 +163,12 @@ type NamespaceProtectionConfig struct {
 	// Default: "Fail".
 	FailurePolicy string `yaml:"failurePolicy,omitempty" json:"failurePolicy,omitempty"`
 
-	// RestrictedNamespaces — deny-list applied to every CRD in this Catalog.
+	// RestrictedNamespaces — deny-list applied to every CRD in this Blueprint.
 	// Merged additively with per-CRD restrictedNamespaces — more specific levels
 	// add to, not replace, broader levels.
 	RestrictedNamespaces RestrictedNamespaces `yaml:"restrictedNamespaces,omitempty" json:"restrictedNamespaces,omitempty"`
 
-	// AllowedNamespaces — allow-list applied to every CRD in this Catalog.
+	// AllowedNamespaces — allow-list applied to every CRD in this Blueprint.
 	// Merged additively with per-CRD allowedNamespaces.
 	AllowedNamespaces AllowedNamespaces `yaml:"allowedNamespaces,omitempty" json:"allowedNamespaces,omitempty"`
 
@@ -216,7 +216,7 @@ type ConversionConfig struct {
 // ── Effective value helpers ───────────────────────────────────────────────────
 
 // IsDeletionProtectionEnabled returns the effective deletion protection setting.
-func (s *CatalogSecurity) IsDeletionProtectionEnabled() bool {
+func (s *BlueprintSecurity) IsDeletionProtectionEnabled() bool {
 	if s == nil || s.DeletionProtection == nil {
 		return false
 	}
@@ -227,7 +227,7 @@ func (s *CatalogSecurity) IsDeletionProtectionEnabled() bool {
 }
 
 // IsAdmissionEnabled returns true when admission webhooks are globally enabled.
-func (s *CatalogSecurity) IsAdmissionEnabled() bool {
+func (s *BlueprintSecurity) IsAdmissionEnabled() bool {
 	if s == nil || s.Webhooks == nil || s.Webhooks.Admission == nil {
 		return false
 	}
@@ -238,7 +238,7 @@ func (s *CatalogSecurity) IsAdmissionEnabled() bool {
 }
 
 // IsConversionEnabled returns true when the conversion webhook is globally enabled.
-func (s *CatalogSecurity) IsConversionEnabled() bool {
+func (s *BlueprintSecurity) IsConversionEnabled() bool {
 	if s == nil || s.Conversion == nil {
 		return false
 	}
@@ -250,7 +250,7 @@ func (s *CatalogSecurity) IsConversionEnabled() bool {
 
 // RuntimeServiceName returns the effective service name for inrun runtime.
 // Falls back to the provided ENV default.
-func (s *CatalogSecurity) RuntimeServiceName(envDefault string) string {
+func (s *BlueprintSecurity) RuntimeServiceName(envDefault string) string {
 	if s != nil && s.ServiceName != nil && s.ServiceName.Runtime != "" {
 		return s.ServiceName.Runtime
 	}
@@ -259,7 +259,7 @@ func (s *CatalogSecurity) RuntimeServiceName(envDefault string) string {
 
 // GatewayServiceName returns the effective service name for inrun gateway.
 // Falls back to the provided ENV default.
-func (s *CatalogSecurity) GatewayServiceName(envDefault string) string {
+func (s *BlueprintSecurity) GatewayServiceName(envDefault string) string {
 	if s != nil && s.ServiceName != nil && s.ServiceName.Gateway != "" {
 		return s.ServiceName.Gateway
 	}
@@ -268,7 +268,7 @@ func (s *CatalogSecurity) GatewayServiceName(envDefault string) string {
 
 // DeletionProtectionFailurePolicy returns the effective failure policy string.
 // Falls back to "Fail" when not configured — protecting by default.
-func (s *CatalogSecurity) DeletionProtectionFailurePolicy() string {
+func (s *BlueprintSecurity) DeletionProtectionFailurePolicy() string {
 	if s != nil && s.DeletionProtection != nil && s.DeletionProtection.FailurePolicy != "" {
 		return s.DeletionProtection.FailurePolicy
 	}
@@ -276,7 +276,7 @@ func (s *CatalogSecurity) DeletionProtectionFailurePolicy() string {
 }
 
 // IsNamespaceProtectionEnabled returns the effective namespace protection setting.
-func (s *CatalogSecurity) IsNamespaceProtectionEnabled() bool {
+func (s *BlueprintSecurity) IsNamespaceProtectionEnabled() bool {
 	if s == nil || s.NamespaceProtection == nil {
 		return false
 	}
@@ -288,7 +288,7 @@ func (s *CatalogSecurity) IsNamespaceProtectionEnabled() bool {
 
 // NamespaceProtectionFailurePolicy returns the effective failure policy string.
 // Falls back to "Fail" when not configured — protecting by default.
-func (s *CatalogSecurity) NamespaceProtectionFailurePolicy() string {
+func (s *BlueprintSecurity) NamespaceProtectionFailurePolicy() string {
 	if s != nil && s.NamespaceProtection != nil && s.NamespaceProtection.FailurePolicy != "" {
 		return s.NamespaceProtection.FailurePolicy
 	}
@@ -297,7 +297,7 @@ func (s *CatalogSecurity) NamespaceProtectionFailurePolicy() string {
 
 // WebhooksFailurePolicy returns the effective failure policy for admission webhooks.
 // Falls back to "Ignore" — not blocking when Inrun is unreachable.
-func (s *CatalogSecurity) WebhooksFailurePolicy(envDefault string) string {
+func (s *BlueprintSecurity) WebhooksFailurePolicy(envDefault string) string {
 	if s != nil && s.Webhooks != nil && s.Webhooks.FailurePolicy != "" {
 		return s.Webhooks.FailurePolicy
 	}
@@ -309,7 +309,7 @@ func (s *CatalogSecurity) WebhooksFailurePolicy(envDefault string) string {
 
 // IsCertAutoRotateEnabled returns the effective auto-rotate setting.
 // Default: true — rotation is on unless explicitly disabled.
-func (s *CatalogSecurity) IsCertAutoRotateEnabled() bool {
+func (s *BlueprintSecurity) IsCertAutoRotateEnabled() bool {
 	if s == nil || s.CertManager == nil || s.CertManager.AutoRotate == nil {
 		return true
 	}
@@ -318,7 +318,7 @@ func (s *CatalogSecurity) IsCertAutoRotateEnabled() bool {
 
 // CertRotationThresholdVal returns the effective rotation threshold string.
 // Falls back to the provided ENV default.
-func (s *CatalogSecurity) CertRotationThresholdVal(envDefault string) string {
+func (s *BlueprintSecurity) CertRotationThresholdVal(envDefault string) string {
 	if s != nil && s.CertManager != nil && s.CertManager.RotationThreshold != "" {
 		return s.CertManager.RotationThreshold
 	}
@@ -327,7 +327,7 @@ func (s *CatalogSecurity) CertRotationThresholdVal(envDefault string) string {
 
 // ValidForVal returns the effective validity string.
 // Falls back to the provided ENV default.
-func (s *CatalogSecurity) ValidForVal(envDefault string) string {
+func (s *BlueprintSecurity) ValidForVal(envDefault string) string {
 	if s != nil && s.CertManager != nil && s.CertManager.ValidFor != "" {
 		return s.CertManager.ValidFor
 	}

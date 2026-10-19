@@ -1,0 +1,187 @@
+# Gateway Serve fixture — exercises all serve features introduced in v0.7.12+.
+#
+# Sub-files:
+#   serve/platformresource.yaml           — field hints (when/or/category/disabled/defaults)
+#   serve/aliases/preview.yaml            — alias config for the "preview" entry point
+#   serve/aliases/internal.yaml           — alias config for the "internal" entry point
+#   admission/platformresource.yaml       — validation rules (required, unique, warn)
+#   status/platformresource.yaml          — status field projections
+#
+# CRDs:
+#   platRsc       — full serve, target map with aliases, provenance-aware operatorBox (getServeAlias)
+#   appGroup      — minimal serve (enabled: true only, kind-default target)
+#   clusterPolicy — no serve, pure operator (exercises serve-disabled path)
+#
+# What this covers:
+#   serve.category           — blueprint organisation label
+#   serve.ignore             — hides system-managed fields from the form
+#   serve.fields.category    — section headings in the form
+#   serve.fields.when        — AND conditions (field-based + time-based)
+#   serve.fields.or       — OR conditions
+#   serve.fields.disabled    — greyed-out locked fields with a reason message
+#   serve.target (map form)  — primary + alias entries with per-entry token + config (include:)
+#   getServeAlias / getServeTarget — provenance notes consumed by the operatorBox
+#   ?dryRun=true             — POST /api/v1/apply preview with field violations
+#   GET /api/v1/schema/      — service list (category + description)
+#   serve.modes              — per-target mode control (target/CR mode)
+#
+# Tokens:
+#   console  — secretRef (fixture-console-token); set console.gatewayToken.secretRef.name in Helm
+#   ci-pipeline     — env var ${FIXTURE_CI_TOKEN}; set via gateway.extraEnv or export locally
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: gateway-serve-fixture
+  author: inrun
+  version: 0.1.0
+  description: >
+    Gateway Serve fixture for testing the Gateway API, schema endpoint, and
+    Serve form features. Uses PlatformResource — same multi-type CR as
+    the 05-all-in-one example in ecosystem-compostion pack.
+  tags:
+    - fixture
+    - gateway
+    - serve
+
+gateway:
+  endpoint: http://inrun-gateway.inrun-system.svc:8080
+  api:
+    enabled: true
+    auth:
+      tokens:
+        # secretRef — gateway reads the token from the cluster Secret.
+        # Set console.gatewayToken.secretRef.name=fixture-console-token in
+        # Helm values so the Console pod gets GATEWAY_TOKEN injected.
+        - name: console
+          secretRef:
+            name: fixture-console-token
+            key: token
+        # ${FIXTURE_CI_TOKEN} — set via gateway extraEnv in Helm values or
+        # exported locally. CI pipelines inject env vars; no cluster Secret needed.
+        - name: ci-pipeline
+          token: "${FIXTURE_CI_TOKEN}"
+
+security:
+  webhooks:
+    admission:
+      enabled: true
+  deletionProtection:
+    enabled: false
+
+functions:
+  definitions:
+    - name: teamName
+      expression: |
+        team-{{ repoSlug .spec.repoURL }}
+
+spec:
+  crds:
+    platRsc:
+      apiTypes:
+        group: gateway.fixture.inrun.dev
+        version: v1alpha1
+        kind: PlatformResource
+        plural: platformresources
+      serve:
+        enabled: true
+        # target map: apifixture is primary; preview and internal are aliases.
+        # All three share the CRD-level tokens and response config below as
+        # their fallback. Aliases override via their own include files.
+        target:
+          apifixture:
+            primary: true
+          preview:
+            include: ./serve/aliases/preview.yaml
+          internal:
+            include: ./serve/aliases/internal.yaml
+            fieldSelector:
+              spec.workloadType: app
+              metadata.name: internal-memo
+            modes:
+              cr: false
+            apply:
+              targetOverride: false
+
+        namespace: '{{ teamName }}'
+        category: "Compute"
+        description: "Self-service application and infrastructure provisioning"
+        ignore:
+          - serviceSelector
+          - alertThresholds
+          - provider
+          - region
+          - class
+          - legacyMigration
+          - maintenanceWindow
+        include: ./serve/platformresource.yaml
+        # CRD-level token restrictions — exercises permission resolution at both
+        # primary and alias levels in e2e. ci-pipeline is read-only on the primary
+        # and is NOT listed in any alias token map, so it is denied for
+        # preview and internal entirely.
+        tokens:
+          console:
+            permissions:
+              global: ["*"]
+          ci-pipeline:
+            permissions:
+              resources: [get, list]
+              schema: [get]
+        # CRD-level response: full CR plus provenance fields so port-forwarding
+        # on the primary target shows the stamped annotations in the payload.
+        view:
+          fullObject: true
+          payload:
+            phase: '{{ .status.phase }}'
+            target: '{{ getServeTarget . }}'
+            alias: '{{ getServeAlias . }}'
+            source: '{{ getServeSource . }}'
+          poll:
+            field: status.phase
+      admission:
+        validation:
+          include: ./admission/platformresource.yaml
+      operatorBox:
+        reconcile:
+          workers: 2
+          resync: 30s
+          imports:
+            - module: ./modules/platform-resource/module.yaml
+        emit:
+          status:
+            include: ./status/platformresource.yaml
+
+    # ── AppGroup: minimal serve ────────────────────────────────────────────────
+    # Exercises the serve-enabled path with no target, no fields, no aliases.
+    # serve.target defaults to the lowercased kind ("appgroup"); namespace template
+    # is the only required field. Demonstrates the smallest viable serve config.
+    appGroup:
+      apiTypes:
+        group: gateway.fixture.inrun.dev
+        version: v1alpha1
+        kind: AppGroup
+        plural: appgroups
+      serve:
+        enabled: true
+        namespace: '{{ teamName }}'
+        title: "App Group"
+        description: "Group multiple application deployments under a single name"
+      operatorBox:
+        reconcile:
+          imports:
+            - module: ./modules/argocd-applicationset/module.yaml
+
+    # ── ClusterPolicy: serve disabled ─────────────────────────────────────────
+    # A cluster-scoped CRD with no serve block — exercises the serve-disabled path.
+    # Not visible in the Console; managed exclusively via kubectl / CI.
+    clusterPolicy:
+      namespaced: false
+      apiTypes:
+        group: gateway.fixture.inrun.dev
+        version: v1alpha1
+        kind: ClusterPolicy
+        plural: clusterpolicies
+      operatorBox:
+        reconcile:
+          imports:
+            - module: ./modules/network-policy/module.yaml
+

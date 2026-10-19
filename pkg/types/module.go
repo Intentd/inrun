@@ -3,7 +3,7 @@ package types
 
 // Module is the smallest reusable primitive in Inrun's composition model.
 // A Module declares named inputs and resource blocks. It cannot run alone —
-// it must be imported by a Catalog that provides its inputs via with:.
+// it must be imported by a Blueprint that provides its inputs via with:.
 //
 // YAML:
 //
@@ -70,7 +70,7 @@ type ModuleInput struct {
 	// Description explains what this input controls.
 	Description string `yaml:"description,omitempty" json:"description,omitempty"`
 
-	// Required — when true, the importing Catalog must provide this input
+	// Required — when true, the importing Blueprint must provide this input
 	// in its with: block. Validation fails if required inputs are missing.
 	Required bool `yaml:"required,omitempty" json:"required,omitempty"`
 

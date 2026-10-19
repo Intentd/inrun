@@ -21,11 +21,11 @@ import (
 // patternSpecs is the registry of known pattern kinds.
 // Add new kinds here — no other changes required.
 var patternSpecs = map[PatternKind]*PatternSpec{
-	CatalogKind: {
-		Kind:          CatalogKind,
+	BlueprintKind: {
+		Kind:          BlueprintKind,
 		MediaType:     "application/vnd.inrun.pattern.v1+tar+gzip",
-		PrimaryFile:   FileCatalog,
-		RequiredFiles: []string{FileCatalog},
+		PrimaryFile:   FileBlueprint,
+		RequiredFiles: []string{FileBlueprint},
 		OptionalFiles: []string{FileStack, FileCRD, FileReadme, FileCR, FileE2E, FileSimulate, FileIntentYAML, FileIntentJSON, FileGoMod, FileGoSum, FileMakefile},
 	},
 	ModuleKind: {
@@ -38,9 +38,9 @@ var patternSpecs = map[PatternKind]*PatternSpec{
 }
 
 // DetectKind reads the primary YAML file in dir and returns the pattern kind.
-// Tries catalog.yaml first, then module.yaml.
+// Tries blueprint.yaml first, then module.yaml.
 func DetectKind(dir string) (PatternKind, *PatternSpec, error) {
-	candidates := []string{FileCatalog, FileModule}
+	candidates := []string{FileBlueprint, FileModule}
 	for _, name := range candidates {
 		path := filepath.Join(dir, name)
 		data, err := readLocal(path)
@@ -59,8 +59,8 @@ func DetectKind(dir string) (PatternKind, *PatternSpec, error) {
 		}
 	}
 	return UnknownKind, nil, fmt.Errorf(
-		"no recognized Inrun pattern in %s (expected %s with kind: Catalog, or module.yaml with kind: Module)",
-		dir, FileCatalog,
+		"no recognized Inrun pattern in %s (expected %s with kind: Blueprint, or module.yaml with kind: Module)",
+		dir, FileBlueprint,
 	)
 }
 
@@ -98,7 +98,7 @@ func ValidatePatternDirectory(dir string) (PatternKind, *PatternSpec, []string, 
 }
 
 // LoadPatternMeta reads name/version/description from the primary file.
-// Works for both Catalog (catalog.yaml) and Module (module.yaml).
+// Works for both Blueprint (blueprint.yaml) and Module (module.yaml).
 func LoadPatternMeta(dir string, spec *PatternSpec) (*PatternMeta, error) {
 	path := filepath.Join(dir, spec.PrimaryFile)
 	data, err := readLocal(path)
@@ -115,7 +115,7 @@ func LoadPatternMeta(dir string, spec *PatternSpec) (*PatternMeta, error) {
 			License     string   `yaml:"license"`
 			Tags        []string `yaml:"tags"`
 		} `yaml:"metadata"`
-		Lifecycle *types.CatalogLifecycle `yaml:"lifecycle"`
+		Lifecycle *types.BlueprintLifecycle `yaml:"lifecycle"`
 	}
 	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", spec.PrimaryFile, err)
@@ -154,7 +154,7 @@ func LoadPatternMeta(dir string, spec *PatternSpec) (*PatternMeta, error) {
 // kind returns a display string for a PatternKind.
 func kind(k PatternKind) string {
 	switch k {
-	case CatalogKind:
+	case BlueprintKind:
 		return "Pattern"
 	case ModuleKind:
 		return "Module"
@@ -167,8 +167,8 @@ func kind(k PatternKind) string {
 // a specific pattern kind.
 func mediaTypeForPatternFile(name string, k PatternKind) string {
 	switch filepath.Base(name) {
-	case FileCatalog:
-		return "application/vnd.inrun.catalog.v1+yaml"
+	case FileBlueprint:
+		return "application/vnd.inrun.blueprint.v1+yaml"
 	case FileCRD:
 		return "application/vnd.kubernetes.crd.v1+yaml"
 	case FileCR:

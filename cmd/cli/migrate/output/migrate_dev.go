@@ -21,7 +21,7 @@ func PrintMigrate(opts Opts) {
 		label += "  " + cmdutil.Yellow("[dry-run]")
 	}
 	fmt.Println(label)
-	fmt.Printf("  %s %s\n", cmdutil.Gray("catalog:"), cmdutil.Cyan(strings.Join(opts.Paths, ", ")))
+	fmt.Printf("  %s %s\n", cmdutil.Gray("blueprint:"), cmdutil.Cyan(strings.Join(opts.Paths, ", ")))
 	if len(opts.Namespaces) > 0 {
 		nsStr := "namespace"
 		if len(opts.Namespaces) > 1 {

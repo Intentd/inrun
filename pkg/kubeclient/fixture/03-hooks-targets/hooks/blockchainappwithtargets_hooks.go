@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BlockchainAppHooks returns the hook implementation registered in the Catalog.
+// BlockchainAppHooks returns the hook implementation registered in the Blueprint.
 func BlockchainAppHooks() domain.AnyReconcileHooks {
 	return domain.ReconcileHooks[*apiv1.BlockchainAppWithTargets]{OnReconcile: onBlockchainAppWithTargetsReconcile}
 }
@@ -22,7 +22,7 @@ func onBlockchainAppWithTargetsReconcile(ctx context.Context, req domain.Request
 		return domain.Result{}, fmt.Errorf("kubeclient not in context")
 	}
 
-	// Both values come from the Catalog args — resolved per target surface.
+	// Both values come from the Blueprint args — resolved per target surface.
 	// v2-enabled target: featureEnabled="true", enqueueGate blocks outside hours.
 	// v2-disabled target: featureEnabled="false", no gate.
 	// The hook binary is identical — only the args change between targets.

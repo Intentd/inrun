@@ -27,11 +27,11 @@ func (c *Console) AddInstance(rawURL string) error {
 	if err := SaveRuntimeStorage(store); err != nil {
 		Warnf("failed to save runtime list: %v", err)
 	}
-	// Fetch its Catalog in background
+	// Fetch its Blueprint in background
 	go func() {
-		if cat, err := client.FetchCatalog(); err == nil {
+		if bp, err := client.FetchBlueprint(); err == nil {
 			c.mu.Lock()
-			c.instances[url].Catalog = cat
+			c.instances[url].Blueprint = bp
 			c.mu.Unlock()
 		}
 	}()

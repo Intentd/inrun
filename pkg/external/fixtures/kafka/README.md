@@ -10,7 +10,7 @@ One call is declared:
 
 ```sh
 docker compose -f pkg/external/fixtures/kafka/docker-compose.yaml up -d
-inrun -f pkg/external/fixtures/kafka/catalog.yaml
+inrun -f pkg/external/fixtures/kafka/blueprint.yaml
 ```
 
 ## Check the Status

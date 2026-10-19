@@ -10,7 +10,7 @@ stamps on the CR.
 | `v2-disabled` | Per-target hooks | Same binary; args force `featureEnabled=false`, no gate |
 | `v2-ctor` | Per-target constructor | Distinct `domain.Reconciler` implementation; reads `featureEnabled` from args, owns the full reconcile loop |
 
-**Hooks targets** share one binary. The Catalog's `args` determine what each
+**Hooks targets** share one binary. The Blueprint's `args` determine what each
 surface means — the hook reads `req.Args` and never knows which surface it came from:
 
 ```yaml
@@ -70,7 +70,7 @@ make registry
 
 ```bash
 make clean && make build
-inrun validate catalog.yaml
+inrun validate blueprint.yaml
 ```
 
 ### Simulate and Play without a cluster

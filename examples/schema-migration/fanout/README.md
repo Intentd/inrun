@@ -102,7 +102,7 @@ kubectl get cronjobs.demo.inrun.dev db-backup -n team-alpha \
 {"image":"postgres:16-alpine","schedule":"0 2 * * 1-5"}
 ```
 
-### 5. Validate the catalog
+### 5. Validate the blueprint
 
 ```bash
 inrun validate
@@ -110,7 +110,7 @@ inrun validate
 
 ### 6. Run the migration
 
-`inrun migrate` reads the `migrate.from` declarations in the catalog, finds
+`inrun migrate` reads the `migrate.from` declarations in the blueprint, finds
 every CR across all namespaces where the old path is present, applies the same
 fanout transform the serve layer uses, and removes the old path.
 

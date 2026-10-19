@@ -4,7 +4,7 @@ package validate
 
 // printEnrichmentReport prints the enrichment summary as part of inrun validate output.
 //
-// Example output for a Catalog with built-in and custom CRDs:
+// Example output for a Blueprint with built-in and custom CRDs:
 //
 //   ✓ deployment-governance
 //     kind: Deployment → enriched from built-in registry
@@ -26,21 +26,21 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 // printCRDValidationLine prints one CRD entry's validation result.
 // Shows enrichment clearly when it occurred, and any warnings.
-func printCRDValidationLine(cat *catalog.Catalog, entry types.CRDEntry) {
+func printCRDValidationLine(bp *blueprint.Blueprint, entry types.CRDEntry) {
 	printCRDHeader(entry)
-	strictModeText := getStrictModeText(entry, cat.IsStrictModeEnabled())
+	strictModeText := getStrictModeText(entry, bp.IsStrictModeEnabled())
 	printKindInfo(entry)
 	printModeResync(entry)
-	printProtectionStatus(entry, cat.IsDeletionProtectionEnabled(), strictModeText)
-	printInfo(entry.Info, cat.Info)
-	printWarnings(entry.Warnings, cat.Warnings)
+	printProtectionStatus(entry, bp.IsDeletionProtectionEnabled(), strictModeText)
+	printInfo(entry.Info, bp.Info)
+	printWarnings(entry.Warnings, bp.Warnings)
 }
 
 // printCRDHeader prints the CRD name with appropriate icon.
@@ -57,8 +57,8 @@ func printCRDHeader(entry types.CRDEntry) {
 
 // getStrictModeText returns a formatted string indicating strict mode status,
 // or an empty string if strict mode is not enforced for this CRD.
-func getStrictModeText(entry types.CRDEntry, catalogStrictMode bool) string {
-	if catalogStrictMode && entry.IsStrictDeletionProtection(catalogStrictMode) {
+func getStrictModeText(entry types.CRDEntry, blueprintStrictMode bool) string {
+	if blueprintStrictMode && entry.IsStrictDeletionProtection(blueprintStrictMode) {
 		return cmdutil.InfoMark() + " (strict)"
 	}
 	return ""
@@ -101,13 +101,13 @@ func printModeResync(entry types.CRDEntry) {
 // printProtectionStatus prints the protection level for custom CRDs.
 // For built‑ins, a simplified message is shown.
 // When strict mode is active, the label changes from "protection:" to "strict‑protection:".
-func printProtectionStatus(entry types.CRDEntry, catalogProtected bool, strictModeText string) {
+func printProtectionStatus(entry types.CRDEntry, blueprintProtected bool, strictModeText string) {
 	if entry.IsBuiltInType() {
 		fmt.Printf("    %s\n", cmdutil.Gray("protection: label-based (built-in)"))
 		return
 	}
 
-	if !catalogProtected {
+	if !blueprintProtected {
 		return
 	}
 
@@ -141,9 +141,9 @@ func printProtectionStatus(entry types.CRDEntry, catalogProtected bool, strictMo
 	fmt.Printf("    %s\n", cmdutil.Gray(fullText))
 }
 
-// printWarnings prints any warnings associated with the CRD or Catalog,
+// printWarnings prints any warnings associated with the CRD or Blueprint,
 // with proper indentation.
-func printWarnings(crdWarnings, catalogWarnings []string) {
+func printWarnings(crdWarnings, blueprintWarnings []string) {
 	// Print CRD-level warnings
 	for _, w := range crdWarnings {
 		lines := strings.Split(w, "\n")
@@ -156,8 +156,8 @@ func printWarnings(crdWarnings, catalogWarnings []string) {
 		}
 	}
 
-	// Print Catalog-level warnings
-	for _, w := range catalogWarnings {
+	// Print Blueprint-level warnings
+	for _, w := range blueprintWarnings {
 		lines := strings.Split(w, "\n")
 		for i, line := range lines {
 			if i == 0 {
@@ -169,9 +169,9 @@ func printWarnings(crdWarnings, catalogWarnings []string) {
 	}
 }
 
-// printInfo prints any informational messages associated with the CRD or Catalog,
+// printInfo prints any informational messages associated with the CRD or Blueprint,
 // with proper indentation.
-func printInfo(crdInfo, catalogInfo []string) {
+func printInfo(crdInfo, blueprintInfo []string) {
 	// Print CRD-level info
 	for _, msg := range crdInfo {
 		lines := strings.Split(msg, "\n")
@@ -184,8 +184,8 @@ func printInfo(crdInfo, catalogInfo []string) {
 		}
 	}
 
-	// Print Catalog-level info
-	for _, msg := range catalogInfo {
+	// Print Blueprint-level info
+	for _, msg := range blueprintInfo {
 		lines := strings.Split(msg, "\n")
 		for i, line := range lines {
 			if i == 0 {
@@ -227,7 +227,7 @@ func printCRDPermissions(rules []rbacv1.PolicyRule) {
 
 // printValidateDependencyGraph prints the startup-order dependency section for validate --full.
 // Only called when there are dependencies (dd is never nil here).
-func printValidateDependencyGraph(dd *catalog.DependencyDisplay) {
+func printValidateDependencyGraph(dd *blueprint.DependencyDisplay) {
 	fmt.Println()
 	fmt.Println(cmdutil.Bold("startup order"))
 	maxName := 0

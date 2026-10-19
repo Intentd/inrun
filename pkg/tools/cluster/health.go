@@ -97,16 +97,16 @@ func SyncGateway() error {
 	return SyncDeployment(InrunGateway, InrunNamespace, 3*time.Minute)
 }
 
-// CatalogChanged returns true when .inrun/catalog.yaml has uncommitted
+// BlueprintChanged returns true when .inrun/blueprint.yaml has uncommitted
 // changes or was touched by the most recent commit.
-func CatalogChanged(dir string) bool {
-	catalogPath := filepath.Join(".inrun", "catalog.yaml")
-	if out, err := exec.Command("git", "-C", dir, "diff", "HEAD", "--", catalogPath).Output(); err == nil {
+func BlueprintChanged(dir string) bool {
+	blueprintPath := filepath.Join(".inrun", "blueprint.yaml")
+	if out, err := exec.Command("git", "-C", dir, "diff", "HEAD", "--", blueprintPath).Output(); err == nil {
 		if len(bytes.TrimSpace(out)) > 0 {
 			return true
 		}
 	}
-	if out, err := exec.Command("git", "-C", dir, "diff", "HEAD~1", "HEAD", "--", catalogPath).Output(); err == nil {
+	if out, err := exec.Command("git", "-C", dir, "diff", "HEAD~1", "HEAD", "--", blueprintPath).Output(); err == nil {
 		if len(bytes.TrimSpace(out)) > 0 {
 			return true
 		}

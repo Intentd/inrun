@@ -68,7 +68,7 @@ func initCanonical(name string) error {
 	if !isCurrentDirectory(name) {
 		steps = append(steps, initStep{"Creating project folder", func() error { return os.MkdirAll(name, 0755) }})
 	}
-	steps = append(steps, initStep{"Writing catalog.yaml", func() error { return extractCanonical(name) }})
+	steps = append(steps, initStep{"Writing blueprint.yaml", func() error { return extractCanonical(name) }})
 
 	if err := runSteps(steps); err != nil {
 		return err

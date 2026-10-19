@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/util/term"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
@@ -16,10 +16,10 @@ import (
 	"github.com/intentd/inrun/pkg/version"
 )
 
-// RunRuntime builds and runs the runtime until ctx ends. Each onCatalog func is
-// called with the validated Catalog once it is built, before the runtime
+// RunRuntime builds and runs the runtime until ctx ends. Each onBlueprint func is
+// called with the validated Blueprint once it is built, before the runtime
 // starts; the dev CLI uses it to start the console and gateway.
-func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCatalog ...func(*catalog.Catalog)) {
+func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onBlueprint ...func(*blueprint.Blueprint)) {
 	// Runtime facts, available to every template expression as .inrun.*. Set on
 	// the context that construction, startup and the coordinator all share.
 	ctx = template.ContextWithInrunContext(ctx, template.NewInrunContext(
@@ -36,8 +36,8 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 		term.FatalExit("app.New returned no runtime", nil)
 	}
 
-	for _, f := range onCatalog {
-		f(rt.Catalog)
+	for _, f := range onBlueprint {
+		f(rt.Blueprint)
 	}
 
 	// ── Start ─────────────────────────────────────────────────────────────────
@@ -56,9 +56,9 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onCat
 			logger.Info().
 				Str("leader", leader).
 				Str("namespace", cfg.Cluster().Namespace()).
-				Int("crds", len(rt.Catalog.Enabled())).
-				Bool("webhooks", rt.Catalog.HasMutationRules() || rt.Catalog.HasValidationRules() ||
-					rt.Catalog.IsDeletionProtectionEnabled() || rt.Catalog.IsNamespaceProtectionEnabled()).
+				Int("crds", len(rt.Blueprint.Enabled())).
+				Bool("webhooks", rt.Blueprint.HasMutationRules() || rt.Blueprint.HasValidationRules() ||
+					rt.Blueprint.IsDeletionProtectionEnabled() || rt.Blueprint.IsNamespaceProtectionEnabled()).
 				Msg("leading: reconciling")
 		},
 		leader.Options{

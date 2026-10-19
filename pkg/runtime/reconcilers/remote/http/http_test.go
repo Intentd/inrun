@@ -3,6 +3,8 @@ package http
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"testing"
 
@@ -236,4 +238,20 @@ func TestBuildBody_ExplicitWireForm(t *testing.T) {
 	raw, err = r.buildBody(domain.Request{Key: "default/a"})
 	require.NoError(t, err)
 	assert.Contains(t, string(raw), `"key":"default/a"`)
+}
+
+func TestApplyObjectExclusions_TypedObject(t *testing.T) {
+	r := newReconcilerForTest("http://svc/reconcile")
+	obj := &corev1.ConfigMap{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-app", Annotations: map[string]string{"kubectl.io/last-applied": "{}"}},
+		Data:       map[string]string{"key": "value"},
+	}
+	got := r.applyObjectExclusions(obj, []string{"metadata.annotations"})
+	require.NotNil(t, got, "a typed CR is sent too, not dropped")
+	meta := got["metadata"].(map[string]interface{})
+	assert.Equal(t, "my-app", meta["name"])
+	assert.Nil(t, meta["annotations"])
+	assert.Equal(t, "value", got["data"].(map[string]interface{})["key"])
+	assert.Equal(t, "{}", obj.Annotations["kubectl.io/last-applied"], "the original is not modified")
 }

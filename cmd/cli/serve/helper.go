@@ -13,7 +13,7 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/catalog"
+	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -58,22 +58,22 @@ func aliasOrNone(alias string) string {
 }
 
 // resolveCRD resolves a CRD by target, kind, or name.
-func resolveCRD(cat *catalog.Catalog, target, kind, name string) (*types.CRDEntry, error) {
+func resolveCRD(bp *blueprint.Blueprint, target, kind, name string) (*types.CRDEntry, error) {
 	var crd *types.CRDEntry
 
 	switch {
 	case target != "":
-		crd = cat.LookupByTarget(target).Entry()
+		crd = bp.LookupByTarget(target).Entry()
 		if crd == nil {
 			return nil, fmt.Errorf("%s target %q not found", cmdutil.FailureMark(), target)
 		}
 	case kind != "":
-		crd = cat.LookupByKind(kind).Entry()
+		crd = bp.LookupByKind(kind).Entry()
 		if crd == nil {
 			return nil, fmt.Errorf("%s kind %q not found", cmdutil.FailureMark(), kind)
 		}
 	case name != "":
-		crd = cat.LookupByName(name).Entry()
+		crd = bp.LookupByName(name).Entry()
 		if crd == nil {
 			return nil, fmt.Errorf("%s CRD %q not found", cmdutil.FailureMark(), name)
 		}
@@ -87,8 +87,8 @@ func resolveCRD(cat *catalog.Catalog, target, kind, name string) (*types.CRDEntr
 // resolveCRDByAnyTarget resolves a CRD by primary target or alias using
 // LookupByTargetOrAlias. Returns the CRD and the alias name (empty when the
 // primary target matched). Used by can-i so --target accepts alias names too.
-func resolveCRDByAnyTarget(cat *catalog.Catalog, target string) (*types.CRDEntry, string, error) {
-	resolution := cat.LookupByTargetOrAlias(target)
+func resolveCRDByAnyTarget(bp *blueprint.Blueprint, target string) (*types.CRDEntry, string, error) {
+	resolution := bp.LookupByTargetOrAlias(target)
 	if resolution == nil {
 		return nil, "", fmt.Errorf("%s target or alias %q not found", cmdutil.FailureMark(), target)
 	}
@@ -99,7 +99,7 @@ func resolveCRDByAnyTarget(cat *catalog.Catalog, target string) (*types.CRDEntry
 // declared in gateway.api.auth.tokens (the gateway authenticates nothing
 // else), and the target's serve.tokens, when set, must allow op.
 // returns error when token is not declared or denied
-func checkToken(c *catalog.Catalog, crd *types.CRDEntry, alias, tokenName string, op types.ServeOperation, ns string) error {
+func checkToken(c *blueprint.Blueprint, crd *types.CRDEntry, alias, tokenName string, op types.ServeOperation, ns string) error {
 	if declared := c.GatewayTokenNames(); !slices.Contains(declared, tokenName) {
 		return fmt.Errorf("unknown token %q\n  declared in gateway.api.auth.tokens: %s", tokenName, strings.Join(declared, ", "))
 	}
@@ -242,8 +242,8 @@ func printAliasesForCRD(crd *types.CRDEntry) {
 // ── printServeValidationSummary ──────────────────────────────────────────────
 
 // printServeValidationSummary prints a detailed breakdown of the Serve configuration.
-func printServeValidationSummary(cat *catalog.Catalog) {
-	enabledCRDs := cat.ServeEnabledCRDs()
+func printServeValidationSummary(bp *blueprint.Blueprint) {
+	enabledCRDs := bp.ServeEnabledCRDs()
 
 	if len(enabledCRDs) == 0 {
 		fmt.Println("\nNo Serve-enabled CRDs found.")

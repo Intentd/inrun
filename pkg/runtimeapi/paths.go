@@ -1,14 +1,14 @@
 package runtimeapi
 
-// The runtime's HTTP routes for one CRD, by its catalog key (spec.crds.<key>).
+// The runtime's HTTP routes for one CRD, by its blueprint key (spec.crds.<key>).
 // The runtime registers them and every client builds its URLs from them, so
 // both sides change together.
 
-// CatalogPath is the root of the runtime's catalog API.
-const CatalogPath = "/catalog"
+// BlueprintPath is the root of the runtime's blueprint API.
+const BlueprintPath = "/blueprint"
 
 // CRDPath is a CRD's summary: health, metrics and configuration.
-func CRDPath(crd string) string { return CatalogPath + "/" + crd }
+func CRDPath(crd string) string { return BlueprintPath + "/" + crd }
 
 // HealthPath is a CRD's health.
 func HealthPath(crd string) string { return CRDPath(crd) + "/health" }
@@ -21,8 +21,8 @@ func CRPath(crd, namespace, name string) string {
 	return CRListPath(crd) + "/" + namespace + "/" + name
 }
 
-// RawPath is a CRD's raw Catalog entry.
+// RawPath is a CRD's raw Blueprint entry.
 func RawPath(crd string) string { return CRDPath(crd) + "/raw" }
 
-// EnrichedPath is a CRD's Catalog entry with defaults applied.
+// EnrichedPath is a CRD's Blueprint entry with defaults applied.
 func EnrichedPath(crd string) string { return CRDPath(crd) + "/enriched" }

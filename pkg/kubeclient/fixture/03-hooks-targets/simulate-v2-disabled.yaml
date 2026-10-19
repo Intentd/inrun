@@ -11,7 +11,7 @@ metadata:
     hook behaves as if the feature is disabled.
 
 spec:
-  catalog: ./catalog.yaml
+  blueprint: ./blueprint.yaml
   cr: ./cr.yaml
   target: v2-disabled
   cycles: 3

@@ -24,12 +24,12 @@ const (
 	TypedMode   = "typed"
 
 	// Kind
-	kindCatalog  = "Catalog"
-	kindLeader   = "Leader"
-	kindStack    = "Stack"
-	kindModule   = "Module"
-	kindE2E      = "E2E"
-	kindSimulate = "Simulate"
+	kindBlueprint = "Blueprint"
+	kindLeader    = "Leader"
+	kindStack     = "Stack"
+	kindModule    = "Module"
+	kindE2E       = "E2E"
+	kindSimulate  = "Simulate"
 
 	// HTTPS Port
 	httpsPort      = ":8443"
