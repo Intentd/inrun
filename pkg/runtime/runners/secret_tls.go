@@ -28,7 +28,8 @@ package runners
 import (
 	"context"
 	"fmt"
-	"github.com/intentd/inrun/pkg/resources/core/types"
+
+	"github.com/intentd/kuberesources/core/types"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

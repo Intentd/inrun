@@ -11,9 +11,9 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	crs "github.com/intentd/inrun/pkg/resources/core/clusterroles"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	crs "github.com/intentd/kuberesources/core/clusterroles"
 )
 
 // RunClusterRoles resolves and applies ClusterRole template declarations.

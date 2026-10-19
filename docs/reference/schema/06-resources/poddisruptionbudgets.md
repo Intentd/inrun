@@ -80,11 +80,11 @@ Labels applied to PDB metadata. Values support template expressions.
 
 Type: object
 
-Behavior — disruption limit configuration. Set behavior.profile for a named preset, or declare minAvailable/maxUnavailable explicitly. Profile and explicit fields are mutually exclusive.
+Behavior — disruption limit configuration. Set behavior.preset for a named preset, or declare minAvailable/maxUnavailable explicitly. Preset and explicit fields are mutually exclusive.
 
 ```yaml
 behavior:
-  profile: zero-downtime
+  preset: zero-downtime
 ```
 
 ---
@@ -149,14 +149,6 @@ forEach:
 
 ---
 
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay into the reconcile of this resource. Useful for autoscale testing, latency simulation, and chaos engineering. Accepts extended duration units (s, m, h, d, w, mo, y).
-
----
-
 ### `forceConflict`
 
 Type: boolean
@@ -180,5 +172,4 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `when` | list |
 | `or` | list |
 | `forEach` | object |
-| `sleep` | string |
 | `forceConflict` | boolean |

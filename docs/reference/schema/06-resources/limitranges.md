@@ -109,11 +109,11 @@ FromNamespace — namespace where FromLimitRange lives. Default: same namespace 
 
 ---
 
-### `profile`
+### `preset`
 
 Type: string
 
-Profile — named LimitRange preset. Expands into a Limits list at reconcile time. Mutually exclusive with Limits — set one or the other, not both.
+Preset — named LimitRange preset. Expands into a Limits list at reconcile time. Mutually exclusive with Limits — set one or the other, not both.
 
 ---
 
@@ -165,14 +165,6 @@ ForEach — expand this entry once per item in a list or map field.
 
 ---
 
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay. Accepts extended duration units (s, m, h, d, w, mo, y).
-
----
-
 ### `forceConflict`
 
 Type: boolean
@@ -190,12 +182,11 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `toNamespaces` | list |
 | `fromLimitRange` | string |
 | `fromNamespace` | string |
-| `profile` | string |
+| `preset` | string |
 | `limits` | list |
 | `labels` | map |
 | `when` | list |
 | `or` | list |
 | `reconcile` | boolean |
 | `forEach` | object |
-| `sleep` | string |
 | `forceConflict` | boolean |

@@ -189,14 +189,6 @@ forEach:
 
 ---
 
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay into the reconcile of this resource. Useful for autoscale testing, latency simulation, and chaos engineering. Accepts extended duration units (s, m, h, d, w, mo, y).
-
----
-
 ### `forceConflict`
 
 Type: boolean
@@ -224,5 +216,4 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `when` | list |
 | `or` | list |
 | `forEach` | object |
-| `sleep` | string |
 | `forceConflict` | boolean |

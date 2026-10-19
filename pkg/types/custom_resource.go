@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	restypes "github.com/intentd/inrun/pkg/resources/core/types"
+	restypes "github.com/intentd/kuberesources/core/types"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"

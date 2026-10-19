@@ -2,20 +2,21 @@ package resources
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"strconv"
 	"strings"
+
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 
 	batchv1 "k8s.io/api/batch/v1"
 
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/cronjobs"
-	"github.com/intentd/inrun/pkg/resources/core/deployments"
-	"github.com/intentd/inrun/pkg/resources/core/jobs"
-	"github.com/intentd/inrun/pkg/resources/core/pods"
-	"github.com/intentd/inrun/pkg/resources/core/replicasets"
-	"github.com/intentd/inrun/pkg/resources/core/statefulsets"
+	"github.com/intentd/kuberesources/core/cronjobs"
+	"github.com/intentd/kuberesources/core/deployments"
+	"github.com/intentd/kuberesources/core/jobs"
+	"github.com/intentd/kuberesources/core/pods"
+	"github.com/intentd/kuberesources/core/replicasets"
+	"github.com/intentd/kuberesources/core/statefulsets"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
+	restypes "github.com/intentd/kuberesources/core/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,6 +77,20 @@ func (k *Kubeclient) Create(ctx context.Context, obj domain.Object, opts metav1.
 		_, err = k.dynamic.Resource(mapping.Resource).Namespace(ns).Create(ctx, u, opts)
 	}
 	return err
+}
+
+// ApplyOptions returns how the runtime writes a child resource with
+// server-side apply: as Inrun's field manager, forcing conflicts as the
+// resource says (resourceForce), else as the CRD says, else true.
+func ApplyOptions(c Interface, resourceForce *bool) restypes.Options {
+	force := true
+	switch {
+	case resourceForce != nil:
+		force = *resourceForce
+	case c != nil && c.ForceConflict() != nil:
+		force = *c.ForceConflict()
+	}
+	return restypes.Options{FieldManager: config.FieldManagerRuntime, Force: force}
 }
 
 // Update updates obj in the cluster.

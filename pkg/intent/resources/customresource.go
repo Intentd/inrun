@@ -5,9 +5,9 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/resources/core/customresources"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/kuberesources/core/customresources"
 )
 
 // CustomResourceFields are the fields accepted in the remote reconciler

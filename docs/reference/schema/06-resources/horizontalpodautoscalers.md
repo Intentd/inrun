@@ -80,7 +80,7 @@ MaxReplicas — maximum replica count as a string. Supports template expressions
 
 Type: string
 
-TargetCPUUtilizationPercentage — CPU utilization target (0-100). Supports templates. When behavior.profile is set and this field is empty, the profile provides the default.
+TargetCPUUtilizationPercentage — CPU utilization target (0-100). Supports templates. When behavior.preset is set and this field is empty, the preset provides the default.
 
 ---
 
@@ -88,11 +88,11 @@ TargetCPUUtilizationPercentage — CPU utilization target (0-100). Supports temp
 
 Type: object
 
-Behavior — scale-up and scale-down behavior configuration. Set profile for a complete preset, or configure scaleUp/scaleDown explicitly. Profile and explicit fields are mutually exclusive.
+Behavior — scale-up and scale-down behavior configuration. Set preset for a complete preset, or configure scaleUp/scaleDown explicitly. Preset and explicit fields are mutually exclusive.
 
 ```yaml
 behavior:
-  profile: web
+  preset: web
 ```
 
 ```yaml
@@ -173,14 +173,6 @@ forEach:
 
 ---
 
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay into the reconcile of this resource. Useful for autoscale testing, latency simulation, and chaos engineering. Accepts extended duration units (s, m, h, d, w, mo, y).
-
----
-
 ### `forceConflict`
 
 Type: boolean
@@ -205,5 +197,4 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `when` | list |
 | `or` | list |
 | `forEach` | object |
-| `sleep` | string |
 | `forceConflict` | boolean |

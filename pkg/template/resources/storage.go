@@ -2,11 +2,12 @@ package resources
 
 import (
 	"fmt"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/inrun/pkg/resources/core/pvcs"
-	"github.com/intentd/inrun/pkg/resources/core/pvs"
+	"github.com/intentd/kuberesources/core/pvcs"
+	"github.com/intentd/kuberesources/core/pvs"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

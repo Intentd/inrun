@@ -1,6 +1,6 @@
 package types
 
-import restypes "github.com/intentd/inrun/pkg/resources/core/types"
+import restypes "github.com/intentd/kuberesources/core/types"
 
 // ── Volume / VolumeMount ──────────────────────────────────────────────────────
 //

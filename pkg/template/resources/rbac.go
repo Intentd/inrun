@@ -2,15 +2,16 @@ package resources
 
 import (
 	"fmt"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/intentd/inrun/pkg/resources/core/clusterrolebindings"
-	"github.com/intentd/inrun/pkg/resources/core/clusterroles"
-	"github.com/intentd/inrun/pkg/resources/core/rolebindings"
-	"github.com/intentd/inrun/pkg/resources/core/roles"
+	"github.com/intentd/kuberesources/core/clusterrolebindings"
+	"github.com/intentd/kuberesources/core/clusterroles"
+	"github.com/intentd/kuberesources/core/rolebindings"
+	"github.com/intentd/kuberesources/core/roles"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

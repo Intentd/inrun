@@ -14,9 +14,9 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/jobs"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/kuberesources/core/jobs"
 )
 
 const jobCompletionPollInterval = 3 * time.Second

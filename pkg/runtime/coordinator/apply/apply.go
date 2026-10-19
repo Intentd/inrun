@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	restypes "github.com/intentd/inrun/pkg/resources/core/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -17,6 +16,8 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
+	resapply "github.com/intentd/kuberesources/core/apply"
+	restypes "github.com/intentd/kuberesources/core/types"
 )
 
 // FieldManager is the server-side apply field manager for resources a
@@ -205,12 +206,7 @@ func applyOne(
 		u.SetOwnerReferences(ownerRefs)
 	}
 
-	res, err := kubeclient.ResourceFor(kube, u)
-	if err != nil {
-		return fmt.Errorf("resolve resource: %w", err)
-	}
-
-	_, err = res.Apply(ctx, u.GetName(), u, metav1.ApplyOptions{
+	_, err := resapply.Object(ctx, kube.DynamicClient(), kube.RESTMapper(), u, restypes.Options{
 		FieldManager: FieldManager,
 		Force:        kubeclient.ApplyOptions(kube, rr.forceConflict).Force,
 	})

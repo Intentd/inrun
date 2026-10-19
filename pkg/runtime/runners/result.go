@@ -3,7 +3,7 @@ package runners
 import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/logger"
-	restypes "github.com/intentd/inrun/pkg/resources/core/types"
+	restypes "github.com/intentd/kuberesources/core/types"
 )
 
 // logResult logs what a write to a child resource did. Created, Replaced and

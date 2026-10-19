@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/resources/core/pdbs"
+	"github.com/intentd/kuberesources/core/pdbs"
 )
 
 // PDBFields  are the fields accepted in the remote reconciler

@@ -151,19 +151,11 @@ ForEach — expand this entry once per item in a list or map field.
 
 ---
 
-### `profile`
+### `preset`
 
 Type: string
 
-Profile — named resource quota preset. Expands into hard limits. Allowed values: small, medium, large, xlarge. Mutually exclusive with Hard — set one or the other, not both.
-
----
-
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay. Accepts extended duration units (s, m, h, d, w, mo, y).
+Preset — named resource quota preset. Expands into hard limits. Allowed values: small, medium, large, xlarge. Mutually exclusive with Hard — set one or the other, not both.
 
 ---
 
@@ -190,6 +182,5 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `or` | list |
 | `reconcile` | boolean |
 | `forEach` | object |
-| `profile` | string |
-| `sleep` | string |
+| `preset` | string |
 | `forceConflict` | boolean |

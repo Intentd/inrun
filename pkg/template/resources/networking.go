@@ -2,14 +2,15 @@ package resources
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"strconv"
 
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/ingresses"
-	"github.com/intentd/inrun/pkg/resources/core/networkpolicies"
-	"github.com/intentd/inrun/pkg/resources/core/services"
+	"github.com/intentd/kuberesources/core/ingresses"
+	"github.com/intentd/kuberesources/core/networkpolicies"
+	"github.com/intentd/kuberesources/core/services"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
@@ -323,6 +324,7 @@ func ServiceSpec(src types.ServiceTemplateSource, owner domain.Object) services.
 	for k, v := range src.Selector {
 		spec.Selector[k] = v
 	}
+	spec.Selector[labels.InrunOwner] = owner.GetName()
 
 	// System labels
 

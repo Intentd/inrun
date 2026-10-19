@@ -158,11 +158,11 @@ Or — at least one must pass.
 
 ---
 
-### `profile`
+### `preset`
 
 Type: string
 
-Profile — named NetworkPolicy preset. Expands into ingress/egress rules and policy types. Allowed values: deny-all, deny-all-ingress, deny-all-egress, allow-same-namespace, allow-dns-egress. Mutually exclusive with Ingress/Egress/PolicyTypes — set profile or explicit rules, not both.
+Preset — named NetworkPolicy preset. Expands into ingress/egress rules and policy types. Allowed values: deny-all, deny-all-ingress, deny-all-egress, allow-same-namespace, allow-dns-egress. Mutually exclusive with Ingress/Egress/PolicyTypes — set preset or explicit rules, not both.
 
 ---
 
@@ -179,14 +179,6 @@ Reconcile: true — sync on every reconcile (drift correction).
 Type: object
 
 ForEach — expand this entry once per item in a list or map field.
-
----
-
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay. Accepts extended duration units (s, m, h, d, w, mo, y).
 
 ---
 
@@ -214,8 +206,7 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `labels` | map |
 | `when` | list |
 | `or` | list |
-| `profile` | string |
+| `preset` | string |
 | `reconcile` | boolean |
 | `forEach` | object |
-| `sleep` | string |
 | `forceConflict` | boolean |

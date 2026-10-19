@@ -2,13 +2,14 @@ package resources
 
 import (
 	"fmt"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/inrun/pkg/resources/core/configmaps"
-	"github.com/intentd/inrun/pkg/resources/core/namespaces"
-	"github.com/intentd/inrun/pkg/resources/core/secrets"
-	"github.com/intentd/inrun/pkg/resources/core/serviceaccounts"
+	"github.com/intentd/kuberesources/core/configmaps"
+	"github.com/intentd/kuberesources/core/namespaces"
+	"github.com/intentd/kuberesources/core/secrets"
+	"github.com/intentd/kuberesources/core/serviceaccounts"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

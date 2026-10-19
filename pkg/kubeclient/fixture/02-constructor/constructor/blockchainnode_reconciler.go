@@ -13,7 +13,7 @@ import (
 	apiv1 "github.com/intentd/inrun-args-constructor/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/resources/core/deployments"
+	"github.com/intentd/kuberesources/core/deployments"
 )
 
 // BlockchainNodeReconciler implements domain.Reconciler for the BlockchainNode CRD.

@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/resources/core/jobs"
+	"github.com/intentd/kuberesources/core/jobs"
 )
 
 // JobFields are the fields accepted in the remote reconciler

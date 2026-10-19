@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/resources/core/services"
+	"github.com/intentd/kuberesources/core/services"
 )
 
 // ServiceFields are the fields accepted in the remote reconciler
@@ -45,7 +45,7 @@ func BuildService(in map[string]interface{}, owner domain.Object) (map[string]in
 		Port:       f.Port,
 		TargetPort: targetPort,
 		Type:       f.Type,
-		Selector:   make(map[string]string),
+		Selector:   map[string]string{labels.InrunOwner: owner.GetName()},
 	}
 
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())

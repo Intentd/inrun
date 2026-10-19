@@ -3,7 +3,7 @@ package presets
 import (
 	"testing"
 
-	respresets "github.com/intentd/inrun/pkg/resources/presets"
+	respresets "github.com/intentd/kuberesources/presets"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 

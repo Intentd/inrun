@@ -2,15 +2,16 @@ package resources
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"strconv"
 
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/hpas"
-	"github.com/intentd/inrun/pkg/resources/core/limitranges"
-	"github.com/intentd/inrun/pkg/resources/core/pdbs"
-	"github.com/intentd/inrun/pkg/resources/core/resourcequotas"
+	"github.com/intentd/kuberesources/core/hpas"
+	"github.com/intentd/kuberesources/core/limitranges"
+	"github.com/intentd/kuberesources/core/pdbs"
+	"github.com/intentd/kuberesources/core/resourcequotas"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

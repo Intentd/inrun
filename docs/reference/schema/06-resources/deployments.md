@@ -11,7 +11,7 @@ onCreate:
       replicas: "3"
       port: "8080"
       resources:
-        profile: burst      # Use inrun's burst resource configuration
+        preset: burst      # Use inrun's burst resource configuration
 ```
 
 Full example — dynamic values from the CR:
@@ -124,11 +124,11 @@ Annotations — applied to the Deployment ObjectMeta only. Annotation values sup
 
 Type: object
 
-Resources — CPU and memory requests/limits for the primary container. Set resources.profile for a named preset, or resources.requests/limits for explicit values. Profile and explicit values are mutually exclusive.
+Resources — CPU and memory requests/limits for the primary container. Set resources.preset for a named preset, or resources.requests/limits for explicit values. Preset and explicit values are mutually exclusive.
 
 ```yaml
 resources:
-  profile: burst
+  preset: burst
 ```
 
 ```yaml
@@ -275,10 +275,10 @@ probes:
   liveness:
     type: http
     path: /healthz
-    profile: standard
+    preset: standard
   readiness:
     type: tcp
-    profile: fast
+    preset: fast
 ```
 
 ---
@@ -287,11 +287,11 @@ probes:
 
 Type: object
 
-SecurityContext — container-level security settings. Set securityContext.profile for a named preset (baseline, restricted, hardened) or declare individual fields. Profile and explicit fields are mutually exclusive.
+SecurityContext — container-level security settings. Set securityContext.preset for a named preset (baseline, restricted, hardened) or declare individual fields. Preset and explicit fields are mutually exclusive.
 
 ```yaml
 securityContext:
-  profile: restricted
+  preset: restricted
 ```
 
 ```yaml
@@ -306,11 +306,11 @@ securityContext:
 
 Type: object
 
-PodSecurity — pod-level security settings applied to the pod spec. Set podSecurity.profile for a named preset or declare individual fields.
+PodSecurity — pod-level security settings applied to the pod spec. Set podSecurity.preset for a named preset or declare individual fields.
 
 ```yaml
 podSecurity:
-  profile: baseline
+  preset: baseline
 ```
 
 ```yaml
@@ -325,11 +325,11 @@ podSecurity:
 
 Type: object
 
-RollingUpdate — rolling update strategy for this Deployment. Set rollingUpdate.profile for a named preset (safe, fast, blue-green), or declare maxSurge/maxUnavailable explicitly. Profile and explicit fields are mutually exclusive.
+RollingUpdate — rolling update strategy for this Deployment. Set rollingUpdate.preset for a named preset (safe, fast, blue-green), or declare maxSurge/maxUnavailable explicitly. Preset and explicit fields are mutually exclusive.
 
 ```yaml
 rollingUpdate:
-  profile: safe
+  preset: safe
 ```
 
 ```yaml
@@ -382,14 +382,6 @@ volumeMounts:
   - name: cache
     mountPath: /var/cache/myapp
 ```
-
----
-
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay into the reconcile of this resource. Useful for autoscale testing, latency simulation, and chaos engineering. Accepts extended duration units (s, m, h, d, w, mo, y).
 
 ---
 
@@ -458,6 +450,5 @@ autoscale:
 | `command` | list |
 | `volumes` | list |
 | `volumeMounts` | list |
-| `sleep` | string |
 | `forceConflict` | boolean |
 | `autoscale` | object |

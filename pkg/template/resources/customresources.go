@@ -2,11 +2,12 @@ package resources
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"maps"
 
-	"github.com/intentd/inrun/pkg/resources/core/customresources"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+
+	"github.com/intentd/kuberesources/core/customresources"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

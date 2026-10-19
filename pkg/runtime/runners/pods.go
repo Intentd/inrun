@@ -11,9 +11,9 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/pods"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/kuberesources/core/pods"
 )
 
 // RunPods resolves and applies Pod template declarations.

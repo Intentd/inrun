@@ -187,11 +187,11 @@ envFrom:
 
 Type: object
 
-Resources — CPU and memory requests/limits for the primary container. Set resources.profile for a named preset, or resources.requests/limits for explicit values. Profile and explicit values are mutually exclusive.
+Resources — CPU and memory requests/limits for the primary container. Set resources.preset for a named preset, or resources.requests/limits for explicit values. Preset and explicit values are mutually exclusive.
 
 ```yaml
 resources:
-  profile: burst
+  preset: burst
 ```
 
 ---
@@ -293,7 +293,7 @@ Probes — startup, liveness, and readiness probe configuration.
 probes:
   liveness:
     type: tcp
-    profile: standard
+    preset: standard
 ```
 
 ---
@@ -302,11 +302,11 @@ probes:
 
 Type: object
 
-SecurityContext — container-level security settings. Set securityContext.profile for a named preset (baseline, restricted, hardened) or declare individual fields. Profile and explicit fields are mutually exclusive.
+SecurityContext — container-level security settings. Set securityContext.preset for a named preset (baseline, restricted, hardened) or declare individual fields. Preset and explicit fields are mutually exclusive.
 
 ```yaml
 securityContext:
-  profile: restricted
+  preset: restricted
 ```
 
 ---
@@ -315,11 +315,11 @@ securityContext:
 
 Type: object
 
-PodSecurity — pod-level security settings applied to the pod spec. Set podSecurity.profile for a named preset or declare individual fields.
+PodSecurity — pod-level security settings applied to the pod spec. Set podSecurity.preset for a named preset or declare individual fields.
 
 ```yaml
 podSecurity:
-  profile: baseline
+  preset: baseline
 ```
 
 ---
@@ -328,11 +328,11 @@ podSecurity:
 
 Type: object
 
-RollingUpdate — rolling update strategy for this StatefulSet. Set rollingUpdate.profile for a named preset (safe, fast, blue-green), or declare maxSurge/maxUnavailable explicitly.
+RollingUpdate — rolling update strategy for this StatefulSet. Set rollingUpdate.preset for a named preset (safe, fast, blue-green), or declare maxSurge/maxUnavailable explicitly.
 
 ```yaml
 rollingUpdate:
-  profile: safe
+  preset: safe
 ```
 
 ---
@@ -363,14 +363,6 @@ volumeMounts:
   - name: config
     mountPath: /etc/myapp
 ```
-
----
-
-### `sleep`
-
-Type: string
-
-Sleep injects an artificial delay into the reconcile of this resource. Useful for autoscale testing, latency simulation, and chaos engineering. Accepts extended duration units (s, m, h, d, w, mo, y).
 
 ---
 
@@ -414,5 +406,4 @@ ForceConflict, when true, sets Force: true when applying this resource, taking o
 | `rollingUpdate` | object |
 | `volumes` | list |
 | `volumeMounts` | list |
-| `sleep` | string |
 | `forceConflict` | boolean |
