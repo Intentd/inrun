@@ -13,10 +13,8 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Spec is the fully resolved Secret specification.
@@ -52,48 +50,31 @@ type Spec struct {
 
 	// Annotations — applied to Secret metadata.
 	Annotations map[string]string
-
-	// Sleep injects an artificial delay into the reconcile of this resource.
-	// Useful for autoscale testing, latency simulation, and chaos engineering.
-	// Accepts extended duration units (s, m, h, d, w, mo, y).
-	Sleep string
-
-	// ForceConflict, when true, sets Force: true when applying this resource,
-	// taking ownership of conflicting fields instead of returning a conflict error.
-	// Overrides the CRD-level ForceConflict setting.
-	ForceConflict *bool
 }
 
 // Create creates a Secret in the target namespace if it does not already exist.
 // When FromSecret is set, copies data from the source Secret automatically.
 // Idempotent — skips creation if the Secret already exists.
 // Owner reference is set so the Secret is garbage collected when the CR is deleted.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("secret.Create: invalid spec: %w", err)
+		return "", fmt.Errorf("secret.Create: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.CoreV1().Secrets(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("secret.Create: checking existence of %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("secret.Create: checking existence of %q in %q: %w", spec.Name, namespace, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("secret", spec.Name).
-			Str("namespace", namespace).
-			Msg("secret already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	// If copying from another Secret, fetch its data first
 	data, stringData, err := resolveData(ctx, kube, spec, owner)
 	if err != nil {
-		return fmt.Errorf("secret.Create: resolving data for %q: %w", spec.Name, err)
+		return "", fmt.Errorf("secret.Create: resolving data for %q: %w", spec.Name, err)
 	}
 
 	spec.Data = data
@@ -102,33 +83,24 @@ func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, s
 
 	_, err = kube.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("secret.Create: creating secret %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("secret.Create: creating secret %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("secret", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("secret created")
-
-	return nil
+	return types.Created, nil
 }
 
 // Apply creates or updates a Secret using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("secret.Apply: invalid spec: %w", err)
+		return "", fmt.Errorf("secret.Apply: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	data, stringData, err := resolveData(ctx, kube, spec, owner)
 	if err != nil {
-		return fmt.Errorf("secret.Apply: resolving data for %q: %w", spec.Name, err)
+		return "", fmt.Errorf("secret.Apply: resolving data for %q: %w", spec.Name, err)
 	}
 
 	spec.Data = data
@@ -138,51 +110,32 @@ func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, sp
 
 	body, err := json.Marshal(secret)
 	if err != nil {
-		return fmt.Errorf("secret.Apply: marshal: %w", err)
+		return "", fmt.Errorf("secret.Apply: marshal: %w", err)
 	}
 
 	if _, err = kube.CoreV1().Secrets(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
 		opts.PatchOptions(),
 	); err != nil {
-		return fmt.Errorf("secret.Apply: %w", err)
+		return "", fmt.Errorf("secret.Apply: %w", err)
 	}
 
-	logger.Debug().
-		Str("secret", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("secret applied")
-
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the Secret if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	err := kube.CoreV1().Secrets(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			logger.Debug().
-				Str("secret", spec.Name).
-				Str("namespace", namespace).
-				Msg("secret already deleted — skipping")
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("secret.Delete: deleting secret %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("secret.Delete: deleting secret %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("secret", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("secret deleted")
-
-	return nil
+	return types.Deleted, nil
 }
 
 // CopyToNamespaces copies a Secret to multiple target namespaces.
@@ -227,10 +180,6 @@ func CopyToNamespaces(
 			return fmt.Errorf("secret.CopyToNamespaces: checking %q in %q: %w", spec.Name, ns, err)
 		}
 		if err == nil {
-			logger.Debug().
-				Str("secret", spec.Name).
-				Str("namespace", ns).
-				Msg("secret already exists in namespace — skipping")
 			continue
 		}
 
@@ -243,34 +192,29 @@ func CopyToNamespaces(
 			return fmt.Errorf("secret.CopyToNamespaces: creating %q in %q: %w", spec.Name, ns, err)
 		}
 
-		logger.Info().
-			Str("secret", spec.Name).
-			Str("namespace", ns).
-			Str("owner", owner.GetName()).
-			Msg("secret copied to namespace")
 	}
 
 	return nil
 }
 
 // DeleteIfOwned deletes the Secret if it exists and is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
-	owner types.Owner, name, namespace string) error {
-
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name, namespace string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.CoreV1().Secrets(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
 	// Only delete if we own it
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.CoreV1().Secrets(namespace).
-		Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.CoreV1().Secrets(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -302,11 +246,6 @@ func resolveData(
 		return nil, nil, fmt.Errorf("reading source secret %q from %q: %w", spec.FromSecret, fromNS, err)
 	}
 
-	logger.Debug().
-		Str("source", spec.FromSecret).
-		Str("sourceNamespace", fromNS).
-		Msg("copying secret data from source")
-
 	return source.Data, nil, nil
 }
 
@@ -316,7 +255,6 @@ func Build(owner types.Owner, spec Spec) *corev1.Secret {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	data := spec.Data
 	stringData := spec.StringData
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	secretType := corev1.SecretTypeOpaque
 	switch strings.ToLower(spec.Type) {
 	case "kubernetes.io/tls":
@@ -330,7 +268,7 @@ func Build(owner types.Owner, spec Spec) *corev1.Secret {
 			Name:            spec.Name,
 			Namespace:       namespace,
 			Labels:          spec.Labels,
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Type:       secretType,
 		Data:       data,

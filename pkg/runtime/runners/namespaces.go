@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/namespaces"
 	"github.com/intentd/inrun/pkg/template"
@@ -50,9 +51,11 @@ func RunNamespaces(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames["inrun.dev"+"/"+name] {
-					if err := namespaces.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
+					res, err := namespaces.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("namespace[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("namespace", name, "", owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -70,12 +73,14 @@ func RunNamespaces(
 		}
 
 		// 3. Build registry spec and apply
-		spec := resources.NamespaceSpec(resolved, resolver.OwnerName())
+		spec := resources.NamespaceSpec(resolved, owner)
 
 		// Always create — Namespaces have no meaningful drift to correct
-		if err := namespaces.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+		res, err := namespaces.Create(ctx, kube.Clientset(), owner, spec)
+		if err != nil {
 			return fmt.Errorf("namespace[%d].create: %w", i, err)
 		}
+		logResult("namespace", spec.Name, "", owner, res)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/core/jobs"
 )
 
@@ -49,6 +50,7 @@ func BuildJob(in map[string]interface{}, owner domain.Object) (map[string]interf
 		BackoffLimit: backoffLimit,
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	obj := jobs.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "batch/v1", "Job")

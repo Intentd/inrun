@@ -66,12 +66,14 @@ func RunJobs(
 		}
 
 		// 3. Build registry spec and apply
-		spec := resources.JobSpec(resolved, resolved.BackoffLimit, resolver.OwnerName(), resolver.Presets())
+		spec := resources.JobSpec(resolved, resolved.BackoffLimit, owner, resolver.Presets())
 
 		// Jobs are always creates — no update semantics
-		if err := jobs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+		res, err := jobs.Create(ctx, kube.Clientset(), owner, spec)
+		if err != nil {
 			return fmt.Errorf("jobs[%d].create: %w", i, err)
 		}
+		logResult("job", spec.Name, spec.Namespace, owner, res)
 	}
 	return nil
 }
@@ -117,11 +119,13 @@ func RunDeleteJobs(
 			return fmt.Errorf("delete-jobs[%d]: %w", i, err)
 		}
 
-		spec := resources.JobSpec(resolved, resolved.BackoffLimit, resolver.OwnerName(), resolver.Presets())
+		spec := resources.JobSpec(resolved, resolved.BackoffLimit, owner, resolver.Presets())
 
-		if err := jobs.CreateForDelete(ctx, kube.Clientset(), owner, spec); err != nil {
+		res, err := jobs.CreateForDelete(ctx, kube.Clientset(), owner, spec)
+		if err != nil {
 			return fmt.Errorf("delete-jobs[%d].create: %w", i, err)
 		}
+		logResult("job", spec.Name, spec.Namespace, owner, res)
 
 		if err := waitForJobCompletionUntil(ctx, kube, ns, name, deadline); err != nil {
 			return fmt.Errorf("delete-jobs[%d].wait: %w", i, err)

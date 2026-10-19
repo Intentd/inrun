@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"strconv"
 	"strings"
 
@@ -13,7 +15,6 @@ import (
 	"github.com/intentd/inrun/pkg/resources/core/jobs"
 	"github.com/intentd/inrun/pkg/resources/core/pods"
 	"github.com/intentd/inrun/pkg/resources/core/replicasets"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/statefulsets"
 
 	"github.com/intentd/inrun/pkg/template"
@@ -29,9 +30,7 @@ import (
 //	Name      → ownerName + "-pod"      (applied later in pods.Resolve)
 //	Namespace → ownerNamespace          (applied here so downstream has it)
 func ResolvePod(r *template.Resolver, src types.PodTemplateSource) (types.PodTemplateSource, error) {
-	resolved := types.PodTemplateSource{
-		ForceConflict: src.ForceConflict,
-	}
+	resolved := types.PodTemplateSource{}
 
 	var err error
 
@@ -69,9 +68,6 @@ func ResolvePod(r *template.Resolver, src types.PodTemplateSource) (types.PodTem
 	if resolved.Annotations, err = r.ResolveMap(src.Annotations); err != nil {
 		return resolved, fmt.Errorf("pod.annotations: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("pod.sleep: %w", err)
-	}
 
 	resolved.SecurityContext = src.SecurityContext
 	resolved.PodSecurity = src.PodSecurity
@@ -90,9 +86,7 @@ func ResolvePod(r *template.Resolver, src types.PodTemplateSource) (types.PodTem
 // Returns a new DeploymentTemplateSource with all expressions evaluated — safe to pass
 // directly to deployments.Resolve().
 func ResolveDeployment(r *template.Resolver, src types.DeploymentTemplateSource) (types.DeploymentTemplateSource, error) {
-	resolved := types.DeploymentTemplateSource{
-		ForceConflict: src.ForceConflict,
-	}
+	resolved := types.DeploymentTemplateSource{}
 
 	var err error
 
@@ -135,9 +129,6 @@ func ResolveDeployment(r *template.Resolver, src types.DeploymentTemplateSource)
 	// service account name
 	if resolved.ServiceAccountName, err = r.Resolve(src.ServiceAccountName); err != nil {
 		return resolved, fmt.Errorf("deployment.serviceAccountName: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("deployment.sleep: %w", err)
 	}
 
 	// Env resolution
@@ -207,9 +198,7 @@ func ResolveDeployment(r *template.Resolver, src types.DeploymentTemplateSource)
 // Returns a new ReplicaSetTemplateSource with all expressions evaluated — safe to pass
 // directly to replicasets.Resolve().
 func ResolveReplicaSet(r *template.Resolver, src types.ReplicaSetTemplateSource) (types.ReplicaSetTemplateSource, error) {
-	resolved := types.ReplicaSetTemplateSource{
-		ForceConflict: src.ForceConflict,
-	}
+	resolved := types.ReplicaSetTemplateSource{}
 
 	var err error
 
@@ -258,10 +247,6 @@ func ResolveReplicaSet(r *template.Resolver, src types.ReplicaSetTemplateSource)
 	// service account name
 	if resolved.ServiceAccountName, err = r.Resolve(src.ServiceAccountName); err != nil {
 		return resolved, fmt.Errorf("replicaet.serviceAccountName: %w", err)
-	}
-
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("replicaset.sleep: %w", err)
 	}
 
 	// Labels
@@ -386,9 +371,6 @@ func ResolveStatefulSet(r *template.Resolver, src types.StatefulSetTemplateSourc
 		}
 		resolved.VolumeClaimTemplates = append(resolved.VolumeClaimTemplates, rv)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("statefulset.sleep: %w", err)
-	}
 
 	ns := src.Namespace
 	if ns == "" {
@@ -489,9 +471,6 @@ func ResolveJob(r *template.Resolver, src types.JobTemplateSource) (types.JobTem
 	if resolved.Image, err = r.Resolve(src.Image); err != nil {
 		return resolved, fmt.Errorf("job.image: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("job.sleep: %w", err)
-	}
 	if resolved.ImagePullSecrets, err = r.ResolveStringSlice(src.ImagePullSecrets); err != nil {
 		return resolved, fmt.Errorf("job.imagePullSecrets: %w", err)
 	}
@@ -556,9 +535,6 @@ func ResolveCronJob(r *template.Resolver, src types.CronJobTemplateSource) (type
 	if resolved.Image, err = r.Resolve(src.Image); err != nil {
 		return resolved, fmt.Errorf("cronjob.image: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("cronjob.sleep: %w", err)
-	}
 	if resolved.ImagePullSecrets, err = r.ResolveStringSlice(src.ImagePullSecrets); err != nil {
 		return resolved, fmt.Errorf("cronjob.imagePullSecrets: %w", err)
 	}
@@ -606,7 +582,8 @@ func ResolveCronJob(r *template.Resolver, src types.CronJobTemplateSource) (type
 // CronJobSpec builds a cronjobs.Spec from a CronJobTemplateSource.
 // All template expressions in src must already have been evaluated by
 // template.Resolver — Resolve only performs type conversion and defaults.
-func CronJobSpec(src types.CronJobTemplateSource, ownerName string, reg *types.PresetRegistry) cronjobs.Spec {
+func CronJobSpec(src types.CronJobTemplateSource, owner domain.Object, reg *types.PresetRegistry) cronjobs.Spec {
+	ownerName := owner.GetName()
 	spec := cronjobs.Spec{
 		Name:            src.Name,
 		Namespace:       src.Namespace,
@@ -615,11 +592,9 @@ func CronJobSpec(src types.CronJobTemplateSource, ownerName string, reg *types.P
 		Command:         src.Command,
 		Args:            src.Args,
 		Labels:          make(map[string]string),
-		Resources:       shared.ResolveResources(src.Resources, reg.All()),
-		SecurityContext: shared.ResolveContainerSecurityContext(src.SecurityContext, reg.All()),
-		PodSecurity:     shared.ResolvePodSecurityContext(src.PodSecurity, reg.All()),
-		Sleep:           src.Sleep,
-		ForceConflict:   src.ForceConflict,
+		Resources:       presetResources(src.Resources, reg.All()),
+		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
+		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 	}
 
 	if spec.Name == "" {
@@ -628,7 +603,7 @@ func CronJobSpec(src types.CronJobTemplateSource, ownerName string, reg *types.P
 
 	// ── Suspend ───────────────────────────────────────────────────────────
 	if src.Suspend != "" {
-		spec.Suspend = shared.ParseBool(src.Suspend)
+		spec.Suspend = parseBool(src.Suspend)
 	}
 
 	// ── ConcurrencyPolicy ─────────────────────────────────────────────────
@@ -675,6 +650,7 @@ func CronJobSpec(src types.CronJobTemplateSource, ownerName string, reg *types.P
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
@@ -683,24 +659,23 @@ func CronJobSpec(src types.CronJobTemplateSource, ownerName string, reg *types.P
 // Use pkg/template.Resolver to evaluate expressions first.
 //
 // The resolver already evaluated template expressions — here we just merge.
-func DeploymentSpec(src types.DeploymentTemplateSource, ownerName string, reg *types.PresetRegistry) deployments.Spec {
+func DeploymentSpec(src types.DeploymentTemplateSource, owner domain.Object, reg *types.PresetRegistry) deployments.Spec {
+	ownerName := owner.GetName()
 	spec := deployments.Spec{
 		Name:            src.Name,
 		Image:           src.Image,
 		Namespace:       src.Namespace,
-		Resources:       shared.ResolveResources(src.Resources, reg.All()),
+		Resources:       presetResources(src.Resources, reg.All()),
 		Labels:          make(map[string]string),
 		Annotations:     make(map[string]string),
 		EnvFrom:         src.EnvFrom,
 		Probes:          src.Probes,
 		Presets:         reg.All(),
-		SecurityContext: shared.ResolveContainerSecurityContext(src.SecurityContext, reg.All()),
-		PodSecurity:     shared.ResolvePodSecurityContext(src.PodSecurity, reg.All()),
+		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
+		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Command:         src.Command,
 		Volumes:         src.Volumes,
 		VolumeMounts:    src.VolumeMounts,
-		Sleep:           src.Sleep,
-		ForceConflict:   src.ForceConflict,
 
 		ServiceAccountName: src.ServiceAccountName,
 		NodeSelector:       src.NodeSelector,
@@ -711,8 +686,7 @@ func DeploymentSpec(src types.DeploymentTemplateSource, ownerName string, reg *t
 		spec.Name = ownerName + "-deployment"
 	}
 
-	spec.Replicas = shared.ParseReplicas(src.Replicas)
-	spec.HasAutoscale = src.Autoscale != nil
+	spec.Replicas = parseReplicas(src.Replicas)
 
 	// Port — prefer dynamic resolved string, fall back to static int
 	if src.Port != "" {
@@ -721,7 +695,7 @@ func DeploymentSpec(src types.DeploymentTemplateSource, ownerName string, reg *t
 		}
 	}
 
-	spec.Protocol = shared.ParseProtocol(src.Protocol)
+	spec.Protocol = parseProtocol(src.Protocol)
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
@@ -745,12 +719,15 @@ func DeploymentSpec(src types.DeploymentTemplateSource, ownerName string, reg *t
 
 	// Inrun system labels — always added
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	return spec
 }
 
 // JobSpec builds a jobs.Spec from a JobTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func JobSpec(src types.JobTemplateSource, backoffLimit int, ownerName string, reg *types.PresetRegistry) jobs.Spec {
+func JobSpec(src types.JobTemplateSource, backoffLimit int, owner domain.Object, reg *types.PresetRegistry) jobs.Spec {
+	ownerName := owner.GetName()
 	spec := jobs.Spec{
 		Name:            src.Name,
 		Namespace:       src.Namespace,
@@ -759,13 +736,11 @@ func JobSpec(src types.JobTemplateSource, backoffLimit int, ownerName string, re
 		Args:            src.Args,
 		BackoffLimit:    backoffLimit,
 		Labels:          make(map[string]string),
-		Resources:       shared.ResolveResources(src.Resources, reg.All()),
-		SecurityContext: shared.ResolveContainerSecurityContext(src.SecurityContext, reg.All()),
-		PodSecurity:     shared.ResolvePodSecurityContext(src.PodSecurity, reg.All()),
+		Resources:       presetResources(src.Resources, reg.All()),
+		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
+		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Volumes:         src.Volumes,
 		VolumeMounts:    src.VolumeMounts,
-		Sleep:           src.Sleep,
-		ForceConflict:   src.ForceConflict,
 	}
 
 	if spec.Name == "" {
@@ -781,6 +756,7 @@ func JobSpec(src types.JobTemplateSource, backoffLimit int, ownerName string, re
 
 	// System labels
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
@@ -792,12 +768,11 @@ func JobSpec(src types.JobTemplateSource, backoffLimit int, ownerName string, re
 //
 // Inrun system labels (managed-by, inrun-owner) are always added
 // and cannot be overridden by the user.
-func PodSpec(src types.PodTemplateSource, ownerName string, reg *types.PresetRegistry) pods.Spec {
+func PodSpec(src types.PodTemplateSource, owner domain.Object, reg *types.PresetRegistry) pods.Spec {
+	ownerName := owner.GetName()
 	spec := pods.Spec{
-		Labels:        make(map[string]string),
-		Annotations:   make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Labels:      make(map[string]string),
+		Annotations: make(map[string]string),
 	}
 
 	spec.Name = src.Name
@@ -810,16 +785,15 @@ func PodSpec(src types.PodTemplateSource, ownerName string, reg *types.PresetReg
 	spec.Resources = src.Resources
 	spec.Probes = src.Probes
 	spec.Presets = reg.All()
-	spec.SecurityContext = shared.ResolveContainerSecurityContext(src.SecurityContext, reg.All())
-	spec.PodSecurity = shared.ResolvePodSecurityContext(src.PodSecurity, reg.All())
+	spec.SecurityContext = presetContainerSecurity(src.SecurityContext, reg.All())
+	spec.PodSecurity = presetPodSecurity(src.PodSecurity, reg.All())
 	spec.Volumes = src.Volumes
 	spec.VolumeMounts = src.VolumeMounts
-	spec.Sleep = src.Sleep
 
 	if src.Port != "" {
-		spec.Port = shared.ParsePort(src.Port)
+		spec.Port = parsePort(src.Port)
 	}
-	spec.Protocol = shared.ParseProtocol(src.Protocol)
+	spec.Protocol = parseProtocol(src.Protocol)
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
@@ -830,27 +804,27 @@ func PodSpec(src types.PodTemplateSource, ownerName string, reg *types.PresetReg
 
 	// System labels — always present
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // ReplicaSetSpec builds a replicasets.Spec from a ReplicaSetTemplateSource.
-func ReplicaSetSpec(src types.ReplicaSetTemplateSource, ownerName string, reg *types.PresetRegistry) replicasets.Spec {
+func ReplicaSetSpec(src types.ReplicaSetTemplateSource, owner domain.Object, reg *types.PresetRegistry) replicasets.Spec {
+	ownerName := owner.GetName()
 	spec := replicasets.Spec{
 		Name:            src.Name,
 		Image:           src.Image,
 		Namespace:       src.Namespace,
-		Resources:       shared.ResolveResources(src.Resources, reg.All()),
+		Resources:       presetResources(src.Resources, reg.All()),
 		Labels:          make(map[string]string),
 		Annotations:     make(map[string]string),
 		EnvFrom:         src.EnvFrom,
 		Probes:          src.Probes,
 		Presets:         reg.All(),
-		SecurityContext: shared.ResolveContainerSecurityContext(src.SecurityContext, reg.All()),
-		PodSecurity:     shared.ResolvePodSecurityContext(src.PodSecurity, reg.All()),
+		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
+		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Volumes:         src.Volumes,
 		VolumeMounts:    src.VolumeMounts,
-		Sleep:           src.Sleep,
-		ForceConflict:   src.ForceConflict,
 
 		ServiceAccountName: src.ServiceAccountName,
 		NodeSelector:       src.NodeSelector,
@@ -861,15 +835,14 @@ func ReplicaSetSpec(src types.ReplicaSetTemplateSource, ownerName string, reg *t
 		spec.Name = ownerName + "-replicaset"
 	}
 
-	spec.Replicas = shared.ParseReplicas(src.Replicas)
-	spec.HasAutoscale = src.Autoscale != nil
+	spec.Replicas = parseReplicas(src.Replicas)
 
 	if src.Port != "" {
 		if p, err := strconv.ParseInt(src.Port, 10, 32); err == nil {
 			spec.Port = int32(p)
 		}
 	}
-	spec.Protocol = shared.ParseProtocol(src.Protocol)
+	spec.Protocol = parseProtocol(src.Protocol)
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
@@ -891,31 +864,31 @@ func ReplicaSetSpec(src types.ReplicaSetTemplateSource, ownerName string, reg *t
 		spec.RollingUpdate = &r
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	return spec
 }
 
 // StatefulSetSpec builds a statefulsets.Spec from a StatefulSetTemplateSource.
-func StatefulSetSpec(src types.StatefulSetTemplateSource, ownerName string, reg *types.PresetRegistry) statefulsets.Spec {
+func StatefulSetSpec(src types.StatefulSetTemplateSource, owner domain.Object, reg *types.PresetRegistry) statefulsets.Spec {
+	ownerName := owner.GetName()
 	spec := statefulsets.Spec{
 		Name:            src.Name,
 		Namespace:       src.Namespace,
 		Image:           src.Image,
 		ServiceName:     src.ServiceName,
-		Replicas:        shared.ParseReplicas(src.Replicas),
-		HasAutoscale:    src.Autoscale != nil,
+		Replicas:        parseReplicas(src.Replicas),
 		Labels:          make(map[string]string),
 		Annotations:     make(map[string]string),
 		Env:             src.Env,
 		EnvFrom:         src.EnvFrom,
-		Resources:       shared.ResolveResources(src.Resources, reg.All()),
+		Resources:       presetResources(src.Resources, reg.All()),
 		Probes:          src.Probes,
 		Presets:         reg.All(),
-		SecurityContext: shared.ResolveContainerSecurityContext(src.SecurityContext, reg.All()),
-		PodSecurity:     shared.ResolvePodSecurityContext(src.PodSecurity, reg.All()),
+		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
+		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Volumes:         src.Volumes,
 		VolumeMounts:    src.VolumeMounts,
-		Sleep:           src.Sleep,
-		ForceConflict:   src.ForceConflict,
 
 		ServiceAccountName: src.ServiceAccountName,
 		NodeSelector:       src.NodeSelector,
@@ -952,7 +925,7 @@ func StatefulSetSpec(src types.StatefulSetTemplateSource, ownerName string, reg 
 	if p, err := strconv.ParseInt(src.Port, 10, 32); err == nil {
 		spec.Port = int32(p)
 	}
-	spec.Protocol = shared.ParseProtocol(src.Protocol)
+	spec.Protocol = parseProtocol(src.Protocol)
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
@@ -972,5 +945,7 @@ func StatefulSetSpec(src types.StatefulSetTemplateSource, ownerName string, reg 
 		spec.RollingUpdate = &r
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	return spec
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/replicasets"
 	"github.com/intentd/inrun/pkg/template"
@@ -77,9 +78,11 @@ func RunReplicaSets(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := replicasets.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := replicasets.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("replicasets[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("replicaset", name, ns, owner, res)
 				}
 			}
 			continue
@@ -91,22 +94,28 @@ func RunReplicaSets(
 			return fmt.Errorf("replicasets[%d]: %w", i, err)
 		}
 
-		spec := resources.ReplicaSetSpec(resolved, resolver.OwnerName(), resolver.Presets())
+		spec := resources.ReplicaSetSpec(resolved, owner, resolver.Presets())
 
 		if update {
-			if err := replicasets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := replicasets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("replicasets[%d].update: %w", i, err)
 			}
+			logResult("replicaset", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := replicasets.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := replicasets.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("replicasets[%d].create: %w", i, err)
 			}
+			logResult("replicaset", spec.Name, spec.Namespace, owner, res)
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := replicasets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := replicasets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("replicasets[%d].reconcile: %w", i, err)
 				}
+				logResult("replicaset", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/cronjobs"
 	"github.com/intentd/inrun/pkg/template"
@@ -78,9 +79,11 @@ func RunCronJobs(
 				// Skip deletion when another declaration with a passing condition
 				// targets the same resource — that path owns the resource.
 				if !activeNames[ns+"/"+name] {
-					if err := cronjobs.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := cronjobs.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("cronJobs[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("cronjob", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -98,20 +101,26 @@ func RunCronJobs(
 		}
 
 		// 3. Build registry spec and apply
-		spec := resources.CronJobSpec(resolved, resolver.OwnerName(), resolver.Presets())
+		spec := resources.CronJobSpec(resolved, owner, resolver.Presets())
 
 		if update {
-			if err := cronjobs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := cronjobs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("cronjobs[%d].update: %w", i, err)
 			}
+			logResult("cronjob", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := cronjobs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := cronjobs.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("cronjobs[%d].create: %w", i, err)
 			}
+			logResult("cronjob", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := cronjobs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := cronjobs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("cronjobs[%d].reconcile: %w", i, err)
 				}
+				logResult("cronjob", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

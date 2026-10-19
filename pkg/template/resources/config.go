@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 
 	"github.com/intentd/inrun/pkg/resources/core/configmaps"
 	"github.com/intentd/inrun/pkg/resources/core/namespaces"
@@ -24,10 +26,6 @@ func ResolveNamespace(r *template.Resolver, src types.NamespaceTemplateSource) (
 
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("namespace.labels: %w", err)
-	}
-
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("namespace.sleep: %w", err)
 	}
 
 	for i, a := range src.Finalizers {
@@ -57,9 +55,6 @@ func ResolveConfigMap(r *template.Resolver, src types.ConfigMapTemplateSource) (
 	}
 	if resolved.FromNamespace, err = r.Resolve(src.FromNamespace); err != nil {
 		return resolved, fmt.Errorf("configmap.fromNamespace: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("configmap.sleep: %w", err)
 	}
 	if resolved.FromConfigMap, err = r.Resolve(src.FromConfigMap); err != nil {
 		return resolved, fmt.Errorf("configmap.fromConfigMap: %w", err)
@@ -151,9 +146,6 @@ func ResolveSecret(r *template.Resolver, src types.SecretTemplateSource) (types.
 	if resolved.Namespace, err = r.Resolve(src.Namespace); err != nil {
 		return resolved, fmt.Errorf("secret.namespace: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("secret.sleep: %w", err)
-	}
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("secret.data: %w", err)
 	}
@@ -233,9 +225,6 @@ func ResolveServiceAccount(r *template.Resolver, src types.ServiceAccountTemplat
 	if resolved.Namespace, err = r.Resolve(ns); err != nil {
 		return resolved, fmt.Errorf("serviceaccount.namespace: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("serviceAccount.sleep: %w", err)
-	}
 
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("serviceaccount.labels: %w", err)
@@ -246,7 +235,8 @@ func ResolveServiceAccount(r *template.Resolver, src types.ServiceAccountTemplat
 
 // ConfigMapSpec builds a configmaps.Spec from a ConfigMapTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func ConfigMapSpec(src types.ConfigMapTemplateSource, ownerName string) configmaps.Spec {
+func ConfigMapSpec(src types.ConfigMapTemplateSource, owner domain.Object) configmaps.Spec {
+	ownerName := owner.GetName()
 	spec := configmaps.Spec{
 		Name:          src.Name,
 		Namespace:     src.Namespace,
@@ -254,8 +244,6 @@ func ConfigMapSpec(src types.ConfigMapTemplateSource, ownerName string) configma
 		FromConfigMap: src.FromConfigMap,
 		FromNamespace: src.FromNamespace,
 		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
 	}
 
 	if spec.Name == "" {
@@ -266,18 +254,18 @@ func ConfigMapSpec(src types.ConfigMapTemplateSource, ownerName string) configma
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // NamespaceSpec builds a namespaces.Spec from a NamespaceTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func NamespaceSpec(src types.NamespaceTemplateSource, ownerName string) namespaces.Spec {
+func NamespaceSpec(src types.NamespaceTemplateSource, owner domain.Object) namespaces.Spec {
+	ownerName := owner.GetName()
 	spec := namespaces.Spec{
-		Name:          src.Name,
-		Labels:        make(map[string]string),
-		Finalizers:    src.Finalizers,
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:       src.Name,
+		Labels:     make(map[string]string),
+		Finalizers: src.Finalizers,
 	}
 
 	if spec.Name == "" {
@@ -288,12 +276,14 @@ func NamespaceSpec(src types.NamespaceTemplateSource, ownerName string) namespac
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // SecretSpec builds a secrets.Spec from a SecretTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func SecretSpec(src types.SecretTemplateSource, ownerName string) secrets.Spec {
+func SecretSpec(src types.SecretTemplateSource, owner domain.Object) secrets.Spec {
+	ownerName := owner.GetName()
 	spec := secrets.Spec{
 		Name:          src.Name,
 		Namespace:     src.Namespace,
@@ -302,8 +292,6 @@ func SecretSpec(src types.SecretTemplateSource, ownerName string) secrets.Spec {
 		Type:          src.Type,
 		StringData:    src.Data, // declared as strings in YAML
 		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
 	}
 
 	if spec.Name == "" {
@@ -319,18 +307,18 @@ func SecretSpec(src types.SecretTemplateSource, ownerName string) secrets.Spec {
 
 	// System labels
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // ServiceAccountSpec builds a serviceaccounts.Spec from a ServiceAccountTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func ServiceAccountSpec(src types.ServiceAccountTemplateSource, ownerName string) serviceaccounts.Spec {
+func ServiceAccountSpec(src types.ServiceAccountTemplateSource, owner domain.Object) serviceaccounts.Spec {
+	ownerName := owner.GetName()
 	spec := serviceaccounts.Spec{
-		Name:          src.Name,
-		Namespace:     src.Namespace,
-		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:      src.Name,
+		Namespace: src.Namespace,
+		Labels:    make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -341,5 +329,6 @@ func ServiceAccountSpec(src types.ServiceAccountTemplateSource, ownerName string
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }

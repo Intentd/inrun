@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/pvs"
 	"github.com/intentd/inrun/pkg/template"
@@ -42,9 +43,11 @@ func RunPVs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[name] {
-					if err := pvs.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
+					res, err := pvs.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("pvs[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("pv", name, "", owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -59,20 +62,26 @@ func RunPVs(
 			return fmt.Errorf("pvs[%d]: %w", i, err)
 		}
 
-		spec := resources.PVSpec(resolved, resolver.OwnerName())
+		spec := resources.PVSpec(resolved, owner)
 
 		if update {
-			if err := pvs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := pvs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("pvs[%d].update: %w", i, err)
 			}
+			logResult("pv", spec.Name, "", owner, res)
 		} else {
-			if err := pvs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := pvs.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("pvs[%d].create: %w", i, err)
 			}
+			logResult("pv", spec.Name, "", owner, res)
 			if src.Reconcile {
-				if err := pvs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := pvs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("pvs[%d].reconcile: %w", i, err)
 				}
+				logResult("pv", spec.Name, "", owner, res)
 			}
 		}
 	}

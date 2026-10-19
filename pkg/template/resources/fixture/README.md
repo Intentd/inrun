@@ -1,4 +1,4 @@
-# pkg/resources/fixture
+# pkg/template/resources/fixture
 
 Living integration fixture for every `pkg/resources/*` package.
 
@@ -47,7 +47,7 @@ The standard `inrun` CLI does not know about `ResourceProbe`. You must build a c
 ### Step 1 — Generate the registry and build the custom binary
 
 ```bash
-cd pkg/resources/fixture
+cd pkg/template/resources/fixture
 make registry
 make build
 ```
@@ -57,14 +57,14 @@ make build
 ### Step 2 — Verify in-memory
 
 ```bash
-inrun simulate -f pkg/resources/fixture/simulate.yaml
+inrun simulate -f pkg/template/resources/fixture/simulate.yaml
 ```
 
 Fast — no cluster needed. Exercises the reconciler logic against a fake API server.
 
 ### Step 3 — Full cluster verification
 
-`e2e.yaml` references `values.yaml` which sets the runtime image to `ghcr.io/intentd/inrun/pkg/resources/fixture:latest`. To use a locally built image instead:
+`e2e.yaml` references `values.yaml` which sets the runtime image to `ghcr.io/intentd/inrun/pkg/template/resources/fixture:latest`. To use a locally built image instead:
 
 ```bash
 make docker push IMAGE_REPO=yourregistry/resource-probe IMAGE_TAG=latest
@@ -73,7 +73,7 @@ make docker push IMAGE_REPO=yourregistry/resource-probe IMAGE_TAG=latest
 Then run e2e:
 
 ```bash
-inrun e2e -f pkg/resources/fixture/e2e.yaml --workers 3 \
+inrun e2e -f pkg/template/resources/fixture/e2e.yaml --workers 3 \
   --set runtime.image.repository=yourregistry/resource-probe \
   --set runtime.image.tag=latest
 ```
@@ -81,7 +81,7 @@ inrun e2e -f pkg/resources/fixture/e2e.yaml --workers 3 \
 Or with the default published image (no `--set` needed):
 
 ```bash
-inrun e2e -f pkg/resources/fixture/e2e.yaml --workers 3
+inrun e2e -f pkg/template/resources/fixture/e2e.yaml --workers 3
 ```
 
 Creates a kind cluster, installs Inrun with the resource-probe runtime, applies the CR, asserts all resources, and tears down.
@@ -89,7 +89,7 @@ Creates a kind cluster, installs Inrun with the resource-probe runtime, applies 
 To reuse an existing cluster during iteration:
 
 ```bash
-inrun e2e -f pkg/resources/fixture/e2e.yaml --use-current
+inrun e2e -f pkg/template/resources/fixture/e2e.yaml --use-current
 ```
 
 ## Adding a new resource type

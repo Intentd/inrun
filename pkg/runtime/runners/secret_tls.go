@@ -28,6 +28,7 @@ package runners
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/inrun/pkg/resources/core/types"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +37,6 @@ import (
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/secrets"
 )
 
@@ -79,7 +79,7 @@ func createTLSSecret(
 				"inrun-owner":                  owner.GetName(),
 				"app.kubernetes.io/managed-by": "inrun",
 			},
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{

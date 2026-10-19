@@ -6,6 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/core/statefulsets"
 )
 
@@ -52,6 +53,8 @@ func BuildStatefulSet(in map[string]interface{}, owner domain.Object) (map[strin
 		ServiceName: f.ServiceName,
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	obj := statefulsets.Build(owner, spec)
 
 	for k, v := range f.Env {

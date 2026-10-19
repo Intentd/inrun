@@ -1,10 +1,11 @@
-package generic
+package runners
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/intentd/inrun/pkg/template/resources"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
@@ -15,8 +16,9 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 )
 
-// runCustomResources resolves and applies CustomResource template declarations.
-func runCustomResources(
+// RunCustomResources resolves and applies CustomResource template declarations.
+// labelMgr and shouldProtect set the deletion-protection label on each one.
+func RunCustomResources(
 	ctx context.Context,
 	kube kubeclient.Interface,
 	resolver *template.Resolver,
@@ -60,9 +62,11 @@ func runCustomResources(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, name, ns, src.APIVersion, src.Kind); err != nil {
+					res, err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), name, ns, src.APIVersion, src.Kind, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("custom[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("custom resource", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -92,27 +96,45 @@ func runCustomResources(
 		}
 
 		// Convert resolved template into the runtime customresources.Spec
-		spec := resources.CustomResourceSpec(resolved, resolver.OwnerName())
+		spec := resources.CustomResourceSpec(resolved, owner)
 
 		// Create is a no-op if the resource already exists (idempotent OnCreate).
 		// Update always corrects drift — delete drift (recreate) and spec drift.
 		if update {
-			if err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, labelMgr, shouldProtect); err != nil {
+			res, err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, protectionLabel(labelMgr, shouldProtect))
+			if err != nil {
 				return fmt.Errorf("custom[%d].update: %w", i, err)
 			}
+			logResult("custom resource", spec.Metadata.Name, spec.Metadata.Namespace, owner, res)
 		} else {
-			if err := customresources.Create(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, labelMgr, shouldProtect); err != nil {
+			res, err := customresources.Create(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, protectionLabel(labelMgr, shouldProtect))
+			if err != nil {
 				return fmt.Errorf("custom[%d].create: %w", i, err)
 			}
+			logResult("custom resource", spec.Metadata.Name, spec.Metadata.Namespace, owner, res)
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, labelMgr, shouldProtect); err != nil {
+				res, err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, protectionLabel(labelMgr, shouldProtect))
+				if err != nil {
 					return fmt.Errorf("custom[%d].reconcile: %w", i, err)
 				}
+				logResult("custom resource", spec.Metadata.Name, spec.Metadata.Namespace, owner, res)
 			}
 		}
 	}
 
 	return nil
+}
+
+// protectionLabel returns the hook that sets or removes the deletion-protection
+// label on a custom resource right before it is written, or nil without a
+// label manager.
+func protectionLabel(m *labels.Manager, shouldProtect bool) func(*unstructured.Unstructured) {
+	if m == nil {
+		return nil
+	}
+	return func(u *unstructured.Unstructured) {
+		m.EnsureDeletionProtectionLabel(u, shouldProtect)
+	}
 }

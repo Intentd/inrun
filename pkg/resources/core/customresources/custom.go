@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"reflect"
 
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,11 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Spec is the fully resolved Custom Resource specification.
@@ -65,110 +60,80 @@ type Spec struct {
 	HasStatus *bool `json:"hasStatus,omitempty" yaml:"hasStatus,omitempty"`
 
 	Reconcile bool `yaml:"reconcile" json:"reconcile,omitempty"`
-
-	// Sleep injects an artificial delay into the reconcile of this resource.
-	// Useful for autoscale testing, latency simulation, and chaos engineering.
-	// Accepts extended duration units (s, m, h, d, w, mo, y).
-	Sleep string `json:"sleep,omitempty" yaml:"sleep,omitempty"`
-
-	// ForceConflict, when true, sets Force: true when applying this resource,
-	// taking ownership of conflicting fields instead of returning a conflict error.
-	// Overrides the CRD-level ForceConflict setting.
-	ForceConflict *bool
 }
 
 // Create creates the custom resource described by spec if it does not already exist.
 // Idempotent — skips if resource exists. Owner reference set for cascade deletion.
-func Create(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, spec Spec, labelMgr *labels.Manager, shouldProtect bool) error {
+func Create(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, spec Spec, mutate func(*unstructured.Unstructured)) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("custom.Create: %w", err)
+		return "", fmt.Errorf("custom.Create: %w", err)
 	}
 
 	name := spec.Metadata.Name
 	// Resolve namespace (owner may provide defaulting)
 	namespace := shared.ResolveNamespace(owner, spec.Metadata.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	// Build GVR from APIVersion/Kind
-	gvk, err := kubeutil.GVKFromFields(spec.APIVersion, spec.Kind)
+	gvk, err := shared.GVKFromFields(spec.APIVersion, spec.Kind)
 	if err != nil {
-		return fmt.Errorf("custom.Create: invalid GVK: %w", err)
+		return "", fmt.Errorf("custom.Create: invalid GVK: %w", err)
 	}
 
 	resourceIfc, err := resourceFor(dyn, mapper, gvk, namespace)
 	if err != nil {
-		return fmt.Errorf("custom.Create: resolving GVR for %s: %w", gvk.String(), err)
+		return "", fmt.Errorf("custom.Create: resolving GVR for %s: %w", gvk.String(), err)
 	}
 
 	// Check existence
 	_, err = resourceIfc.Get(ctx, name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("custom.Create: checking existence of %q: %w", name, err)
+		return "", fmt.Errorf("custom.Create: checking existence of %q: %w", name, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("custom", name).
-			Str("namespace", namespace).
-			Msg("custom resource already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	// Build unstructured object
 	obj := Build(owner, spec)
-	if labelMgr != nil {
-		labelMgr.EnsureDeletionProtectionLabel(obj, shouldProtect)
+	if mutate != nil {
+		mutate(obj)
 	}
 
 	// Create
 	_, err = resourceIfc.Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("custom.Create: creating %q in %q: %w", name, namespace, err)
+		return "", fmt.Errorf("custom.Create: creating %q in %q: %w", name, namespace, err)
 	}
 
-	logger.Info().
-		Str("custom", name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("custom resource created")
-
-	return nil
+	return types.Created, nil
 }
 
 // Apply reconciles an existing custom resource to match the resolved spec.
 // If the resource does not exist, it will be created.
-func Apply(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, spec Spec, labelMgr *labels.Manager, shouldProtect bool) error {
+func Apply(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, spec Spec, mutate func(*unstructured.Unstructured)) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("custom.Apply: %w", err)
+		return "", fmt.Errorf("custom.Apply: %w", err)
 	}
 	name := spec.Metadata.Name
 
 	namespace := shared.ResolveNamespace(owner, spec.Metadata.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
-	gvk, err := kubeutil.GVKFromFields(spec.APIVersion, spec.Kind)
+	gvk, err := shared.GVKFromFields(spec.APIVersion, spec.Kind)
 	if err != nil {
-		return fmt.Errorf("custom.Apply: invalid GVK: %w", err)
+		return "", fmt.Errorf("custom.Apply: invalid GVK: %w", err)
 	}
 
 	resourceIfc, err := resourceFor(dyn, mapper, gvk, namespace)
 	if err != nil {
-		return fmt.Errorf("custom.Apply: resolving GVR for %s: %w", gvk.String(), err)
+		return "", fmt.Errorf("custom.Apply: resolving GVR for %s: %w", gvk.String(), err)
 	}
 
 	existing, err := resourceIfc.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info().
-				Str("custom", name).
-				Str("namespace", namespace).
-				Msg("custom resource not found during reconcile — recreating")
-			return Create(ctx, dyn, mapper, owner, spec, labelMgr, shouldProtect)
+			return Create(ctx, dyn, mapper, owner, spec, mutate)
 		}
-		return fmt.Errorf("custom.Apply: getting %q: %w", name, err)
+		return "", fmt.Errorf("custom.Apply: getting %q: %w", name, err)
 	}
 
 	// Build desired object
@@ -194,103 +159,87 @@ func Apply(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, o
 	}
 
 	if !needUpdate {
-		logger.Debug().
-			Str("custom", name).
-			Str("namespace", namespace).
-			Msg("custom resource in sync — no update needed")
-	} else {
-		// Prepare updated object: merge desired spec into existing object.
-		// Use direct map assignment (not SetNestedField) to avoid DeepCopyJSONValue
-		// panicking on non-JSON-safe types (int, int64) produced by YAML unmarshalling.
-		updated := existing.DeepCopy()
-		if labelMgr != nil {
-			labelMgr.EnsureDeletionProtectionLabel(updated, shouldProtect)
+		return types.Unchanged, nil
+	}
+
+	// Prepare updated object: merge desired spec into existing object.
+	// Use direct map assignment (not SetNestedField) to avoid DeepCopyJSONValue
+	// panicking on non-JSON-safe types (int, int64) produced by YAML unmarshalling.
+	updated := existing.DeepCopy()
+	if mutate != nil {
+		mutate(updated)
+	}
+	if desired.Object["spec"] != nil {
+		updated.Object["spec"] = shared.ToJSONSafe(desired.Object["spec"])
+	}
+	// Merge other top-level fields from desired (conservative: overwrite)
+	for k, v := range desired.Object {
+		if k == "apiVersion" || k == "kind" || k == "metadata" || k == "spec" || k == "status" {
+			continue
 		}
+		updated.Object[k] = shared.ToJSONSafe(v)
+	}
+
+	_, err = resourceIfc.Update(ctx, updated, metav1.UpdateOptions{})
+	if errors.IsConflict(err) {
+		// Another controller updated the object between our Get and Update.
+		// Re-fetch and retry once — the next reconcile cycle will catch any
+		// remaining drift.
+		latest, getErr := resourceIfc.Get(ctx, name, metav1.GetOptions{})
+		if getErr != nil {
+			return "", fmt.Errorf("custom.Apply: refreshing %q after conflict: %w", name, getErr)
+		}
+		updated = latest.DeepCopy()
 		if desired.Object["spec"] != nil {
-			updated.Object["spec"] = structured.ToJSONSafe(desired.Object["spec"])
+			updated.Object["spec"] = shared.ToJSONSafe(desired.Object["spec"])
 		}
-		// Merge other top-level fields from desired (conservative: overwrite)
 		for k, v := range desired.Object {
 			if k == "apiVersion" || k == "kind" || k == "metadata" || k == "spec" || k == "status" {
 				continue
 			}
-			updated.Object[k] = structured.ToJSONSafe(v)
+			updated.Object[k] = shared.ToJSONSafe(v)
 		}
-
 		_, err = resourceIfc.Update(ctx, updated, metav1.UpdateOptions{})
-		if errors.IsConflict(err) {
-			// Another controller updated the object between our Get and Update.
-			// Re-fetch and retry once — the next reconcile cycle will catch any
-			// remaining drift.
-			latest, getErr := resourceIfc.Get(ctx, name, metav1.GetOptions{})
-			if getErr != nil {
-				return fmt.Errorf("custom.Apply: refreshing %q after conflict: %w", name, getErr)
-			}
-			updated = latest.DeepCopy()
-			if desired.Object["spec"] != nil {
-				updated.Object["spec"] = structured.ToJSONSafe(desired.Object["spec"])
-			}
-			for k, v := range desired.Object {
-				if k == "apiVersion" || k == "kind" || k == "metadata" || k == "spec" || k == "status" {
-					continue
-				}
-				updated.Object[k] = structured.ToJSONSafe(v)
-			}
-			_, err = resourceIfc.Update(ctx, updated, metav1.UpdateOptions{})
-		}
-		if err != nil {
-			return fmt.Errorf("custom.Apply: updating %q: %w", name, err)
-		}
-
-		logger.Info().
-			Str("custom", name).
-			Str("namespace", namespace).
-			Msg("custom resource updated")
+	}
+	if err != nil {
+		return "", fmt.Errorf("custom.Apply: updating %q: %w", name, err)
 	}
 
-	return nil
+	return types.Applied, nil
 }
 
 // DeleteIfOwned deletes the custom resource if it exists and is owned by the given owner.
 // Skips deletion if Inrun is not the owner.
-func DeleteIfOwned(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, name, namespace, apiVersion, kind string) error {
+func DeleteIfOwned(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, name, namespace, apiVersion, kind string, owned func(metav1.Object) bool) (types.Result, error) {
 	// Build GVK and resolve GVR
-	gvk, err := kubeutil.GVKFromFields(apiVersion, kind)
+	gvk, err := shared.GVKFromFields(apiVersion, kind)
 	if err != nil {
-		return fmt.Errorf("custom.DeleteIfOwned: invalid GVK: %w", err)
+		return "", fmt.Errorf("custom.DeleteIfOwned: invalid GVK: %w", err)
 	}
 
 	resourceIfc, err := resourceFor(dyn, mapper, gvk, namespace)
 	if err != nil {
-		return fmt.Errorf("custom.DeleteIfOwned: resolving GVR for %s: %w", gvk.String(), err)
+		return "", fmt.Errorf("custom.DeleteIfOwned: resolving GVR for %s: %w", gvk.String(), err)
 	}
 
 	existing, err := resourceIfc.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("custom.DeleteIfOwned: getting %q: %w", name, err)
+		return "", fmt.Errorf("custom.DeleteIfOwned: getting %q: %w", name, err)
 	}
 
-	labelsMap := existing.GetLabels()
-
 	// Only delete if we own it
-	if labelsMap[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
 
 	if err := resourceIfc.Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
-		return fmt.Errorf("custom.DeleteIfOwned: deleting %q: %w", name, err)
+		return "", fmt.Errorf("custom.DeleteIfOwned: deleting %q: %w", name, err)
 	}
 
-	logger.Info().
-		Str("custom", name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("custom resource deleted")
-
-	return nil
+	return types.Deleted, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -310,14 +259,13 @@ func Build(owner types.Owner, spec Spec) *unstructured.Unstructured {
 		u.SetNamespace(namespace)
 	}
 
-	// Labels: merge user-declared + Inrun managed labels. Copy rather than
+	// Labels: copy the declared labels rather than
 	// mutate spec.Metadata.Labels directly — that map may be shared/reused
 	// (e.g. across forEach expansions of the same source).
 	lbls := make(map[string]string, len(spec.Metadata.Labels)+3)
 	for k, v := range spec.Metadata.Labels {
 		lbls[k] = v
 	}
-	lbls = labels.StampInrunLabels(lbls, owner.GetName(), owner.GetAnnotations())
 	u.SetLabels(lbls)
 
 	// Annotations: copy for the same reason as Labels above.
@@ -338,7 +286,7 @@ func Build(owner types.Owner, spec Spec) *unstructured.Unstructured {
 	ownerIsNamespaced := owner.GetNamespace() != ""
 	sameNamespace := !ownerIsNamespaced || namespace == "" || namespace == owner.GetNamespace()
 	if !ownerGVK.Empty() && sameNamespace {
-		u.SetOwnerReferences(shared.ResolveOwnerReferences(owner))
+		u.SetOwnerReferences(types.OwnerReferences(owner))
 	}
 
 	// Other top-level fields (non-core) from the spec declaration.

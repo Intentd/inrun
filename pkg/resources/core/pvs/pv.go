@@ -13,93 +13,79 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // Create creates a PersistentVolume if it does not already exist.
 // PVs are cluster-scoped — owner references are set as labels only.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	_, err := kube.CoreV1().PersistentVolumes().Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("pv.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("pv.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().Str("pv", spec.Name).Msg("pv already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	pv := Build(owner, spec)
 	_, err = kube.CoreV1().PersistentVolumes().Create(ctx, pv, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("pv.Create: creating %q: %w", spec.Name, err)
+		return "", fmt.Errorf("pv.Create: creating %q: %w", spec.Name, err)
 	}
 
-	logger.Info().Str("pv", spec.Name).Str("owner", owner.GetName()).Msg("pv created")
-	return nil
+	return types.Created, nil
 }
 
 // Apply creates or updates a PersistentVolume using Server-Side Apply.
 // PVs are cluster-scoped — no namespace arg. Sends only fields Inrun owns.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 
 	pv := Build(owner, spec)
 	pv.TypeMeta = metav1.TypeMeta{APIVersion: "v1", Kind: "PersistentVolume"}
 
 	body, err := json.Marshal(pv)
 	if err != nil {
-		return fmt.Errorf("pv.Apply: marshal: %w", err)
+		return "", fmt.Errorf("pv.Apply: marshal: %w", err)
 	}
 
 	if _, err = kube.CoreV1().PersistentVolumes().Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
 		opts.PatchOptions(),
 	); err != nil {
-		return fmt.Errorf("pv.Apply: %w", err)
+		return "", fmt.Errorf("pv.Apply: %w", err)
 	}
 
-	logger.Debug().
-		Str("pv", spec.Name).
-		Str("owner", owner.GetName()).
-		Msg("pv applied")
-
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the PV if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, name string) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, name string) (types.Result, error) {
 	err := kube.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("pv.Delete: %w", err)
+		return "", fmt.Errorf("pv.Delete: %w", err)
 	}
-	logger.Info().Str("pv", name).Msg("pv deleted")
-	return nil
+	return types.Deleted, nil
 }
 
 // DeleteIfOwned deletes the PV only if the owner label matches.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, owner types.Owner, name string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.CoreV1().PersistentVolumes().Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
@@ -107,7 +93,6 @@ func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, owner types.O
 // Build returns the PersistentVolume spec describes, owned by owner.
 // It reads nothing from the cluster.
 func Build(owner types.Owner, spec Spec) *corev1.PersistentVolume {
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	capacityQty := resource.MustParse(spec.Capacity)
 
 	var accessModes []corev1.PersistentVolumeAccessMode
@@ -151,7 +136,7 @@ func Build(owner types.Owner, spec Spec) *corev1.PersistentVolume {
 		}
 	}
 
-	pv.OwnerReferences = shared.ResolveOwnerReferences(owner)
+	pv.OwnerReferences = types.OwnerReferences(owner)
 
 	return pv
 }

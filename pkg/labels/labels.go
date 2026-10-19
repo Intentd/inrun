@@ -1,6 +1,10 @@
 package labels
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/intentd/inrun/domain"
+)
 
 //
 // ────────────────────────────────────────────────────────────────────────────────
@@ -254,4 +258,13 @@ func StampInrunLabels(lbls map[string]string, ownerName string, ownerAnnotations
 		}
 	}
 	return lbls
+}
+
+// OwnedBy reports whether obj carries owner's Inrun owner label: whether
+// Inrun may delete it as owner's. Pass it to a resource's DeleteIfOwned.
+func OwnedBy(owner domain.Object) func(metav1.Object) bool {
+	key := EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations())
+	return func(obj metav1.Object) bool {
+		return obj.GetLabels()[InrunOwner] == key
+	}
 }

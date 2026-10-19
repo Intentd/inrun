@@ -14,108 +14,84 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Create creates a StatefulSet owned by the CR if it does not already exist.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.AppsV1().StatefulSets(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("statefulset.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("statefulset.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("statefulset", spec.Name).
-			Str("namespace", namespace).
-			Msg("statefulset already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	sts := Build(owner, spec)
 	_, err = kube.AppsV1().StatefulSets(namespace).Create(ctx, sts, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("statefulset.Create: creating %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("statefulset.Create: creating %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("statefulset", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("statefulset created")
-	return nil
+	return types.Created, nil
 }
 
 // Apply creates or updates a StatefulSet using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	sts := Build(owner, spec)
 	sts.TypeMeta = metav1.TypeMeta{APIVersion: "apps/v1", Kind: "StatefulSet"}
 
 	body, err := json.Marshal(sts)
 	if err != nil {
-		return fmt.Errorf("statefulset.Apply: marshal: %w", err)
+		return "", fmt.Errorf("statefulset.Apply: marshal: %w", err)
 	}
 
 	if _, err = kube.AppsV1().StatefulSets(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
 		opts.PatchOptions(),
 	); err != nil {
-		return fmt.Errorf("statefulset.Apply: %w", err)
+		return "", fmt.Errorf("statefulset.Apply: %w", err)
 	}
 
-	logger.Debug().
-		Str("statefulset", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("statefulset applied")
-
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the StatefulSet if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	err := kube.AppsV1().StatefulSets(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("statefulset.Delete: %w", err)
+		return "", fmt.Errorf("statefulset.Delete: %w", err)
 	}
-	logger.Info().Str("statefulset", spec.Name).Str("owner", owner.GetName()).Msg("statefulset deleted")
-	return nil
+	return types.Deleted, nil
 }
 
 // DeleteIfOwned deletes the StatefulSet only if it is owned by the given CR.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, owner types.Owner, name, namespace string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name, namespace string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
@@ -144,7 +120,6 @@ func resolveAccessModes(modes []string) []corev1.PersistentVolumeAccessMode {
 // It reads nothing from the cluster.
 func Build(owner types.Owner, spec Spec) *appsv1.StatefulSet {
 	ns := shared.ResolveNamespace(owner, spec.Namespace)
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 
 	replicas := spec.Replicas
 	container := corev1.Container{
@@ -196,19 +171,17 @@ func Build(owner types.Owner, spec Spec) *appsv1.StatefulSet {
 			Namespace:       ns,
 			Labels:          spec.Labels,
 			Annotations:     spec.Annotations,
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:    &replicas,
 			ServiceName: spec.ServiceName,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					labels.InrunOwner: owner.GetName(),
-				},
+				MatchLabels: shared.PodSelector(spec.Selector, spec.Name),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: spec.Labels,
+					Labels: shared.PodLabels(spec.Labels, shared.PodSelector(spec.Selector, spec.Name)),
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:   shared.ToPullSecrets(spec.ImagePullSecrets),

@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/configmaps"
 	"github.com/intentd/inrun/pkg/template"
@@ -70,9 +71,11 @@ func RunConfigMaps(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := configmaps.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := configmaps.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("configMaps[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("configmap", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -90,7 +93,7 @@ func RunConfigMaps(
 		}
 
 		// 3. Build registry spec and apply
-		spec := resources.ConfigMapSpec(resolved, resolver.OwnerName())
+		spec := resources.ConfigMapSpec(resolved, owner)
 
 		// toNamespaces — distribute to multiple namespaces, guarded per target
 		if len(resolved.ToNamespaces) > 0 {
@@ -108,13 +111,17 @@ func RunConfigMaps(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := configmaps.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
+					res, err := configmaps.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+					if err != nil {
 						return fmt.Errorf("configmaps[%d].update namespace=%s: %w", i, targetNs, err)
 					}
+					logResult("configmap", nsSpec.Name, nsSpec.Namespace, owner, res)
 				} else {
-					if err := configmaps.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
+					res, err := configmaps.Create(ctx, kube.Clientset(), owner, nsSpec)
+					if err != nil {
 						return fmt.Errorf("configmaps[%d].create namespace=%s: %w", i, targetNs, err)
 					}
+					logResult("configmap", nsSpec.Name, nsSpec.Namespace, owner, res)
 				}
 			}
 			continue
@@ -122,17 +129,23 @@ func RunConfigMaps(
 
 		// Single namespace
 		if update {
-			if err := configmaps.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := configmaps.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("configmaps[%d].update: %w", i, err)
 			}
+			logResult("configmap", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := configmaps.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := configmaps.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("configmaps[%d].create: %w", i, err)
 			}
+			logResult("configmap", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := configmaps.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := configmaps.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("configmaps[%d].reconcile: %w", i, err)
 				}
+				logResult("configmap", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

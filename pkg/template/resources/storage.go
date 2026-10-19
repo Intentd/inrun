@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 
 	"github.com/intentd/inrun/pkg/resources/core/pvcs"
 	"github.com/intentd/inrun/pkg/resources/core/pvs"
@@ -30,9 +32,6 @@ func ResolvePVC(r *template.Resolver, src types.PVCTemplateSource) (types.PVCTem
 	}
 	if resolved.VolumeName, err = r.Resolve(src.VolumeName); err != nil {
 		return resolved, fmt.Errorf("pvc.volumeName: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("pvc.sleep: %w", err)
 	}
 
 	ns := src.Namespace
@@ -79,9 +78,6 @@ func ResolvePV(r *template.Resolver, src types.PVTemplateSource) (types.PVTempla
 	if resolved.CSIVolumeHandle, err = r.Resolve(src.CSIVolumeHandle); err != nil {
 		return resolved, fmt.Errorf("pv.csiVolumeHandle: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("pv.sleep: %w", err)
-	}
 
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("pv.labels: %w", err)
@@ -91,7 +87,7 @@ func ResolvePV(r *template.Resolver, src types.PVTemplateSource) (types.PVTempla
 }
 
 // PVCSpec builds a pvcs.Spec from a PVCTemplateSource.
-func PVCSpec(src types.PVCTemplateSource, ownerName string) pvcs.Spec {
+func PVCSpec(src types.PVCTemplateSource, owner domain.Object) pvcs.Spec {
 	spec := pvcs.Spec{
 		Name:             src.Name,
 		Namespace:        src.Namespace,
@@ -101,8 +97,6 @@ func PVCSpec(src types.PVCTemplateSource, ownerName string) pvcs.Spec {
 		VolumeMode:       src.VolumeMode,
 		VolumeName:       src.VolumeName,
 		Labels:           make(map[string]string),
-		Sleep:            src.Sleep,
-		ForceConflict:    src.ForceConflict,
 	}
 
 	if len(spec.AccessModes) == 0 {
@@ -116,11 +110,12 @@ func PVCSpec(src types.PVCTemplateSource, ownerName string) pvcs.Spec {
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // PVSpec builds a pvs.Spec from a PVTemplateSource.
-func PVSpec(src types.PVTemplateSource, ownerName string) pvs.Spec {
+func PVSpec(src types.PVTemplateSource, owner domain.Object) pvs.Spec {
 	spec := pvs.Spec{
 		Name:             src.Name,
 		StorageClassName: src.StorageClassName,
@@ -131,8 +126,6 @@ func PVSpec(src types.PVTemplateSource, ownerName string) pvs.Spec {
 		CSIDriver:        src.CSIDriver,
 		CSIVolumeHandle:  src.CSIVolumeHandle,
 		Labels:           make(map[string]string),
-		Sleep:            src.Sleep,
-		ForceConflict:    src.ForceConflict,
 	}
 
 	if len(spec.AccessModes) == 0 {
@@ -146,5 +139,6 @@ func PVSpec(src types.PVTemplateSource, ownerName string) pvs.Spec {
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/core/cronjobs"
 )
 
@@ -54,6 +55,7 @@ func BuildCronJob(in map[string]interface{}, owner domain.Object) (map[string]in
 		spec.ConcurrencyPolicy = resolveConcurrencyPolicy(f.ConcurrencyPolicy)
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	obj := cronjobs.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "batch/v1", "CronJob")

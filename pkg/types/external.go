@@ -150,10 +150,6 @@ type ExternalCallSpec struct {
 	// true:            failure is logged, result has error set, reconcile continues.
 	ContinueOnError bool `yaml:"continueOnError,omitempty" json:"continueOnError,omitempty"`
 
-	// Sleep injects an artificial delay. Useful for testing.
-	// Accepts extended duration units (s, m, h, d, w, mo, y).
-	Sleep string `json:"sleep,omitempty" yaml:"sleep,omitempty"`
-
 	// Fires controls at which lifecycle points this call executes.
 	// Absent: fires at both admission and reconcile time.
 	// fires.reconcile: false — admission only; reconciler skips this call.

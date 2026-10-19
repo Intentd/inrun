@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"strconv"
 
 	"github.com/intentd/inrun/pkg/logger"
@@ -33,9 +35,6 @@ func ResolveService(r *template.Resolver, src types.ServiceTemplateSource) (type
 	}
 	if resolved.TargetPort, err = r.Resolve(src.TargetPort); err != nil {
 		return resolved, fmt.Errorf("service.targetPort: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("service.sleep: %w", err)
 	}
 
 	ns := src.Namespace
@@ -83,9 +82,6 @@ func ResolveIngress(r *template.Resolver, src types.IngressTemplateSource) (type
 	}
 	if resolved.IngressClass, err = r.Resolve(src.IngressClass); err != nil {
 		return resolved, fmt.Errorf("ingress.ingressClass: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("ingress.sleep: %w", err)
 	}
 
 	ns := src.Namespace
@@ -149,9 +145,6 @@ func ResolveNetworkPolicy(r *template.Resolver, src types.NetworkPolicyTemplateS
 	if resolved.FromNamespace, err = r.Resolve(src.FromNamespace); err != nil {
 		return resolved, fmt.Errorf("networkpolicy.fromNamespace: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("networkpolicy.sleep: %w", err)
-	}
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("networkpolicy.labels: %w", err)
 	}
@@ -191,19 +184,18 @@ func ResolveNetworkPolicy(r *template.Resolver, src types.NetworkPolicyTemplateS
 
 // IngressSpec builds a ingresses.Spec from an IngressTemplateSource.
 // All template expressions must be evaluated before calling here.
-func IngressSpec(src types.IngressTemplateSource, ownerName string) ingresses.Spec {
+func IngressSpec(src types.IngressTemplateSource, owner domain.Object) ingresses.Spec {
+	ownerName := owner.GetName()
 	spec := ingresses.Spec{
-		Name:          src.Name,
-		Namespace:     src.Namespace,
-		Host:          src.Host,
-		ServiceName:   src.ServiceName,
-		Path:          src.Path,
-		PathType:      src.PathType,
-		IngressClass:  src.IngressClass,
-		Labels:        make(map[string]string),
-		Annotations:   make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:         src.Name,
+		Namespace:    src.Namespace,
+		Host:         src.Host,
+		ServiceName:  src.ServiceName,
+		Path:         src.Path,
+		PathType:     src.PathType,
+		IngressClass: src.IngressClass,
+		Labels:       make(map[string]string),
+		Annotations:  make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -244,12 +236,13 @@ func IngressSpec(src types.IngressTemplateSource, ownerName string) ingresses.Sp
 		}
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // NetworkPolicySpec builds a networkpolicies.Spec from a NetworkPolicyTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func NetworkPolicySpec(src types.NetworkPolicyTemplateSource, ownerName string, reg *types.PresetRegistry) networkpolicies.Spec {
+func NetworkPolicySpec(src types.NetworkPolicyTemplateSource, owner domain.Object, reg *types.PresetRegistry) networkpolicies.Spec {
 	ingress := src.Ingress
 	egress := src.Egress
 	policyTypes := src.PolicyTypes
@@ -274,27 +267,25 @@ func NetworkPolicySpec(src types.NetworkPolicyTemplateSource, ownerName string, 
 		FromNetworkPolicy: src.FromNetworkPolicy,
 		FromNamespace:     src.FromNamespace,
 		Labels:            make(map[string]string),
-		Sleep:             src.Sleep,
-		ForceConflict:     src.ForceConflict,
 	}
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // ServiceSpec builds a services.Spec from a ServiceTemplateSource.
 // All fields already resolved by template.Resolver before calling here.
 // This function assembles the spec and applies defaults.
-func ServiceSpec(src types.ServiceTemplateSource, ownerName string) services.Spec {
+func ServiceSpec(src types.ServiceTemplateSource, owner domain.Object) services.Spec {
+	ownerName := owner.GetName()
 	spec := services.Spec{
-		Name:          src.Name,
-		Labels:        make(map[string]string),
-		Selector:      make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:     src.Name,
+		Labels:   make(map[string]string),
+		Selector: make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -302,7 +293,6 @@ func ServiceSpec(src types.ServiceTemplateSource, ownerName string) services.Spe
 	}
 
 	spec.Namespace = src.Namespace
-	spec.Sleep = src.Sleep
 
 	spec.Type = src.Type
 	if spec.Type == "" {
@@ -336,5 +326,6 @@ func ServiceSpec(src types.ServiceTemplateSource, ownerName string) services.Spe
 
 	// System labels
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/rolebindings"
 	"github.com/intentd/inrun/pkg/template"
@@ -58,9 +59,11 @@ func RunRoleBindings(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := rolebindings.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := rolebindings.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("roleBindings[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("rolebinding", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -75,16 +78,20 @@ func RunRoleBindings(
 			return fmt.Errorf("roleBindings[%d]: %w", i, err)
 		}
 
-		spec := resources.RoleBindingSpec(resolved, resolver.OwnerName())
+		spec := resources.RoleBindingSpec(resolved, owner)
 
 		if update || src.Reconcile {
-			if err := rolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := rolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("roleBindings[%d].update: %w", i, err)
 			}
+			logResult("rolebinding", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := rolebindings.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := rolebindings.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("roleBindings[%d].create: %w", i, err)
 			}
+			logResult("rolebinding", spec.Name, spec.Namespace, owner, res)
 		}
 	}
 	return nil

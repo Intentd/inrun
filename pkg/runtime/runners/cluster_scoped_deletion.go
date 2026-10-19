@@ -8,6 +8,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/core/clusterrolebindings"
 	"github.com/intentd/inrun/pkg/resources/core/clusterroles"
 	"github.com/intentd/inrun/pkg/resources/core/customresources"
@@ -66,9 +67,11 @@ func deleteOwnedNamespaces(
 		if name == "" {
 			continue
 		}
-		if err := namespaces.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
+		res, err := namespaces.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(obj))
+		if err != nil {
 			return fmt.Errorf("namespace[%d] %q: %w", i, name, err)
 		}
+		logResult("namespace", name, "", obj, res)
 	}
 	return nil
 }
@@ -91,9 +94,11 @@ func deleteOwnedClusterRoles(
 		if name == "" {
 			continue
 		}
-		if err := clusterroles.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
+		res, err := clusterroles.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(obj))
+		if err != nil {
 			return fmt.Errorf("clusterrole[%d] %q: %w", i, name, err)
 		}
+		logResult("clusterrole", name, "", obj, res)
 	}
 	return nil
 }
@@ -116,9 +121,11 @@ func deleteOwnedClusterRoleBindings(
 		if name == "" {
 			continue
 		}
-		if err := clusterrolebindings.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
+		res, err := clusterrolebindings.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(obj))
+		if err != nil {
 			return fmt.Errorf("clusterrolebinding[%d] %q: %w", i, name, err)
 		}
+		logResult("clusterrolebinding", name, "", obj, res)
 	}
 	return nil
 }
@@ -141,9 +148,11 @@ func deleteOwnedPersistentVolumes(
 		if name == "" {
 			continue
 		}
-		if err := pvs.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
+		res, err := pvs.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(obj))
+		if err != nil {
 			return fmt.Errorf("persistentvolume[%d] %q: %w", i, name, err)
 		}
+		logResult("pv", name, "", obj, res)
 	}
 	return nil
 }
@@ -169,9 +178,11 @@ func deleteOwnedCustomResources(
 		if name == "" {
 			continue
 		}
-		if err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), obj, name, "", src.APIVersion, src.Kind); err != nil {
+		res, err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), name, "", src.APIVersion, src.Kind, labels.OwnedBy(obj))
+		if err != nil {
 			return fmt.Errorf("customresource[%d] %q: %w", i, name, err)
 		}
+		logResult("custom resource", name, "", obj, res)
 	}
 	return nil
 }

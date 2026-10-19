@@ -62,7 +62,7 @@ func (r *BlockchainAppWithTargetsReconciler) Reconcile(ctx context.Context, req 
 			"inrun.dev/target":        "v2-ctor",
 		},
 	}
-	if err := deployments.Apply(ctx, r.kube, app, spec); err != nil {
+	if _, err := deployments.Apply(ctx, r.kube, app, spec); err != nil {
 		return domain.Result{}, fmt.Errorf("blockchainappwithtargets deployment: %w", err)
 	}
 

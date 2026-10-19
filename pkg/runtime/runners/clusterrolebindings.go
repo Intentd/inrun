@@ -9,8 +9,9 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/clusterrolebindings"
+	crbs "github.com/intentd/inrun/pkg/resources/core/clusterrolebindings"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -45,9 +46,11 @@ func RunClusterRoleBindings(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[name] {
-					if err := clusterrolebindings.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
+					res, err := crbs.DeleteIfOwned(ctx, kube.Clientset(), name, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("clusterRoleBindings[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("clusterrolebinding", name, "", owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -62,20 +65,26 @@ func RunClusterRoleBindings(
 			return fmt.Errorf("clusterRoleBindings[%d]: %w", i, err)
 		}
 
-		spec := resources.ClusterRoleBindingSpec(resolved, resolver.OwnerName())
+		spec := resources.ClusterRoleBindingSpec(resolved, owner)
 
 		if update {
-			if err := clusterrolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := crbs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("clusterRoleBindings[%d].update: %w", i, err)
 			}
+			logResult("clusterrolebinding", spec.Name, "", owner, res)
 		} else {
-			if err := clusterrolebindings.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := crbs.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("clusterRoleBindings[%d].create: %w", i, err)
 			}
+			logResult("clusterrolebinding", spec.Name, "", owner, res)
 			if src.Reconcile {
-				if err := clusterrolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := crbs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("clusterRoleBindings[%d].reconcile: %w", i, err)
 				}
+				logResult("clusterrolebinding", spec.Name, "", owner, res)
 			}
 		}
 	}

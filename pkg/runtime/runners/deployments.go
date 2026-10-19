@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/deployments"
 	"github.com/intentd/inrun/pkg/template"
@@ -75,9 +76,11 @@ func RunDeployments(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := deployments.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := deployments.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("deployments[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("deployment", name, ns, owner, res)
 				}
 			}
 			continue
@@ -89,22 +92,28 @@ func RunDeployments(
 			return fmt.Errorf("deployments[%d]: %w", i, err)
 		}
 
-		spec := resources.DeploymentSpec(resolved, resolver.OwnerName(), resolver.Presets())
+		spec := resources.DeploymentSpec(resolved, owner, resolver.Presets())
 
 		if update {
-			if err := deployments.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := deployments.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("deployments[%d].update: %w", i, err)
 			}
+			logResult("deployment", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := deployments.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := deployments.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("deployments[%d].create: %w", i, err)
 			}
+			logResult("deployment", spec.Name, spec.Namespace, owner, res)
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := deployments.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := deployments.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("deployments[%d].reconcile: %w", i, err)
 				}
+				logResult("deployment", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 

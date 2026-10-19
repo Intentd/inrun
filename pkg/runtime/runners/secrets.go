@@ -28,6 +28,7 @@ import (
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/secrets"
 	"github.com/intentd/inrun/pkg/template"
@@ -88,9 +89,11 @@ func RunSecrets(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := secrets.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := secrets.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("secrets[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("secret", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -176,7 +179,7 @@ func RunSecrets(
 		}
 
 		// ── Step 5: apply ────────────────────────────────────────────────────────
-		spec := resources.SecretSpec(resolved, resolver.OwnerName())
+		spec := resources.SecretSpec(resolved, owner)
 
 		// Attach rotation annotation when rotateAfter is declared
 		if src.RotateAfter != "" && spec.Annotations == nil {
@@ -197,30 +200,40 @@ func RunSecrets(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := secrets.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
+					res, err := secrets.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+					if err != nil {
 						return fmt.Errorf("secrets[%d].sync namespace=%s: %w", i, targetNs, err)
 					}
+					logResult("secret", nsSpec.Name, nsSpec.Namespace, owner, res)
 				} else {
-					if err := secrets.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
+					res, err := secrets.Create(ctx, kube.Clientset(), owner, nsSpec)
+					if err != nil {
 						return fmt.Errorf("secrets[%d].create namespace=%s: %w", i, targetNs, err)
 					}
+					logResult("secret", nsSpec.Name, nsSpec.Namespace, owner, res)
 				}
 			}
 			continue
 		}
 
 		if update {
-			if err := secrets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := secrets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("secrets[%d].update: %w", i, err)
 			}
+			logResult("secret", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := secrets.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := secrets.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("secrets[%d].create: %w", i, err)
 			}
+			logResult("secret", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := secrets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := secrets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("secrets[%d].reconcile: %w", i, err)
 				}
+				logResult("secret", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

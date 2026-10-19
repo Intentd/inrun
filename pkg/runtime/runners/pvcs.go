@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/pvcs"
 	"github.com/intentd/inrun/pkg/template"
@@ -54,9 +55,11 @@ func RunPVCs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := pvcs.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := pvcs.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("pvcs[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("pvc", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -71,20 +74,26 @@ func RunPVCs(
 			return fmt.Errorf("pvcs[%d]: %w", i, err)
 		}
 
-		spec := resources.PVCSpec(resolved, resolver.OwnerName())
+		spec := resources.PVCSpec(resolved, owner)
 
 		if update {
-			if err := pvcs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := pvcs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("pvcs[%d].update: %w", i, err)
 			}
+			logResult("pvc", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := pvcs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := pvcs.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("pvcs[%d].create: %w", i, err)
 			}
+			logResult("pvc", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := pvcs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := pvcs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("pvcs[%d].reconcile: %w", i, err)
 				}
+				logResult("pvc", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

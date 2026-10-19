@@ -11,52 +11,45 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Create creates a PVC owned by the CR if it does not already exist.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("pvc.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("pvc.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().Str("pvc", spec.Name).Str("namespace", namespace).Msg("pvc already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	pvc := Build(owner, spec)
 	_, err = kube.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("pvc.Create: creating %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("pvc.Create: creating %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().Str("pvc", spec.Name).Str("namespace", namespace).Str("owner", owner.GetName()).Msg("pvc created")
-	return nil
+	return types.Created, nil
 }
 
 // Apply reconciles a PVC. PVC spec is largely immutable after creation, so it
 // reads the PVC and updates only its labels on drift.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	existing, err := kube.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return Create(ctx, kube, owner, spec)
+			if _, err := Create(ctx, kube, owner, spec); err != nil {
+				return "", err
+			}
+			return types.Replaced, nil
 		}
-		return fmt.Errorf("pvc.Apply: getting %q: %w", spec.Name, err)
+		return "", fmt.Errorf("pvc.Apply: getting %q: %w", spec.Name, err)
 	}
 
 	updated := existing.DeepCopy()
@@ -70,50 +63,47 @@ func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, sp
 	}
 
 	if !drifted {
-		logger.Debug().Str("pvc", spec.Name).Msg("pvc in sync — no update needed")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	_, err = kube.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, updated, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("pvc.Apply: updating %q: %w", spec.Name, err)
+		return "", fmt.Errorf("pvc.Apply: updating %q: %w", spec.Name, err)
 	}
 
-	logger.Info().Str("pvc", spec.Name).Str("namespace", namespace).Msg("pvc updated")
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the PVC if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	err := kube.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("pvc.Delete: %w", err)
+		return "", fmt.Errorf("pvc.Delete: %w", err)
 	}
-	logger.Info().Str("pvc", spec.Name).Str("owner", owner.GetName()).Msg("pvc deleted")
-	return nil
+	return types.Deleted, nil
 }
 
 // DeleteIfOwned deletes the PVC only if it is owned by the given CR.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, owner types.Owner, name, namespace string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name, namespace string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
@@ -122,7 +112,6 @@ func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, owner types.O
 // It reads nothing from the cluster.
 func Build(owner types.Owner, spec Spec) *corev1.PersistentVolumeClaim {
 	ns := shared.ResolveNamespace(owner, spec.Namespace)
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 
 	storageQty := resource.MustParse(spec.Storage)
 
@@ -141,7 +130,7 @@ func Build(owner types.Owner, spec Spec) *corev1.PersistentVolumeClaim {
 			Name:            spec.Name,
 			Namespace:       ns,
 			Labels:          spec.Labels,
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: accessModes,

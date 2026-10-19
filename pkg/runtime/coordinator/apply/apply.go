@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	restypes "github.com/intentd/inrun/pkg/resources/core/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -15,7 +16,6 @@ import (
 	"github.com/intentd/inrun/pkg/intent"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -90,7 +90,7 @@ func apply(
 		return nil, targetErr
 	}
 
-	ownerRefs := shared.ResolveOwnerReferences(owner)
+	ownerRefs := restypes.OwnerReferences(owner)
 	blueprintName := owner.GetAnnotations()[labels.AnnotationManagedBy]
 	since := managedSince(owner)
 

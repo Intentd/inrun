@@ -12,72 +12,54 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Create creates a Pod owned by the CR if it does not already exist.
 // Idempotent — if the Pod exists, does nothing and returns nil.
 // Owner reference is set so the Pod is garbage collected when the CR is deleted.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("pod.Create: invalid spec: %w", err)
+		return "", fmt.Errorf("pod.Create: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.CoreV1().Pods(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("pod.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("pod.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("pod", spec.Name).
-			Str("namespace", namespace).
-			Msg("pod already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	pod := Build(owner, spec)
 
 	_, err = kube.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("pod.Create: creating pod %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("pod.Create: creating pod %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("pod", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("pod created")
-
-	return nil
+	return types.Created, nil
 }
 
 // Apply creates or updates a Pod using Server-Side Apply.
 // Pod specs are largely immutable — if SSA is rejected (422/Invalid),
 // falls back to delete + recreate.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("pod.Apply: invalid spec: %w", err)
+		return "", fmt.Errorf("pod.Apply: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	p := Build(owner, spec)
 	p.TypeMeta = metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"}
 
 	body, err := json.Marshal(p)
 	if err != nil {
-		return fmt.Errorf("pod.Apply: marshal: %w", err)
+		return "", fmt.Errorf("pod.Apply: marshal: %w", err)
 	}
 
 	if _, err = kube.CoreV1().Pods(namespace).Patch(
@@ -85,72 +67,55 @@ func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, sp
 		opts.PatchOptions(),
 	); err != nil {
 		if errors.IsInvalid(err) {
-			logger.Info().Str("pod", spec.Name).Msg("pod spec immutable — delete+recreate")
 			if delErr := kube.CoreV1().Pods(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{}); delErr != nil && !errors.IsNotFound(delErr) {
-				return fmt.Errorf("pod.Apply: deleting stale pod %q: %w", spec.Name, delErr)
+				return "", fmt.Errorf("pod.Apply: deleting stale pod %q: %w", spec.Name, delErr)
 			}
-			return Create(ctx, kube, owner, spec)
+			if _, err := Create(ctx, kube, owner, spec); err != nil {
+				return "", err
+			}
+			return types.Replaced, nil
 		}
-		return fmt.Errorf("pod.Apply: %w", err)
+		return "", fmt.Errorf("pod.Apply: %w", err)
 	}
 
-	logger.Debug().
-		Str("pod", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("pod applied")
-
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the Pod if it exists.
 // For most cases owner references handle cascade deletion automatically —
 // only use this when you need explicit cleanup control in onDelete.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	err := kube.CoreV1().Pods(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			logger.Debug().
-				Str("pod", spec.Name).
-				Str("namespace", namespace).
-				Msg("pod already deleted — skipping")
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("pod.Delete: deleting pod %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("pod.Delete: deleting pod %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("pod", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("pod deleted")
-
-	return nil
+	return types.Deleted, nil
 }
 
 // DeleteIfOwned deletes the Pod if it exists and is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
-	owner types.Owner, name, namespace string) error {
-
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name, namespace string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.CoreV1().Pods(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
 	// Only delete if we own it
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.CoreV1().Pods(namespace).
-		Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
@@ -159,14 +124,13 @@ func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
 // It reads nothing from the cluster.
 func Build(owner types.Owner, spec Spec) *corev1.Pod {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            spec.Name,
 			Namespace:       namespace,
 			Labels:          spec.Labels,
 			Annotations:     spec.Annotations,
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Spec: corev1.PodSpec{
 			ImagePullSecrets:   shared.ToPullSecrets(spec.ImagePullSecrets),

@@ -71,10 +71,6 @@ func ExpandForEachCustomResources(resolver *template.Resolver, srcs []types.Cust
 			}
 
 			// Reconcile is a bool; if the user templated it as a string, they should have used spec fields.
-			// Sleep may be templated string
-			if v, _ := ir.Resolve(src.Sleep); v != "" {
-				expanded.Sleep = v
-			}
 
 			// HasStatus pointer: keep original pointer, but if nil and user provided a templated
 			// string in some other field to indicate status, leave as-is. (No automatic conversion.)

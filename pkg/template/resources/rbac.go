@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -32,9 +34,6 @@ func ResolveRole(r *template.Resolver, src types.RoleTemplateSource) (types.Role
 	}
 	if resolved.Namespace, err = r.Resolve(ns); err != nil {
 		return resolved, fmt.Errorf("role.namespace: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("role.sleep: %w", err)
 	}
 
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
@@ -80,9 +79,6 @@ func ResolveRoleBinding(r *template.Resolver, src types.RoleBindingTemplateSourc
 	if resolved.Namespace, err = r.Resolve(ns); err != nil {
 		return resolved, fmt.Errorf("rolebinding.namespace: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("rolebinding.sleep: %w", err)
-	}
 
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("rolebinding.labels: %w", err)
@@ -117,9 +113,6 @@ func ResolveClusterRole(r *template.Resolver, src types.ClusterRoleTemplateSourc
 	if resolved.Name, err = r.Resolve(src.Name); err != nil {
 		return resolved, fmt.Errorf("clusterrole.name: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("clusterrole.sleep: %w", err)
-	}
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("clusterrole.labels: %w", err)
 	}
@@ -146,7 +139,6 @@ func ResolveClusterRole(r *template.Resolver, src types.ClusterRoleTemplateSourc
 // ResolveClusterRoleBinding resolves all template expressions in a ClusterRoleBindingTemplateSource.
 func ResolveClusterRoleBinding(r *template.Resolver, src types.ClusterRoleBindingTemplateSource) (types.ClusterRoleBindingTemplateSource, error) {
 	resolved := types.ClusterRoleBindingTemplateSource{
-		ForceConflict: src.ForceConflict,
 
 		Reconcile: src.Reconcile,
 	}
@@ -154,9 +146,6 @@ func ResolveClusterRoleBinding(r *template.Resolver, src types.ClusterRoleBindin
 
 	if resolved.Name, err = r.Resolve(src.Name); err != nil {
 		return resolved, fmt.Errorf("clusterrolebinding.name: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("clusterrolebinding.sleep: %w", err)
 	}
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("clusterrolebinding.labels: %w", err)
@@ -183,12 +172,11 @@ func ResolveClusterRoleBinding(r *template.Resolver, src types.ClusterRoleBindin
 
 // ClusterRoleBindingSpec builds a clusterrolebindings.Spec from a ClusterRoleBindingTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func ClusterRoleBindingSpec(src types.ClusterRoleBindingTemplateSource, ownerName string) clusterrolebindings.Spec {
+func ClusterRoleBindingSpec(src types.ClusterRoleBindingTemplateSource, owner domain.Object) clusterrolebindings.Spec {
+	ownerName := owner.GetName()
 	spec := clusterrolebindings.Spec{
-		Name:          src.Name,
-		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:   src.Name,
+		Labels: make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -217,17 +205,17 @@ func ClusterRoleBindingSpec(src types.ClusterRoleBindingTemplateSource, ownerNam
 		})
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // ClusterRoleSpec builds a clusterroles.Spec from a ClusterRoleTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func ClusterRoleSpec(src types.ClusterRoleTemplateSource, ownerName string) clusterroles.Spec {
+func ClusterRoleSpec(src types.ClusterRoleTemplateSource, owner domain.Object) clusterroles.Spec {
+	ownerName := owner.GetName()
 	spec := clusterroles.Spec{
-		Name:          src.Name,
-		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:   src.Name,
+		Labels: make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -247,18 +235,18 @@ func ClusterRoleSpec(src types.ClusterRoleTemplateSource, ownerName string) clus
 		})
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // RoleBindingSpec builds a rolebindings.Spec from a RoleBindingTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func RoleBindingSpec(src types.RoleBindingTemplateSource, ownerName string) rolebindings.Spec {
+func RoleBindingSpec(src types.RoleBindingTemplateSource, owner domain.Object) rolebindings.Spec {
+	ownerName := owner.GetName()
 	spec := rolebindings.Spec{
-		Name:          src.Name,
-		Namespace:     src.Namespace,
-		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:      src.Name,
+		Namespace: src.Namespace,
+		Labels:    make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -287,18 +275,18 @@ func RoleBindingSpec(src types.RoleBindingTemplateSource, ownerName string) role
 		})
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // RoleSpec builds a roles.Spec from a RoleTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func RoleSpec(src types.RoleTemplateSource, ownerName string) roles.Spec {
+func RoleSpec(src types.RoleTemplateSource, owner domain.Object) roles.Spec {
+	ownerName := owner.GetName()
 	spec := roles.Spec{
-		Name:          src.Name,
-		Namespace:     src.Namespace,
-		Labels:        make(map[string]string),
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		Name:      src.Name,
+		Namespace: src.Namespace,
+		Labels:    make(map[string]string),
 	}
 
 	if spec.Name == "" {
@@ -318,5 +306,6 @@ func RoleSpec(src types.RoleTemplateSource, ownerName string) roles.Spec {
 		})
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }

@@ -12,15 +12,6 @@ func (c *checker) validateTimeDuration() error {
 			continue
 		}
 
-		for _, entry := range crd.CollectSleepEntries() {
-			if isTemplate(entry.Duration) {
-				continue
-			}
-			if _, err := parseTimeDuration(entry.Duration); err != nil {
-				return durationError(name, entry.ResourceName, "sleep", entry.Duration, err)
-			}
-		}
-
 		if !crd.HasAnySecrets() {
 			continue
 		}

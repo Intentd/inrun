@@ -136,7 +136,7 @@ func (r *Reconciler[PTR]) runResourceGroup(
 		children.ExpandForEachRoleBindings(resolver, t.RoleBindings), update, guard); err != nil {
 		return err
 	}
-	if err := runCustomResources(ctx, kube, resolver, obj,
+	if err := runners.RunCustomResources(ctx, kube, resolver, obj,
 		children.ExpandForEachCustomResources(resolver, t.CustomResource), update, guard, labelMgr,
 		r.bp.IsDeletionProtectionEnabled() && r.crd.ShouldProtectCRs()); err != nil {
 		return err

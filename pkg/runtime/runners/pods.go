@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/pods"
 	"github.com/intentd/inrun/pkg/template"
@@ -71,9 +72,11 @@ func RunPods(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := pods.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := pods.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("pods[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("pod", name, ns, owner, res)
 				}
 			}
 			continue
@@ -84,21 +87,27 @@ func RunPods(
 			return fmt.Errorf("pods[%d]: %w", i, err)
 		}
 
-		spec := resources.PodSpec(resolved, resolver.OwnerName(), resolver.Presets())
+		spec := resources.PodSpec(resolved, owner, resolver.Presets())
 
 		if update {
-			if err := pods.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := pods.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("pods[%d].update: %w", i, err)
 			}
+			logResult("pod", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := pods.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := pods.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("pods[%d].create: %w", i, err)
 			}
+			logResult("pod", spec.Name, spec.Namespace, owner, res)
 
 			if src.Reconcile {
-				if err := pods.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := pods.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("pods[%d].reconcile: %w", i, err)
 				}
+				logResult("pod", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

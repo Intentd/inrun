@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"strconv"
 
 	"github.com/intentd/inrun/pkg/logger"
@@ -40,9 +42,6 @@ func ResolveHPA(r *template.Resolver, src types.HPATemplateSource) (types.HPATem
 	}
 	if resolved.TargetCPUUtilizationPercentage, err = r.Resolve(src.TargetCPUUtilizationPercentage); err != nil {
 		return resolved, fmt.Errorf("hpa.targetCPUUtilizationPercentage: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("hpa.sleep: %w", err)
 	}
 
 	ns := src.Namespace
@@ -97,10 +96,6 @@ func ResolvePDB(r *template.Resolver, src types.PDBTemplateSource) (types.PDBTem
 		return resolved, fmt.Errorf("pdb.selector: %w", err)
 	}
 
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("pdb.sleep: %w", err)
-	}
-
 	if src.Behavior != nil {
 		b := *src.Behavior
 		resolved.Behavior = &b
@@ -128,9 +123,6 @@ func ResolveResourceQuota(r *template.Resolver, src types.ResourceQuotaTemplateS
 	}
 	if resolved.FromNamespace, err = r.Resolve(src.FromNamespace); err != nil {
 		return resolved, fmt.Errorf("resourcequota.fromNamespace: %w", err)
-	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("resourcequota.sleep: %w", err)
 	}
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("resourcequota.labels: %w", err)
@@ -197,9 +189,6 @@ func ResolveLimitRange(r *template.Resolver, src types.LimitRangeTemplateSource)
 	if resolved.FromNamespace, err = r.Resolve(src.FromNamespace); err != nil {
 		return resolved, fmt.Errorf("limitrange.fromNamespace: %w", err)
 	}
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("limitrange.sleep: %w", err)
-	}
 	if resolved.Labels, err = r.ResolveMap(src.Labels); err != nil {
 		return resolved, fmt.Errorf("limitrange.labels: %w", err)
 	}
@@ -264,7 +253,8 @@ func ResolveLimitRange(r *template.Resolver, src types.LimitRangeTemplateSource)
 
 // HPASpec builds a hpas.Spec from an HPATemplateSource.
 // All template expressions must be evaluated before calling here.
-func HPASpec(src types.HPATemplateSource, ownerName string, reg *types.PresetRegistry) hpas.Spec {
+func HPASpec(src types.HPATemplateSource, owner domain.Object, reg *types.PresetRegistry) hpas.Spec {
+	ownerName := owner.GetName()
 	spec := hpas.Spec{
 		Name:           src.Name,
 		Namespace:      src.Namespace,
@@ -272,8 +262,6 @@ func HPASpec(src types.HPATemplateSource, ownerName string, reg *types.PresetReg
 		MinReplicas:    1,
 		MaxReplicas:    1,
 		Labels:         make(map[string]string),
-		Sleep:          src.Sleep,
-		ForceConflict:  src.ForceConflict,
 	}
 
 	if spec.Name == "" {
@@ -323,12 +311,13 @@ func HPASpec(src types.HPATemplateSource, ownerName string, reg *types.PresetReg
 
 	// System labels
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // LimitRangeSpec builds a limitranges.Spec from a LimitRangeTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func LimitRangeSpec(src types.LimitRangeTemplateSource, ownerName string, reg *types.PresetRegistry) limitranges.Spec {
+func LimitRangeSpec(src types.LimitRangeTemplateSource, owner domain.Object, reg *types.PresetRegistry) limitranges.Spec {
 	limits := src.Limits
 	if src.Preset != "" && len(limits) == 0 {
 		if p, ok := reg.All().LimitRange(src.Preset); ok {
@@ -343,20 +332,20 @@ func LimitRangeSpec(src types.LimitRangeTemplateSource, ownerName string, reg *t
 		FromLimitRange: src.FromLimitRange,
 		FromNamespace:  src.FromNamespace,
 		Labels:         make(map[string]string),
-		Sleep:          src.Sleep,
-		ForceConflict:  src.ForceConflict,
 	}
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // PDBSpec builds a pdbs.Spec from a PDBTemplateSource.
 // All template expressions must be evaluated before calling here.
-func PDBSpec(src types.PDBTemplateSource, ownerName string, reg *types.PresetRegistry) pdbs.Spec {
+func PDBSpec(src types.PDBTemplateSource, owner domain.Object, reg *types.PresetRegistry) pdbs.Spec {
+	ownerName := owner.GetName()
 	spec := pdbs.Spec{
 		Name:           src.Name,
 		Namespace:      src.Namespace,
@@ -364,8 +353,6 @@ func PDBSpec(src types.PDBTemplateSource, ownerName string, reg *types.PresetReg
 		MaxUnavailable: src.MaxUnavailable,
 		Selector:       make(map[string]string),
 		Labels:         make(map[string]string),
-		Sleep:          src.Sleep,
-		ForceConflict:  src.ForceConflict,
 	}
 
 	if spec.Name == "" {
@@ -395,12 +382,13 @@ func PDBSpec(src types.PDBTemplateSource, ownerName string, reg *types.PresetReg
 
 	// System labels
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }
 
 // ResourceQuotaSpec builds a resourcequotas.Spec from a ResourceQuotaTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func ResourceQuotaSpec(src types.ResourceQuotaTemplateSource, ownerName string, reg *types.PresetRegistry) resourcequotas.Spec {
+func ResourceQuotaSpec(src types.ResourceQuotaTemplateSource, owner domain.Object, reg *types.PresetRegistry) resourcequotas.Spec {
 	hard := src.Hard
 	if src.Preset != "" {
 		if p, ok := reg.All().ResourceQuota(src.Preset); !ok {
@@ -417,13 +405,12 @@ func ResourceQuotaSpec(src types.ResourceQuotaTemplateSource, ownerName string, 
 		FromResourceQuota: src.FromResourceQuota,
 		FromNamespace:     src.FromNamespace,
 		Labels:            make(map[string]string),
-		Sleep:             src.Sleep,
-		ForceConflict:     src.ForceConflict,
 	}
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return spec
 }

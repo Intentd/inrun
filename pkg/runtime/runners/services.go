@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/services"
 	"github.com/intentd/inrun/pkg/template"
@@ -59,9 +60,11 @@ func RunServices(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := services.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := services.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("services[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("service", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -79,22 +82,28 @@ func RunServices(
 		}
 
 		// 3. Build registry spec and apply
-		spec := resources.ServiceSpec(resolved, resolver.OwnerName())
+		spec := resources.ServiceSpec(resolved, owner)
 
 		if update {
-			if err := services.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := services.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("services[%d].update: %w", i, err)
 			}
+			logResult("service", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := services.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := services.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("services[%d].create: %w", i, err)
 			}
+			logResult("service", spec.Name, spec.Namespace, owner, res)
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := services.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := services.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("services[%d].reconcile: %w", i, err)
 				}
+				logResult("service", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

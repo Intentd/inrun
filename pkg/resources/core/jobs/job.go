@@ -11,10 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Spec is the fully resolved Job specification.
@@ -62,75 +60,49 @@ type Spec struct {
 	// Detached leaves out the owner reference, so the Job outlives its owner:
 	// for cleanup Jobs run while the owner is being deleted.
 	Detached bool
-
-	// Sleep injects an artificial delay into the reconcile of this resource.
-	// Useful for autoscale testing, latency simulation, and chaos engineering.
-	// Accepts extended duration units (s, m, h, d, w, mo, y).
-	Sleep string
-
-	// ForceConflict, when true, sets Force: true when applying this resource,
-	// taking ownership of conflicting fields instead of returning a conflict error.
-	// Overrides the CRD-level ForceConflict setting.
-	ForceConflict *bool
 }
 
 // Create creates a Job if it does not already exist.
 // Sets an owner reference — use for onCreate Jobs only.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	return create(ctx, kube, owner, spec)
 }
 
 // CreateForDelete creates a Job without an owner reference.
 // Use for onDelete Jobs: the CR is being deleted and the Job must outlive it.
-func CreateForDelete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func CreateForDelete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	spec.Detached = true
 	return create(ctx, kube, owner, spec)
 }
 
-func create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("job.Create: invalid spec: %w", err)
+		return "", fmt.Errorf("job.Create: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.BatchV1().Jobs(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("job.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("job.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("job", spec.Name).
-			Str("namespace", namespace).
-			Msg("job already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	job := Build(owner, spec)
 
 	_, err = kube.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("job.Create: creating job %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("job.Create: creating job %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("job", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("job created")
-
-	return nil
+	return types.Created, nil
 }
 
 // Delete deletes the Job if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	propagation := metav1.DeletePropagationForeground
 	err := kube.BatchV1().Jobs(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{
@@ -138,22 +110,12 @@ func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, s
 	})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			logger.Debug().
-				Str("job", spec.Name).
-				Str("namespace", namespace).
-				Msg("job already deleted — skipping")
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("job.Delete: deleting job %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("job.Delete: deleting job %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("job", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("job deleted")
-
-	return nil
+	return types.Deleted, nil
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -163,7 +125,6 @@ func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, s
 // from the cluster.
 func Build(owner types.Owner, spec Spec) *batchv1.Job {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	backoffLimit := int32(spec.BackoffLimit)
 
 	container := corev1.Container{
@@ -178,7 +139,7 @@ func Build(owner types.Owner, spec Spec) *batchv1.Job {
 
 	var ownerRefs []metav1.OwnerReference
 	if !spec.Detached {
-		ownerRefs = shared.ResolveOwnerReferences(owner)
+		ownerRefs = types.OwnerReferences(owner)
 	}
 
 	job := &batchv1.Job{

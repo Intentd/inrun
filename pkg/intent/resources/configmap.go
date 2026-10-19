@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/core/configmaps"
 )
 
@@ -34,6 +35,7 @@ func BuildConfigMap(in map[string]interface{}, owner domain.Object) (map[string]
 	spec := configmaps.Spec{Name: f.Name, Namespace: namespace}
 
 	spec.Data = f.Data
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	obj := configmaps.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "ConfigMap")
 	if err != nil {

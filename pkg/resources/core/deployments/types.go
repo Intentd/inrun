@@ -21,10 +21,6 @@ type Spec struct {
 	// Replicas — number of pod replicas. Default: 1.
 	Replicas int32
 
-	// HasAutoscale — when true, the workload autoscaler owns spec.replicas.
-	// The drift check skips replicas so the reconciler does not fight the autoscaler.
-	HasAutoscale bool
-
 	// Port — container port. 0 means no port exposed.
 	Port int32
 
@@ -47,6 +43,10 @@ type Spec struct {
 
 	// Resources — CPU and memory requests/limits. nil means no limits set.
 	Resources *types.ResourceRequirements
+
+	// Selector is the label selector for the pods, set on the pod template too.
+	// Empty means app.kubernetes.io/name: Name.
+	Selector map[string]string
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
@@ -87,14 +87,4 @@ type Spec struct {
 	// Volumes / VolumeMounts — pod volumes and container mounts.
 	Volumes      []types.VolumeSource
 	VolumeMounts []types.VolumeMount
-
-	// Sleep injects an artificial delay into the reconcile of this resource.
-	// Useful for autoscale testing, latency simulation, and chaos engineering.
-	// Accepts extended duration units (s, m, h, d, w, mo, y).
-	Sleep string
-
-	// ForceConflict, when true, sets Force: true when applying this resource,
-	// taking ownership of conflicting fields instead of returning a conflict error.
-	// Overrides the CRD-level ForceConflict setting.
-	ForceConflict *bool
 }

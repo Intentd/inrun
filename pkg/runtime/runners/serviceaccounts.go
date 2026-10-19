@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/serviceaccounts"
 	"github.com/intentd/inrun/pkg/template"
@@ -64,9 +65,11 @@ func RunServiceAccounts(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := serviceaccounts.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := serviceaccounts.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("serviceAccounts[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("serviceaccount", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -84,12 +87,14 @@ func RunServiceAccounts(
 		}
 
 		// 3. Build registry spec and apply
-		spec := resources.ServiceAccountSpec(resolved, resolver.OwnerName())
+		spec := resources.ServiceAccountSpec(resolved, owner)
 
 		// Always create — ServiceAccounts have no meaningful drift to correct
-		if err := serviceaccounts.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+		res, err := serviceaccounts.Create(ctx, kube.Clientset(), owner, spec)
+		if err != nil {
 			return fmt.Errorf("serviceaccounts[%d].create: %w", i, err)
 		}
+		logResult("serviceaccount", spec.Name, spec.Namespace, owner, res)
 	}
 	return nil
 }

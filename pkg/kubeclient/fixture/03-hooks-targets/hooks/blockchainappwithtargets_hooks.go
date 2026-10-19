@@ -49,7 +49,7 @@ func onBlockchainAppWithTargetsReconcile(ctx context.Context, req domain.Request
 			"feature.demo/v2-enabled": annotation,
 		},
 	}
-	if err := deployments.Apply(ctx, kube.Clientset(), obj, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+	if _, err := deployments.Apply(ctx, kube.Clientset(), obj, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("blockchainappwithtargets deployment: %w", err)
 	}
 

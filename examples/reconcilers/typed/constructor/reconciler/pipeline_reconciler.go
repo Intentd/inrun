@@ -100,7 +100,7 @@ func (r *PipelineReconciler) handlePending(ctx context.Context, p *apiv1.Pipelin
 		p.Name,
 		nil,
 	)
-	if err := jobs.Create(ctx, r.kube, p, jobSpec); err != nil {
+	if _, err := jobs.Create(ctx, r.kube, p, jobSpec); err != nil {
 		return fmt.Errorf("creating step job %q: %w", firstStep.Name, err)
 	}
 
@@ -181,7 +181,7 @@ func (r *PipelineReconciler) advanceStep(ctx context.Context, p *apiv1.Pipeline)
 		p.Name,
 		nil,
 	)
-	if err := jobs.Create(ctx, r.kube, p, jobSpec); err != nil {
+	if _, err := jobs.Create(ctx, r.kube, p, jobSpec); err != nil {
 		return fmt.Errorf("creating step job %q: %w", nextStep.Name, err)
 	}
 

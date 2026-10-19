@@ -2,8 +2,8 @@ package types
 
 // VisitResources calls fn for every resource template in this HookTemplates.
 // It abstracts over all resource slices (Deployments, Services, Jobs, etc.)
-// so callers can perform generic operations like detecting Sleep, validating
-// fields, or scanning for managed-resource contracts.
+// so callers can perform generic operations like validating fields or
+// scanning for managed-resource contracts.
 func (h *HookTemplates) VisitResources(fn func(res interface{})) {
 	// Core workload resources
 	for _, x := range h.Deployments {

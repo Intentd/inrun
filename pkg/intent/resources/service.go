@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/resources/core/services"
 )
 
@@ -47,6 +48,7 @@ func BuildService(in map[string]interface{}, owner domain.Object) (map[string]in
 		Selector:   make(map[string]string),
 	}
 
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	obj := services.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "Service")
 	if err != nil {

@@ -2,7 +2,7 @@ module github.com/intentd/inrun-resource-probe
 
 go 1.26.9
 
-replace github.com/intentd/inrun => ../../..
+replace github.com/intentd/inrun => ../../../..
 
 require (
 	github.com/intentd/inrun v0.0.0

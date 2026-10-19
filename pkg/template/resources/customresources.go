@@ -2,6 +2,9 @@ package resources
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/labels"
+	"maps"
 
 	"github.com/intentd/inrun/pkg/resources/core/customresources"
 
@@ -30,7 +33,6 @@ func ResolveCustomResource(r *template.Resolver, src types.CustomResourceTemplat
 		Other:      nil,
 		HasStatus:  src.HasStatus,
 		Reconcile:  src.Reconcile,
-		Sleep:      src.Sleep,
 		ForEach:    src.ForEach,
 		Conditions: src.Conditions,
 		Or:         src.Or,
@@ -66,11 +68,6 @@ func ResolveCustomResource(r *template.Resolver, src types.CustomResourceTemplat
 	}
 	if resolved.Metadata.Annotations, err = r.ResolveMap(src.Metadata.Annotations); err != nil {
 		return resolved, fmt.Errorf("custom.metadata.annotations: %w", err)
-	}
-
-	// Sleep (may be templated)
-	if resolved.Sleep, err = r.Resolve(src.Sleep); err != nil {
-		return resolved, fmt.Errorf("custom.sleep: %w", err)
 	}
 
 	// Resolve spec/status/other by walking maps and resolving string values.
@@ -170,23 +167,23 @@ func resolveValueTemplates(r *template.Resolver, v any) (any, error) {
 
 // CustomResourceSpec builds a customresources.Spec from a CustomResource.
 // Template expressions must already be evaluated by template.Resolver before calling.
-func CustomResourceSpec(src types.CustomResourceTemplateSource, ownerName string) customresources.Spec {
+func CustomResourceSpec(src types.CustomResourceTemplateSource, owner domain.Object) customresources.Spec {
+	ownerName := owner.GetName()
 	spec := customresources.Spec{
-		APIVersion:    src.APIVersion,
-		Kind:          src.Kind,
-		Metadata:      src.Metadata,
-		Spec:          src.Spec,
-		Status:        src.Status,
-		Other:         src.Other,
-		HasStatus:     src.HasStatus,
-		Reconcile:     src.Reconcile,
-		Sleep:         src.Sleep,
-		ForceConflict: src.ForceConflict,
+		APIVersion: src.APIVersion,
+		Kind:       src.Kind,
+		Metadata:   src.Metadata,
+		Spec:       src.Spec,
+		Status:     src.Status,
+		Other:      src.Other,
+		HasStatus:  src.HasStatus,
+		Reconcile:  src.Reconcile,
 	}
 
 	if spec.Metadata.Name == "" {
 		spec.Metadata.Name = ownerName + "-custom"
 	}
 
+	spec.Metadata.Labels = labels.StampInrunLabels(maps.Clone(spec.Metadata.Labels), owner.GetName(), owner.GetAnnotations())
 	return spec
 }

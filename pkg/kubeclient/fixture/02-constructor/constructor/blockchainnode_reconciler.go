@@ -69,7 +69,7 @@ func (r *BlockchainNodeReconciler) Reconcile(ctx context.Context, req domain.Req
 			"feature.demo/v2-enabled": annotation,
 		},
 	}
-	if err := deployments.Apply(ctx, r.kube, node, spec); err != nil {
+	if _, err := deployments.Apply(ctx, r.kube, node, spec); err != nil {
 		return domain.Result{}, fmt.Errorf("blockchainnode deployment: %w", err)
 	}
 

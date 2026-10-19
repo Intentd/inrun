@@ -15,10 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Spec is the fully resolved NetworkPolicy specification.
@@ -36,67 +34,45 @@ type Spec struct {
 	// it; when set, Build uses it in place of the rules above.
 	Source *networkingv1.NetworkPolicySpec
 	Labels map[string]string
-	Sleep  string
-
-	// ForceConflict, when true, sets Force: true when applying this resource,
-	// taking ownership of conflicting fields instead of returning a conflict error.
-	// Overrides the CRD-level ForceConflict setting.
-	ForceConflict *bool
 }
 
 // Create creates a NetworkPolicy if it does not already exist.
 // Idempotent — skips if it already exists.
 // Owner reference set for cascade deletion.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.NetworkingV1().NetworkPolicies(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("networkpolicy.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("networkpolicy.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("networkpolicy", spec.Name).
-			Str("namespace", namespace).
-			Msg("networkpolicy already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	source, err := resolveSpec(ctx, kube, spec, owner)
 	if err != nil {
-		return fmt.Errorf("networkpolicy.Create: building %q: %w", spec.Name, err)
+		return "", fmt.Errorf("networkpolicy.Create: building %q: %w", spec.Name, err)
 	}
 	spec.Source = &source
 	np := Build(owner, spec)
 
 	_, err = kube.NetworkingV1().NetworkPolicies(namespace).Create(ctx, np, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("networkpolicy.Create: creating %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("networkpolicy.Create: creating %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("networkpolicy", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("networkpolicy created")
-
-	return nil
+	return types.Created, nil
 }
 
 // Apply creates or updates a NetworkPolicy using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	source, err := resolveSpec(ctx, kube, spec, owner)
 	if err != nil {
-		return fmt.Errorf("networkpolicy.Apply: building %q: %w", spec.Name, err)
+		return "", fmt.Errorf("networkpolicy.Apply: building %q: %w", spec.Name, err)
 	}
 	spec.Source = &source
 	np := Build(owner, spec)
@@ -105,66 +81,51 @@ func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, sp
 
 	body, err := json.Marshal(np)
 	if err != nil {
-		return fmt.Errorf("networkpolicy.Apply: marshal: %w", err)
+		return "", fmt.Errorf("networkpolicy.Apply: marshal: %w", err)
 	}
 
 	if _, err = kube.NetworkingV1().NetworkPolicies(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
 		opts.PatchOptions(),
 	); err != nil {
-		return fmt.Errorf("networkpolicy.Apply: %w", err)
+		return "", fmt.Errorf("networkpolicy.Apply: %w", err)
 	}
 
-	logger.Debug().
-		Str("networkpolicy", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("networkpolicy applied")
-
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the NetworkPolicy if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	err := kube.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("networkpolicy.Delete: deleting %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("networkpolicy.Delete: deleting %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("networkpolicy", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("networkpolicy deleted")
-
-	return nil
+	return types.Deleted, nil
 }
 
 // DeleteIfOwned deletes the NetworkPolicy only if it is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
-	owner types.Owner, name, namespace string) error {
-
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name, namespace string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.NetworkingV1().NetworkPolicies(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.NetworkingV1().NetworkPolicies(namespace).
-		Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // CopyToNamespaces copies a NetworkPolicy to multiple target namespaces.
@@ -192,10 +153,6 @@ func CopyToNamespaces(
 			return fmt.Errorf("networkpolicy.CopyToNamespaces: checking %q in %q: %w", spec.Name, ns, err)
 		}
 		if err == nil {
-			logger.Debug().
-				Str("networkpolicy", spec.Name).
-				Str("namespace", ns).
-				Msg("networkpolicy already exists in namespace — skipping")
 			continue
 		}
 
@@ -208,11 +165,6 @@ func CopyToNamespaces(
 			return fmt.Errorf("networkpolicy.CopyToNamespaces: creating %q in %q: %w", spec.Name, ns, err)
 		}
 
-		logger.Info().
-			Str("networkpolicy", spec.Name).
-			Str("namespace", ns).
-			Str("owner", owner.GetName()).
-			Msg("networkpolicy copied to namespace")
 	}
 
 	return nil
@@ -273,13 +225,12 @@ func Build(owner types.Owner, spec Spec) *networkingv1.NetworkPolicy {
 	if spec.Source != nil {
 		npSpec = *spec.Source
 	}
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            spec.Name,
 			Namespace:       namespace,
 			Labels:          spec.Labels,
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Spec: npSpec,
 	}

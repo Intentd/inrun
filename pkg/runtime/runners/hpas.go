@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/hpas"
 	"github.com/intentd/inrun/pkg/template"
@@ -54,9 +55,11 @@ func RunHPAs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := hpas.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := hpas.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("hpas[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("hpa", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -71,20 +74,26 @@ func RunHPAs(
 			return fmt.Errorf("hpas[%d]: %w", i, err)
 		}
 
-		spec := resources.HPASpec(resolved, resolver.OwnerName(), resolver.Presets())
+		spec := resources.HPASpec(resolved, owner, resolver.Presets())
 
 		if update {
-			if err := hpas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := hpas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("hpas[%d].update: %w", i, err)
 			}
+			logResult("hpa", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := hpas.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := hpas.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("hpas[%d].create: %w", i, err)
 			}
+			logResult("hpa", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := hpas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := hpas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("hpas[%d].reconcile: %w", i, err)
 				}
+				logResult("hpa", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

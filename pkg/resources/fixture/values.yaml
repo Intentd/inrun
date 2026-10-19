@@ -1,4 +1,0 @@
-runtime:
-  image:
-    repository: ghcr.io/intentd/inrun/pkg/resources/fixture
-    tag: latest

@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/networkpolicies"
 	"github.com/intentd/inrun/pkg/template"
@@ -59,9 +60,11 @@ func RunNetworkPolicies(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := networkpolicies.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := networkpolicies.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("networkPolicies[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("networkpolicy", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -76,7 +79,7 @@ func RunNetworkPolicies(
 			return fmt.Errorf("networkPolicies[%d]: %w", i, err)
 		}
 
-		spec := resources.NetworkPolicySpec(resolved, resolver.OwnerName(), resolver.Presets())
+		spec := resources.NetworkPolicySpec(resolved, owner, resolver.Presets())
 
 		if len(resolved.ToNamespaces) > 0 {
 			namespaces, err := resolver.ResolveStringSlice(resolved.ToNamespaces)
@@ -92,30 +95,40 @@ func RunNetworkPolicies(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := networkpolicies.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
+					res, err := networkpolicies.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+					if err != nil {
 						return fmt.Errorf("networkPolicies[%d].update namespace=%s: %w", i, targetNs, err)
 					}
+					logResult("networkpolicy", nsSpec.Name, nsSpec.Namespace, owner, res)
 				} else {
-					if err := networkpolicies.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
+					res, err := networkpolicies.Create(ctx, kube.Clientset(), owner, nsSpec)
+					if err != nil {
 						return fmt.Errorf("networkPolicies[%d].create namespace=%s: %w", i, targetNs, err)
 					}
+					logResult("networkpolicy", nsSpec.Name, nsSpec.Namespace, owner, res)
 				}
 			}
 			continue
 		}
 
 		if update {
-			if err := networkpolicies.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := networkpolicies.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("networkPolicies[%d].update: %w", i, err)
 			}
+			logResult("networkpolicy", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := networkpolicies.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := networkpolicies.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("networkPolicies[%d].create: %w", i, err)
 			}
+			logResult("networkpolicy", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := networkpolicies.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := networkpolicies.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("networkPolicies[%d].reconcile: %w", i, err)
 				}
+				logResult("networkpolicy", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

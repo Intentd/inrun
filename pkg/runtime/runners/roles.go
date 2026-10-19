@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/roles"
 	"github.com/intentd/inrun/pkg/template"
@@ -58,9 +59,11 @@ func RunRoles(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := roles.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := roles.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("roles[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("role", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -75,16 +78,20 @@ func RunRoles(
 			return fmt.Errorf("roles[%d]: %w", i, err)
 		}
 
-		spec := resources.RoleSpec(resolved, resolver.OwnerName())
+		spec := resources.RoleSpec(resolved, owner)
 
 		if update || src.Reconcile {
-			if err := roles.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := roles.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("roles[%d].update: %w", i, err)
 			}
+			logResult("role", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := roles.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := roles.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("roles[%d].create: %w", i, err)
 			}
+			logResult("role", spec.Name, spec.Namespace, owner, res)
 		}
 	}
 	return nil

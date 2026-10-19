@@ -12,133 +12,96 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/core/shared"
 	"github.com/intentd/inrun/pkg/resources/core/types"
+	"github.com/intentd/inrun/pkg/resources/internal/shared"
 )
 
 // Create creates an Ingress owned by the CR if it does not already exist.
 // Idempotent — if the Ingress exists, does nothing and returns nil.
-func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("ingress.Create: invalid spec: %w", err)
+		return "", fmt.Errorf("ingress.Create: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	_, err := kube.NetworkingV1().Ingresses(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("ingress.Create: checking existence of %q: %w", spec.Name, err)
+		return "", fmt.Errorf("ingress.Create: checking existence of %q: %w", spec.Name, err)
 	}
 	if err == nil {
-		logger.Debug().
-			Str("ingress", spec.Name).
-			Str("namespace", namespace).
-			Msg("ingress already exists — skipping create")
-		return nil
+		return types.Unchanged, nil
 	}
 
 	ing := Build(owner, spec)
 
 	_, err = kube.NetworkingV1().Ingresses(namespace).Create(ctx, ing, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("ingress.Create: creating ingress %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("ingress.Create: creating ingress %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("ingress", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("ingress created")
-
-	return nil
+	return types.Created, nil
 }
 
 // Apply creates or updates an Ingress using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) (types.Result, error) {
 	if err := validateSpec(spec); err != nil {
-		return fmt.Errorf("ingress.Apply: invalid spec: %w", err)
+		return "", fmt.Errorf("ingress.Apply: invalid spec: %w", err)
 	}
 
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	ing := Build(owner, spec)
 	ing.TypeMeta = metav1.TypeMeta{APIVersion: "networking.k8s.io/v1", Kind: "Ingress"}
 
 	body, err := json.Marshal(ing)
 	if err != nil {
-		return fmt.Errorf("ingress.Apply: marshal: %w", err)
+		return "", fmt.Errorf("ingress.Apply: marshal: %w", err)
 	}
 
 	if _, err = kube.NetworkingV1().Ingresses(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
 		opts.PatchOptions(),
 	); err != nil {
-		return fmt.Errorf("ingress.Apply: %w", err)
+		return "", fmt.Errorf("ingress.Apply: %w", err)
 	}
 
-	logger.Debug().
-		Str("ingress", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("ingress applied")
-
-	return nil
+	return types.Applied, nil
 }
 
 // Delete deletes the Ingress if it exists.
-func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) (types.Result, error) {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
-		return err
-	}
 
 	err := kube.NetworkingV1().Ingresses(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			logger.Debug().
-				Str("ingress", spec.Name).
-				Str("namespace", namespace).
-				Msg("ingress already deleted — skipping")
-			return nil
+			return types.NotFound, nil
 		}
-		return fmt.Errorf("ingress.Delete: deleting ingress %q in %q: %w", spec.Name, namespace, err)
+		return "", fmt.Errorf("ingress.Delete: deleting ingress %q in %q: %w", spec.Name, namespace, err)
 	}
 
-	logger.Info().
-		Str("ingress", spec.Name).
-		Str("namespace", namespace).
-		Str("owner", owner.GetName()).
-		Msg("ingress deleted")
-
-	return nil
+	return types.Deleted, nil
 }
 
 // DeleteIfOwned deletes the Ingress if it exists and is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
-	owner types.Owner, name, namespace string) error {
-
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, name, namespace string, owned func(metav1.Object) bool) (types.Result, error) {
 	existing, err := kube.NetworkingV1().Ingresses(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return types.NotFound, nil
 		}
-		return err
+		return "", err
 	}
-	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
-		return nil
+	if !owned(existing) {
+		return types.NotOwned, nil
 	}
-	return kube.NetworkingV1().Ingresses(namespace).
-		Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kube.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return "", err
+	}
+	return types.Deleted, nil
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
@@ -147,7 +110,6 @@ func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
 // It reads nothing from the cluster.
 func Build(owner types.Owner, spec Spec) *networkingv1.Ingress {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 
 	pathType := networkingv1.PathTypePrefix
 	switch spec.PathType {
@@ -163,7 +125,7 @@ func Build(owner types.Owner, spec Spec) *networkingv1.Ingress {
 			Namespace:       namespace,
 			Labels:          spec.Labels,
 			Annotations:     spec.Annotations,
-			OwnerReferences: shared.ResolveOwnerReferences(owner),
+			OwnerReferences: types.OwnerReferences(owner),
 		},
 		Spec: networkingv1.IngressSpec{
 			Rules: []networkingv1.IngressRule{

@@ -12,6 +12,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/ingresses"
 	"github.com/intentd/inrun/pkg/template"
@@ -59,9 +60,11 @@ func RunIngresses(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := ingresses.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
+					res, err := ingresses.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					if err != nil {
 						return fmt.Errorf("ingresses[%d]: conditional cleanup: %w", i, err)
 					}
+					logResult("ingress", name, ns, owner, res)
 				}
 			}
 			logger.FromContext(ctx).Debug().
@@ -76,7 +79,7 @@ func RunIngresses(
 			return fmt.Errorf("ingresses[%d]: %w", i, err)
 		}
 
-		spec := resources.IngressSpec(resolved, resolver.OwnerName())
+		spec := resources.IngressSpec(resolved, owner)
 
 		// Ensure TLS secret exists before applying the Ingress.
 		if spec.TLS != nil && spec.TLS.Create {
@@ -86,17 +89,23 @@ func RunIngresses(
 		}
 
 		if update {
-			if err := ingresses.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+			res, err := ingresses.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+			if err != nil {
 				return fmt.Errorf("ingresses[%d].update: %w", i, err)
 			}
+			logResult("ingress", spec.Name, spec.Namespace, owner, res)
 		} else {
-			if err := ingresses.Create(ctx, kube.Clientset(), owner, spec); err != nil {
+			res, err := ingresses.Create(ctx, kube.Clientset(), owner, spec)
+			if err != nil {
 				return fmt.Errorf("ingresses[%d].create: %w", i, err)
 			}
+			logResult("ingress", spec.Name, spec.Namespace, owner, res)
 			if src.Reconcile {
-				if err := ingresses.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
+				res, err := ingresses.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
+				if err != nil {
 					return fmt.Errorf("ingresses[%d].reconcile: %w", i, err)
 				}
+				logResult("ingress", spec.Name, spec.Namespace, owner, res)
 			}
 		}
 	}

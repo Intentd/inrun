@@ -5,46 +5,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/intentd/inrun/pkg/resources/core/types"
-	"github.com/intentd/inrun/pkg/resources/presets"
-
-	"github.com/intentd/inrun/pkg/logger"
 )
-
-// ResolveContainerSecurityContext resolves a ContainerSecurityContext:
-// if a preset is set it expands to explicit fields; otherwise the block is
-// returned as-is. Returns nil when sc is nil.
-func ResolveContainerSecurityContext(sc *types.ContainerSecurityContext, reg presets.Registry) *types.ContainerSecurityContext {
-	if sc == nil {
-		return nil
-	}
-	if sc.Preset != "" {
-		p, ok := reg.ContainerSecurity(sc.Preset)
-		if !ok {
-			logger.Warn().Str("preset", sc.Preset).Msg("unknown securityContext preset — skipping")
-			return nil
-		}
-		return p.Context()
-	}
-	return sc
-}
-
-// ResolvePodSecurityContext resolves a PodSecurityContext:
-// if a preset is set it expands to explicit fields; otherwise the block is
-// returned as-is. Returns nil when ps is nil.
-func ResolvePodSecurityContext(ps *types.PodSecurityContext, reg presets.Registry) *types.PodSecurityContext {
-	if ps == nil {
-		return nil
-	}
-	if ps.Preset != "" {
-		p, ok := reg.PodSecurity(ps.Preset)
-		if !ok {
-			logger.Warn().Str("preset", ps.Preset).Msg("unknown podSecurity preset — skipping")
-			return nil
-		}
-		return p.Context()
-	}
-	return ps
-}
 
 // BuildContainerSecurityContext converts an types.ContainerSecurityContext to
 // a Kubernetes corev1.SecurityContext. Returns nil when sc is nil.
