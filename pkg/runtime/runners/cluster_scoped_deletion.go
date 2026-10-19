@@ -66,7 +66,7 @@ func deleteOwnedNamespaces(
 		if name == "" {
 			continue
 		}
-		if err := namespaces.DeleteIfOwned(ctx, kube, obj, name); err != nil {
+		if err := namespaces.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
 			return fmt.Errorf("namespace[%d] %q: %w", i, name, err)
 		}
 	}
@@ -91,7 +91,7 @@ func deleteOwnedClusterRoles(
 		if name == "" {
 			continue
 		}
-		if err := clusterroles.DeleteIfOwned(ctx, kube, obj, name); err != nil {
+		if err := clusterroles.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
 			return fmt.Errorf("clusterrole[%d] %q: %w", i, name, err)
 		}
 	}
@@ -116,7 +116,7 @@ func deleteOwnedClusterRoleBindings(
 		if name == "" {
 			continue
 		}
-		if err := clusterrolebindings.DeleteIfOwned(ctx, kube, obj, name); err != nil {
+		if err := clusterrolebindings.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
 			return fmt.Errorf("clusterrolebinding[%d] %q: %w", i, name, err)
 		}
 	}
@@ -141,7 +141,7 @@ func deleteOwnedPersistentVolumes(
 		if name == "" {
 			continue
 		}
-		if err := pvs.DeleteIfOwned(ctx, kube, obj, name); err != nil {
+		if err := pvs.DeleteIfOwned(ctx, kube.Clientset(), obj, name); err != nil {
 			return fmt.Errorf("persistentvolume[%d] %q: %w", i, name, err)
 		}
 	}
@@ -169,7 +169,7 @@ func deleteOwnedCustomResources(
 		if name == "" {
 			continue
 		}
-		if err := customresources.DeleteIfOwned(ctx, kube, obj, name, "", src.APIVersion, src.Kind); err != nil {
+		if err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), obj, name, "", src.APIVersion, src.Kind); err != nil {
 			return fmt.Errorf("customresource[%d] %q: %w", i, name, err)
 		}
 	}

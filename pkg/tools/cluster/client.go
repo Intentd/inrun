@@ -21,5 +21,5 @@ func LocalClient(ctx context.Context, kubectx string) (kubeclient.Interface, err
 	if err != nil {
 		return nil, fmt.Errorf("loading kubeconfig: %w", err)
 	}
-	return kubeclient.NewKubeclientFromConfig(ctx, restCfg, nil)
+	return kubeclient.NewFromConfig(ctx, restCfg, nil)
 }

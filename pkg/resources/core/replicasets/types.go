@@ -4,9 +4,8 @@ package replicasets
 import (
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/intentd/inrun/pkg/resources/core/types"
 	"github.com/intentd/inrun/pkg/resources/presets"
-
-	restypes "github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // Spec is the fully resolved ReplicaSet specification.
@@ -38,11 +37,11 @@ type Spec struct {
 	Annotations map[string]string
 
 	// Env — environment variables.
-	Env     []restypes.EnvVar
-	EnvFrom *restypes.EnvFrom
+	Env     []types.EnvVar
+	EnvFrom *types.EnvFrom
 
 	// Resources — CPU and memory requests/limits. nil means no limits set.
-	Resources *restypes.ResourceRequirements
+	Resources *types.ResourceRequirements
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
@@ -62,23 +61,23 @@ type Spec struct {
 	ImagePullSecrets []string
 
 	// Probes — startup, liveness, and readiness probe configuration.
-	Probes *restypes.ProbesConfig
+	Probes *types.ProbesConfig
 
 	// SecurityContext — container-level security settings.
-	SecurityContext *restypes.ContainerSecurityContext
+	SecurityContext *types.ContainerSecurityContext
 
 	// PodSecurity — pod-level security settings.
-	PodSecurity *restypes.PodSecurityContext
+	PodSecurity *types.PodSecurityContext
 
 	// Presets — the presets to look probe timings up in: built-ins merged with your own.
 	Presets presets.Registry
 
 	// RollingUpdate — resolved rolling update strategy. nil means Inrun manages lifecycle directly.
-	RollingUpdate *restypes.RollingUpdateBehavior
+	RollingUpdate *types.RollingUpdateBehavior
 
 	// Volumes / VolumeMounts — pod volumes and container mounts.
-	Volumes      []restypes.VolumeSource
-	VolumeMounts []restypes.VolumeMount
+	Volumes      []types.VolumeSource
+	VolumeMounts []types.VolumeMount
 
 	// Sleep injects an artificial delay into the reconcile of this resource.
 	// Useful for autoscale testing, latency simulation, and chaos engineering.

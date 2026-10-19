@@ -60,7 +60,7 @@ func BuildClusterRegistry(
 		if err != nil {
 			return nil, fmt.Errorf("building client for cluster %q: %w", name, err)
 		}
-		client, err := kubeclient.NewKubeclientFromConfig(ctx, restCfg, scheme)
+		client, err := kubeclient.NewFromConfig(ctx, restCfg, scheme)
 		if err != nil {
 			return nil, fmt.Errorf("connecting to cluster %q (%s): %w", name, cfg.EndpointURL(), err)
 		}

@@ -210,10 +210,9 @@ func applyOne(
 		return fmt.Errorf("resolve resource: %w", err)
 	}
 
-	force := shared.ResolveForceConflict(kube, rr.forceConflict)
 	_, err = res.Apply(ctx, u.GetName(), u, metav1.ApplyOptions{
 		FieldManager: FieldManager,
-		Force:        force != nil && *force,
+		Force:        kubeclient.ApplyOptions(kube, rr.forceConflict).Force,
 	})
 	return err
 }

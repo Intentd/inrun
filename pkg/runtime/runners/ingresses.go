@@ -59,7 +59,7 @@ func RunIngresses(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := ingresses.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := ingresses.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("ingresses[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -86,15 +86,15 @@ func RunIngresses(
 		}
 
 		if update {
-			if err := ingresses.Apply(ctx, kube, owner, spec); err != nil {
+			if err := ingresses.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("ingresses[%d].update: %w", i, err)
 			}
 		} else {
-			if err := ingresses.Create(ctx, kube, owner, spec); err != nil {
+			if err := ingresses.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("ingresses[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := ingresses.Apply(ctx, kube, owner, spec); err != nil {
+				if err := ingresses.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("ingresses[%d].reconcile: %w", i, err)
 				}
 			}

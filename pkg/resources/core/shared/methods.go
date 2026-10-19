@@ -1,17 +1,15 @@
 package shared
 
 import (
+	"github.com/intentd/inrun/pkg/resources/core/types"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
-
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 )
 
 // ResolveNamespace — priority: spec.Namespace → owner namespace → "default"
-func ResolveNamespace(owner domain.Object, namespace string) string {
+func ResolveNamespace(owner types.Owner, namespace string) string {
 	if namespace != "" {
 		return namespace
 	}
@@ -32,7 +30,7 @@ func ToPullSecrets(names []string) []corev1.LocalObjectReference {
 }
 
 // ResolveOwnerReferences returns the common ownership reference for inrun-managed resources.
-func ResolveOwnerReferences(owner domain.Object) []metav1.OwnerReference {
+func ResolveOwnerReferences(owner types.Owner) []metav1.OwnerReference {
 	apiVersion := ""
 	kind := ""
 	if u, ok := owner.(*unstructured.Unstructured); ok {
@@ -54,22 +52,4 @@ func ResolveOwnerReferences(owner domain.Object) []metav1.OwnerReference {
 			BlockOwnerDeletion: ptr.To(true),
 		},
 	}
-}
-
-// ResolveForceConflict returns the effective force-conflict setting for a resource.
-// The resource-level setting takes precedence over the CRD-level setting.
-// When neither is configured, ForceConflict defaults to true.
-func ResolveForceConflict(kube kubeclient.Interface, resourceForceConflict *bool) *bool {
-	if resourceForceConflict != nil {
-		return resourceForceConflict
-	}
-
-	if kube != nil {
-		if forceConflict := kube.ForceConflict(); forceConflict != nil {
-			return forceConflict
-		}
-	}
-
-	defaultForceConflict := true
-	return &defaultForceConflict
 }

@@ -11,10 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
@@ -40,13 +38,13 @@ type Spec struct {
 // Create creates a LimitRange if it does not already exist.
 // Idempotent — skips if it already exists.
 // Owner reference set for cascade deletion.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	_, err := kube.Clientset().CoreV1().LimitRanges(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.CoreV1().LimitRanges(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("limitrange.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -66,7 +64,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 	spec.Limits = limits
 	lr := Build(owner, spec)
 
-	_, err = kube.Clientset().CoreV1().LimitRanges(namespace).Create(ctx, lr, metav1.CreateOptions{})
+	_, err = kube.CoreV1().LimitRanges(namespace).Create(ctx, lr, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("limitrange.Create: creating %q in %q: %w", spec.Name, namespace, err)
 	}
@@ -82,7 +80,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 // Apply creates or updates a LimitRange using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
@@ -102,9 +100,9 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("limitrange.Apply: marshal: %w", err)
 	}
 
-	if _, err = kube.Clientset().CoreV1().LimitRanges(namespace).Patch(
+	if _, err = kube.CoreV1().LimitRanges(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
-		metav1.PatchOptions{FieldManager: config.FieldManagerRuntime, Force: shared.ResolveForceConflict(kube, spec.ForceConflict)},
+		opts.PatchOptions(),
 	); err != nil {
 		return fmt.Errorf("limitrange.Apply: %w", err)
 	}
@@ -119,13 +117,13 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 }
 
 // Delete deletes the LimitRange if it exists.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	err := kube.Clientset().CoreV1().LimitRanges(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
+	err := kube.CoreV1().LimitRanges(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -143,10 +141,10 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // DeleteIfOwned deletes the LimitRange only if it is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
-	owner domain.Object, name, namespace string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
+	owner types.Owner, name, namespace string) error {
 
-	existing, err := kube.Clientset().CoreV1().LimitRanges(namespace).
+	existing, err := kube.CoreV1().LimitRanges(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -157,7 +155,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
 		return nil
 	}
-	return kube.Clientset().CoreV1().LimitRanges(namespace).
+	return kube.CoreV1().LimitRanges(namespace).
 		Delete(ctx, name, metav1.DeleteOptions{})
 }
 
@@ -166,8 +164,8 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 // Idempotent — skips namespaces where the LimitRange already exists.
 func CopyToNamespaces(
 	ctx context.Context,
-	kube kubeclient.Interface,
-	owner domain.Object,
+	kube kubernetes.Interface,
+	owner types.Owner,
 	spec Spec,
 	toNamespaces []string,
 ) error {
@@ -181,7 +179,7 @@ func CopyToNamespaces(
 			continue
 		}
 
-		_, err := kube.Clientset().CoreV1().LimitRanges(ns).Get(ctx, spec.Name, metav1.GetOptions{})
+		_, err := kube.CoreV1().LimitRanges(ns).Get(ctx, spec.Name, metav1.GetOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("limitrange.CopyToNamespaces: checking %q in %q: %w", spec.Name, ns, err)
 		}
@@ -198,7 +196,7 @@ func CopyToNamespaces(
 		nsSpec.Limits = limits
 		lr := Build(owner, nsSpec)
 
-		_, err = kube.Clientset().CoreV1().LimitRanges(ns).Create(ctx, lr, metav1.CreateOptions{})
+		_, err = kube.CoreV1().LimitRanges(ns).Create(ctx, lr, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("limitrange.CopyToNamespaces: creating %q in %q: %w", spec.Name, ns, err)
 		}
@@ -220,9 +218,9 @@ func CopyToNamespaces(
 // Otherwise uses the declared Limits slice.
 func resolveLimits(
 	ctx context.Context,
-	kube kubeclient.Interface,
+	kube kubernetes.Interface,
 	spec Spec,
-	owner domain.Object,
+	owner types.Owner,
 ) ([]types.LimitRangeItem, error) {
 	if spec.FromLimitRange == "" {
 		return spec.Limits, nil
@@ -236,7 +234,7 @@ func resolveLimits(
 		fromNS = "default"
 	}
 
-	source, err := kube.Clientset().CoreV1().LimitRanges(fromNS).
+	source, err := kube.CoreV1().LimitRanges(fromNS).
 		Get(ctx, spec.FromLimitRange, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("reading source limitrange %q from %q: %w",
@@ -259,7 +257,7 @@ func resolveLimits(
 
 // Build returns the LimitRange spec describes, owned by owner, in spec.Namespace or else the owner's namespace.
 // It reads nothing from the cluster.
-func Build(owner domain.Object, spec Spec) *corev1.LimitRange {
+func Build(owner types.Owner, spec Spec) *corev1.LimitRange {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	limits := spec.Limits
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())

@@ -13,10 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
@@ -49,13 +47,13 @@ type Spec struct {
 // Create creates a NetworkPolicy if it does not already exist.
 // Idempotent — skips if it already exists.
 // Owner reference set for cascade deletion.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	_, err := kube.Clientset().NetworkingV1().NetworkPolicies(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.NetworkingV1().NetworkPolicies(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("networkpolicy.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -74,7 +72,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 	spec.Source = &source
 	np := Build(owner, spec)
 
-	_, err = kube.Clientset().NetworkingV1().NetworkPolicies(namespace).Create(ctx, np, metav1.CreateOptions{})
+	_, err = kube.NetworkingV1().NetworkPolicies(namespace).Create(ctx, np, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("networkpolicy.Create: creating %q in %q: %w", spec.Name, namespace, err)
 	}
@@ -90,7 +88,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 // Apply creates or updates a NetworkPolicy using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
@@ -110,9 +108,9 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("networkpolicy.Apply: marshal: %w", err)
 	}
 
-	if _, err = kube.Clientset().NetworkingV1().NetworkPolicies(namespace).Patch(
+	if _, err = kube.NetworkingV1().NetworkPolicies(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
-		metav1.PatchOptions{FieldManager: config.FieldManagerRuntime, Force: shared.ResolveForceConflict(kube, spec.ForceConflict)},
+		opts.PatchOptions(),
 	); err != nil {
 		return fmt.Errorf("networkpolicy.Apply: %w", err)
 	}
@@ -127,13 +125,13 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 }
 
 // Delete deletes the NetworkPolicy if it exists.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	err := kube.Clientset().NetworkingV1().NetworkPolicies(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
+	err := kube.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -151,10 +149,10 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // DeleteIfOwned deletes the NetworkPolicy only if it is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
-	owner domain.Object, name, namespace string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
+	owner types.Owner, name, namespace string) error {
 
-	existing, err := kube.Clientset().NetworkingV1().NetworkPolicies(namespace).
+	existing, err := kube.NetworkingV1().NetworkPolicies(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -165,7 +163,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
 		return nil
 	}
-	return kube.Clientset().NetworkingV1().NetworkPolicies(namespace).
+	return kube.NetworkingV1().NetworkPolicies(namespace).
 		Delete(ctx, name, metav1.DeleteOptions{})
 }
 
@@ -174,8 +172,8 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 // Idempotent — skips namespaces where the policy already exists.
 func CopyToNamespaces(
 	ctx context.Context,
-	kube kubeclient.Interface,
-	owner domain.Object,
+	kube kubernetes.Interface,
+	owner types.Owner,
 	spec Spec,
 	toNamespaces []string,
 ) error {
@@ -189,7 +187,7 @@ func CopyToNamespaces(
 			continue
 		}
 
-		_, err := kube.Clientset().NetworkingV1().NetworkPolicies(ns).Get(ctx, spec.Name, metav1.GetOptions{})
+		_, err := kube.NetworkingV1().NetworkPolicies(ns).Get(ctx, spec.Name, metav1.GetOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("networkpolicy.CopyToNamespaces: checking %q in %q: %w", spec.Name, ns, err)
 		}
@@ -205,7 +203,7 @@ func CopyToNamespaces(
 		nsSpec.Namespace = ns
 		nsSpec.Source = &sourceSpec
 		np := Build(owner, nsSpec)
-		_, err = kube.Clientset().NetworkingV1().NetworkPolicies(ns).Create(ctx, np, metav1.CreateOptions{})
+		_, err = kube.NetworkingV1().NetworkPolicies(ns).Create(ctx, np, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("networkpolicy.CopyToNamespaces: creating %q in %q: %w", spec.Name, ns, err)
 		}
@@ -227,9 +225,9 @@ func CopyToNamespaces(
 // Otherwise builds spec from the declared fields.
 func resolveSpec(
 	ctx context.Context,
-	kube kubeclient.Interface,
+	kube kubernetes.Interface,
 	spec Spec,
-	owner domain.Object,
+	owner types.Owner,
 ) (networkingv1.NetworkPolicySpec, error) {
 	if spec.FromNetworkPolicy != "" {
 		fromNS := spec.FromNamespace
@@ -240,7 +238,7 @@ func resolveSpec(
 			fromNS = "default"
 		}
 
-		source, err := kube.Clientset().NetworkingV1().NetworkPolicies(fromNS).
+		source, err := kube.NetworkingV1().NetworkPolicies(fromNS).
 			Get(ctx, spec.FromNetworkPolicy, metav1.GetOptions{})
 		if err != nil {
 			return networkingv1.NetworkPolicySpec{}, fmt.Errorf(
@@ -269,7 +267,7 @@ func specsEqual(a, b networkingv1.NetworkPolicySpec) bool {
 // Build returns the NetworkPolicy spec describes, owned by owner, in
 // spec.Namespace or else the owner's namespace: with spec.Source's rules when
 // set, otherwise the spec's own. It reads nothing from the cluster.
-func Build(owner domain.Object, spec Spec) *networkingv1.NetworkPolicy {
+func Build(owner types.Owner, spec Spec) *networkingv1.NetworkPolicy {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	npSpec := buildNetworkPolicySpec(spec)
 	if spec.Source != nil {

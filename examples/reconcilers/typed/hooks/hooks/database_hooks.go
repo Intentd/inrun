@@ -76,7 +76,7 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 		obj.Name,
 		nil,
 	)
-	if err := statefulsets.Apply(ctx, kube, obj, spec); err != nil {
+	if err := statefulsets.Apply(ctx, kube.Clientset(), obj, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("database statefulSet: %w", err)
 	}
 
@@ -91,7 +91,7 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 		},
 		obj.Name,
 	)
-	if err := services.Apply(ctx, kube, obj, svcSpec); err != nil {
+	if err := services.Apply(ctx, kube.Clientset(), obj, svcSpec, kubeclient.ApplyOptions(kube, svcSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("database service: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 			obj.Name,
 			nil,
 		)
-		if err := cronjobs.Apply(ctx, kube, obj, cronSpec); err != nil {
+		if err := cronjobs.Apply(ctx, kube.Clientset(), obj, cronSpec, kubeclient.ApplyOptions(kube, cronSpec.ForceConflict)); err != nil {
 			return domain.Result{}, fmt.Errorf("database backup cronjob: %w", err)
 		}
 	}

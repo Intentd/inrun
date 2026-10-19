@@ -50,7 +50,7 @@ func RunNamespaces(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames["inrun.dev"+"/"+name] {
-					if err := namespaces.DeleteIfOwned(ctx, kube, owner, name); err != nil {
+					if err := namespaces.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
 						return fmt.Errorf("namespace[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -73,7 +73,7 @@ func RunNamespaces(
 		spec := resources.NamespaceSpec(resolved, resolver.OwnerName())
 
 		// Always create — Namespaces have no meaningful drift to correct
-		if err := namespaces.Create(ctx, kube, owner, spec); err != nil {
+		if err := namespaces.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 			return fmt.Errorf("namespace[%d].create: %w", i, err)
 		}
 	}

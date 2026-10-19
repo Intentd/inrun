@@ -4,16 +4,16 @@ package shared
 import (
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/intentd/inrun/pkg/resources/core/types"
 	"github.com/intentd/inrun/pkg/resources/presets"
 
 	"github.com/intentd/inrun/pkg/logger"
-	restypes "github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // ResolveContainerSecurityContext resolves a ContainerSecurityContext:
 // if a preset is set it expands to explicit fields; otherwise the block is
 // returned as-is. Returns nil when sc is nil.
-func ResolveContainerSecurityContext(sc *restypes.ContainerSecurityContext, reg presets.Registry) *restypes.ContainerSecurityContext {
+func ResolveContainerSecurityContext(sc *types.ContainerSecurityContext, reg presets.Registry) *types.ContainerSecurityContext {
 	if sc == nil {
 		return nil
 	}
@@ -31,7 +31,7 @@ func ResolveContainerSecurityContext(sc *restypes.ContainerSecurityContext, reg 
 // ResolvePodSecurityContext resolves a PodSecurityContext:
 // if a preset is set it expands to explicit fields; otherwise the block is
 // returned as-is. Returns nil when ps is nil.
-func ResolvePodSecurityContext(ps *restypes.PodSecurityContext, reg presets.Registry) *restypes.PodSecurityContext {
+func ResolvePodSecurityContext(ps *types.PodSecurityContext, reg presets.Registry) *types.PodSecurityContext {
 	if ps == nil {
 		return nil
 	}
@@ -46,9 +46,9 @@ func ResolvePodSecurityContext(ps *restypes.PodSecurityContext, reg presets.Regi
 	return ps
 }
 
-// BuildContainerSecurityContext converts an restypes.ContainerSecurityContext to
+// BuildContainerSecurityContext converts an types.ContainerSecurityContext to
 // a Kubernetes corev1.SecurityContext. Returns nil when sc is nil.
-func BuildContainerSecurityContext(sc *restypes.ContainerSecurityContext) *corev1.SecurityContext {
+func BuildContainerSecurityContext(sc *types.ContainerSecurityContext) *corev1.SecurityContext {
 	if sc == nil {
 		return nil
 	}
@@ -71,9 +71,9 @@ func BuildContainerSecurityContext(sc *restypes.ContainerSecurityContext) *corev
 	return k8s
 }
 
-// BuildPodSecurityContext converts an restypes.PodSecurityContext to a
+// BuildPodSecurityContext converts an types.PodSecurityContext to a
 // Kubernetes corev1.PodSecurityContext. Returns nil when ps is nil.
-func BuildPodSecurityContext(ps *restypes.PodSecurityContext) *corev1.PodSecurityContext {
+func BuildPodSecurityContext(ps *types.PodSecurityContext) *corev1.PodSecurityContext {
 	if ps == nil {
 		return nil
 	}
@@ -87,7 +87,7 @@ func BuildPodSecurityContext(ps *restypes.PodSecurityContext) *corev1.PodSecurit
 
 // ApplySecurityContext sets the container security context and pod security context
 // on the given container and pod spec. No-op when both are nil.
-func ApplySecurityContext(container *corev1.Container, pod *corev1.PodSpec, sc *restypes.ContainerSecurityContext, ps *restypes.PodSecurityContext) {
+func ApplySecurityContext(container *corev1.Container, pod *corev1.PodSpec, sc *types.ContainerSecurityContext, ps *types.PodSecurityContext) {
 	if sc != nil {
 		container.SecurityContext = BuildContainerSecurityContext(sc)
 	}

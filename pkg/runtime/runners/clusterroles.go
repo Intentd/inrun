@@ -45,7 +45,7 @@ func RunClusterRoles(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[name] {
-					if err := clusterroles.DeleteIfOwned(ctx, kube, owner, name); err != nil {
+					if err := clusterroles.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
 						return fmt.Errorf("clusterRoles[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -65,15 +65,15 @@ func RunClusterRoles(
 		spec := resources.ClusterRoleSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := clusterroles.Apply(ctx, kube, owner, spec); err != nil {
+			if err := clusterroles.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("clusterRoles[%d].update: %w", i, err)
 			}
 		} else {
-			if err := clusterroles.Create(ctx, kube, owner, spec); err != nil {
+			if err := clusterroles.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("clusterRoles[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := clusterroles.Apply(ctx, kube, owner, spec); err != nil {
+				if err := clusterroles.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("clusterRoles[%d].reconcile: %w", i, err)
 				}
 			}

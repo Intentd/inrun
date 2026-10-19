@@ -11,18 +11,17 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
+	"github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // Create creates a ReplicaSet owned by the CR if it does not already exist.
 // Idempotent — if the ReplicaSet exists, does nothing and returns nil.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("replicaset.Create: invalid spec: %w", err)
 	}
@@ -32,7 +31,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 		return err
 	}
 
-	_, err := kube.Clientset().AppsV1().ReplicaSets(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.AppsV1().ReplicaSets(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("replicaset.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -46,7 +45,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 	rs := Build(owner, spec)
 
-	_, err = kube.Clientset().AppsV1().ReplicaSets(namespace).Create(ctx, rs, metav1.CreateOptions{})
+	_, err = kube.AppsV1().ReplicaSets(namespace).Create(ctx, rs, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("replicaset.Create: creating replicaset %q in %q: %w", spec.Name, namespace, err)
 	}
@@ -62,7 +61,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 // Apply creates or updates a ReplicaSet using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("replicaset.Apply: invalid spec: %w", err)
 	}
@@ -80,9 +79,9 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("replicaset.Apply: marshal: %w", err)
 	}
 
-	if _, err = kube.Clientset().AppsV1().ReplicaSets(namespace).Patch(
+	if _, err = kube.AppsV1().ReplicaSets(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
-		metav1.PatchOptions{FieldManager: config.FieldManagerRuntime, Force: shared.ResolveForceConflict(kube, spec.ForceConflict)},
+		opts.PatchOptions(),
 	); err != nil {
 		return fmt.Errorf("replicaset.Apply: %w", err)
 	}
@@ -97,13 +96,13 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 }
 
 // Delete deletes the ReplicaSet if it exists.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	err := kube.Clientset().AppsV1().ReplicaSets(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
+	err := kube.AppsV1().ReplicaSets(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logger.Debug().
@@ -125,10 +124,10 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // DeleteIfOwned deletes the ReplicaSet only if it is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
-	owner domain.Object, name, namespace string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
+	owner types.Owner, name, namespace string) error {
 
-	existing, err := kube.Clientset().AppsV1().ReplicaSets(namespace).
+	existing, err := kube.AppsV1().ReplicaSets(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -141,7 +140,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 		return nil
 	}
 
-	return kube.Clientset().AppsV1().ReplicaSets(namespace).
+	return kube.AppsV1().ReplicaSets(namespace).
 		Delete(ctx, name, metav1.DeleteOptions{})
 }
 
@@ -149,7 +148,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 
 // Build returns the ReplicaSet spec describes, owned by owner, in spec.Namespace or else the owner's namespace.
 // It reads nothing from the cluster.
-func Build(owner domain.Object, spec Spec) *appsv1.ReplicaSet {
+func Build(owner types.Owner, spec Spec) *appsv1.ReplicaSet {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 

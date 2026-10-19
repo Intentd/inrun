@@ -124,7 +124,7 @@ func loadBlueprintAndKube(paths []string) (*blueprint.Blueprint, kubeclient.Inte
 	if err != nil {
 		return nil, nil, fmt.Errorf("building scheme: %w", err)
 	}
-	kube := kubeclient.NewKubeclient(cmdutil.Cfg, scheme)
+	kube := kubeclient.New(cmdutil.Cfg, scheme)
 	if err := kube.Start(cmdutil.Ctx); err != nil {
 		return nil, nil, fmt.Errorf("starting kubeclient: %w", err)
 	}

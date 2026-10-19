@@ -88,7 +88,7 @@ func RunSecrets(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := secrets.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := secrets.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("secrets[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -197,11 +197,11 @@ func RunSecrets(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := secrets.Apply(ctx, kube, owner, nsSpec); err != nil {
+					if err := secrets.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
 						return fmt.Errorf("secrets[%d].sync namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
-					if err := secrets.Create(ctx, kube, owner, nsSpec); err != nil {
+					if err := secrets.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
 						return fmt.Errorf("secrets[%d].create namespace=%s: %w", i, targetNs, err)
 					}
 				}
@@ -210,15 +210,15 @@ func RunSecrets(
 		}
 
 		if update {
-			if err := secrets.Apply(ctx, kube, owner, spec); err != nil {
+			if err := secrets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("secrets[%d].update: %w", i, err)
 			}
 		} else {
-			if err := secrets.Create(ctx, kube, owner, spec); err != nil {
+			if err := secrets.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("secrets[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := secrets.Apply(ctx, kube, owner, spec); err != nil {
+				if err := secrets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("secrets[%d].reconcile: %w", i, err)
 				}
 			}

@@ -42,7 +42,7 @@ func RunPVs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[name] {
-					if err := pvs.DeleteIfOwned(ctx, kube, owner, name); err != nil {
+					if err := pvs.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
 						return fmt.Errorf("pvs[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -62,15 +62,15 @@ func RunPVs(
 		spec := resources.PVSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := pvs.Apply(ctx, kube, owner, spec); err != nil {
+			if err := pvs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("pvs[%d].update: %w", i, err)
 			}
 		} else {
-			if err := pvs.Create(ctx, kube, owner, spec); err != nil {
+			if err := pvs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("pvs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := pvs.Apply(ctx, kube, owner, spec); err != nil {
+				if err := pvs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("pvs[%d].reconcile: %w", i, err)
 				}
 			}

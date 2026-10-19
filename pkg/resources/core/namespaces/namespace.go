@@ -10,13 +10,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
+	"github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // Spec is the fully resolved Namespace specification.
@@ -49,7 +48,7 @@ type Spec struct {
 // Namespaces have no meaningful spec fields that can drift after creation.
 // There is no Update function — Create is called from both onCreate and
 // onReconcile paths. If it exists, it stays. If it was deleted, it is recreated.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("namespace.Create: invalid spec: %w", err)
 	}
@@ -58,7 +57,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 		return err
 	}
 
-	_, err := kube.Clientset().CoreV1().Namespaces().Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.CoreV1().Namespaces().Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("namespace.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -71,7 +70,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 	sa := Build(owner, spec)
 
-	_, err = kube.Clientset().CoreV1().Namespaces().Create(ctx, sa, metav1.CreateOptions{})
+	_, err = kube.CoreV1().Namespaces().Create(ctx, sa, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("namespace.Create: creating namespace %q: %w", spec.Name, err)
 	}
@@ -86,7 +85,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 // Apply creates or updates a Namespace using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("namespace.Apply: invalid spec: %w", err)
 	}
@@ -103,9 +102,9 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("namespace.Apply: marshal: %w", err)
 	}
 
-	if _, err = kube.Clientset().CoreV1().Namespaces().Patch(
+	if _, err = kube.CoreV1().Namespaces().Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
-		metav1.PatchOptions{FieldManager: config.FieldManagerRuntime, Force: shared.ResolveForceConflict(kube, spec.ForceConflict)},
+		opts.PatchOptions(),
 	); err != nil {
 		return fmt.Errorf("namespace.Apply: %w", err)
 	}
@@ -121,12 +120,12 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 // Delete deletes the Namespace if it exists.
 // For most cases owner references handle cleanup automatically —
 // only use this when explicit cleanup control is needed.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	err := kube.Clientset().CoreV1().Namespaces().Delete(ctx, spec.Name, metav1.DeleteOptions{})
+	err := kube.CoreV1().Namespaces().Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logger.Debug().
@@ -146,10 +145,10 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // DeleteIfOwned deletes the Namespace if it exists and is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
-	owner domain.Object, name string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
+	owner types.Owner, name string) error {
 
-	existing, err := kube.Clientset().CoreV1().Namespaces().
+	existing, err := kube.CoreV1().Namespaces().
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -161,7 +160,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
 		return nil
 	}
-	return kube.Clientset().CoreV1().Namespaces().
+	return kube.CoreV1().Namespaces().
 		Delete(ctx, name, metav1.DeleteOptions{})
 }
 
@@ -169,7 +168,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 
 // Build returns the Namespace spec describes, owned by owner.
 // It reads nothing from the cluster.
-func Build(owner domain.Object, spec Spec) *corev1.Namespace {
+func Build(owner types.Owner, spec Spec) *corev1.Namespace {
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

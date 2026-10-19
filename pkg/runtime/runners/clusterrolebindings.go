@@ -45,7 +45,7 @@ func RunClusterRoleBindings(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[name] {
-					if err := clusterrolebindings.DeleteIfOwned(ctx, kube, owner, name); err != nil {
+					if err := clusterrolebindings.DeleteIfOwned(ctx, kube.Clientset(), owner, name); err != nil {
 						return fmt.Errorf("clusterRoleBindings[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -65,15 +65,15 @@ func RunClusterRoleBindings(
 		spec := resources.ClusterRoleBindingSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := clusterrolebindings.Apply(ctx, kube, owner, spec); err != nil {
+			if err := clusterrolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("clusterRoleBindings[%d].update: %w", i, err)
 			}
 		} else {
-			if err := clusterrolebindings.Create(ctx, kube, owner, spec); err != nil {
+			if err := clusterrolebindings.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("clusterRoleBindings[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := clusterrolebindings.Apply(ctx, kube, owner, spec); err != nil {
+				if err := clusterrolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("clusterRoleBindings[%d].reconcile: %w", i, err)
 				}
 			}

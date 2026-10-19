@@ -10,11 +10,12 @@ import (
 	kubeutil "github.com/intentd/inrun/pkg/util/kube"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
@@ -78,7 +79,7 @@ type Spec struct {
 
 // Create creates the custom resource described by spec if it does not already exist.
 // Idempotent — skips if resource exists. Owner reference set for cascade deletion.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec, labelMgr *labels.Manager, shouldProtect bool) error {
+func Create(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, spec Spec, labelMgr *labels.Manager, shouldProtect bool) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("custom.Create: %w", err)
 	}
@@ -96,7 +97,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 		return fmt.Errorf("custom.Create: invalid GVK: %w", err)
 	}
 
-	resourceIfc, err := kubeclient.ResourceForGVK(kube, gvk, namespace)
+	resourceIfc, err := resourceFor(dyn, mapper, gvk, namespace)
 	if err != nil {
 		return fmt.Errorf("custom.Create: resolving GVR for %s: %w", gvk.String(), err)
 	}
@@ -137,7 +138,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 // Apply reconciles an existing custom resource to match the resolved spec.
 // If the resource does not exist, it will be created.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec, labelMgr *labels.Manager, shouldProtect bool) error {
+func Apply(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, spec Spec, labelMgr *labels.Manager, shouldProtect bool) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("custom.Apply: %w", err)
 	}
@@ -153,7 +154,7 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("custom.Apply: invalid GVK: %w", err)
 	}
 
-	resourceIfc, err := kubeclient.ResourceForGVK(kube, gvk, namespace)
+	resourceIfc, err := resourceFor(dyn, mapper, gvk, namespace)
 	if err != nil {
 		return fmt.Errorf("custom.Apply: resolving GVR for %s: %w", gvk.String(), err)
 	}
@@ -165,7 +166,7 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 				Str("custom", name).
 				Str("namespace", namespace).
 				Msg("custom resource not found during reconcile — recreating")
-			return Create(ctx, kube, owner, spec, labelMgr, shouldProtect)
+			return Create(ctx, dyn, mapper, owner, spec, labelMgr, shouldProtect)
 		}
 		return fmt.Errorf("custom.Apply: getting %q: %w", name, err)
 	}
@@ -252,14 +253,14 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 
 // DeleteIfOwned deletes the custom resource if it exists and is owned by the given owner.
 // Skips deletion if Inrun is not the owner.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface, owner domain.Object, name, namespace, apiVersion, kind string) error {
+func DeleteIfOwned(ctx context.Context, dyn dynamic.Interface, mapper meta.RESTMapper, owner types.Owner, name, namespace, apiVersion, kind string) error {
 	// Build GVK and resolve GVR
 	gvk, err := kubeutil.GVKFromFields(apiVersion, kind)
 	if err != nil {
 		return fmt.Errorf("custom.DeleteIfOwned: invalid GVK: %w", err)
 	}
 
-	resourceIfc, err := kubeclient.ResourceForGVK(kube, gvk, namespace)
+	resourceIfc, err := resourceFor(dyn, mapper, gvk, namespace)
 	if err != nil {
 		return fmt.Errorf("custom.DeleteIfOwned: resolving GVR for %s: %w", gvk.String(), err)
 	}
@@ -299,7 +300,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface, owner domain.
 // Build returns the custom resource spec describes, owned by owner, in
 // spec.Metadata.Namespace or else the owner's namespace. It reads nothing
 // from the cluster.
-func Build(owner domain.Object, spec Spec) *unstructured.Unstructured {
+func Build(owner types.Owner, spec Spec) *unstructured.Unstructured {
 	namespace := shared.ResolveNamespace(owner, spec.Metadata.Namespace)
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion(spec.APIVersion)
@@ -376,4 +377,18 @@ func validateSpec(spec Spec) error {
 		return fmt.Errorf("name is required")
 	}
 	return nil
+}
+
+// resourceFor returns the dynamic client for gvk, scoped to namespace when the
+// resource is namespaced.
+func resourceFor(dyn dynamic.Interface, mapper meta.RESTMapper, gvk schema.GroupVersionKind, namespace string) (dynamic.ResourceInterface, error) {
+	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, fmt.Errorf("no REST mapping for %s: %w. Check that the CRD is installed", gvk, err)
+	}
+	resource := dyn.Resource(mapping.Resource)
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		return resource, nil
+	}
+	return resource.Namespace(namespace), nil
 }

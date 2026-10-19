@@ -9,9 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
@@ -77,18 +76,18 @@ type Spec struct {
 
 // Create creates a Job if it does not already exist.
 // Sets an owner reference — use for onCreate Jobs only.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	return create(ctx, kube, owner, spec)
 }
 
 // CreateForDelete creates a Job without an owner reference.
 // Use for onDelete Jobs: the CR is being deleted and the Job must outlive it.
-func CreateForDelete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func CreateForDelete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	spec.Detached = true
 	return create(ctx, kube, owner, spec)
 }
 
-func create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("job.Create: invalid spec: %w", err)
 	}
@@ -98,7 +97,7 @@ func create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 		return err
 	}
 
-	_, err := kube.Clientset().BatchV1().Jobs(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.BatchV1().Jobs(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("job.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -112,7 +111,7 @@ func create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 	job := Build(owner, spec)
 
-	_, err = kube.Clientset().BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
+	_, err = kube.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("job.Create: creating job %q in %q: %w", spec.Name, namespace, err)
 	}
@@ -127,14 +126,14 @@ func create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // Delete deletes the Job if it exists.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
 	propagation := metav1.DeletePropagationForeground
-	err := kube.Clientset().BatchV1().Jobs(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{
+	err := kube.BatchV1().Jobs(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{
 		PropagationPolicy: &propagation,
 	})
 	if err != nil {
@@ -162,7 +161,7 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 // Build returns the Job spec describes, in spec.Namespace or else the
 // owner's namespace, owned by owner unless spec.Detached. It reads nothing
 // from the cluster.
-func Build(owner domain.Object, spec Spec) *batchv1.Job {
+func Build(owner types.Owner, spec Spec) *batchv1.Job {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	backoffLimit := int32(spec.BackoffLimit)

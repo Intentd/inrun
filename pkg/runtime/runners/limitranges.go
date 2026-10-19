@@ -59,7 +59,7 @@ func RunLimitRanges(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := limitranges.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := limitranges.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("limitRanges[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -92,11 +92,11 @@ func RunLimitRanges(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := limitranges.Apply(ctx, kube, owner, nsSpec); err != nil {
+					if err := limitranges.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
 						return fmt.Errorf("limitRanges[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
-					if err := limitranges.Create(ctx, kube, owner, nsSpec); err != nil {
+					if err := limitranges.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
 						return fmt.Errorf("limitRanges[%d].create namespace=%s: %w", i, targetNs, err)
 					}
 				}
@@ -105,15 +105,15 @@ func RunLimitRanges(
 		}
 
 		if update {
-			if err := limitranges.Apply(ctx, kube, owner, spec); err != nil {
+			if err := limitranges.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("limitRanges[%d].update: %w", i, err)
 			}
 		} else {
-			if err := limitranges.Create(ctx, kube, owner, spec); err != nil {
+			if err := limitranges.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("limitRanges[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := limitranges.Apply(ctx, kube, owner, spec); err != nil {
+				if err := limitranges.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("limitRanges[%d].reconcile: %w", i, err)
 				}
 			}

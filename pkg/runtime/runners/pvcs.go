@@ -54,7 +54,7 @@ func RunPVCs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := pvcs.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := pvcs.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("pvcs[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -74,15 +74,15 @@ func RunPVCs(
 		spec := resources.PVCSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := pvcs.Apply(ctx, kube, owner, spec); err != nil {
+			if err := pvcs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("pvcs[%d].update: %w", i, err)
 			}
 		} else {
-			if err := pvcs.Create(ctx, kube, owner, spec); err != nil {
+			if err := pvcs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("pvcs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := pvcs.Apply(ctx, kube, owner, spec); err != nil {
+				if err := pvcs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("pvcs[%d].reconcile: %w", i, err)
 				}
 			}

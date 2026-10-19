@@ -59,7 +59,7 @@ func RunNetworkPolicies(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := networkpolicies.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := networkpolicies.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("networkPolicies[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -92,11 +92,11 @@ func RunNetworkPolicies(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := networkpolicies.Apply(ctx, kube, owner, nsSpec); err != nil {
+					if err := networkpolicies.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
 						return fmt.Errorf("networkPolicies[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
-					if err := networkpolicies.Create(ctx, kube, owner, nsSpec); err != nil {
+					if err := networkpolicies.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
 						return fmt.Errorf("networkPolicies[%d].create namespace=%s: %w", i, targetNs, err)
 					}
 				}
@@ -105,15 +105,15 @@ func RunNetworkPolicies(
 		}
 
 		if update {
-			if err := networkpolicies.Apply(ctx, kube, owner, spec); err != nil {
+			if err := networkpolicies.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("networkPolicies[%d].update: %w", i, err)
 			}
 		} else {
-			if err := networkpolicies.Create(ctx, kube, owner, spec); err != nil {
+			if err := networkpolicies.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("networkPolicies[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := networkpolicies.Apply(ctx, kube, owner, spec); err != nil {
+				if err := networkpolicies.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("networkPolicies[%d].reconcile: %w", i, err)
 				}
 			}

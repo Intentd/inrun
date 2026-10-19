@@ -71,7 +71,7 @@ func RunPods(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := pods.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := pods.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("pods[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -87,16 +87,16 @@ func RunPods(
 		spec := resources.PodSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := pods.Apply(ctx, kube, owner, spec); err != nil {
+			if err := pods.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("pods[%d].update: %w", i, err)
 			}
 		} else {
-			if err := pods.Create(ctx, kube, owner, spec); err != nil {
+			if err := pods.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("pods[%d].create: %w", i, err)
 			}
 
 			if src.Reconcile {
-				if err := pods.Apply(ctx, kube, owner, spec); err != nil {
+				if err := pods.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("pods[%d].reconcile: %w", i, err)
 				}
 			}

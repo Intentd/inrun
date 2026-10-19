@@ -78,7 +78,7 @@ func RunCronJobs(
 				// Skip deletion when another declaration with a passing condition
 				// targets the same resource — that path owns the resource.
 				if !activeNames[ns+"/"+name] {
-					if err := cronjobs.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := cronjobs.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("cronJobs[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -101,15 +101,15 @@ func RunCronJobs(
 		spec := resources.CronJobSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := cronjobs.Apply(ctx, kube, owner, spec); err != nil {
+			if err := cronjobs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("cronjobs[%d].update: %w", i, err)
 			}
 		} else {
-			if err := cronjobs.Create(ctx, kube, owner, spec); err != nil {
+			if err := cronjobs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("cronjobs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := cronjobs.Apply(ctx, kube, owner, spec); err != nil {
+				if err := cronjobs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("cronjobs[%d].reconcile: %w", i, err)
 				}
 			}

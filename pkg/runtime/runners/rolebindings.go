@@ -58,7 +58,7 @@ func RunRoleBindings(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := rolebindings.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := rolebindings.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("roleBindings[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -78,11 +78,11 @@ func RunRoleBindings(
 		spec := resources.RoleBindingSpec(resolved, resolver.OwnerName())
 
 		if update || src.Reconcile {
-			if err := rolebindings.Apply(ctx, kube, owner, spec); err != nil {
+			if err := rolebindings.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("roleBindings[%d].update: %w", i, err)
 			}
 		} else {
-			if err := rolebindings.Create(ctx, kube, owner, spec); err != nil {
+			if err := rolebindings.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("roleBindings[%d].create: %w", i, err)
 			}
 		}

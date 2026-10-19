@@ -12,23 +12,22 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
+	"github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // Create creates a StatefulSet owned by the CR if it does not already exist.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	_, err := kube.Clientset().AppsV1().StatefulSets(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.AppsV1().StatefulSets(namespace).Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("statefulset.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -41,7 +40,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 	}
 
 	sts := Build(owner, spec)
-	_, err = kube.Clientset().AppsV1().StatefulSets(namespace).Create(ctx, sts, metav1.CreateOptions{})
+	_, err = kube.AppsV1().StatefulSets(namespace).Create(ctx, sts, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("statefulset.Create: creating %q in %q: %w", spec.Name, namespace, err)
 	}
@@ -56,7 +55,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 // Apply creates or updates a StatefulSet using Server-Side Apply.
 // Sends only the fields Inrun owns; k8s-injected defaults are invisible.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
@@ -70,9 +69,9 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("statefulset.Apply: marshal: %w", err)
 	}
 
-	if _, err = kube.Clientset().AppsV1().StatefulSets(namespace).Patch(
+	if _, err = kube.AppsV1().StatefulSets(namespace).Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
-		metav1.PatchOptions{FieldManager: config.FieldManagerRuntime, Force: shared.ResolveForceConflict(kube, spec.ForceConflict)},
+		opts.PatchOptions(),
 	); err != nil {
 		return fmt.Errorf("statefulset.Apply: %w", err)
 	}
@@ -87,13 +86,13 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 }
 
 // Delete deletes the StatefulSet if it exists.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	namespace := shared.ResolveNamespace(owner, spec.Namespace)
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	err := kube.Clientset().AppsV1().StatefulSets(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
+	err := kube.AppsV1().StatefulSets(namespace).Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -105,8 +104,8 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // DeleteIfOwned deletes the StatefulSet only if it is owned by the given CR.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface, owner domain.Object, name, namespace string) error {
-	existing, err := kube.Clientset().AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface, owner types.Owner, name, namespace string) error {
+	existing, err := kube.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -116,7 +115,7 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface, owner domain.
 	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
 		return nil
 	}
-	return kube.Clientset().AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	return kube.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
@@ -143,7 +142,7 @@ func resolveAccessModes(modes []string) []corev1.PersistentVolumeAccessMode {
 
 // Build returns the StatefulSet spec describes, owned by owner, in spec.Namespace or else the owner's namespace.
 // It reads nothing from the cluster.
-func Build(owner domain.Object, spec Spec) *appsv1.StatefulSet {
+func Build(owner types.Owner, spec Spec) *appsv1.StatefulSet {
 	ns := shared.ResolveNamespace(owner, spec.Namespace)
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 

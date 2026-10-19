@@ -77,7 +77,7 @@ func RunReplicaSets(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := replicasets.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := replicasets.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("replicasets[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -94,17 +94,17 @@ func RunReplicaSets(
 		spec := resources.ReplicaSetSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := replicasets.Apply(ctx, kube, owner, spec); err != nil {
+			if err := replicasets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("replicasets[%d].update: %w", i, err)
 			}
 		} else {
-			if err := replicasets.Create(ctx, kube, owner, spec); err != nil {
+			if err := replicasets.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("replicasets[%d].create: %w", i, err)
 			}
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := replicasets.Apply(ctx, kube, owner, spec); err != nil {
+				if err := replicasets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("replicasets[%d].reconcile: %w", i, err)
 				}
 			}

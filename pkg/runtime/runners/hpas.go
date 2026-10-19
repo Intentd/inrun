@@ -54,7 +54,7 @@ func RunHPAs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := hpas.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := hpas.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("hpas[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -74,15 +74,15 @@ func RunHPAs(
 		spec := resources.HPASpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := hpas.Apply(ctx, kube, owner, spec); err != nil {
+			if err := hpas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("hpas[%d].update: %w", i, err)
 			}
 		} else {
-			if err := hpas.Create(ctx, kube, owner, spec); err != nil {
+			if err := hpas.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("hpas[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := hpas.Apply(ctx, kube, owner, spec); err != nil {
+				if err := hpas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("hpas[%d].reconcile: %w", i, err)
 				}
 			}

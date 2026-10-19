@@ -22,7 +22,7 @@ func buildBase(ctx context.Context, cfg *config.Config, m *merger.Merger) (*blue
 		return nil, nil, fmt.Errorf("build scheme registry: %w", err)
 	}
 
-	kube := kubeclient.NewKubeclient(cfg, scheme)
+	kube := kubeclient.New(cfg, scheme)
 	if err := kube.Start(ctx); err != nil {
 		return nil, nil, fmt.Errorf("start kubeclient: %w", err)
 	}

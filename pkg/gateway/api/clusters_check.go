@@ -66,7 +66,7 @@ func CheckClusters(
 			continue
 		}
 
-		remoteKube, err := kubeclient.NewKubeclientFromConfig(ctx, rc, scheme)
+		remoteKube, err := kubeclient.NewFromConfig(ctx, rc, scheme)
 		if err != nil {
 			r.ConnErr = fmt.Errorf("building client: %w", err)
 			results = append(results, r)

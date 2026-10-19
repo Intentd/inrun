@@ -54,7 +54,7 @@ func RunStatefulSets(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := statefulsets.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := statefulsets.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("statefulsets[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -74,15 +74,15 @@ func RunStatefulSets(
 		spec := resources.StatefulSetSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := statefulsets.Apply(ctx, kube, owner, spec); err != nil {
+			if err := statefulsets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("statefulsets[%d].update: %w", i, err)
 			}
 		} else {
-			if err := statefulsets.Create(ctx, kube, owner, spec); err != nil {
+			if err := statefulsets.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("statefulsets[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := statefulsets.Apply(ctx, kube, owner, spec); err != nil {
+				if err := statefulsets.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("statefulsets[%d].reconcile: %w", i, err)
 				}
 			}

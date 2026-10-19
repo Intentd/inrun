@@ -59,7 +59,7 @@ func RunServices(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := services.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := services.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("services[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -82,17 +82,17 @@ func RunServices(
 		spec := resources.ServiceSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := services.Apply(ctx, kube, owner, spec); err != nil {
+			if err := services.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("services[%d].update: %w", i, err)
 			}
 		} else {
-			if err := services.Create(ctx, kube, owner, spec); err != nil {
+			if err := services.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("services[%d].create: %w", i, err)
 			}
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := services.Apply(ctx, kube, owner, spec); err != nil {
+				if err := services.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("services[%d].reconcile: %w", i, err)
 				}
 			}

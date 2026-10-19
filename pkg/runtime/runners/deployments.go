@@ -75,7 +75,7 @@ func RunDeployments(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := deployments.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := deployments.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("deployments[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -92,17 +92,17 @@ func RunDeployments(
 		spec := resources.DeploymentSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := deployments.Apply(ctx, kube, owner, spec); err != nil {
+			if err := deployments.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("deployments[%d].update: %w", i, err)
 			}
 		} else {
-			if err := deployments.Create(ctx, kube, owner, spec); err != nil {
+			if err := deployments.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("deployments[%d].create: %w", i, err)
 			}
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := deployments.Apply(ctx, kube, owner, spec); err != nil {
+				if err := deployments.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("deployments[%d].reconcile: %w", i, err)
 				}
 			}

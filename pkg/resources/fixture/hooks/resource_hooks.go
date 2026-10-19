@@ -70,7 +70,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 	nsSpec := resources.NamespaceSpec(types.NamespaceTemplateSource{
 		Name: ns,
 	}, obj.Name)
-	if err := namespaces.Apply(ctx, kube, obj, nsSpec); err != nil {
+	if err := namespaces.Apply(ctx, kube.Clientset(), obj, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("namespace: %w", err)
 	}
 
@@ -84,7 +84,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 			"REPLICAS": obj.Spec.Replicas,
 		},
 	}, obj.Name)
-	if err := configmaps.Apply(ctx, kube, obj, cmSpec); err != nil {
+	if err := configmaps.Apply(ctx, kube.Clientset(), obj, cmSpec, kubeclient.ApplyOptions(kube, cmSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("configmap: %w", err)
 	}
 
@@ -96,7 +96,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 			"token": "probe-token",
 		},
 	}, obj.Name)
-	if err := secrets.Apply(ctx, kube, obj, secretSpec); err != nil {
+	if err := secrets.Apply(ctx, kube.Clientset(), obj, secretSpec, kubeclient.ApplyOptions(kube, secretSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("secret: %w", err)
 	}
 
@@ -105,7 +105,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Name:      obj.Name + "-sa",
 		Namespace: ns,
 	}, obj.Name)
-	if err := serviceaccounts.Create(ctx, kube, obj, saSpec); err != nil {
+	if err := serviceaccounts.Create(ctx, kube.Clientset(), obj, saSpec); err != nil {
 		return domain.Result{}, fmt.Errorf("serviceaccount: %w", err)
 	}
 
@@ -116,7 +116,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 			{APIGroups: []string{""}, Resources: []string{"namespaces"}, Verbs: []string{"get", "list", "watch"}},
 		},
 	}, obj.Name)
-	if err := clusterroles.Apply(ctx, kube, obj, crSpec); err != nil {
+	if err := clusterroles.Apply(ctx, kube.Clientset(), obj, crSpec, kubeclient.ApplyOptions(kube, crSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("clusterrole: %w", err)
 	}
 
@@ -131,7 +131,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 			{Kind: "ServiceAccount", Name: obj.Name + "-sa", Namespace: ns},
 		},
 	}, obj.Name)
-	if err := clusterrolebindings.Apply(ctx, kube, obj, crbSpec); err != nil {
+	if err := clusterrolebindings.Apply(ctx, kube.Clientset(), obj, crbSpec, kubeclient.ApplyOptions(kube, crbSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("clusterrolebinding: %w", err)
 	}
 
@@ -143,7 +143,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 			{APIGroups: []string{""}, Resources: []string{"configmaps", "secrets"}, Verbs: []string{"get", "list"}},
 		},
 	}, obj.Name)
-	if err := roles.Apply(ctx, kube, obj, roleSpec); err != nil {
+	if err := roles.Apply(ctx, kube.Clientset(), obj, roleSpec, kubeclient.ApplyOptions(kube, roleSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("role: %w", err)
 	}
 
@@ -154,7 +154,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		RoleRef:   types.RoleRefSpec{Kind: "Role", Name: obj.Name + "-role"},
 		Subjects:  []types.SubjectSpec{{Kind: "ServiceAccount", Name: obj.Name + "-sa", Namespace: ns}},
 	}, obj.Name)
-	if err := rolebindings.Apply(ctx, kube, obj, rbSpec); err != nil {
+	if err := rolebindings.Apply(ctx, kube.Clientset(), obj, rbSpec, kubeclient.ApplyOptions(kube, rbSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("rolebinding: %w", err)
 	}
 
@@ -163,7 +163,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Name:      obj.Name + "-netpol",
 		Namespace: ns,
 	}, obj.Name, reg)
-	if err := networkpolicies.Apply(ctx, kube, obj, netpolSpec); err != nil {
+	if err := networkpolicies.Apply(ctx, kube.Clientset(), obj, netpolSpec, kubeclient.ApplyOptions(kube, netpolSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("networkpolicy: %w", err)
 	}
 
@@ -173,7 +173,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Namespace: ns,
 		Hard:      map[string]string{"cpu": "4", "memory": "8Gi", "pods": "20"},
 	}, obj.Name, reg)
-	if err := resourcequotas.Apply(ctx, kube, obj, quotaSpec); err != nil {
+	if err := resourcequotas.Apply(ctx, kube.Clientset(), obj, quotaSpec, kubeclient.ApplyOptions(kube, quotaSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("resourcequota: %w", err)
 	}
 
@@ -189,7 +189,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 			},
 		},
 	}, obj.Name, reg)
-	if err := limitranges.Apply(ctx, kube, obj, lrSpec); err != nil {
+	if err := limitranges.Apply(ctx, kube.Clientset(), obj, lrSpec, kubeclient.ApplyOptions(kube, lrSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("limitrange: %w", err)
 	}
 
@@ -202,7 +202,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Port:               obj.Spec.Port,
 		ServiceAccountName: obj.Name + "-sa",
 	}, obj.Name, reg)
-	if err := deployments.Apply(ctx, kube, obj, deploySpec); err != nil {
+	if err := deployments.Apply(ctx, kube.Clientset(), obj, deploySpec, kubeclient.ApplyOptions(kube, deploySpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("deployment: %w", err)
 	}
 
@@ -214,7 +214,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Replicas:  obj.Spec.Replicas,
 		Port:      obj.Spec.Port,
 	}, obj.Name, reg)
-	if err := statefulsets.Apply(ctx, kube, obj, stsSpec); err != nil {
+	if err := statefulsets.Apply(ctx, kube.Clientset(), obj, stsSpec, kubeclient.ApplyOptions(kube, stsSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("statefulset: %w", err)
 	}
 
@@ -226,7 +226,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Replicas:  obj.Spec.Replicas,
 		Port:      obj.Spec.Port,
 	}, obj.Name, reg)
-	if err := replicasets.Apply(ctx, kube, obj, rsSpec); err != nil {
+	if err := replicasets.Apply(ctx, kube.Clientset(), obj, rsSpec, kubeclient.ApplyOptions(kube, rsSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("replicaset: %w", err)
 	}
 
@@ -237,7 +237,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Image:     obj.Spec.Image,
 		Port:      obj.Spec.Port,
 	}, obj.Name, reg)
-	if err := pods.Apply(ctx, kube, obj, podSpec); err != nil {
+	if err := pods.Apply(ctx, kube.Clientset(), obj, podSpec, kubeclient.ApplyOptions(kube, podSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("pod: %w", err)
 	}
 
@@ -248,7 +248,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Image:     "alpine:3.19",
 		Command:   []string{"/bin/sh", "-c", "echo probe-job-ok"},
 	}, 3, obj.Name, reg)
-	if err := jobs.Create(ctx, kube, obj, jobSpec); err != nil {
+	if err := jobs.Create(ctx, kube.Clientset(), obj, jobSpec); err != nil {
 		return domain.Result{}, fmt.Errorf("job: %w", err)
 	}
 
@@ -260,7 +260,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Image:     "alpine:3.19",
 		Command:   []string{"/bin/sh", "-c", "echo probe-cron-ok"},
 	}, obj.Name, reg)
-	if err := cronjobs.Apply(ctx, kube, obj, cronSpec); err != nil {
+	if err := cronjobs.Apply(ctx, kube.Clientset(), obj, cronSpec, kubeclient.ApplyOptions(kube, cronSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("cronjob: %w", err)
 	}
 
@@ -271,7 +271,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Port:       "80",
 		TargetPort: obj.Spec.Port,
 	}, obj.Name)
-	if err := services.Apply(ctx, kube, obj, svcSpec); err != nil {
+	if err := services.Apply(ctx, kube.Clientset(), obj, svcSpec, kubeclient.ApplyOptions(kube, svcSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("service: %w", err)
 	}
 
@@ -283,7 +283,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		ServiceName: obj.Name + "-svc",
 		ServicePort: "80",
 	}, obj.Name)
-	if err := ingresses.Apply(ctx, kube, obj, ingSpec); err != nil {
+	if err := ingresses.Apply(ctx, kube.Clientset(), obj, ingSpec, kubeclient.ApplyOptions(kube, ingSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("ingress: %w", err)
 	}
 
@@ -299,7 +299,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		MinReplicas: "1",
 		MaxReplicas: "3",
 	}, obj.Name, reg)
-	if err := hpas.Apply(ctx, kube, obj, hpaSpec); err != nil {
+	if err := hpas.Apply(ctx, kube.Clientset(), obj, hpaSpec, kubeclient.ApplyOptions(kube, hpaSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("hpa: %w", err)
 	}
 
@@ -310,7 +310,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Selector:     map[string]string{"app": obj.Name + "-deploy"},
 		MinAvailable: "1",
 	}, obj.Name, reg)
-	if err := pdbs.Apply(ctx, kube, obj, pdbSpec); err != nil {
+	if err := pdbs.Apply(ctx, kube.Clientset(), obj, pdbSpec, kubeclient.ApplyOptions(kube, pdbSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("pdb: %w", err)
 	}
 
@@ -321,7 +321,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		AccessModes: []string{"ReadWriteOnce"},
 		HostPath:    "/tmp/inrun-" + obj.Name,
 	}, obj.Name)
-	if err := pvs.Apply(ctx, kube, obj, pvSpec); err != nil {
+	if err := pvs.Apply(ctx, kube.Clientset(), obj, pvSpec, kubeclient.ApplyOptions(kube, pvSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("pv: %w", err)
 	}
 
@@ -333,7 +333,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		AccessModes: []string{"ReadWriteOnce"},
 		VolumeName:  obj.Name + "-pv",
 	}, obj.Name)
-	if err := pvcs.Apply(ctx, kube, obj, pvcSpec); err != nil {
+	if err := pvcs.Apply(ctx, kube.Clientset(), obj, pvcSpec, kubeclient.ApplyOptions(kube, pvcSpec.ForceConflict)); err != nil {
 		return domain.Result{}, fmt.Errorf("pvc: %w", err)
 	}
 

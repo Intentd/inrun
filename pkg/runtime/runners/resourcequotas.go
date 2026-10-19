@@ -59,7 +59,7 @@ func RunResourceQuotas(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := resourcequotas.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := resourcequotas.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("resourceQuotas[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -92,11 +92,11 @@ func RunResourceQuotas(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := resourcequotas.Apply(ctx, kube, owner, nsSpec); err != nil {
+					if err := resourcequotas.Apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, nsSpec.ForceConflict)); err != nil {
 						return fmt.Errorf("resourceQuotas[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
-					if err := resourcequotas.Create(ctx, kube, owner, nsSpec); err != nil {
+					if err := resourcequotas.Create(ctx, kube.Clientset(), owner, nsSpec); err != nil {
 						return fmt.Errorf("resourceQuotas[%d].create namespace=%s: %w", i, targetNs, err)
 					}
 				}
@@ -105,15 +105,15 @@ func RunResourceQuotas(
 		}
 
 		if update {
-			if err := resourcequotas.Apply(ctx, kube, owner, spec); err != nil {
+			if err := resourcequotas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("resourceQuotas[%d].update: %w", i, err)
 			}
 		} else {
-			if err := resourcequotas.Create(ctx, kube, owner, spec); err != nil {
+			if err := resourcequotas.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("resourceQuotas[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := resourcequotas.Apply(ctx, kube, owner, spec); err != nil {
+				if err := resourcequotas.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("resourceQuotas[%d].reconcile: %w", i, err)
 				}
 			}

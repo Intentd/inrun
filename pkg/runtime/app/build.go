@@ -37,7 +37,7 @@ func newCore(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint) (
 		return core{}, fmt.Errorf("failed to build scheme registry: %w", err)
 	}
 
-	kube := kubeclient.NewKubeclient(cfg, scheme)
+	kube := kubeclient.New(cfg, scheme)
 
 	// kubeclient is started immediately — the informer factory's missing-CRD
 	// check needs the REST config during construction, before Process.Start().

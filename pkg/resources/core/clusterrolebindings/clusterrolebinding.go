@@ -10,13 +10,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/resources/core/shared"
+	"github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // Spec is the fully resolved ClusterRoleBinding specification.
@@ -36,7 +35,7 @@ type Spec struct {
 // Create creates a ClusterRoleBinding if it does not already exist.
 // Idempotent — skips if the ClusterRoleBinding already exists.
 // ClusterRoleBindings are cluster-scoped; ownership is tracked via the inrun.dev/owner label.
-func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Create(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	if err := validateSpec(spec); err != nil {
 		return fmt.Errorf("clusterrolebinding.Create: invalid spec: %w", err)
 	}
@@ -44,7 +43,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 		return err
 	}
 
-	_, err := kube.Clientset().RbacV1().ClusterRoleBindings().Get(ctx, spec.Name, metav1.GetOptions{})
+	_, err := kube.RbacV1().ClusterRoleBindings().Get(ctx, spec.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("clusterrolebinding.Create: checking existence of %q: %w", spec.Name, err)
 	}
@@ -57,7 +56,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 
 	crb := Build(owner, spec)
 
-	_, err = kube.Clientset().RbacV1().ClusterRoleBindings().Create(ctx, crb, metav1.CreateOptions{})
+	_, err = kube.RbacV1().ClusterRoleBindings().Create(ctx, crb, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("clusterrolebinding.Create: creating %q: %w", spec.Name, err)
 	}
@@ -73,7 +72,7 @@ func Create(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 // Apply creates or updates a ClusterRoleBinding using Server-Side Apply.
 // RoleRef is immutable — if SSA is rejected due to a changed roleRef,
 // the binding is deleted and recreated.
-func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Apply(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec, opts types.Options) error {
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
@@ -86,14 +85,14 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 		return fmt.Errorf("clusterrolebinding.Apply: marshal: %w", err)
 	}
 
-	if _, err = kube.Clientset().RbacV1().ClusterRoleBindings().Patch(
+	if _, err = kube.RbacV1().ClusterRoleBindings().Patch(
 		ctx, spec.Name, k8stypes.ApplyPatchType, body,
-		metav1.PatchOptions{FieldManager: config.FieldManagerRuntime, Force: shared.ResolveForceConflict(kube, spec.ForceConflict)},
+		opts.PatchOptions(),
 	); err != nil {
 		if errors.IsInvalid(err) {
 			// roleRef is immutable — delete and recreate.
 			logger.Info().Str("clusterrolebinding", spec.Name).Msg("clusterrolebinding roleRef drifted — delete+recreate")
-			if delErr := kube.Clientset().RbacV1().ClusterRoleBindings().Delete(ctx, spec.Name, metav1.DeleteOptions{}); delErr != nil && !errors.IsNotFound(delErr) {
+			if delErr := kube.RbacV1().ClusterRoleBindings().Delete(ctx, spec.Name, metav1.DeleteOptions{}); delErr != nil && !errors.IsNotFound(delErr) {
 				return fmt.Errorf("clusterrolebinding.Apply: deleting stale binding %q: %w", spec.Name, delErr)
 			}
 			return Create(ctx, kube, owner, spec)
@@ -110,12 +109,12 @@ func Apply(ctx context.Context, kube kubeclient.Interface, owner domain.Object, 
 }
 
 // Delete deletes the ClusterRoleBinding if it exists.
-func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object, spec Spec) error {
+func Delete(ctx context.Context, kube kubernetes.Interface, owner types.Owner, spec Spec) error {
 	if err := shared.SleepIfNeeded(spec.Sleep); err != nil {
 		return err
 	}
 
-	err := kube.Clientset().RbacV1().ClusterRoleBindings().Delete(ctx, spec.Name, metav1.DeleteOptions{})
+	err := kube.RbacV1().ClusterRoleBindings().Delete(ctx, spec.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -132,10 +131,10 @@ func Delete(ctx context.Context, kube kubeclient.Interface, owner domain.Object,
 }
 
 // DeleteIfOwned deletes the ClusterRoleBinding only if it is owned by the CR.
-func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
-	owner domain.Object, name string) error {
+func DeleteIfOwned(ctx context.Context, kube kubernetes.Interface,
+	owner types.Owner, name string) error {
 
-	existing, err := kube.Clientset().RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
+	existing, err := kube.RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -145,14 +144,14 @@ func DeleteIfOwned(ctx context.Context, kube kubeclient.Interface,
 	if existing.Labels[labels.InrunOwner] != labels.EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations()) {
 		return nil
 	}
-	return kube.Clientset().RbacV1().ClusterRoleBindings().Delete(ctx, name, metav1.DeleteOptions{})
+	return kube.RbacV1().ClusterRoleBindings().Delete(ctx, name, metav1.DeleteOptions{})
 }
 
 // ── Build and its helpers ─────────────────────────────────────────────────
 
 // Build returns the ClusterRoleBinding spec describes, owned by owner.
 // It reads nothing from the cluster.
-func Build(owner domain.Object, spec Spec) *rbacv1.ClusterRoleBinding {
+func Build(owner types.Owner, spec Spec) *rbacv1.ClusterRoleBinding {
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	crb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

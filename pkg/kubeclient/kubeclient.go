@@ -81,11 +81,8 @@ func (k *Kubeclient) RefreshMapper() {
 // Implementing yhe Component interface
 var _ domain.Component = (*Kubeclient)(nil)
 
-// -----------------------------------------------------------------------------
-// Entry point
-// -----------------------------------------------------------------------------
-// NewKubeclient returns a new Kubeclient with the correct scheme
-func NewKubeclient(cfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
+// New returns a new Kubeclient with the correct scheme
+func New(cfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 	if scheme == nil {
 		term.Exit(errors.New("scheme cannot be nil"))
 	}
@@ -96,6 +93,23 @@ func NewKubeclient(cfg *config.Config, scheme *runtime.Scheme) *Kubeclient {
 		config:  cfg,
 		started: new(atomic.Bool),
 	}
+}
+
+// NewFromConfig builds a fully started Kubeclient from an existing
+// rest.Config. Used by the gateway cluster registry to construct clients for
+// remote clusters declared in gateway.clusters. buildConfig short-circuits
+// when restConfig is pre-seeded, so config is not required.
+func NewFromConfig(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme) (*Kubeclient, error) {
+	k := &Kubeclient{
+		name:       "remote",
+		scheme:     scheme,
+		started:    new(atomic.Bool),
+		restConfig: cfg,
+	}
+	if err := k.Start(ctx); err != nil {
+		return nil, err
+	}
+	return k, nil
 }
 
 // Start is called by inrun.Start() to start kube client

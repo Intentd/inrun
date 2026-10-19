@@ -60,7 +60,7 @@ func runCustomResources(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := customresources.DeleteIfOwned(ctx, kube, owner, name, ns, src.APIVersion, src.Kind); err != nil {
+					if err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, name, ns, src.APIVersion, src.Kind); err != nil {
 						return fmt.Errorf("custom[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -97,17 +97,17 @@ func runCustomResources(
 		// Create is a no-op if the resource already exists (idempotent OnCreate).
 		// Update always corrects drift — delete drift (recreate) and spec drift.
 		if update {
-			if err := customresources.Apply(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
+			if err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, labelMgr, shouldProtect); err != nil {
 				return fmt.Errorf("custom[%d].update: %w", i, err)
 			}
 		} else {
-			if err := customresources.Create(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
+			if err := customresources.Create(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, labelMgr, shouldProtect); err != nil {
 				return fmt.Errorf("custom[%d].create: %w", i, err)
 			}
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := customresources.Apply(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
+				if err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, labelMgr, shouldProtect); err != nil {
 					return fmt.Errorf("custom[%d].reconcile: %w", i, err)
 				}
 			}

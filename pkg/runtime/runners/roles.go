@@ -58,7 +58,7 @@ func RunRoles(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := roles.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := roles.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("roles[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -78,11 +78,11 @@ func RunRoles(
 		spec := resources.RoleSpec(resolved, resolver.OwnerName())
 
 		if update || src.Reconcile {
-			if err := roles.Apply(ctx, kube, owner, spec); err != nil {
+			if err := roles.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("roles[%d].update: %w", i, err)
 			}
 		} else {
-			if err := roles.Create(ctx, kube, owner, spec); err != nil {
+			if err := roles.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("roles[%d].create: %w", i, err)
 			}
 		}

@@ -54,7 +54,7 @@ func RunPDBs(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := pdbs.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := pdbs.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("pdbs[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -74,15 +74,15 @@ func RunPDBs(
 		spec := resources.PDBSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := pdbs.Apply(ctx, kube, owner, spec); err != nil {
+			if err := pdbs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 				return fmt.Errorf("pdbs[%d].update: %w", i, err)
 			}
 		} else {
-			if err := pdbs.Create(ctx, kube, owner, spec); err != nil {
+			if err := pdbs.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 				return fmt.Errorf("pdbs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := pdbs.Apply(ctx, kube, owner, spec); err != nil {
+				if err := pdbs.Apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, spec.ForceConflict)); err != nil {
 					return fmt.Errorf("pdbs[%d].reconcile: %w", i, err)
 				}
 			}

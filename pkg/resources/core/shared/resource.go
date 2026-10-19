@@ -5,16 +5,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
+	"github.com/intentd/inrun/pkg/resources/core/types"
 	"github.com/intentd/inrun/pkg/resources/presets"
 
 	"github.com/intentd/inrun/pkg/logger"
-	restypes "github.com/intentd/inrun/pkg/resources/core/types"
 )
 
 // ResolveResources resolves resource requirements: if resources.preset is set
 // it expands to explicit requests/limits; otherwise the block is returned as-is.
 // Returns nil when neither preset nor explicit values are declared.
-func ResolveResources(r *restypes.ResourceRequirements, reg presets.Registry) *restypes.ResourceRequirements {
+func ResolveResources(r *types.ResourceRequirements, reg presets.Registry) *types.ResourceRequirements {
 	if r == nil {
 		return nil
 	}
@@ -34,7 +34,7 @@ func ResolveResources(r *restypes.ResourceRequirements, reg presets.Registry) *r
 
 // BuildResourceRequirements converts an Inrun ResourceRequirements spec into a
 // Kubernetes corev1.ResourceRequirements object.
-func BuildResourceRequirements(r *restypes.ResourceRequirements) corev1.ResourceRequirements {
+func BuildResourceRequirements(r *types.ResourceRequirements) corev1.ResourceRequirements {
 	req := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{},
 		Limits:   corev1.ResourceList{},

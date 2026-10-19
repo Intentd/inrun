@@ -124,7 +124,7 @@ func RunWithEnvtest(ctx context.Context, bp *blueprint.Blueprint, crdName string
 		return &recordingTransport{inner: rt, shared: shared}
 	}
 
-	realKube, err := kubeclient.NewKubeclientFromConfig(ctx, restCfg, scheme)
+	realKube, err := kubeclient.NewFromConfig(ctx, restCfg, scheme)
 	if err != nil {
 		return nil, fmt.Errorf("building kubeclient: %w", err)
 	}

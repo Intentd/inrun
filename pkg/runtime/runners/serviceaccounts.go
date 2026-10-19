@@ -64,7 +64,7 @@ func RunServiceAccounts(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					if err := serviceaccounts.DeleteIfOwned(ctx, kube, owner, name, ns); err != nil {
+					if err := serviceaccounts.DeleteIfOwned(ctx, kube.Clientset(), owner, name, ns); err != nil {
 						return fmt.Errorf("serviceAccounts[%d]: conditional cleanup: %w", i, err)
 					}
 				}
@@ -87,7 +87,7 @@ func RunServiceAccounts(
 		spec := resources.ServiceAccountSpec(resolved, resolver.OwnerName())
 
 		// Always create — ServiceAccounts have no meaningful drift to correct
-		if err := serviceaccounts.Create(ctx, kube, owner, spec); err != nil {
+		if err := serviceaccounts.Create(ctx, kube.Clientset(), owner, spec); err != nil {
 			return fmt.Errorf("serviceaccounts[%d].create: %w", i, err)
 		}
 	}
