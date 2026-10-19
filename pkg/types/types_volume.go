@@ -1,6 +1,6 @@
 package types
 
-import restypes "github.com/intentd/kuberesources/core/types"
+import restypes "github.com/intentd/kubekit/core/types"
 
 // ── Volume / VolumeMount ──────────────────────────────────────────────────────
 //

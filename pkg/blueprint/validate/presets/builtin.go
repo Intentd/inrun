@@ -1,6 +1,6 @@
 package presets
 
-import respresets "github.com/intentd/kuberesources/presets"
+import respresets "github.com/intentd/kubekit/presets"
 
 // builtin holds the built-in presets that a Blueprint's names are checked against.
 var builtin = respresets.Builtin()

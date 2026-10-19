@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kuberesources/core/namespaces"
+	"github.com/intentd/kubekit/core/namespaces"
 )
 
 // RunNamespaces resolves and applies Namespace template declarations.

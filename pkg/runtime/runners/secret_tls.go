@@ -29,7 +29,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/intentd/kuberesources/core/types"
+	"github.com/intentd/kubekit/core/types"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

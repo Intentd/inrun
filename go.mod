@@ -2,9 +2,6 @@ module github.com/intentd/inrun
 
 go 1.27.1
 
-replace github.com/intentd/kuberesources => ../kuberesources
-replace github.com/intentd/kel => ../kel
-
 require (
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/go-jose/go-jose/v4 v4.1.4
@@ -12,7 +9,8 @@ require (
 	github.com/go-logr/zerologr v1.2.3
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/google/uuid v1.6.0
-	github.com/intentd/kel v0.1.0
+	github.com/intentd/kel v0.1.1
+	github.com/intentd/kubekit v0.1.1
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
 	github.com/opencontainers/go-digest v1.0.0
@@ -100,7 +98,6 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/intentd/kuberesources v0.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect

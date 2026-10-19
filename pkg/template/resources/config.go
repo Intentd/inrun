@@ -6,10 +6,10 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/kuberesources/core/configmaps"
-	"github.com/intentd/kuberesources/core/namespaces"
-	"github.com/intentd/kuberesources/core/secrets"
-	"github.com/intentd/kuberesources/core/serviceaccounts"
+	"github.com/intentd/kubekit/core/configmaps"
+	"github.com/intentd/kubekit/core/namespaces"
+	"github.com/intentd/kubekit/core/secrets"
+	"github.com/intentd/kubekit/core/serviceaccounts"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

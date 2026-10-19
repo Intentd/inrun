@@ -9,7 +9,7 @@ import (
 	apiv1 "github.com/intentd/inrun-args-hooks-targets/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/kuberesources/core/deployments"
+	"github.com/intentd/kubekit/core/deployments"
 )
 
 // BlockchainAppWithTargetsReconciler is the per-target constructor reconciler

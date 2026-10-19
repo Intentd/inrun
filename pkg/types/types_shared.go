@@ -35,7 +35,7 @@ package types
 import (
 	"fmt"
 
-	restypes "github.com/intentd/kuberesources/core/types"
+	restypes "github.com/intentd/kubekit/core/types"
 
 	"gopkg.in/yaml.v3"
 )

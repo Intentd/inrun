@@ -10,13 +10,12 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/kuberesources/core/cronjobs"
-	"github.com/intentd/kuberesources/core/deployments"
-	"github.com/intentd/kuberesources/core/jobs"
-	"github.com/intentd/kuberesources/core/pods"
-	"github.com/intentd/kuberesources/core/replicasets"
-	"github.com/intentd/kuberesources/core/statefulsets"
+	"github.com/intentd/kubekit/core/cronjobs"
+	"github.com/intentd/kubekit/core/deployments"
+	"github.com/intentd/kubekit/core/jobs"
+	"github.com/intentd/kubekit/core/pods"
+	"github.com/intentd/kubekit/core/replicasets"
+	"github.com/intentd/kubekit/core/statefulsets"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
@@ -707,16 +706,7 @@ func DeploymentSpec(src types.DeploymentTemplateSource, owner domain.Object, reg
 
 	spec.Env = []types.EnvVar(src.Env)
 
-	if src.RollingUpdate != nil && src.RollingUpdate.Preset != "" {
-		if p, ok := reg.All().RollingUpdate(src.RollingUpdate.Preset); !ok {
-			logger.Warn().Str("preset", src.RollingUpdate.Preset).Msg("unknown rolling update preset — skipping")
-		} else {
-			spec.RollingUpdate = p.Behavior()
-		}
-	} else if src.RollingUpdate != nil {
-		r := *src.RollingUpdate
-		spec.RollingUpdate = &r
-	}
+	spec.RollingUpdate = presetRollingUpdate(src.RollingUpdate, reg.All())
 
 	// Inrun system labels — always added
 
@@ -854,16 +844,7 @@ func ReplicaSetSpec(src types.ReplicaSetTemplateSource, owner domain.Object, reg
 
 	spec.Env = []types.EnvVar(src.Env)
 
-	if src.RollingUpdate != nil && src.RollingUpdate.Preset != "" {
-		if p, ok := reg.All().RollingUpdate(src.RollingUpdate.Preset); !ok {
-			logger.Warn().Str("preset", src.RollingUpdate.Preset).Msg("unknown rolling update preset — skipping")
-		} else {
-			spec.RollingUpdate = p.Behavior()
-		}
-	} else if src.RollingUpdate != nil {
-		r := *src.RollingUpdate
-		spec.RollingUpdate = &r
-	}
+	spec.RollingUpdate = presetRollingUpdate(src.RollingUpdate, reg.All())
 
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
@@ -935,16 +916,7 @@ func StatefulSetSpec(src types.StatefulSetTemplateSource, owner domain.Object, r
 		spec.Annotations[k] = v
 	}
 
-	if src.RollingUpdate != nil && src.RollingUpdate.Preset != "" {
-		if p, ok := reg.All().RollingUpdate(src.RollingUpdate.Preset); !ok {
-			logger.Warn().Str("preset", src.RollingUpdate.Preset).Msg("unknown rolling update preset — skipping")
-		} else {
-			spec.RollingUpdate = p.Behavior()
-		}
-	} else if src.RollingUpdate != nil {
-		r := *src.RollingUpdate
-		spec.RollingUpdate = &r
-	}
+	spec.RollingUpdate = presetRollingUpdate(src.RollingUpdate, reg.All())
 
 	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
 	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}

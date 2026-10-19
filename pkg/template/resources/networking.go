@@ -7,10 +7,10 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/kuberesources/core/ingresses"
-	"github.com/intentd/kuberesources/core/networkpolicies"
-	"github.com/intentd/kuberesources/core/services"
+	"github.com/intentd/kubekit/core/ingresses"
+	"github.com/intentd/kubekit/core/networkpolicies"
+	"github.com/intentd/kubekit/core/services"
+	"github.com/intentd/kubekit/presets"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
@@ -244,27 +244,19 @@ func IngressSpec(src types.IngressTemplateSource, owner domain.Object) ingresses
 // NetworkPolicySpec builds a networkpolicies.Spec from a NetworkPolicyTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
 func NetworkPolicySpec(src types.NetworkPolicyTemplateSource, owner domain.Object, reg *types.PresetRegistry) networkpolicies.Spec {
-	ingress := src.Ingress
-	egress := src.Egress
-	policyTypes := src.PolicyTypes
-
-	if src.Preset != "" {
-		if p, ok := reg.All().NetworkPolicy(src.Preset); !ok {
-			logger.Warn().Str("preset", src.Preset).Msg("unknown networkpolicy preset — skipping")
-		} else {
-			ingress = p.Ingress
-			egress = p.Egress
-			policyTypes = p.PolicyTypes
-		}
-	}
+	rules := presetNetworkPolicy(src.Preset, presets.NetworkPolicyRules{
+		Ingress:     src.Ingress,
+		Egress:      src.Egress,
+		PolicyTypes: src.PolicyTypes,
+	}, reg.All())
 
 	spec := networkpolicies.Spec{
 		Name:              src.Name,
 		Namespace:         src.Namespace,
 		PodSelector:       src.PodSelector,
-		Ingress:           ingress,
-		Egress:            egress,
-		PolicyTypes:       policyTypes,
+		Ingress:           rules.Ingress,
+		Egress:            rules.Egress,
+		PolicyTypes:       rules.PolicyTypes,
 		FromNetworkPolicy: src.FromNetworkPolicy,
 		FromNamespace:     src.FromNamespace,
 		Labels:            make(map[string]string),

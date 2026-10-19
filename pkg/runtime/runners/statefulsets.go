@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kuberesources/core/statefulsets"
+	"github.com/intentd/kubekit/core/statefulsets"
 )
 
 // RunStatefulSets resolves and applies StatefulSet template declarations.

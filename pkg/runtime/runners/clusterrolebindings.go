@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	crbs "github.com/intentd/kuberesources/core/clusterrolebindings"
+	crbs "github.com/intentd/kubekit/core/clusterrolebindings"
 )
 
 // RunClusterRoleBindings resolves and applies ClusterRoleBinding template declarations.

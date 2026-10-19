@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kuberesources/core/hpas"
+	"github.com/intentd/kubekit/core/hpas"
 )
 
 // RunHPAs resolves and applies HorizontalPodAutoscaler template declarations.

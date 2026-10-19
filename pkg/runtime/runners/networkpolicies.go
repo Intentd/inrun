@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kuberesources/core/networkpolicies"
+	"github.com/intentd/kubekit/core/networkpolicies"
 )
 
 // RunNetworkPolicies resolves and applies NetworkPolicy template declarations.

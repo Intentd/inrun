@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/kuberesources/core/namespaces"
+	"github.com/intentd/kubekit/core/namespaces"
 )
 
 // NamespaceFields are the fields accepted in the remote reconciler

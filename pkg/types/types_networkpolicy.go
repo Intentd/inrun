@@ -1,7 +1,7 @@
 // pkg/types/types_networkpolicy.go
 package types
 
-import restypes "github.com/intentd/kuberesources/core/types"
+import restypes "github.com/intentd/kubekit/core/types"
 
 // NetworkPolicyTemplateSource declares one NetworkPolicy to be managed by Inrun.
 //

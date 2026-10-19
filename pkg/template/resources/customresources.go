@@ -7,7 +7,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/kuberesources/core/customresources"
+	"github.com/intentd/kubekit/core/customresources"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/intentd/kuberesources/presets"
+	"github.com/intentd/kubekit/presets"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

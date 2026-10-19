@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/kuberesources/core/ingresses"
+	"github.com/intentd/kubekit/core/ingresses"
 )
 
 // IngressFields are the fields accepted in the remote reconciler

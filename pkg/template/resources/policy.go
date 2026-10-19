@@ -7,11 +7,10 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/kuberesources/core/hpas"
-	"github.com/intentd/kuberesources/core/limitranges"
-	"github.com/intentd/kuberesources/core/pdbs"
-	"github.com/intentd/kuberesources/core/resourcequotas"
+	"github.com/intentd/kubekit/core/hpas"
+	"github.com/intentd/kubekit/core/limitranges"
+	"github.com/intentd/kubekit/core/pdbs"
+	"github.com/intentd/kubekit/core/resourcequotas"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
@@ -288,23 +287,7 @@ func HPASpec(src types.HPATemplateSource, owner domain.Object, reg *types.Preset
 		}
 	}
 
-	if src.Behavior != nil && src.Behavior.Preset != "" {
-		if p, ok := reg.All().HPA(src.Behavior.Preset); !ok {
-			logger.Warn().Str("preset", src.Behavior.Preset).Msg("unknown hpa behavior preset — skipping")
-		} else {
-			b := types.HPABehavior{}
-			if p.Behavior != nil {
-				b = *p.Behavior
-			}
-			spec.Behavior = &b
-			if spec.TargetCPUUtilizationPercentage == 0 {
-				spec.TargetCPUUtilizationPercentage = p.CPUTarget()
-			}
-		}
-	} else if src.Behavior != nil {
-		b := *src.Behavior
-		spec.Behavior = &b
-	}
+	spec.Behavior, spec.TargetCPUUtilizationPercentage = presetHPA(src.Behavior, spec.TargetCPUUtilizationPercentage, reg.All())
 
 	for k, v := range src.Labels {
 		spec.Labels[k] = v
@@ -319,12 +302,7 @@ func HPASpec(src types.HPATemplateSource, owner domain.Object, reg *types.Preset
 // LimitRangeSpec builds a limitranges.Spec from a LimitRangeTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
 func LimitRangeSpec(src types.LimitRangeTemplateSource, owner domain.Object, reg *types.PresetRegistry) limitranges.Spec {
-	limits := src.Limits
-	if src.Preset != "" && len(limits) == 0 {
-		if p, ok := reg.All().LimitRange(src.Preset); ok {
-			limits = p.Limits
-		}
-	}
+	limits := presetLimitRange(src.Preset, src.Limits, reg.All())
 
 	spec := limitranges.Spec{
 		Name:           src.Name,
@@ -360,17 +338,8 @@ func PDBSpec(src types.PDBTemplateSource, owner domain.Object, reg *types.Preset
 		spec.Name = ownerName + "-pdb"
 	}
 
-	if src.Behavior != nil && src.Behavior.Preset != "" {
-		if p, ok := reg.All().PDB(src.Behavior.Preset); !ok {
-			logger.Warn().Str("preset", src.Behavior.Preset).Msg("unknown pdb behavior preset — skipping")
-		} else {
-			if spec.MinAvailable == "" {
-				spec.MinAvailable = p.MinAvailable
-			}
-			if spec.MaxUnavailable == "" {
-				spec.MaxUnavailable = p.MaxUnavailable
-			}
-		}
+	if src.Behavior != nil {
+		spec.MinAvailable, spec.MaxUnavailable = presetPDB(src.Behavior.Preset, spec.MinAvailable, spec.MaxUnavailable, reg.All())
 	}
 
 	for k, v := range src.Selector {
@@ -390,14 +359,7 @@ func PDBSpec(src types.PDBTemplateSource, owner domain.Object, reg *types.Preset
 // ResourceQuotaSpec builds a resourcequotas.Spec from a ResourceQuotaTemplateSource.
 // Template expressions must already be evaluated by template.Resolver before calling.
 func ResourceQuotaSpec(src types.ResourceQuotaTemplateSource, owner domain.Object, reg *types.PresetRegistry) resourcequotas.Spec {
-	hard := src.Hard
-	if src.Preset != "" {
-		if p, ok := reg.All().ResourceQuota(src.Preset); !ok {
-			logger.Warn().Str("preset", src.Preset).Msg("unknown resourcequota preset — skipping")
-		} else {
-			hard = p.Hard
-		}
-	}
+	hard := presetResourceQuota(src.Preset, src.Hard, reg.All())
 
 	spec := resourcequotas.Spec{
 		Name:              src.Name,

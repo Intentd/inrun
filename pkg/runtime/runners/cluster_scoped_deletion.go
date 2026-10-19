@@ -11,11 +11,11 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kuberesources/core/clusterrolebindings"
-	"github.com/intentd/kuberesources/core/clusterroles"
-	"github.com/intentd/kuberesources/core/customresources"
-	"github.com/intentd/kuberesources/core/namespaces"
-	"github.com/intentd/kuberesources/core/pvs"
+	"github.com/intentd/kubekit/core/clusterrolebindings"
+	"github.com/intentd/kubekit/core/clusterroles"
+	"github.com/intentd/kubekit/core/customresources"
+	"github.com/intentd/kubekit/core/namespaces"
+	"github.com/intentd/kubekit/core/pvs"
 )
 
 // DeleteOwnedClusterScopedResources explicitly deletes all cluster-scoped resources declared across
