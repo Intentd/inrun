@@ -1,9 +1,4 @@
-// webhook/conversion.go — /convert HTTP handler for CRD version conversion.
-//
-// The Kubernetes API server POSTs a ConversionReview to this endpoint when it
-// needs to convert a CR from one version to another. Inrun applies the
-// conversion rules declared in the Blueprint for the object's Kind.
-package webhook
+package conversion
 
 import (
 	"encoding/json"
@@ -12,11 +7,12 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/kube"
 )
 
-// --- Kubernetes ConversionReview types ---
-
+// ConversionReview mirrors apiextensions.k8s.io/v1 ConversionReview.
 type ConversionReview struct {
 	APIVersion string                    `json:"apiVersion"`
 	Kind       string                    `json:"kind"`
@@ -24,24 +20,63 @@ type ConversionReview struct {
 	Response   *ConversionReviewResponse `json:"response,omitempty"`
 }
 
+// ConversionReviewRequest is the objects to convert and the version to convert them to.
 type ConversionReviewRequest struct {
 	UID               string            `json:"uid"`
 	DesiredAPIVersion string            `json:"desiredAPIVersion"`
 	Objects           []json.RawMessage `json:"objects"`
 }
 
+// ConversionReviewResponse is the converted objects, in the order received.
 type ConversionReviewResponse struct {
 	UID              string            `json:"uid"`
 	ConvertedObjects []json.RawMessage `json:"convertedObjects"`
 	Result           *Status           `json:"result"`
 }
 
+// Status is Success, or Failure with a message.
 type Status struct {
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`
 }
 
-func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Request) {
+// Handler serves /convert and counts conversions per CRD.
+type Handler struct {
+	registry blueprint.ConversionRegistry
+	// gvrKeys maps an object's kube.GVKKey to its CRD's kube.GVRKey, for its
+	// stats; each version of a multi-version CRD has its own entry.
+	gvrKeys map[string]string
+	stats   *health.StatsMap[health.ConversionStats]
+}
+
+// New builds the Handler for the Blueprint's conversion rules. window is how
+// many recent conversions the latency stats cover.
+func New(bp *blueprint.Blueprint, window int) *Handler {
+	h := &Handler{
+		registry: bp.ConversionRegistry(),
+		gvrKeys:  map[string]string{},
+		stats: health.NewStatsMap(func() *health.ConversionStats {
+			return health.NewConversionStats(window)
+		}),
+	}
+	for _, crd := range bp.Enabled() {
+		gvr := crd.GVR()
+		key := kube.GVRKey(gvr.Group, gvr.Version, gvr.Resource)
+		h.stats.For(key)
+		h.gvrKeys[kube.GVKKey(crd.APITypes.Group, crd.APITypes.Version, crd.APITypes.Kind)] = key
+	}
+	return h
+}
+
+// StatsFor returns the conversion stats for gvrKey, or nil.
+func (h *Handler) StatsFor(gvrKey string) *health.ConversionStats {
+	return h.stats.Get(gvrKey)
+}
+
+// Convert serves /convert: the API server POSTs a ConversionReview when it
+// needs a CR at another version, and Convert applies the Blueprint's
+// conversion rules for the object's kind.
+func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -52,13 +87,13 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 
 	var review ConversionReview
 	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-		ws.conversionStatsFor("").RecordFailure() // kind unknown at decode time
+		h.stats.For("").RecordFailure() // kind unknown at decode time
 		metrics.RecordConversionError("unknown", "invalid_request")
 		http.Error(w, "invalid ConversionReview", http.StatusBadRequest)
 		return
 	}
 	if review.Request == nil {
-		ws.conversionStatsFor("").RecordFailure()
+		h.stats.For("").RecordFailure()
 		metrics.RecordConversionError("unknown", "missing_request")
 		http.Error(w, "missing request", http.StatusBadRequest)
 		return
@@ -101,7 +136,7 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			// Object is undecodable — no GVK to derive a stats key from.
 			// Record under "" so failures are visible without fabricating CRD attribution.
-			ws.conversionStatsFor("").RecordFailure()
+			h.stats.For("").RecordFailure()
 			break
 		}
 
@@ -111,7 +146,7 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 			metrics.RecordConversionError(kind, "missing_kind")
 			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			// Object decoded but carries no kind field — same unattributable case.
-			ws.conversionStatsFor("").RecordFailure()
+			h.stats.For("").RecordFailure()
 			break
 		}
 
@@ -125,14 +160,14 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 		} else {
 			objVersion = objAPIVersion // core group: no slash
 		}
-		gvkKey := crdGVKKey(objGroup, objVersion, kind)
+		gvkKey := kube.GVKKey(objGroup, objVersion, kind)
 
-		rules := ws.conversionRegistry.GetConversionRules(kind)
+		rules := h.registry.GetConversionRules(kind)
 		if rules == nil {
 			resp.Result = &Status{Status: "Failure", Message: "no conversion rules for kind"}
 			metrics.RecordConversionError(kind, "no_rules")
 			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
-			ws.conversionStatsFor(ws.gvkToGVRKey[gvkKey]).RecordFailure()
+			h.stats.For(h.gvrKeys[gvkKey]).RecordFailure()
 			break
 		}
 
@@ -141,14 +176,14 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 			resp.Result = &Status{Status: "Failure", Message: err.Error()}
 			metrics.RecordConversionError(kind, "apply_failed")
 			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
-			ws.conversionStatsFor(ws.gvkToGVRKey[gvkKey]).RecordFailure()
+			h.stats.For(h.gvrKeys[gvkKey]).RecordFailure()
 			break
 		}
 
 		objDuration := time.Since(objStart).Seconds()
 		metrics.ObserveConversionDuration(kind, sourceVersion, targetVersion, objDuration)
 		metrics.RecordConversion(kind, sourceVersion, targetVersion, "success")
-		ws.conversionStatsFor(ws.gvkToGVRKey[gvkKey]).RecordSuccess(time.Duration(objDuration * float64(time.Second)))
+		h.stats.For(h.gvrKeys[gvkKey]).RecordSuccess(time.Duration(objDuration * float64(time.Second)))
 
 		out, _ := json.Marshal(converted)
 		resp.ConvertedObjects[i] = out
@@ -162,44 +197,4 @@ func (ws *WebhookServer) conversionHandler(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(response)
-}
-
-// processConversionForTest exposes the conversion logic for unit tests.
-func processConversionForTest(review ConversionReview, rulesRegistry blueprint.ConversionRegistry) ConversionReview {
-	resp := &ConversionReviewResponse{
-		UID:              review.Request.UID,
-		ConvertedObjects: make([]json.RawMessage, len(review.Request.Objects)),
-		Result:           &Status{Status: "Success"},
-	}
-
-	for i, raw := range review.Request.Objects {
-		var obj map[string]interface{}
-		if err := json.Unmarshal(raw, &obj); err != nil {
-			resp.Result = &Status{Status: "Failure", Message: "invalid object payload"}
-			break
-		}
-		kind, _ := obj["kind"].(string)
-		if kind == "" {
-			resp.Result = &Status{Status: "Failure", Message: "object missing kind"}
-			break
-		}
-		rules := rulesRegistry.GetConversionRules(kind)
-		if rules == nil {
-			resp.Result = &Status{Status: "Failure", Message: "no conversion rules for kind"}
-			break
-		}
-		converted, err := applyConversion(obj, rules, review.Request.DesiredAPIVersion)
-		if err != nil {
-			resp.Result = &Status{Status: "Failure", Message: err.Error()}
-			break
-		}
-		out, _ := json.Marshal(converted)
-		resp.ConvertedObjects[i] = out
-	}
-
-	return ConversionReview{
-		APIVersion: "apiextensions.k8s.io/v1",
-		Kind:       "ConversionReview",
-		Response:   resp,
-	}
 }

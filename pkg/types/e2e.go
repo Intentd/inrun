@@ -305,9 +305,9 @@ type E2ESpec struct {
 	// runs automatically during inrun push.
 	ValuesFiles []string `yaml:"valuesFiles,omitempty"`
 
-	// Notes declares user-defined note functions available in when:/or: expressions.
-	// Same syntax as a Blueprint notes block — same FuncMap registration, same functions.
-	Notes KELFunctionRegistry `yaml:"notes,omitempty"`
+	// Functions declares user-defined functions available in when:/or: expressions.
+	// Same syntax as a Blueprint functions block — same FuncMap registration, same functions.
+	Functions KELFunctionRegistry `yaml:"functions,omitempty"`
 
 	// Expect is the list of expectations to check after each lifecycle event.
 	Expect []E2EExpectation `yaml:"expect"`
@@ -417,7 +417,7 @@ type E2EExpectation struct {
 
 	// When / Or gate this expectation using the same []Condition type as
 	// blueprint when:/or:. An expectation whose conditions do not pass is
-	// skipped — not failed. Notes declared in spec.notes are available as
+	// skipped — not failed. Functions declared in spec.functions are available as
 	// template expressions: field: '{{ inBusinessHours }}'.
 	// Empty blocks always pass.
 	When []Condition `yaml:"when,omitempty"`

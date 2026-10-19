@@ -571,10 +571,7 @@ func BuildBlueprintHandler(
 			degradedReason = strings.Join(parts, ", ")
 		}
 
-		deletionProtection := false
-		if bp.IsDeletionProtectionEnabled() && bp.DeletionProtectionGVRs() != nil {
-			deletionProtection = true
-		}
+		deletionProtection := bp.DeletionProtectionActive()
 
 		httpapi.WriteJSON(w, status, BlueprintResponse{
 			CRDs:               crds,

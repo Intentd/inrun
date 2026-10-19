@@ -1,9 +1,11 @@
-// Package handlers serves the gateway's /blueprint and /blueprint/{crd}: the
-// per-CRD admission, conversion and protection stats the gateway owns. The
-// console merges them with the runtime's /blueprint by GVR.
-package handlers
+// Package stats serves the gateway's /blueprint and /blueprint/{crd}: the
+// per-CRD admission, conversion and protection stats the gateway owns, and the
+// housekeeper's sync counts. The console merges them with the runtime's
+// /blueprint by GVR.
+package stats
 
 import (
+	"github.com/intentd/inrun/pkg/util/kube"
 	"net/http"
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
@@ -13,15 +15,19 @@ import (
 	"github.com/intentd/inrun/pkg/version"
 )
 
-// GatewayStatsProvider is the subset of webhook.WebhookServer the handlers
-// need, declared here to avoid importing pkg/gateway/webhook.
-type GatewayStatsProvider interface {
+// WebhookStats is the part of webhook.Server the handlers read,
+// declared here to avoid importing pkg/gateway/webhook.
+type WebhookStats interface {
 	AdmissionStatsFor(gvrKey string) *health.AdmissionStats
 	ConversionStatsFor(gvrKey string) *health.ConversionStats
 	ProtectionStatsFor(gvrKey string) *health.DeletionProtectionStats
 	NamespaceStatsFor(gvrKey string) *health.NamespaceProtectionStats
 	InfraProtectionStats() *health.DeletionProtectionStats
-	HousekeeperStats() *health.WebhookStats
+}
+
+// HousekeeperStats is the part of housekeeper.Housekeeper the handler reads.
+type HousekeeperStats interface {
+	Stats() *health.WebhookStats
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,7 +77,7 @@ type NamespaceProtectionResponse struct {
 	RestrictedNamespaces []string `json:"restrictedNamespaces,omitempty"`
 }
 
-type HousekeeperStats struct {
+type HousekeeperStatsResponse struct {
 	Reconciled int64 `json:"reconciled"`
 	Failed     int64 `json:"failed"`
 }
@@ -101,7 +107,7 @@ type GatewayBlueprintResponse struct {
 	// Process-level stats for events not attributable to a single CRD:
 	// the webhook configuration itself and Inrun infra resources.
 	InfraProtection *DeletionProtectionStatsResponse `json:"infraProtection,omitempty"`
-	Housekeeper     *HousekeeperStats                `json:"housekeeper,omitempty"`
+	Housekeeper     *HousekeeperStatsResponse        `json:"housekeeper,omitempty"`
 	GatewayVersion  string                           `json:"gatewayVersion"`
 }
 
@@ -118,13 +124,13 @@ type GatewayCRDStatsResponse struct {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BuildGatewayBlueprintHandler
+// Handlers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// BuildGatewayBlueprintHandler returns the handler for GET /blueprint on the gateway.
-// It iterates the enabled CRDs from the Blueprint, looks up per-CRD stats from ws,
-// and returns a GatewayBlueprintResponse.
-func BuildGatewayBlueprintHandler(bp *blueprint.Blueprint, ws GatewayStatsProvider) http.HandlerFunc {
+// Handler returns the handler for GET /blueprint on the gateway.
+// It iterates the enabled CRDs from the Blueprint, looks up per-CRD stats from ws
+// and the sync counts from hk, and returns a GatewayBlueprintResponse.
+func Handler(bp *blueprint.Blueprint, ws WebhookStats, hk HousekeeperStats) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		crds := buildGatewayCRDStats(bp, ws)
 
@@ -151,9 +157,9 @@ func BuildGatewayBlueprintHandler(bp *blueprint.Blueprint, ws GatewayStatsProvid
 			}
 		}
 
-		if wcs := ws.HousekeeperStats(); wcs != nil {
+		if wcs := hk.Stats(); wcs != nil {
 			snap := wcs.GetStats()
-			resp.Housekeeper = &HousekeeperStats{
+			resp.Housekeeper = &HousekeeperStatsResponse{
 				Reconciled: snap.Reconciled,
 				Failed:     snap.Failed,
 			}
@@ -163,9 +169,9 @@ func BuildGatewayBlueprintHandler(bp *blueprint.Blueprint, ws GatewayStatsProvid
 	}
 }
 
-// BuildGatewayCRDHandler returns the handler for GET /blueprint/{crd} on the gateway.
+// CRDHandler returns the handler for GET /blueprint/{crd} on the gateway.
 // name, gvk, gvrStr, and gvrKey are derived from the CRDEntry at registration time.
-func BuildGatewayCRDHandler(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, bp *blueprint.Blueprint) http.HandlerFunc {
+func CRDHandler(name, gvk, gvrStr, gvrKey string, ws WebhookStats, bp *blueprint.Blueprint) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey, ws, bp)
 		httpapi.WriteJSON(w, http.StatusOK, resp)
@@ -176,7 +182,7 @@ func BuildGatewayCRDHandler(name, gvk, gvrStr, gvrKey string, ws GatewayStatsPro
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-func buildGatewayCRDStats(bp *blueprint.Blueprint, ws GatewayStatsProvider) []GatewayCRDStatsResponse {
+func buildGatewayCRDStats(bp *blueprint.Blueprint, ws WebhookStats) []GatewayCRDStatsResponse {
 	enabled := bp.Enabled()
 	out := make([]GatewayCRDStatsResponse, 0, len(enabled))
 	for _, crd := range enabled {
@@ -184,7 +190,7 @@ func buildGatewayCRDStats(bp *blueprint.Blueprint, ws GatewayStatsProvider) []Ga
 			continue
 		}
 		gvr := crd.GVR()
-		gvrKey := gvrKey(gvr.Group, gvr.Version, gvr.Resource)
+		gvrKey := kube.GVRKey(gvr.Group, gvr.Version, gvr.Resource)
 		out = append(out, buildSingleGatewayCRDStats(
 			crd.Name,
 			crd.GVKString(),
@@ -197,7 +203,7 @@ func buildGatewayCRDStats(bp *blueprint.Blueprint, ws GatewayStatsProvider) []Ga
 	return out
 }
 
-func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStatsProvider, bp *blueprint.Blueprint) GatewayCRDStatsResponse {
+func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws WebhookStats, bp *blueprint.Blueprint) GatewayCRDStatsResponse {
 	resp := GatewayCRDStatsResponse{
 		Name: name,
 		GVK:  gvk,
@@ -273,13 +279,4 @@ func buildSingleGatewayCRDStats(name, gvk, gvrStr, gvrKey string, ws GatewayStat
 	}
 
 	return resp
-}
-
-// gvrKey formats group/version/resource into the canonical stats key.
-// Matches crdGVRKey in pkg/webhook so both sides produce the same string.
-func gvrKey(group, version, resource string) string {
-	if group == "" {
-		return version + "/" + resource
-	}
-	return group + "/" + version + "/" + resource
 }

@@ -70,6 +70,19 @@ func (c *Blueprint) ConversionRegistry() ConversionRegistry {
 	return c.conversionRegistry
 }
 
+// ManagedConversionCRDs returns the names (plural.group) of the enabled CRDs
+// whose spec.conversion Inrun owns: the gateway points each at /convert with
+// the generated certificate's CA, and the housekeeper keeps it so.
+func (c *Blueprint) ManagedConversionCRDs() []string {
+	var names []string
+	for _, crd := range c.EnabledCRDs() {
+		if crd.ShouldManageCRD() {
+			names = append(names, crd.APITypes.Plural+"."+crd.APITypes.Group)
+		}
+	}
+	return names
+}
+
 // Test exports
 func NewInMemoryRegistryForTest() *InMemoryConversionRegistry {
 	return &InMemoryConversionRegistry{

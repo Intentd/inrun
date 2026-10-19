@@ -1,4 +1,4 @@
-package webhook
+package registration
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func TestCleanupValidatingWebhook_RemovesExisting(t *testing.T) {
+func TestRemoveValidatingWebhook_RemovesExisting(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset(
 		&admissionv1.ValidatingWebhookConfiguration{
@@ -19,7 +19,7 @@ func TestCleanupValidatingWebhook_RemovesExisting(t *testing.T) {
 		},
 	)
 
-	err := cleanupValidatingWebhook(ctx, client, "inrun-admission-validation")
+	err := RemoveValidatingWebhook(ctx, client, "inrun-admission-validation")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -33,17 +33,17 @@ func TestCleanupValidatingWebhook_RemovesExisting(t *testing.T) {
 	}
 }
 
-func TestCleanupValidatingWebhook_NoErrorWhenNotFound(t *testing.T) {
+func TestRemoveValidatingWebhook_NoErrorWhenNotFound(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset()
 
-	err := cleanupValidatingWebhook(ctx, client, "inrun-admission-validation")
+	err := RemoveValidatingWebhook(ctx, client, "inrun-admission-validation")
 	if err != nil {
 		t.Fatalf("expected no error when webhook does not exist, got: %v", err)
 	}
 }
 
-func TestCleanupMutatingWebhook_RemovesExisting(t *testing.T) {
+func TestRemoveMutatingWebhook_RemovesExisting(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset(
 		&admissionv1.MutatingWebhookConfiguration{
@@ -53,7 +53,7 @@ func TestCleanupMutatingWebhook_RemovesExisting(t *testing.T) {
 		},
 	)
 
-	err := cleanupMutatingWebhook(ctx, client, "inrun-admission-mutation")
+	err := removeMutatingWebhook(ctx, client, "inrun-admission-mutation")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -67,11 +67,11 @@ func TestCleanupMutatingWebhook_RemovesExisting(t *testing.T) {
 	}
 }
 
-func TestCleanupMutatingWebhook_NoErrorWhenNotFound(t *testing.T) {
+func TestRemoveMutatingWebhook_NoErrorWhenNotFound(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset()
 
-	err := cleanupMutatingWebhook(ctx, client, "inrun-admission-mutation")
+	err := removeMutatingWebhook(ctx, client, "inrun-admission-mutation")
 	if err != nil {
 		t.Fatalf("expected no error when webhook does not exist, got: %v", err)
 	}

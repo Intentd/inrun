@@ -2,7 +2,7 @@
 package blueprint
 
 import (
-	"fmt"
+	"github.com/intentd/inrun/pkg/util/kube"
 	"sync"
 
 	"github.com/intentd/inrun/pkg/types"
@@ -170,7 +170,7 @@ func (reg *InMemoryAdmissionRegistry) registerAdmissionRulesFromEntry(entry type
 		return
 	}
 
-	gvrKey := buildGVRKey(entry.APITypes.Group, entry.APITypes.Version, entry.APITypes.Plural)
+	gvrKey := kube.GVRKey(entry.APITypes.Group, entry.APITypes.Version, entry.APITypes.Plural)
 	webhooks := entry.EffectiveWebhooks()
 	ops := webhooks.EffectiveOperations()
 
@@ -199,12 +199,4 @@ func (reg *InMemoryAdmissionRegistry) registerAdmissionRulesFromEntry(entry type
 			Operations: ops,
 		})
 	}
-}
-
-// buildGVRKey constructs the registry key from group, version, and resource.
-func buildGVRKey(group, version, resource string) string {
-	if group == "" {
-		return fmt.Sprintf("%s/%s", version, resource)
-	}
-	return fmt.Sprintf("%s/%s/%s", group, version, resource)
 }

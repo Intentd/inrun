@@ -9,6 +9,7 @@ import (
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"github.com/intentd/inrun/cmd/internal"
+	"github.com/intentd/inrun/pkg/gateway/app"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/spf13/cobra"
@@ -41,7 +42,7 @@ func runGateway(cmd *cobra.Command, args []string) error {
 		Int("enabled", m.EnabledCount()).
 		Msg("blueprints merged")
 
-	internal.RunGateway(cmdutil.Cfg, m, cmdutil.Ctx, doMigrate)
+	internal.RunGateway(cmdutil.Ctx, cmdutil.Cfg, m, app.GatewayOptions{Migrate: doMigrate})
 	return nil
 }
 

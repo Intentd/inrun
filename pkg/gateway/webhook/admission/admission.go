@@ -1,12 +1,4 @@
-// webhook/admission.go — /validate and /mutate HTTP handlers.
-//
-// The Kubernetes API server POSTs an AdmissionReview to /validate for every
-// CREATE and UPDATE on a resource covered by the ValidatingWebhookConfiguration,
-// and to /mutate for every CREATE and UPDATE covered by the MutatingWebhookConfiguration.
-//
-// Mutation fires before validation in the Kubernetes admission chain, so defaults
-// are applied before validation sees the object.
-package webhook
+package admission
 
 import (
 	"context"
@@ -17,34 +9,26 @@ import (
 	"time"
 
 	"gomodules.xyz/jsonpatch/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/metrics"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/intentd/inrun/pkg/util/kube"
 )
 
-func (ws *WebhookServer) validationHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+// Validate serves /validate: it checks a CREATE or UPDATE against the CRD's
+// validation rules and denies it with every failed rule.
+func (h *Handler) Validate(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
-	var review AdmissionReview
-	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-		logger.Error().Err(err).Msg("admission/validate: failed to decode AdmissionReview")
-		http.Error(w, "invalid AdmissionReview", http.StatusBadRequest)
+	rv := Decode(w, r, "admission/validate")
+	if rv == nil {
 		return
 	}
 
-	if review.Request == nil {
-		http.Error(w, "missing request in AdmissionReview", http.StatusBadRequest)
-		return
-	}
-
-	req := review.Request
+	req := rv.Request
 
 	logger.Debug().
 		Str("uid", req.UID).
@@ -54,13 +38,13 @@ func (ws *WebhookServer) validationHandler(w http.ResponseWriter, r *http.Reques
 		Str("operation", req.Operation).
 		Msg("admission/validate: received request")
 
-	resp := &AdmissionResponse{UID: req.UID, Allowed: true}
+	resp := &Response{UID: req.UID, Allowed: true}
 
-	gvrKey := gvrToKey(req.Resource)
-	rules := ws.admissionRegistry.GetValidationRules(gvrKey)
+	gvrKey := kube.GVRKey(req.Resource.Group, req.Resource.Version, req.Resource.Resource)
+	rules := h.registry.GetValidationRules(gvrKey)
 
 	if rules == nil || len(rules.Rules) == 0 {
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
@@ -71,15 +55,15 @@ func (ws *WebhookServer) validationHandler(w http.ResponseWriter, r *http.Reques
 			Str("kind", req.Kind.Kind).
 			Msg("admission/validate: failed to unmarshal object")
 		resp.Allowed = false
-		resp.Status = &AdmissionStatus{
+		resp.Status = &Status{
 			Message: fmt.Sprintf("internal error: could not parse object: %v", err),
 			Code:    500,
 		}
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
-	denials, warnings := ws.evaluateValidationRules(r.Context(), obj, rules, req.Kind.Kind)
+	denials, warnings := h.evaluateValidationRules(r.Context(), obj, rules, req.Kind.Kind)
 
 	for _, w := range warnings {
 		resp.Warnings = append(resp.Warnings,
@@ -89,7 +73,7 @@ func (ws *WebhookServer) validationHandler(w http.ResponseWriter, r *http.Reques
 	duration := time.Since(start)
 	crdName := req.Kind.Kind
 
-	admStats := ws.admissionStatsFor(gvrKey)
+	admStats := h.stats.For(gvrKey)
 	if len(denials) > 0 {
 		admStats.RecordValidationDenied(duration)
 		metrics.RecordValidationOutcome(crdName, "denied", metrics.MetricSourceAdmission)
@@ -123,7 +107,7 @@ func (ws *WebhookServer) validationHandler(w http.ResponseWriter, r *http.Reques
 				Message: d.Message,
 			})
 		}
-		resp.Status = &AdmissionStatus{
+		resp.Status = &Status{
 			Message: fmt.Sprintf(
 				"\n\n[Inrun Validation] validation failed\n\n"+
 					"%s/%s/%s was blocked due to the following policies:\n"+
@@ -151,30 +135,21 @@ func (ws *WebhookServer) validationHandler(w http.ResponseWriter, r *http.Reques
 			Msg("admission/validate: allowed")
 	}
 
-	ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+	Write(w, rv, resp)
 }
 
-func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+// Mutate serves /mutate: it applies the CRD's mutation rules and returns the
+// changes as a JSON Patch. Mutation runs before validation, so validation sees
+// the defaults.
+func (h *Handler) Mutate(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
-	var review AdmissionReview
-	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-		logger.Error().Err(err).Msg("admission/mutate: failed to decode AdmissionReview")
-		http.Error(w, "invalid AdmissionReview", http.StatusBadRequest)
+	rv := Decode(w, r, "admission/mutate")
+	if rv == nil {
 		return
 	}
 
-	if review.Request == nil {
-		http.Error(w, "missing request in AdmissionReview", http.StatusBadRequest)
-		return
-	}
-
-	req := review.Request
+	req := rv.Request
 
 	logger.Debug().
 		Str("uid", req.UID).
@@ -184,13 +159,13 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 		Str("operation", req.Operation).
 		Msg("admission/mutate: received request")
 
-	resp := &AdmissionResponse{UID: req.UID, Allowed: true}
+	resp := &Response{UID: req.UID, Allowed: true}
 
-	gvrKey := gvrToKey(req.Resource)
-	rules := ws.admissionRegistry.GetMutationRules(gvrKey)
+	gvrKey := kube.GVRKey(req.Resource.Group, req.Resource.Version, req.Resource.Resource)
+	rules := h.registry.GetMutationRules(gvrKey)
 
 	if rules == nil || len(rules.Rules) == 0 {
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
@@ -200,24 +175,24 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 			Str("uid", req.UID).
 			Str("kind", req.Kind.Kind).
 			Msg("admission/mutate: failed to unmarshal object")
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
-	mutated := deepCopyMap(original)
-	changes, err := ws.applyMutationRules(context.Background(), mutated, rules, req.Kind.Kind)
+	mutated := runtime.DeepCopyJSON(original)
+	changes, err := h.applyMutationRules(context.Background(), mutated, rules, req.Kind.Kind)
 	if err != nil {
 		logger.Error().Err(err).
 			Str("kind", req.Kind.Kind).
 			Str("name", req.Name).
 			Msg("admission/mutate: error applying rules — allowing without mutation")
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
 	crdName := req.Kind.Kind
 
-	mutStats := ws.admissionStatsFor(gvrKey)
+	mutStats := h.stats.For(gvrKey)
 	if len(changes) == 0 {
 		duration := time.Since(start)
 		mutStats.RecordMutationSkipped(duration)
@@ -227,7 +202,7 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 			Str("kind", crdName).
 			Str("name", req.Name).
 			Msg("admission/mutate: no changes — allowed without patch")
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
@@ -237,12 +212,12 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 			Str("kind", crdName).
 			Str("name", req.Name).
 			Msg("admission/mutate: failed to build patch — allowing without mutation")
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
+		Write(w, rv, resp)
 		return
 	}
 
 	resp.Patch = patch
-	resp.PatchType = ptr.To(jsonPatchType)
+	resp.PatchType = ptr.To("JSONPatch")
 
 	duration := time.Since(start)
 	mutStats.RecordMutationApplied(duration)
@@ -258,42 +233,7 @@ func (ws *WebhookServer) mutationHandler(w http.ResponseWriter, r *http.Request)
 		Int("changes", len(changes)).
 		Msg("admission/mutate: defaults applied")
 
-	ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, resp)
-}
-
-// ── Shared helpers ─────────────────────────────────────────────────────────────
-
-func (ws *WebhookServer) writeAdmissionResponse(
-	w http.ResponseWriter,
-	apiVersion, kind string,
-	resp *AdmissionResponse,
-) {
-	review := AdmissionReview{
-		APIVersion: apiVersion,
-		Kind:       kind,
-		Response:   resp,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(review); err != nil {
-		logger.Error().Err(err).Str("uid", resp.UID).Msg("admission: failed to encode response")
-	}
-}
-
-func gvrToKey(gvr metav1.GroupVersionResource) string {
-	if gvr.Group == "" {
-		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
-	}
-	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
-}
-
-func deepCopyMap(src map[string]interface{}) map[string]interface{} {
-	if src == nil {
-		return nil
-	}
-	b, _ := json.Marshal(src)
-	var dst map[string]interface{}
-	_ = json.Unmarshal(b, &dst)
-	return dst
+	Write(w, rv, resp)
 }
 
 // buildJSONPatch returns the JSON Patch (RFC 6902) that turns original into

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/gateway/webhook"
+	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
 	"github.com/intentd/inrun/pkg/types"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +52,7 @@ func TestWebhookLifecycle_Integration(t *testing.T) {
 	reg.AddValidationGVR(gvr, &types.ValidationConfig{})
 	reg.AddMutationGVR(gvr, &types.MutationConfig{})
 
-	opts := webhook.WebhookRegistrationOptions{
+	opts := registration.Options{
 		ServiceName:      "inrun",
 		ServiceNamespace: "default",
 		Port:             8443,
@@ -60,7 +60,7 @@ func TestWebhookLifecycle_Integration(t *testing.T) {
 		TLSCertFile:      certFile.Name(),
 	}
 
-	if err := webhook.RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {
+	if err := registration.RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {
 		t.Fatalf("register failed: %v", err)
 	}
 
@@ -76,7 +76,7 @@ func TestWebhookLifecycle_Integration(t *testing.T) {
 		t.Fatalf("mutating webhook missing: %v", err)
 	}
 
-	if err := webhook.UnregisterAdmissionWebhooks(ctx, client, webhook.CleanupAllWebhooks()); err != nil {
+	if err := registration.UnregisterAdmissionWebhooks(ctx, client, registration.CleanupAll()); err != nil {
 		t.Fatalf("cleanup failed: %v", err)
 	}
 

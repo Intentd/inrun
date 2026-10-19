@@ -1,17 +1,22 @@
-// webhook/strict_mode_protection.go — /strict-mode-protection webhook handler.
-//
-// Registered only when security.deletionProtection.strictMode: true in the Blueprint.
-// Intercepts UPDATE operations on resources that carry the deletion-protection label
-// and denies any request that removes that label — treating label removal as a
-// deletion attempt.
-//
-// # Design
+package protection
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/intentd/inrun/pkg/gateway/webhook/admission"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/metrics"
+)
+
+// StrictMode serves /strict-mode-protection: it denies an UPDATE that removes
+// the deletion-protection label, treating the removal as a deletion attempt.
 //
 // This handler is intentionally separate from /deletion-protection. Deletion
 // protection guards DELETE operations. Strict mode guards label removal on UPDATE.
 // Keeping them separate keeps each handler focused and independently controllable.
-//
-// # Enforcement
 //
 // The webhook ObjectSelector is set to the deletion-protection label selector, so
 // the API server only calls this handler when either the old or new object carries
@@ -23,51 +28,21 @@
 // Enforcement is stateless: every decision is made by comparing old and new labels
 // in the admission request. No in-process register is required.
 //
-// # Unlock
-//
 // To remove the label from a protected resource, set strictMode: false in the
 // Blueprint, edit the Inrun ConfigMap, and restart Inrun. The new pods will
 // not register the strict-mode webhook, so label removal becomes possible again.
 // This mirrors how deletion protection itself is disabled — the trust boundary is
 // the Blueprint, not a separate escape hatch.
-package webhook
-
-import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
-)
-
-// strictModeProtectionHandler handles /strict-mode-protection admission reviews.
-// Denies UPDATE requests that remove the deletion-protection label.
-func (ws *WebhookServer) strictModeProtectionHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+func (h *Handler) StrictMode(w http.ResponseWriter, r *http.Request) {
+	rv := admission.Decode(w, r, strictModeProtection)
+	if rv == nil {
 		return
 	}
 
-	var review AdmissionReview
-	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-		logger.Error().Err(err).Msgf("%s: failed to decode AdmissionReview", strictModeProtection)
-		http.Error(w, "invalid AdmissionReview", http.StatusBadRequest)
-		return
-	}
-
-	if review.Request == nil {
-		http.Error(w, "missing request", http.StatusBadRequest)
-		return
-	}
-
-	req := review.Request
+	req := rv.Request
 
 	if req.Operation != "UPDATE" {
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, &AdmissionResponse{
-			UID: req.UID, Allowed: true,
-		})
+		admission.Allow(w, rv)
 		return
 	}
 
@@ -80,9 +55,7 @@ func (ws *WebhookServer) strictModeProtectionHandler(w http.ResponseWriter, r *h
 	// --- EXEMPTION CHECK ---
 	if newLabels[labels.StrictModeExemptKey] == "true" {
 		// Exempt from strict mode – allow label removal
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, &AdmissionResponse{
-			UID: req.UID, Allowed: true,
-		})
+		admission.Allow(w, rv)
 		return
 	}
 
@@ -99,7 +72,7 @@ func (ws *WebhookServer) strictModeProtectionHandler(w http.ResponseWriter, r *h
 			Msgf("%s: blocking deletion-protection label removal", strictModeProtection)
 
 		metrics.RecordDeletionProtectionBlocked("strict-mode:" + kind)
-		ws.strictModeStats.RecordBlocked()
+		h.strictModeStats.RecordBlocked()
 
 		var header string
 		if ns == "" {
@@ -108,31 +81,22 @@ func (ws *WebhookServer) strictModeProtectionHandler(w http.ResponseWriter, r *h
 			header = fmt.Sprintf("The %s %q in namespace %q carries the deletion-protection label.", kind, name, ns)
 		}
 
-		ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, &AdmissionResponse{
-			UID:     req.UID,
-			Allowed: false,
-			Status: &AdmissionStatus{
-				Message: fmt.Sprintf(
-					"\n\n[Inrun Security] %s\n\n"+
-						"Removing this label is blocked because strictMode is enabled.\n\n"+
-						"To unprotect this resource:\n"+
-						"- Opt out in the blueprint using: '<crd>.deletionProtection.strictMode: false'\n\n"+
+		admission.Deny(w, rv, fmt.Sprintf(
+			"\n\n[Inrun Security] %s\n\n"+
+				"Removing this label is blocked because strictMode is enabled.\n\n"+
+				"To unprotect this resource:\n"+
+				"- Opt out in the blueprint using: '<crd>.deletionProtection.strictMode: false'\n\n"+
 
-						"To disable strict mode globally:\n"+
-						"- Set security.deletionProtection.strictMode: false in the Blueprint\n"+
-						"- Regenerate and apply the bundle, and restart the Gateway\n\n",
-					header,
-				),
-				Code: 403,
-			},
-		})
+				"To disable strict mode globally:\n"+
+				"- Set security.deletionProtection.strictMode: false in the Blueprint\n"+
+				"- Regenerate and apply the bundle, and restart the Gateway\n\n",
+			header,
+		))
 		return
 	}
 
-	ws.strictModeStats.RecordAllowed()
-	ws.writeAdmissionResponse(w, review.APIVersion, review.Kind, &AdmissionResponse{
-		UID: req.UID, Allowed: true,
-	})
+	h.strictModeStats.RecordAllowed()
+	admission.Allow(w, rv)
 }
 
 // extractLabels reads the labels map from a raw JSON object.

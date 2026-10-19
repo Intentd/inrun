@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/gateway/webhook"
+	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
 	"github.com/intentd/inrun/pkg/types"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +52,7 @@ func TestWebhookRegistration_Integration(t *testing.T) {
 	reg.AddValidationGVR(gvr, &types.ValidationConfig{})
 	reg.AddMutationGVR(gvr, &types.MutationConfig{})
 
-	opts := webhook.WebhookRegistrationOptions{
+	opts := registration.Options{
 		ServiceName:      "inrun",
 		ServiceNamespace: "default",
 		Port:             8443,
@@ -60,7 +60,7 @@ func TestWebhookRegistration_Integration(t *testing.T) {
 		TLSCertFile:      certFile.Name(),
 	}
 
-	if err := webhook.RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {
+	if err := registration.RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {
 		t.Fatalf("registration failed: %v", err)
 	}
 
@@ -85,7 +85,7 @@ func TestWebhookRegistration_Integration(t *testing.T) {
 	}
 
 	// Idempotent: calling again must not error
-	if err := webhook.RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {
+	if err := registration.RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {
 		t.Fatalf("idempotent registration failed: %v", err)
 	}
 }

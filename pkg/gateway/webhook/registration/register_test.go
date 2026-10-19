@@ -1,8 +1,9 @@
-package webhook
+package registration
 
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/blueprint"
@@ -16,14 +17,10 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 	ctx := context.Background()
 
 	// Fake CA bundle
-	if err := os.MkdirAll("testdata", 0755); err != nil {
-		t.Fatalf("failed to create testdata dir: %v", err)
-	}
-	tmpCert := "testdata/tls.crt"
+	tmpCert := filepath.Join(t.TempDir(), "tls.crt")
 	if err := os.WriteFile(tmpCert, []byte("FAKECERT"), 0600); err != nil {
 		t.Fatalf("failed to write cert: %v", err)
 	}
-	defer os.Remove(tmpCert)
 
 	// Fake admission registry
 	gvr := blueprint.GVREntry{
@@ -38,7 +35,7 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 	reg.AddValidationGVR(gvr, &types.ValidationConfig{})
 	reg.AddMutationGVR(gvr, &types.MutationConfig{})
 
-	opts := WebhookRegistrationOptions{
+	opts := Options{
 		ServiceName:      "inrun",
 		ServiceNamespace: "default",
 		Port:             8443,
@@ -56,7 +53,7 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 	// Validate: ValidatingWebhookConfiguration exists
 	vwc, err := client.AdmissionregistrationV1().
 		ValidatingWebhookConfigurations().
-		Get(ctx, validatingWebhookConfigName, metav1.GetOptions{})
+		Get(ctx, ValidatingConfigName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("validating webhook missing: %v", err)
 	}
@@ -68,7 +65,7 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 	// Validate: MutatingWebhookConfiguration exists
 	mwc, err := client.AdmissionregistrationV1().
 		MutatingWebhookConfigurations().
-		Get(ctx, mutatingWebhookConfigName, metav1.GetOptions{})
+		Get(ctx, MutatingConfigName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("mutating webhook missing: %v", err)
 	}

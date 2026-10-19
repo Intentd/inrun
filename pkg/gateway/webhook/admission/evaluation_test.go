@@ -1,10 +1,11 @@
 // Tests for the pure evaluation logic in admission_evaluation.go and
 // the shared helper functions in admission.go.
-package webhook
+package admission
 
 import (
 	"context"
 	"encoding/json"
+	"github.com/intentd/inrun/pkg/util/kube"
 	"testing"
 
 	"k8s.io/utils/ptr"
@@ -67,7 +68,7 @@ func specObj(fields map[string]interface{}) map[string]interface{} {
 // ── evaluateValidationRules: multi-rule ───────────────────────────────────────
 
 func TestEvaluateValidationRules_MixedDenyAndWarn(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 
 	obj := map[string]interface{}{
 		"spec": map[string]interface{}{
@@ -94,7 +95,7 @@ func TestEvaluateValidationRules_MixedDenyAndWarn(t *testing.T) {
 }
 
 func TestEvaluateValidationRules_AllPass(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 
 	obj := map[string]interface{}{
 		"spec": map[string]interface{}{
@@ -120,7 +121,7 @@ func TestEvaluateValidationRules_AllPass(t *testing.T) {
 }
 
 func TestEvaluateValidationRules_EmptyActionDefaultsToDeny(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 
 	obj := specObj(map[string]interface{}{"image": "bad-registry/nginx"})
 	cfg := &types.ValidationConfig{
@@ -139,7 +140,7 @@ func TestEvaluateValidationRules_EmptyActionDefaultsToDeny(t *testing.T) {
 // ── applyMutationRules ────────────────────────────────────────────────────────
 
 func TestApplyMutationRules_NilConfig(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := specObj(map[string]interface{}{})
 
 	changes, err := h.applyMutationRules(context.Background(), obj, nil, "Website")
@@ -149,7 +150,7 @@ func TestApplyMutationRules_NilConfig(t *testing.T) {
 }
 
 func TestApplyMutationRules_EmptyRules(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := specObj(map[string]interface{}{})
 	cfg := &types.MutationConfig{Rules: []types.MutationRule{}}
 
@@ -160,7 +161,7 @@ func TestApplyMutationRules_EmptyRules(t *testing.T) {
 }
 
 func TestApplyMutationRules_DefaultAppliedWhenAbsent(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "my-site"},
 		"spec":     map[string]interface{}{},
@@ -186,7 +187,7 @@ func TestApplyMutationRules_DefaultAppliedWhenAbsent(t *testing.T) {
 }
 
 func TestApplyMutationRules_DefaultSkippedWhenPresent(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "my-site"},
 		"spec":     map[string]interface{}{"replicas": "5"},
@@ -207,7 +208,7 @@ func TestApplyMutationRules_DefaultSkippedWhenPresent(t *testing.T) {
 }
 
 func TestApplyMutationRules_DefaultSkippedWhenValueAlreadyMatches(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "my-site"},
 		"spec":     map[string]interface{}{"logLevel": "info"},
@@ -225,7 +226,7 @@ func TestApplyMutationRules_DefaultSkippedWhenValueAlreadyMatches(t *testing.T) 
 }
 
 func TestApplyMutationRules_OverrideAlwaysApplies(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "my-site"},
 		"spec":     map[string]interface{}{},
@@ -246,7 +247,7 @@ func TestApplyMutationRules_OverrideAlwaysApplies(t *testing.T) {
 }
 
 func TestApplyMutationRules_OverrideReplacesExistingValue(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name": "my-site",
@@ -272,7 +273,7 @@ func TestApplyMutationRules_OverrideReplacesExistingValue(t *testing.T) {
 }
 
 func TestApplyMutationRules_MultipleRules(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "my-site"},
 		"spec":     map[string]interface{}{},
@@ -296,7 +297,7 @@ func TestApplyMutationRules_MultipleRules(t *testing.T) {
 }
 
 func TestApplyMutationRules_NestedFieldCreated(t *testing.T) {
-	h := &WebhookServer{}
+	h := &Handler{}
 	obj := map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "my-site"},
 		"spec":     map[string]interface{}{},
@@ -316,45 +317,6 @@ func TestApplyMutationRules_NestedFieldCreated(t *testing.T) {
 	db, ok := spec["db"].(map[string]interface{})
 	require.True(t, ok, "intermediate map should have been created")
 	assert.Equal(t, "postgres", db["engine"])
-}
-
-// ── deepCopyMap ───────────────────────────────────────────────────────────────
-
-func TestDeepCopyMap_IndependentFromOriginal(t *testing.T) {
-	original := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"image": "myorg/nginx:1.25",
-		},
-	}
-
-	cp := deepCopyMap(original)
-
-	// Mutate the copy — original must not change
-	cp["spec"].(map[string]interface{})["image"] = "mutated"
-
-	assert.Equal(t, "myorg/nginx:1.25",
-		original["spec"].(map[string]interface{})["image"],
-		"original must not be affected by copy mutation")
-}
-
-func TestDeepCopyMap_NilReturnsNil(t *testing.T) {
-	assert.Nil(t, deepCopyMap(nil))
-}
-
-func TestDeepCopyMap_PreservesAllFields(t *testing.T) {
-	original := map[string]interface{}{
-		"a": "string",
-		"b": float64(42),
-		"c": true,
-		"d": map[string]interface{}{"nested": "value"},
-	}
-
-	cp := deepCopyMap(original)
-
-	assert.Equal(t, "string", cp["a"])
-	assert.Equal(t, float64(42), cp["b"])
-	assert.Equal(t, true, cp["c"])
-	assert.Equal(t, "value", cp["d"].(map[string]interface{})["nested"])
 }
 
 // ── buildJSONPatch ────────────────────────────────────────────────────────────
@@ -410,7 +372,7 @@ func TestBuildJSONPatch_NoChanges(t *testing.T) {
 	assert.Empty(t, patchOps(t, obj, obj))
 }
 
-// ── gvrToKey ──────────────────────────────────────────────────────────────────
+// ── kube.GVRKey ───────────────────────────────────────────────────────────────
 
 func TestGVRToKey(t *testing.T) {
 	tests := []struct {
@@ -436,7 +398,7 @@ func TestGVRToKey(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, gvrToKey(tc.gvr))
+			assert.Equal(t, tc.want, kube.GVRKey(tc.gvr.Group, tc.gvr.Version, tc.gvr.Resource))
 		})
 	}
 }

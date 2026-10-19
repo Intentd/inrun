@@ -1,5 +1,4 @@
-// webhook/conversion_logic.go — CRD version conversion logic.
-package webhook
+package conversion
 
 import (
 	"fmt"

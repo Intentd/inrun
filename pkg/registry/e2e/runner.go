@@ -417,10 +417,10 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 			return nil, err
 		}
 
-		// Build a template evaluator from spec.notes so when:/or: expressions
-		// on expect blocks can reference user-defined note functions.
-		noteEval := template.NewResolverFromMap(nil).
-			WithUserFunctions(r.e2e.Spec.Notes).
+		// Build a template evaluator from spec.functions so when:/or: expressions
+		// on expect blocks can reference user-defined functions.
+		funcEval := template.NewResolverFromMap(nil).
+			WithUserFunctions(r.e2e.Spec.Functions).
 			TemplateEvaluator()
 
 		crApplied := false
@@ -486,7 +486,7 @@ func (r *Runner) Run(ctx context.Context) (*Result, error) {
 			if exp.WorkDir != "" {
 				workDir = exp.WorkDir
 			}
-			verifyErr := verifyExpectation(ctx, exp, workDir, r.cs, r.cfg, noteEval)
+			verifyErr := verifyExpectation(ctx, exp, workDir, r.cs, r.cfg, funcEval)
 			close(waitDone)
 			caseElapsed := time.Since(caseStart)
 

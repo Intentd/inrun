@@ -1,11 +1,15 @@
 // pkg/webhook/conversion_test.go
-package webhook
+package conversion
 
 import (
+	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -270,7 +274,17 @@ func TestConversionReview_RoundTrip(t *testing.T) {
 	registry := blueprint.NewInMemoryRegistryForTest()
 	registry.RegisterConversionRules(rules)
 
-	response := processConversionForTest(review, registry)
+	h := &Handler{registry: registry, stats: health.NewStatsMap(func() *health.ConversionStats {
+		return health.NewConversionStats(10)
+	})}
+	body, _ := json.Marshal(review)
+	rec := httptest.NewRecorder()
+	h.Convert(rec, httptest.NewRequest(http.MethodPost, "/convert", bytes.NewReader(body)))
+
+	var response ConversionReview
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
 
 	if response.Response.Result.Status != "Success" {
 		t.Errorf("expected Success, got %q: %s",

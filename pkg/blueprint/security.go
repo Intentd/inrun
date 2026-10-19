@@ -219,6 +219,27 @@ func (c *Blueprint) IsStrictModeEnabled() bool {
 	return c.Security.DeletionProtection.StrictMode
 }
 
+// DeletionProtectionActive reports whether deletion protection is enabled and
+// has something to protect. Outside a pod it has nothing, since the webhook
+// cannot be reached.
+func (c *Blueprint) DeletionProtectionActive() bool {
+	return c.IsDeletionProtectionEnabled() && c.DeletionProtectionGVRs() != nil
+}
+
+// NamespaceProtectionActive reports whether namespace protection is enabled
+// and some CRD restricts its namespaces.
+func (c *Blueprint) NamespaceProtectionActive() bool {
+	return c.IsNamespaceProtectionEnabled() && len(c.NamespaceProtectionGVRs()) > 0
+}
+
+// UsesValidatingWebhooks reports whether the gateway registers any
+// ValidatingWebhookConfiguration: validation rules, or deletion, namespace or
+// strict-mode protection.
+func (c *Blueprint) UsesValidatingWebhooks() bool {
+	return c.HasValidationRules() || c.DeletionProtectionActive() ||
+		c.NamespaceProtectionActive() || c.IsStrictModeEnabled()
+}
+
 // ── Namespace protection ───────────────────────────────────────────────────────
 
 // IsNamespaceProtectionEnabled reports whether namespace protection is active.

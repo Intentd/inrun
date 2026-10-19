@@ -1,4 +1,4 @@
-package webhook
+package admission
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // At admission, the rules generated for serve labels set the labels, and the
@@ -17,9 +18,9 @@ func TestServeLabelRules_Admission(t *testing.T) {
 		"app.kubernetes.io/name": {Default: "web"},
 	}}}
 	original := map[string]interface{}{"metadata": map[string]interface{}{"name": "site"}, "spec": map[string]interface{}{}}
-	mutated := deepCopyMap(original)
+	mutated := runtime.DeepCopyJSON(original)
 
-	changes, err := (&WebhookServer{}).applyMutationRules(context.Background(), mutated,
+	changes, err := (&Handler{}).applyMutationRules(context.Background(), mutated,
 		&types.MutationConfig{Rules: crd.ServeFieldMutationRules()}, "Website")
 	require.NoError(t, err)
 	require.Len(t, changes, 1)

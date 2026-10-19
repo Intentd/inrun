@@ -1,5 +1,4 @@
-// webhook/admission_evaluation.go — validation and mutation rule evaluation.
-package webhook
+package admission
 
 import (
 	"context"
@@ -24,7 +23,7 @@ type validationViolation struct {
 	Action   types.ValidationAction
 }
 
-func (ws *WebhookServer) evaluateValidationRules(
+func (h *Handler) evaluateValidationRules(
 	ctx context.Context,
 	obj map[string]interface{},
 	cfg *types.ValidationConfig,
@@ -35,7 +34,7 @@ func (ws *WebhookServer) evaluateValidationRules(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	bp := ws.blueprint
+	bp := h.bp
 	var notes types.KELFunctionRegistry
 	if bp != nil {
 		notes = bp.UserFunctions()
@@ -49,7 +48,7 @@ func (ws *WebhookServer) evaluateValidationRules(
 	}
 	if calls := cfg.AdmissionExternal(); len(calls) > 0 {
 		var err error
-		resolver, err = external.Run(ctx, kindName, resolver, calls, ws.kubeClient)
+		resolver, err = external.Run(ctx, kindName, resolver, calls, h.client)
 		if err != nil {
 			logger.FromContext(ctx).Warn().Err(err).Str("kind", kindName).Msg("admission/validate: external call failed")
 		}
@@ -59,11 +58,11 @@ func (ws *WebhookServer) evaluateValidationRules(
 	// so CRDs with no unique/health/metrics rules pay zero HTTP cost.
 	// Note bodies are scanned so a rule like {{ inBusinessHours }} correctly
 	// triggers a fetch when inBusinessHours references .health.* or .metrics.*.
-	if bp != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
-		result := ws.blueprint.LookupByKind(kindName)
+	if bp != nil && h.cfg != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
+		result := h.bp.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
-			q := runtimeapi.NewClient(ctx, ws.runtimeEndpoint(), crdName)
+			q := runtimeapi.NewClient(ctx, h.runtimeEndpoint(), crdName)
 			if cfg.HasUniqueRule() {
 				resolver = resolver.WithUniquenessChecker(q)
 			}
@@ -111,7 +110,7 @@ type fieldChange struct {
 	ChangeType string
 }
 
-func (ws *WebhookServer) applyMutationRules(
+func (h *Handler) applyMutationRules(
 	ctx context.Context,
 	obj map[string]interface{},
 	cfg *types.MutationConfig,
@@ -122,7 +121,7 @@ func (ws *WebhookServer) applyMutationRules(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	bp := ws.blueprint
+	bp := h.bp
 	var notes types.KELFunctionRegistry
 	if bp != nil {
 		notes = bp.UserFunctions()
@@ -137,16 +136,16 @@ func (ws *WebhookServer) applyMutationRules(
 	}
 	if calls := cfg.AdmissionExternal(); len(calls) > 0 {
 		var err error
-		resolver, err = external.Run(ctx, kindName, resolver, calls, ws.kubeClient)
+		resolver, err = external.Run(ctx, kindName, resolver, calls, h.client)
 		if err != nil {
 			logger.FromContext(ctx).Warn().Err(err).Str("kind", kindName).Msg("admission/mutate: external call failed")
 		}
 	}
-	if bp != nil && ws.config != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
+	if bp != nil && h.cfg != nil && (cfg.HasUniqueRule() || cfg.References(notes, "health") || cfg.References(notes, "metrics")) {
 		result := bp.LookupByKind(kindName)
 		if result.Entry() != nil {
 			crdName := result.Entry().Name
-			q := runtimeapi.NewClient(ctx, ws.runtimeEndpoint(), crdName)
+			q := runtimeapi.NewClient(ctx, h.runtimeEndpoint(), crdName)
 			if cfg.HasUniqueRule() {
 				resolver = resolver.WithUniquenessChecker(q)
 			}

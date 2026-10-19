@@ -53,3 +53,23 @@ func GVKFromFields(apiVersion, kind string) (schema.GroupVersionKind, error) {
 	}
 	return gv.WithKind(kind), nil
 }
+
+// GVRKey is the map key for a resource: group/version/resource, or
+// version/resource in the core group. The gateway's webhooks, its Blueprint
+// handler and the Blueprint's admission registry all key by it.
+func GVRKey(group, version, resource string) string {
+	return groupVersionKey(group, version, resource)
+}
+
+// GVKKey is the map key for a kind: group/version/kind, or version/kind in
+// the core group.
+func GVKKey(group, version, kind string) string {
+	return groupVersionKey(group, version, kind)
+}
+
+func groupVersionKey(group, version, name string) string {
+	if group == "" {
+		return version + "/" + name
+	}
+	return group + "/" + version + "/" + name
+}

@@ -1,7 +1,6 @@
 // CRD conversion wiring: each CRD whose conversion.manageCRD is in effect is
 // pointed at the gateway's /convert with the webhook certificate's CA at
-// startup, and patched again by the webhook server's housekeeper whenever it
-// drifts.
+// startup, and patched again by the housekeeper whenever it drifts.
 
 package app
 
@@ -13,7 +12,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/gateway/webhook"
+	"github.com/intentd/inrun/pkg/gateway/housekeeper"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,12 +35,7 @@ func patchConversionCRDs(
 	caBundle64 := base64.StdEncoding.EncodeToString(caCertPEM)
 
 	var errs []error
-	for _, crd := range bp.EnabledCRDs() {
-		if !crd.ShouldManageCRD() {
-			continue
-		}
-
-		crdName := crd.APITypes.Plural + "." + crd.APITypes.Group
+	for _, crdName := range bp.ManagedConversionCRDs() {
 		logger.Info().Str("crd", crdName).Msg("security: patching CRD conversion caBundle")
 
 		if err := applyCRDConversionPatch(ctx, kube, crdName, caBundle64, serviceName, serviceNamespace, port); err != nil {
@@ -107,18 +101,11 @@ func applyCRDConversionPatch(
 	return nil
 }
 
-// wireConversion gives the WebhookServer's housekeeper the callbacks it needs
-// to keep CRD conversion webhooks correct for the life of the deployment.
-// Called after ensureSecurity and before webhook.Start().
-//
-// Two hooks are set:
-//   - ConversionCRDPatcher — re-patches any CRD whose
-//     conversion.manageCRD is in effect when the housekeeper detects drift.
-//   - CRDWatcher — watches each conversion CRD for MODIFIED events so the
-//     housekeeper restores a stripped caBundle within a single API round-trip
-//     rather than waiting for the safety ticker.
+// wireConversion gives the housekeeper what it needs to keep the conversion
+// caBundles in sync: the patch, and a watch on each conversion CRD so a
+// stripped caBundle is restored at once rather than at the next tick.
 func wireConversion(
-	ws *webhook.WebhookServer,
+	hk *housekeeper.Housekeeper,
 	kube *kubeclient.Kubeclient,
 	bp *blueprint.Blueprint,
 	cfg *config.Config,
@@ -127,14 +114,14 @@ func wireConversion(
 	namespace := cfg.Cluster().Namespace()
 	port := cfg.HTTPSPortInt32()
 
-	ws.SetConversionCRDPatcher(func(ctx context.Context, crdName, caBundle64 string) error {
+	hk.SetConversionCRDPatcher(func(ctx context.Context, crdName, caBundle64 string) error {
 		return applyCRDConversionPatch(ctx, kube, crdName, caBundle64, serviceName, namespace, port)
 	})
 
-	ws.SetCRDWatcher(&crdWatcher{kube: kube})
+	hk.SetCRDWatcher(&crdWatcher{kube: kube})
 }
 
-// crdWatcher implements webhook.CRDWatcher using the apiextensions client.
+// crdWatcher implements housekeeper.CRDWatcher using the apiextensions client.
 type crdWatcher struct {
 	kube *kubeclient.Kubeclient
 }

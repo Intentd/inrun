@@ -44,3 +44,15 @@ func TestGroupVersionKind_Roundtrip(t *testing.T) {
 		t.Errorf("roundtrip failed: %q missing group/version/kind", s)
 	}
 }
+
+func TestGVRKeyAndGVKKey(t *testing.T) {
+	if got := GVRKey("apps", "v1", "deployments"); got != "apps/v1/deployments" {
+		t.Errorf("GVRKey = %q", got)
+	}
+	if got := GVRKey("", "v1", "configmaps"); got != "v1/configmaps" {
+		t.Errorf("GVRKey core = %q", got)
+	}
+	if got := GVKKey("example.io", "v1", "App"); got != "example.io/v1/App" {
+		t.Errorf("GVKKey = %q", got)
+	}
+}
