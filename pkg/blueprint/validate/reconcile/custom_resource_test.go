@@ -5,9 +5,10 @@ import (
 
 	"k8s.io/utils/ptr"
 
-	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // ── ValidateCustomResource ────────────────────────────────────────────────────

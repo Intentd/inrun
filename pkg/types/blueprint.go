@@ -429,11 +429,11 @@ type BlueprintFile struct {
 	// syntax. Once declared, a function is callable by name in any template expression.
 	Functions KELFunctionRegistry `yaml:"functions,omitempty"`
 
-	// Profiles declares named profiles available to all CRDs in this Blueprint.
-	// Profiles are resolved before built-in Inrun profiles at both validate
-	// and reconcile time. Template expressions in profile field values are
+	// Presets declares named presets available to all CRDs in this Blueprint.
+	// Presets are resolved before built-in Inrun presets at both validate
+	// and reconcile time. Template expressions in preset field values are
 	// resolved at reconcile time; validation skips fields that contain {{ }}.
-	Profiles ProfileRegistry `yaml:"profiles,omitempty"`
+	Presets PresetRegistry `yaml:"presets,omitempty"`
 }
 
 // LooksLikeStack reports if this document looks like a Stack
@@ -746,8 +746,8 @@ type HelmSource struct {
 // BlueprintSpec holds the actual CRD definitions.
 // This is what the merger produces after resolving all sources.
 type BlueprintSpec struct {
-	// Imports declares Modules whose profiles are merged into the Blueprint-wide
-	// ProfileRegistry. Only profiles: from each Module are consumed here;
+	// Imports declares Modules whose presets are merged into the Blueprint-wide
+	// PresetRegistry. Only presets: from each Module are consumed here;
 	// resources, status, and admission declarations in the Module are ignored
 	// at this level. Use spec.crds[name].imports for those.
 	Imports []ModuleImport `yaml:"imports,omitempty"`

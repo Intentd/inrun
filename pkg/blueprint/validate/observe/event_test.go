@@ -3,10 +3,11 @@ package observe
 import (
 	"testing"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // blueprintWithObserve builds an executor with a single CRD containing the

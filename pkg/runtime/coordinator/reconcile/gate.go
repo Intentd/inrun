@@ -30,7 +30,7 @@ func objectFromCache(entry contract.RegistryEntry, key string) *unstructured.Uns
 // Returns (false, "") when conditions pass.
 //
 // Delegates to Blueprint.EvaluatePreReconcile which holds the full resolver chain
-// (profiles, notes, serve intent) — no duplication of eval logic here.
+// (presets, notes, serve intent) — no duplication of eval logic here.
 func evaluatePreReconcileCheck(
 	ctx context.Context,
 	d Deps,

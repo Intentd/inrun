@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Metadata sets the labels and annotations a Result returns on the CR itself,

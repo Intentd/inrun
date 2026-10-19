@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/networkpolicies"
+	"github.com/intentd/inrun/pkg/resources/core/networkpolicies"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -69,12 +71,12 @@ func RunNetworkPolicies(
 			continue
 		}
 
-		resolved, err := resolver.ResolveNetworkPolicyTemplate(src)
+		resolved, err := resources.ResolveNetworkPolicy(resolver, src)
 		if err != nil {
 			return fmt.Errorf("networkPolicies[%d]: %w", i, err)
 		}
 
-		spec := networkpolicies.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.NetworkPolicySpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if len(resolved.ToNamespaces) > 0 {
 			namespaces, err := resolver.ResolveStringSlice(resolved.ToNamespaces)
@@ -90,7 +92,7 @@ func RunNetworkPolicies(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := networkpolicies.Update(ctx, kube, owner, nsSpec); err != nil {
+					if err := networkpolicies.Apply(ctx, kube, owner, nsSpec); err != nil {
 						return fmt.Errorf("networkPolicies[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
@@ -103,7 +105,7 @@ func RunNetworkPolicies(
 		}
 
 		if update {
-			if err := networkpolicies.Update(ctx, kube, owner, spec); err != nil {
+			if err := networkpolicies.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("networkPolicies[%d].update: %w", i, err)
 			}
 		} else {
@@ -111,7 +113,7 @@ func RunNetworkPolicies(
 				return fmt.Errorf("networkPolicies[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := networkpolicies.Update(ctx, kube, owner, spec); err != nil {
+				if err := networkpolicies.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("networkPolicies[%d].reconcile: %w", i, err)
 				}
 			}

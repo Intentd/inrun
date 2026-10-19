@@ -10,7 +10,7 @@ func expandIncludes(m *types.Module, dir string) error {
 	if err := types.ExpandFunctionsInclude(&m.Functions, dir); err != nil {
 		return err
 	}
-	if err := types.ExpandProfileInclude(&m.Profiles, dir); err != nil {
+	if err := types.ExpandPresetInclude(&m.Presets, dir); err != nil {
 		return err
 	}
 	if err := types.ExpandStatusInclude(m.Status, dir); err != nil {

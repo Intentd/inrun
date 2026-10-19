@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/pdbs"
+	"github.com/intentd/inrun/pkg/resources/core/pdbs"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -64,15 +66,15 @@ func RunPDBs(
 			continue
 		}
 
-		resolved, err := resolver.ResolvePDBTemplate(src)
+		resolved, err := resources.ResolvePDB(resolver, src)
 		if err != nil {
 			return fmt.Errorf("pdbs[%d]: %w", i, err)
 		}
 
-		spec := pdbs.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.PDBSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := pdbs.Update(ctx, kube, owner, spec); err != nil {
+			if err := pdbs.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("pdbs[%d].update: %w", i, err)
 			}
 		} else {
@@ -80,7 +82,7 @@ func RunPDBs(
 				return fmt.Errorf("pdbs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := pdbs.Update(ctx, kube, owner, spec); err != nil {
+				if err := pdbs.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("pdbs[%d].reconcile: %w", i, err)
 				}
 			}

@@ -1,0 +1,66 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: preset-probe-security
+  author: intentd
+  version: 0.1.0
+  description: >
+    PresetProbe — living integration test for security presets.
+    Creates one Deployment per security preset. Inspect each Deployment's
+    container securityContext and pod securityContext to verify expansion.
+    kubectl get deployment -l inrun.dev/managed-by=my-probe -o yaml
+
+spec:
+  crds:
+    preset-probe-security:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 1
+          resync: 30s
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-baseline"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                securityContext:
+                  preset: baseline
+                podSecurity:
+                  preset: baseline
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-restricted"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                securityContext:
+                  preset: restricted
+                podSecurity:
+                  preset: restricted
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-hardened"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                securityContext:
+                  preset: hardened
+                podSecurity:
+                  preset: hardened
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployments.my-probe-baseline }}"
+                    equals: "true"
+

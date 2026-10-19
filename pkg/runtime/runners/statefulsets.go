@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/statefulsets"
+	"github.com/intentd/inrun/pkg/resources/core/statefulsets"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -64,15 +66,15 @@ func RunStatefulSets(
 			continue
 		}
 
-		resolved, err := resolver.ResolveStatefulSetTemplate(src)
+		resolved, err := resources.ResolveStatefulSet(resolver, src)
 		if err != nil {
 			return fmt.Errorf("statefulsets[%d]: %w", i, err)
 		}
 
-		spec := statefulsets.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.StatefulSetSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := statefulsets.Update(ctx, kube, owner, spec); err != nil {
+			if err := statefulsets.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("statefulsets[%d].update: %w", i, err)
 			}
 		} else {
@@ -80,7 +82,7 @@ func RunStatefulSets(
 				return fmt.Errorf("statefulsets[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := statefulsets.Update(ctx, kube, owner, spec); err != nil {
+				if err := statefulsets.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("statefulsets[%d].reconcile: %w", i, err)
 				}
 			}

@@ -6,10 +6,11 @@ import (
 
 	"k8s.io/utils/ptr"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -151,11 +151,11 @@ func ExpandFunctionsInclude(nr *KELFunctionRegistry, baseDir string) error {
 	return nil
 }
 
-// ExpandProfileInclude resolves the profiles.include field by reading the
-// referenced file, unmarshaling its "profiles:" block, and prepending each
+// ExpandPresetInclude resolves the presets.include field by reading the
+// referenced file, unmarshaling its "presets:" block, and prepending each
 // sub-list before the inline entries. Inline entries append after included ones.
 // The include path is resolved relative to baseDir. Cleared after expansion.
-func ExpandProfileInclude(r *ProfileRegistry, baseDir string) error {
+func ExpandPresetInclude(r *PresetRegistry, baseDir string) error {
 	if r.Include == "" {
 		return nil
 	}
@@ -165,26 +165,26 @@ func ExpandProfileInclude(r *ProfileRegistry, baseDir string) error {
 	}
 	data, err := readLocal(path)
 	if err != nil {
-		return fmt.Errorf("reading profiles.include %q: %w", r.Include, err)
+		return fmt.Errorf("reading presets.include %q: %w", r.Include, err)
 	}
 	var f struct {
-		Profiles ProfileRegistry `yaml:"profiles"`
+		Presets PresetRegistry `yaml:"presets"`
 	}
 	if err := strictUnmarshal(data, &f); err != nil {
-		return fmt.Errorf("parsing profiles.include %q: %w", r.Include, err)
+		return fmt.Errorf("parsing presets.include %q: %w", r.Include, err)
 	}
-	p := f.Profiles
+	p := f.Presets
 	r.NetworkPolicies = append(p.NetworkPolicies, r.NetworkPolicies...)
 	r.ResourceQuotas = append(p.ResourceQuotas, r.ResourceQuotas...)
 	r.LimitRanges = append(p.LimitRanges, r.LimitRanges...)
-	r.HPA = append(p.HPA, r.HPA...)
-	r.PDB = append(p.PDB, r.PDB...)
-	r.RollingUpdate = append(p.RollingUpdate, r.RollingUpdate...)
+	r.HPAs = append(p.HPAs, r.HPAs...)
+	r.PDBs = append(p.PDBs, r.PDBs...)
+	r.RollingUpdates = append(p.RollingUpdates, r.RollingUpdates...)
 	r.Reconciler = append(p.Reconciler, r.Reconciler...)
 	r.Resources = append(p.Resources, r.Resources...)
 	r.Probes = append(p.Probes, r.Probes...)
-	r.ContainerSecurity = append(p.ContainerSecurity, r.ContainerSecurity...)
-	r.PodSecurity = append(p.PodSecurity, r.PodSecurity...)
+	r.ContainerSecurities = append(p.ContainerSecurities, r.ContainerSecurities...)
+	r.PodSecurities = append(p.PodSecurities, r.PodSecurities...)
 	r.Include = ""
 	return nil
 }
@@ -264,8 +264,8 @@ func ExpandReconcilerInclude(r *ReconcilerConfig, baseDir string) error {
 	if r.ConstructorDecl == nil && inc.ConstructorDecl != nil {
 		r.ConstructorDecl = inc.ConstructorDecl
 	}
-	if r.Profile == "" && inc.Profile != "" {
-		r.Profile = inc.Profile
+	if r.Preset == "" && inc.Preset != "" {
+		r.Preset = inc.Preset
 	}
 	if r.Workers == 0 && inc.Workers != 0 {
 		r.Workers = inc.Workers
@@ -314,8 +314,8 @@ func ExpandReconcileInclude(r *ReconcileConfig, baseDir string) error {
 	if r.ConstructorDecl == nil && inc.ConstructorDecl != nil {
 		r.ConstructorDecl = inc.ConstructorDecl
 	}
-	if r.Profile == "" && inc.Profile != "" {
-		r.Profile = inc.Profile
+	if r.Preset == "" && inc.Preset != "" {
+		r.Preset = inc.Preset
 	}
 	if r.Workers == 0 && inc.Workers != 0 {
 		r.Workers = inc.Workers

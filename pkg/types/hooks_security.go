@@ -5,16 +5,16 @@ import (
 	"strings"
 )
 
-// SecurityProfileEntry describes a single security profile reference found in a
-// HookTemplates resource. Used by validation to fail fast on unknown profiles
-// and to enforce mutual exclusivity between profile and explicit security fields.
-type SecurityProfileEntry struct {
+// SecurityPresetEntry describes a single security preset reference found in a
+// HookTemplates resource. Used by validation to fail fast on unknown presets
+// and to enforce mutual exclusivity between preset and explicit security fields.
+type SecurityPresetEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	Resource     string // e.g. "Deployment", "StatefulSet"
 	ResourceName string // template name field (may be Empty()
 	Kind         string // "container" or "pod"
-	Profile      string // raw profile name as written in the blueprint
-	Mixed        bool   // true when profile is set alongside explicit fields
+	Preset       string // raw preset name as written in the blueprint
+	Mixed        bool   // true when preset is set alongside explicit fields
 }
 
 // securityContexted is satisfied by resources that carry a ContainerSecurityContext.
@@ -129,15 +129,15 @@ func (c *CRDEntry) CollectCapabilityEntries() []CapabilityEntry {
 	return out
 }
 
-// CollectSecurityProfileEntries returns all security profile references declared for
+// CollectSecurityPresetEntries returns all security preset references declared for
 // this CRD across OnCreate, OnReconcile, and OnDelete.
-// Only entries with a non-empty Profile string are returned.
-func (c *CRDEntry) CollectSecurityProfileEntries() []SecurityProfileEntry {
+// Only entries with a non-empty Preset string are returned.
+func (c *CRDEntry) CollectSecurityPresetEntries() []SecurityPresetEntry {
 	if !c.HasAnyHookTemplates() {
 		return nil
 	}
 
-	var out []SecurityProfileEntry
+	var out []SecurityPresetEntry
 
 	collect := func(phase string, ht *HookTemplates) {
 		if ht == nil {
@@ -155,28 +155,28 @@ func (c *CRDEntry) CollectSecurityProfileEntries() []SecurityProfileEntry {
 
 			if sc, ok := res.(securityContexted); ok {
 				ctx := sc.GetSecurityContext()
-				if ctx != nil && ctx.Profile != "" {
-					out = append(out, SecurityProfileEntry{
+				if ctx != nil && ctx.Preset != "" {
+					out = append(out, SecurityPresetEntry{
 						Phase:        phase,
 						Resource:     rtype,
 						ResourceName: rname,
 						Kind:         "container",
-						Profile:      ctx.Profile,
-						Mixed:        ctx.hasMixedFields(),
+						Preset:       ctx.Preset,
+						Mixed:        ctx.HasMixedFields(),
 					})
 				}
 			}
 
 			if ps, ok := res.(podSecurityed); ok {
 				pod := ps.GetPodSecurity()
-				if pod != nil && pod.Profile != "" {
-					out = append(out, SecurityProfileEntry{
+				if pod != nil && pod.Preset != "" {
+					out = append(out, SecurityPresetEntry{
 						Phase:        phase,
 						Resource:     rtype,
 						ResourceName: rname,
 						Kind:         "pod",
-						Profile:      pod.Profile,
-						Mixed:        pod.hasMixedFields(),
+						Preset:       pod.Preset,
+						Mixed:        pod.HasMixedFields(),
 					})
 				}
 			}

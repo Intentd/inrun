@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/rolebindings"
+	"github.com/intentd/inrun/pkg/resources/core/rolebindings"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -68,15 +70,15 @@ func RunRoleBindings(
 			continue
 		}
 
-		resolved, err := resolver.ResolveRoleBindingTemplate(src)
+		resolved, err := resources.ResolveRoleBinding(resolver, src)
 		if err != nil {
 			return fmt.Errorf("roleBindings[%d]: %w", i, err)
 		}
 
-		spec := rolebindings.Resolve(resolved, resolver.OwnerName())
+		spec := resources.RoleBindingSpec(resolved, resolver.OwnerName())
 
 		if update || src.Reconcile {
-			if err := rolebindings.Update(ctx, kube, owner, spec); err != nil {
+			if err := rolebindings.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("roleBindings[%d].update: %w", i, err)
 			}
 		} else {

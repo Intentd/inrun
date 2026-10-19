@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/roles"
+	"github.com/intentd/inrun/pkg/resources/core/roles"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -68,15 +70,15 @@ func RunRoles(
 			continue
 		}
 
-		resolved, err := resolver.ResolveRoleTemplate(src)
+		resolved, err := resources.ResolveRole(resolver, src)
 		if err != nil {
 			return fmt.Errorf("roles[%d]: %w", i, err)
 		}
 
-		spec := roles.Resolve(resolved, resolver.OwnerName())
+		spec := resources.RoleSpec(resolved, resolver.OwnerName())
 
 		if update || src.Reconcile {
-			if err := roles.Update(ctx, kube, owner, spec); err != nil {
+			if err := roles.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("roles[%d].update: %w", i, err)
 			}
 		} else {

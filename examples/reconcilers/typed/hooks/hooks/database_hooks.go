@@ -6,12 +6,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	apiv1 "github.com/intentd/inrun-hooks-demo/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/resources/cronjobs"
-	"github.com/intentd/inrun/pkg/resources/services"
-	"github.com/intentd/inrun/pkg/resources/statefulsets"
+	"github.com/intentd/inrun/pkg/resources/core/cronjobs"
+	"github.com/intentd/inrun/pkg/resources/core/services"
+	"github.com/intentd/inrun/pkg/resources/core/statefulsets"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -53,7 +55,7 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 	// ── Create the StatefulSet via pkg/resources ───────────────────────────
 	// The resource package handles owner references, idempotency and system
 	// labels; the hook only provides the resolved spec.
-	spec := statefulsets.Resolve(
+	spec := resources.StatefulSetSpec(
 		types.StatefulSetTemplateSource{
 			Name:               obj.Name,
 			Namespace:          obj.Namespace,
@@ -74,12 +76,12 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 		obj.Name,
 		nil,
 	)
-	if err := statefulsets.Update(ctx, kube, obj, spec); err != nil {
+	if err := statefulsets.Apply(ctx, kube, obj, spec); err != nil {
 		return domain.Result{}, fmt.Errorf("database statefulSet: %w", err)
 	}
 
 	// ── Create the Service ─────────────────────────────────────────────────
-	svcSpec := services.Resolve(
+	svcSpec := resources.ServiceSpec(
 		types.ServiceTemplateSource{
 			Name:       obj.Name + "-svc",
 			Namespace:  obj.Namespace,
@@ -89,13 +91,13 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 		},
 		obj.Name,
 	)
-	if err := services.Update(ctx, kube, obj, svcSpec); err != nil {
+	if err := services.Apply(ctx, kube, obj, svcSpec); err != nil {
 		return domain.Result{}, fmt.Errorf("database service: %w", err)
 	}
 
 	// ── Conditional: backup CronJob ────────────────────────────────────────
 	if obj.Spec.Backup {
-		cronSpec := cronjobs.Resolve(
+		cronSpec := resources.CronJobSpec(
 			types.CronJobTemplateSource{
 				Name:      obj.Name + "-backup",
 				Namespace: obj.Namespace,
@@ -107,7 +109,7 @@ func onDatabaseReconcile(ctx context.Context, req domain.Request, obj *apiv1.Dat
 			obj.Name,
 			nil,
 		)
-		if err := cronjobs.Update(ctx, kube, obj, cronSpec); err != nil {
+		if err := cronjobs.Apply(ctx, kube, obj, cronSpec); err != nil {
 			return domain.Result{}, fmt.Errorf("database backup cronjob: %w", err)
 		}
 	}

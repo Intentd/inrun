@@ -118,7 +118,7 @@ func ValidateCustomResource(crd *types.CRDEntry, cr *types.CustomResourceTemplat
 	// Reject built-in Kubernetes types that Inrun manages natively via
 	// HookTemplates. Using custom: for these panics during simulate (scheme
 	// double-registration) and bypasses native features like drift correction
-	// and profiles. The builtInRegistry is the single source of truth.
+	// and presets. The builtInRegistry is the single source of truth.
 	parts := strings.SplitN(cr.APIVersion, "/", 2)
 	group, version := parts[0], parts[1]
 	if b, isNative := children.LookupBuiltInByGVK(group, version, cr.Kind); isNative && b.IsChild && b.HookKey != "" {

@@ -1,10 +1,12 @@
 package apply
 
 import (
-	"github.com/intentd/inrun/pkg/labels"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/intentd/inrun/pkg/labels"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

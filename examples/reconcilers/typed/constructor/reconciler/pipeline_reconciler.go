@@ -7,14 +7,17 @@ import (
 	"fmt"
 	"time"
 
-	apiv1 "github.com/intentd/inrun-constructor-demo/api/v1alpha1"
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/resources/jobs"
-	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apiv1 "github.com/intentd/inrun-constructor-demo/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/resources/core/jobs"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 const (
@@ -86,7 +89,7 @@ func (r *PipelineReconciler) handlePending(ctx context.Context, p *apiv1.Pipelin
 	firstStep := p.Spec.Steps[0]
 
 	// Create the Job for the first step via pkg/resources
-	jobSpec := jobs.Resolve(
+	jobSpec := resources.JobSpec(
 		types.JobTemplateSource{
 			Name:      fmt.Sprintf("%s-%s", p.Name, firstStep.Name),
 			Namespace: p.Namespace,
@@ -167,7 +170,7 @@ func (r *PipelineReconciler) advanceStep(ctx context.Context, p *apiv1.Pipeline)
 
 	// Create next step Job
 	nextStep := p.Spec.Steps[nextIdx]
-	jobSpec := jobs.Resolve(
+	jobSpec := resources.JobSpec(
 		types.JobTemplateSource{
 			Name:      fmt.Sprintf("%s-%s", p.Name, nextStep.Name),
 			Namespace: p.Namespace,

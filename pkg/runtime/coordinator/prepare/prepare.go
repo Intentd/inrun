@@ -31,7 +31,7 @@ type Input struct {
 //  3. Namespace guard — returns (nil, nil, nil) for restricted/non-allowed namespaces
 //  4. Effective box + target
 //  5. Normalize + base resolver
-//  6. Enrichment chain (profiles, notes, intent, uniqueness), then
+//  6. Enrichment chain (presets, notes, intent, uniqueness), then
 //     reconcile.when/or — returns (nil, nil, nil) when they do not hold —
 //     then reconcile.external
 //  7. Cross-CRD observation
@@ -89,8 +89,8 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 
 	// Step 6: enrichment chain
 	if in.Blueprint != nil {
-		if !in.Blueprint.Profiles.Empty() {
-			resolver = resolver.WithProfiles(&in.Blueprint.Profiles)
+		if !in.Blueprint.Presets.Empty() {
+			resolver = resolver.WithPresets(&in.Blueprint.Presets)
 		}
 		if !in.Blueprint.Functions.Empty() {
 			resolver = resolver.WithUserFunctions(in.Blueprint.UserFunctions())
@@ -106,7 +106,7 @@ func Prepare(ctx context.Context, in Input) (*domain.PreparedRequest, *Validatio
 	}
 
 	// reconcile.when/or: should this reconcile happen at all? Evaluated before
-	// the reconcile's calls, over the CR, notes, profiles, intent and .args
+	// the reconcile's calls, over the CR, notes, presets, intent and .args
 	// (validation keeps .external, and args that read it, out of them). A CR
 	// being deleted is always reconciled.
 	if box.Reconcile.HasConditions() && obj.GetDeletionTimestamp() == nil {

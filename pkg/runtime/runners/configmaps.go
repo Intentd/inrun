@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/configmaps"
+	"github.com/intentd/inrun/pkg/resources/core/configmaps"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -53,7 +55,7 @@ func RunConfigMaps(
 		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
 
 		// Early name/ns resolution — needed for guard check and DeleteIfOwned cleanup.
-		// ResolveConfigMapTemplate resolves these again internally — intentional, cheap.
+		// resources.ResolveConfigMap resolves these again internally — intentional, cheap.
 		name, _ := resolver.Resolve(src.Name)
 		ns, _ := resolver.Resolve(src.Namespace)
 		if ns == "" {
@@ -82,13 +84,13 @@ func RunConfigMaps(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveConfigMapTemplate(src)
+		resolved, err := resources.ResolveConfigMap(resolver, src)
 		if err != nil {
 			return fmt.Errorf("configmaps[%d]: %w", i, err)
 		}
 
 		// 3. Build registry spec and apply
-		spec := configmaps.Resolve(resolved, resolver.OwnerName())
+		spec := resources.ConfigMapSpec(resolved, resolver.OwnerName())
 
 		// toNamespaces — distribute to multiple namespaces, guarded per target
 		if len(resolved.ToNamespaces) > 0 {
@@ -106,7 +108,7 @@ func RunConfigMaps(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := configmaps.Update(ctx, kube, owner, nsSpec); err != nil {
+					if err := configmaps.Apply(ctx, kube, owner, nsSpec); err != nil {
 						return fmt.Errorf("configmaps[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
@@ -120,7 +122,7 @@ func RunConfigMaps(
 
 		// Single namespace
 		if update {
-			if err := configmaps.Update(ctx, kube, owner, spec); err != nil {
+			if err := configmaps.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("configmaps[%d].update: %w", i, err)
 			}
 		} else {
@@ -128,7 +130,7 @@ func RunConfigMaps(
 				return fmt.Errorf("configmaps[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := configmaps.Update(ctx, kube, owner, spec); err != nil {
+				if err := configmaps.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("configmaps[%d].reconcile: %w", i, err)
 				}
 			}

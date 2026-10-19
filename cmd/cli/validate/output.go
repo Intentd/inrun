@@ -322,32 +322,32 @@ func rbacRes(r rbacv1.PolicyRule) string {
 	return res
 }
 
-// ── Profiles display ─────────────────────────────────────────────────────────
+// ── Presets display ─────────────────────────────────────────────────────────
 
-type profileLine struct {
+type presetLine struct {
 	typLabel string
-	profile  string
+	preset   string
 	location string
 	mixed    bool
 }
 
-// printCRDProfiles prints named profiles declared for a CRD under its header.
-// No-op when the CRD declares no profiles.
-func printCRDProfiles(entry types.CRDEntry) {
-	lines := collectProfileLines(entry)
+// printCRDPresets prints named presets declared for a CRD under its header.
+// No-op when the CRD declares no presets.
+func printCRDPresets(entry types.CRDEntry) {
+	lines := collectPresetLines(entry)
 	if len(lines) == 0 {
 		return
 	}
-	maxType, maxProfile := 0, 0
+	maxType, maxPreset := 0, 0
 	for _, l := range lines {
 		if n := len(l.typLabel); n > maxType {
 			maxType = n
 		}
-		if n := len(l.profile); n > maxProfile {
-			maxProfile = n
+		if n := len(l.preset); n > maxPreset {
+			maxPreset = n
 		}
 	}
-	fmt.Printf("    %s\n", cmdutil.Gray("profiles:"))
+	fmt.Printf("    %s\n", cmdutil.Gray("presets:"))
 	for _, l := range lines {
 		suffix := ""
 		if l.mixed {
@@ -356,70 +356,70 @@ func printCRDProfiles(entry types.CRDEntry) {
 		fmt.Printf("      %s\n", cmdutil.Gray(fmt.Sprintf(
 			"%-*s  %-*s  %s%s",
 			maxType, l.typLabel,
-			maxProfile, l.profile,
+			maxPreset, l.preset,
 			l.location,
 			suffix,
 		)))
 	}
 }
 
-func collectProfileLines(entry types.CRDEntry) []profileLine {
-	var lines []profileLine
+func collectPresetLines(entry types.CRDEntry) []presetLine {
+	var lines []presetLine
 
-	for _, e := range entry.CollectSecurityProfileEntries() {
+	for _, e := range entry.CollectSecurityPresetEntries() {
 		label := "security (container)"
 		if e.Kind == "pod" {
 			label = "security (pod)"
 		}
-		lines = append(lines, profileLine{
+		lines = append(lines, presetLine{
 			typLabel: label,
-			profile:  e.Profile,
-			location: profileLoc(e.Resource, e.ResourceName, e.Phase),
+			preset:   e.Preset,
+			location: presetLoc(e.Resource, e.ResourceName, e.Phase),
 			mixed:    e.Mixed,
 		})
 	}
 
-	for _, e := range entry.CollectResourceProfileEntries() {
-		lines = append(lines, profileLine{
+	for _, e := range entry.CollectResourcePresetEntries() {
+		lines = append(lines, presetLine{
 			typLabel: "resources",
-			profile:  e.Profile,
-			location: profileLoc(e.Resource, e.ResourceName, e.Phase),
+			preset:   e.Preset,
+			location: presetLoc(e.Resource, e.ResourceName, e.Phase),
 			mixed:    e.Mixed,
 		})
 	}
 
-	for _, e := range entry.CollectHPAProfileEntries() {
-		lines = append(lines, profileLine{
+	for _, e := range entry.CollectHPAPresetEntries() {
+		lines = append(lines, presetLine{
 			typLabel: "hpa",
-			profile:  e.Profile,
-			location: profileLoc("", e.ResourceName, e.Phase),
+			preset:   e.Preset,
+			location: presetLoc("", e.ResourceName, e.Phase),
 			mixed:    e.Mixed,
 		})
 	}
 
-	for _, e := range entry.CollectPDBProfileEntries() {
-		lines = append(lines, profileLine{
+	for _, e := range entry.CollectPDBPresetEntries() {
+		lines = append(lines, presetLine{
 			typLabel: "pdb",
-			profile:  e.Profile,
-			location: profileLoc("", e.ResourceName, e.Phase),
+			preset:   e.Preset,
+			location: presetLoc("", e.ResourceName, e.Phase),
 			mixed:    e.Mixed,
 		})
 	}
 
-	for _, e := range entry.CollectRollingUpdateProfileEntries() {
-		lines = append(lines, profileLine{
+	for _, e := range entry.CollectRollingUpdatePresetEntries() {
+		lines = append(lines, presetLine{
 			typLabel: "rolling",
-			profile:  e.Profile,
-			location: profileLoc("", e.ResourceName, e.Phase),
+			preset:   e.Preset,
+			location: presetLoc("", e.ResourceName, e.Phase),
 			mixed:    e.Mixed,
 		})
 	}
 
-	for _, e := range entry.CollectProbeProfileEntries() {
-		lines = append(lines, profileLine{
+	for _, e := range entry.CollectProbePresetEntries() {
+		lines = append(lines, presetLine{
 			typLabel: "probes (" + e.ProbeType + ")",
-			profile:  e.Profile,
-			location: profileLoc(e.Resource, e.ResourceName, e.Phase),
+			preset:   e.Preset,
+			location: presetLoc(e.Resource, e.ResourceName, e.Phase),
 			mixed:    e.Mixed,
 		})
 	}
@@ -427,8 +427,8 @@ func collectProfileLines(entry types.CRDEntry) []profileLine {
 	return lines
 }
 
-// profileLoc builds a compact location string from resource kind, name, and phase.
-func profileLoc(resource, name, phase string) string {
+// presetLoc builds a compact location string from resource kind, name, and phase.
+func presetLoc(resource, name, phase string) string {
 	switch {
 	case resource != "" && name != "":
 		return resource + "/" + name + " [" + phase + "]"

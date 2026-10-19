@@ -3,9 +3,10 @@ package reconcile
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // mappedRemote is a valid mapped remote; each test breaks one thing.

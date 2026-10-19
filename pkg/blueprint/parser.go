@@ -74,7 +74,7 @@ func (c *Blueprint) BuildRuntimeBlueprint(
 	c.Security = m.ToSecurity()
 	c.Gateway = m.ToGateway()
 	c.Publish = m.ToPublish()
-	c.Profiles = m.ToProfiles()
+	c.Presets = m.ToPresets()
 	c.Functions = m.ToFunctions()
 	c.enabledCRDs = m.Enabled()           // Enabled CRDs for all operations
 	c.metadata = m.APIMetadata().Metadata // Metadata for CLI and health endpoints
@@ -111,7 +111,7 @@ func (c *Blueprint) BuildRuntimeBlueprint(
 		c.enabledCRDs[name] = entry
 	}
 
-	// Expand spec.imports — merge profiles into the Blueprint-wide ProfileRegistry
+	// Expand spec.imports — merge presets into the Blueprint-wide PresetRegistry
 	if err := c.expandBlueprintImports(); err != nil {
 		return nil, err
 	}

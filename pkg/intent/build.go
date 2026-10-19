@@ -20,7 +20,7 @@ func IsTargetRequest(raw map[string]interface{}) bool {
 	return ok
 }
 
-// Build constructs a full Kubernetes CR from a flat field map
+// BuildCR constructs a full Kubernetes CR from a flat field map
 // submitted in target mode.
 //
 // Field routing — determined by where each field name is declared in the
@@ -43,7 +43,7 @@ func IsTargetRequest(raw map[string]interface{}) bool {
 // Returns an error only when serve.name or serve.namespace are declared but
 // cannot be resolved to a non-empty string — SSA would reject the CR anyway,
 // so we surface the error here with a clearer message.
-func Build(
+func BuildCR(
 	raw map[string]interface{},
 	crd *types.CRDEntry,
 	functions types.KELFunctionRegistry,

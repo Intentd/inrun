@@ -5,44 +5,44 @@ import (
 	"strings"
 )
 
-// HPAProfileEntry describes a single behavior.profile reference found in an
-// HPATemplateSource. Used by blueprint validation to fail fast on unknown profiles
+// HPAPresetEntry describes a single behavior.preset reference found in an
+// HPATemplateSource. Used by blueprint validation to fail fast on unknown presets
 // and to enforce mutual exclusivity with explicit scaleUp/scaleDown fields.
-type HPAProfileEntry struct {
+type HPAPresetEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // HPA name template (may be Empty()
-	Profile      string // raw profile name as written in the blueprint
-	Mixed        bool   // true when profile is set alongside explicit scaleUp or scaleDown
+	Preset       string // raw preset name as written in the blueprint
+	Mixed        bool   // true when preset is set alongside explicit scaleUp or scaleDown
 }
 
-// hpaProfiled is satisfied by HPATemplateSource.
-type hpaProfiled interface {
+// hpaPresetd is satisfied by HPATemplateSource.
+type hpaPresetd interface {
 	GetHPABehavior() *HPABehavior
 }
 
 func (t HPATemplateSource) GetHPABehavior() *HPABehavior { return t.Behavior }
 
-// CollectHPAProfileEntries returns all behavior.profile references declared for
+// CollectHPAPresetEntries returns all behavior.preset references declared for
 // this CRD across OnCreate, OnReconcile, and OnDelete.
-// Only entries with a non-empty Profile string are returned.
-func (c *CRDEntry) CollectHPAProfileEntries() []HPAProfileEntry {
+// Only entries with a non-empty Preset string are returned.
+func (c *CRDEntry) CollectHPAPresetEntries() []HPAPresetEntry {
 	if !c.HasAnyHookTemplates() {
 		return nil
 	}
 
-	var out []HPAProfileEntry
+	var out []HPAPresetEntry
 
 	collect := func(phase string, ht *HookTemplates) {
 		if ht == nil {
 			return
 		}
 		ht.VisitResources(func(res interface{}) {
-			hp, ok := res.(hpaProfiled)
+			hp, ok := res.(hpaPresetd)
 			if !ok {
 				return
 			}
 			b := hp.GetHPABehavior()
-			if b == nil || b.Profile == "" {
+			if b == nil || b.Preset == "" {
 				return
 			}
 
@@ -58,10 +58,10 @@ func (c *CRDEntry) CollectHPAProfileEntries() []HPAProfileEntry {
 
 			mixed := b.ScaleUp != nil || b.ScaleDown != nil
 
-			out = append(out, HPAProfileEntry{
+			out = append(out, HPAPresetEntry{
 				Phase:        phase,
 				ResourceName: rname,
-				Profile:      b.Profile,
+				Preset:       b.Preset,
 				Mixed:        mixed,
 			})
 		})

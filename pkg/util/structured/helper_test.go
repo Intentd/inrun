@@ -282,7 +282,7 @@ func TestMapContainsGeneric(t *testing.T) {
 // Benchmark tests
 func BenchmarkToStringSet(b *testing.B) {
 	ops := []string{"read", "write", "execute", "delete", "create", "update"}
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ToStringSet(ops)
 	}
 }
@@ -296,7 +296,7 @@ func BenchmarkSetContains(b *testing.B) {
 		"create":  {},
 		"update":  {},
 	}
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		SetContains(s, "read")
 	}
 }
@@ -310,7 +310,7 @@ func BenchmarkMapContains(b *testing.B) {
 		"create":  true,
 		"update":  true,
 	}
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		MapContains(m, "read")
 	}
 }
@@ -636,7 +636,7 @@ func BenchmarkDedupStrings(b *testing.B) {
 		ss[i] = string(rune('a' + i%26))
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		DedupStrings(ss)
 	}
 }

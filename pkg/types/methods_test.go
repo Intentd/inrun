@@ -390,7 +390,7 @@ func TestAllowedAndRestrictedBoth_NeitherOnly(t *testing.T) {
 	assert.False(t, c.RestrictedNamespacesOnly())
 }
 
-// ── AutoscaleEnabled / HasAutoscaleProfile ───────────────────────────────────
+// ── AutoscaleEnabled / HasAutoscalePreset ───────────────────────────────────
 
 func TestAutoscaleEnabled_Nil(t *testing.T) {
 	c := emptyCRD()
@@ -403,17 +403,17 @@ func TestAutoscaleEnabled_Set(t *testing.T) {
 	assert.True(t, c.AutoscaleEnabled())
 }
 
-func TestHasAutoscaleProfile_NoProfile(t *testing.T) {
+func TestHasAutoscalePreset_NoPreset(t *testing.T) {
 	c := emptyCRD()
 	c.OperatorBox.Runtime = &types.RuntimeConfig{Autoscale: &types.AutoscaleSpec{}}
-	assert.False(t, c.HasAutoscaleProfile())
+	assert.False(t, c.HasAutoscalePreset())
 }
 
-func TestHasAutoscaleProfile_WithProfile(t *testing.T) {
+func TestHasAutoscalePreset_WithPreset(t *testing.T) {
 	c := emptyCRD()
-	c.OperatorBox.Runtime = &types.RuntimeConfig{Autoscale: &types.AutoscaleSpec{Profile: "burst"}}
-	assert.True(t, c.HasAutoscaleProfile())
-	assert.Equal(t, "burst", c.AutoScaleProfile())
+	c.OperatorBox.Runtime = &types.RuntimeConfig{Autoscale: &types.AutoscaleSpec{Preset: "burst"}}
+	assert.True(t, c.HasAutoscalePreset())
+	assert.Equal(t, "burst", c.AutoScalePreset())
 }
 
 // ── WithHooksDecl / WithConstructorDecl ───────────────────────────────────────

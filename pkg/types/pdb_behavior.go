@@ -1,12 +1,12 @@
 package types
 
 // PDBBehavior configures PodDisruptionBudget disruption limits.
-// Set Profile for a named preset, or MinAvailable/MaxUnavailable explicitly.
-// Profile and explicit fields are mutually exclusive.
+// Set Preset for a named preset, or MinAvailable/MaxUnavailable explicitly.
+// Preset and explicit fields are mutually exclusive.
 type PDBBehavior struct {
-	// Profile — named preset. Expands into MinAvailable or MaxUnavailable at load time.
+	// Preset — named preset. Expands into MinAvailable or MaxUnavailable at load time.
 	// Allowed: zero-downtime, rolling, relaxed.
-	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
 
 	// MinAvailable — minimum pods that must remain available during voluntary disruptions.
 	// Accepts integer string ("1") or percentage string ("100%").

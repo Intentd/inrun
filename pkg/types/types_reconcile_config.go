@@ -202,9 +202,9 @@ type ReconcileConfig struct {
 
 	// --- Execution parameters ---
 
-	// Profile is a named tuning preset. Built-ins: high-throughput, conservative, development.
-	// Inline Workers/Resync/Queue override the profile.
-	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
+	// Preset is a named tuning preset. Built-ins: high-throughput, conservative, development.
+	// Inline Workers/Resync/Queue override the preset.
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
 
 	// Workers is the number of concurrent reconcile goroutines. 0 → DEFAULT_WORKERS.
 	Workers int `yaml:"workers,omitempty" json:"workers,omitempty" validate:"omitempty,gte=1,lte=50"`
@@ -234,7 +234,7 @@ type ReconcileConfig struct {
 
 	// When and Or decide whether this reconcile happens at all. They are
 	// evaluated first, before reconcile.external, so a skipped reconcile makes
-	// no calls: the CR, notes, profiles, the intent and .args are in scope, but
+	// no calls: the CR, notes, presets, the intent and .args are in scope, but
 	// not .external, nor an arg that reads it (rejected by validation). To
 	// decide on a call's result, use preReconcile.reconcileGate. A CR being
 	// deleted is always reconciled.

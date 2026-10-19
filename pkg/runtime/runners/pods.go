@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/pods"
+	"github.com/intentd/inrun/pkg/resources/core/pods"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -16,9 +18,9 @@ import (
 // RunPods resolves and applies Pod template declarations.
 //
 // update=false  onCreate path  — idempotent Create
-// update=true   onReconcile path — Update for drift correction (delete + recreate on image drift)
+// update=true   onReconcile path — Apply for drift correction (delete + recreate on image drift)
 //
-// reconcile: true on an onCreate entry means also call Update on that
+// reconcile: true on an onCreate entry means also call Apply on that
 // same reconcile loop — the shorthand for "create it and keep it in sync"
 // without a separate onReconcile declaration.
 func RunPods(
@@ -77,15 +79,15 @@ func RunPods(
 			continue
 		}
 
-		resolved, err := resolver.ResolvePodTemplate(src)
+		resolved, err := resources.ResolvePod(resolver, src)
 		if err != nil {
 			return fmt.Errorf("pods[%d]: %w", i, err)
 		}
 
-		spec := pods.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.PodSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := pods.Update(ctx, kube, owner, spec); err != nil {
+			if err := pods.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("pods[%d].update: %w", i, err)
 			}
 		} else {
@@ -94,7 +96,7 @@ func RunPods(
 			}
 
 			if src.Reconcile {
-				if err := pods.Update(ctx, kube, owner, spec); err != nil {
+				if err := pods.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("pods[%d].reconcile: %w", i, err)
 				}
 			}

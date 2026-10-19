@@ -1,42 +1,42 @@
 package types
 
-// PDBProfileEntry describes a single behavior.profile reference found in a
-// PDBTemplateSource. Used by blueprint validation to fail fast on unknown profiles
+// PDBPresetEntry describes a single behavior.preset reference found in a
+// PDBTemplateSource. Used by blueprint validation to fail fast on unknown presets
 // and to enforce mutual exclusivity with explicit minAvailable/maxUnavailable.
-type PDBProfileEntry struct {
+type PDBPresetEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // PDB name template (may be Empty()
-	Profile      string // raw profile name as written in the blueprint
-	Mixed        bool   // true when profile is set alongside explicit minAvailable or maxUnavailable
+	Preset       string // raw preset name as written in the blueprint
+	Mixed        bool   // true when preset is set alongside explicit minAvailable or maxUnavailable
 }
 
-type pdbProfiled interface {
+type pdbPresetd interface {
 	GetPDBBehavior() *PDBBehavior
 }
 
 func (t PDBTemplateSource) GetPDBBehavior() *PDBBehavior { return t.Behavior }
 
-// CollectPDBProfileEntries returns all behavior.profile references declared for
+// CollectPDBPresetEntries returns all behavior.preset references declared for
 // this CRD across OnCreate, OnReconcile, and OnDelete.
-// Only entries with a non-empty Profile string are returned.
-func (c *CRDEntry) CollectPDBProfileEntries() []PDBProfileEntry {
+// Only entries with a non-empty Preset string are returned.
+func (c *CRDEntry) CollectPDBPresetEntries() []PDBPresetEntry {
 	if !c.HasAnyHookTemplates() {
 		return nil
 	}
 
-	var out []PDBProfileEntry
+	var out []PDBPresetEntry
 
 	collect := func(phase string, ht *HookTemplates) {
 		if ht == nil {
 			return
 		}
 		ht.VisitResources(func(res interface{}) {
-			pp, ok := res.(pdbProfiled)
+			pp, ok := res.(pdbPresetd)
 			if !ok {
 				return
 			}
 			b := pp.GetPDBBehavior()
-			if b == nil || b.Profile == "" {
+			if b == nil || b.Preset == "" {
 				return
 			}
 
@@ -47,10 +47,10 @@ func (c *CRDEntry) CollectPDBProfileEntries() []PDBProfileEntry {
 
 			mixed := b.MinAvailable != "" || b.MaxUnavailable != ""
 
-			out = append(out, PDBProfileEntry{
+			out = append(out, PDBPresetEntry{
 				Phase:        phase,
 				ResourceName: rname,
-				Profile:      b.Profile,
+				Preset:       b.Preset,
 				Mixed:        mixed,
 			})
 		})

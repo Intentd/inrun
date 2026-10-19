@@ -1,0 +1,61 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: preset-probe-rolling
+  author: intentd
+  version: 0.1.0
+  description: >
+    PresetProbe — living integration test for rolling update strategy presets.
+    One CRD deploys three Deployments, each using a different rollingUpdate preset.
+    The preset expands at blueprint load time into maxSurge and maxUnavailable.
+    Trigger a Deployment update (e.g. change the CR's image field) and watch the
+    rollout behavior differ across presets.
+
+spec:
+  crds:
+    preset-probe-rolling:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-safe"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                replicas: "3"
+                reconcile: true
+                rollingUpdate:
+                  preset: safe
+
+              - name: "{{ .metadata.name }}-fast"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                replicas: "3"
+                reconcile: true
+                rollingUpdate:
+                  preset: fast
+
+              - name: "{{ .metadata.name }}-bg"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                replicas: "2"
+                reconcile: true
+                rollingUpdate:
+                  preset: blue-green
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+

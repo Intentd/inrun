@@ -30,7 +30,7 @@ spec:
                 replicas: "{{ .spec.replicas }}"
                 port: "{{ .spec.port }}"
                 resources:
-                  profile: '{{ .spec.resourceProfile | default "burst" }}'
+                  preset: '{{ .spec.resourcePreset | default "burst" }}'
                 reconcile: true
 
             hpa:

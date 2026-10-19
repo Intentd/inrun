@@ -5,15 +5,15 @@ import (
 	"strings"
 )
 
-// ResourceProfileEntry describes a single resources.profile reference found in a
-// HookTemplates resource. Used by validation to fail fast on unknown profiles
-// and to enforce mutual exclusivity between profile and explicit resource fields.
-type ResourceProfileEntry struct {
+// ResourcePresetEntry describes a single resources.preset reference found in a
+// HookTemplates resource. Used by validation to fail fast on unknown presets
+// and to enforce mutual exclusivity between preset and explicit resource fields.
+type ResourcePresetEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	Resource     string // e.g. "Deployment", "StatefulSet"
 	ResourceName string // template name field (may be Empty()
-	Profile      string // raw profile name as written in the blueprint
-	Mixed        bool   // true when profile is set alongside explicit requests/limits
+	Preset       string // raw preset name as written in the blueprint
+	Mixed        bool   // true when preset is set alongside explicit requests/limits
 }
 
 // resourced is a tiny interface satisfied by resources that carry a ResourceRequirements block.
@@ -29,15 +29,15 @@ func (t PodTemplateSource) GetResources() *ResourceRequirements         { return
 func (t JobTemplateSource) GetResources() *ResourceRequirements         { return t.Resources }
 func (t CronJobTemplateSource) GetResources() *ResourceRequirements     { return t.Resources }
 
-// CollectResourceProfileEntries returns all resources.profile references declared for
+// CollectResourcePresetEntries returns all resources.preset references declared for
 // this CRD across OnCreate, OnReconcile, and OnDelete.
-// Only entries with a non-empty Profile string are returned.
-func (c *CRDEntry) CollectResourceProfileEntries() []ResourceProfileEntry {
+// Only entries with a non-empty Preset string are returned.
+func (c *CRDEntry) CollectResourcePresetEntries() []ResourcePresetEntry {
 	if !c.HasAnyHookTemplates() {
 		return nil
 	}
 
-	var out []ResourceProfileEntry
+	var out []ResourcePresetEntry
 
 	collect := func(phase string, ht *HookTemplates) {
 		if ht == nil {
@@ -49,7 +49,7 @@ func (c *CRDEntry) CollectResourceProfileEntries() []ResourceProfileEntry {
 				return
 			}
 			spec := rd.GetResources()
-			if spec == nil || spec.Profile == "" {
+			if spec == nil || spec.Preset == "" {
 				return
 			}
 
@@ -64,11 +64,11 @@ func (c *CRDEntry) CollectResourceProfileEntries() []ResourceProfileEntry {
 
 			mixed := len(spec.Requests) > 0 || len(spec.Limits) > 0
 
-			out = append(out, ResourceProfileEntry{
+			out = append(out, ResourcePresetEntry{
 				Phase:        phase,
 				Resource:     rtype,
 				ResourceName: rname,
-				Profile:      spec.Profile,
+				Preset:       spec.Preset,
 				Mixed:        mixed,
 			})
 		})

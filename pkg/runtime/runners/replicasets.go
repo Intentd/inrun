@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/replicasets"
+	"github.com/intentd/inrun/pkg/resources/core/replicasets"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -16,9 +18,9 @@ import (
 // RunReplicaSets resolves and applies ReplicaSet template declarations.
 //
 // update=false  onCreate path  — idempotent Create
-// update=true   onReconcile path — Update for drift correction
+// update=true   onReconcile path — Apply for drift correction
 //
-// reconcile: true on an onCreate entry means also call Update on that
+// reconcile: true on an onCreate entry means also call Apply on that
 // same reconcile loop — the shorthand for "create it and keep it in sync"
 // without a separate onReconcile declaration.
 func RunReplicaSets(
@@ -84,15 +86,15 @@ func RunReplicaSets(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveReplicaSetTemplate(src)
+		resolved, err := resources.ResolveReplicaSet(resolver, src)
 		if err != nil {
 			return fmt.Errorf("replicasets[%d]: %w", i, err)
 		}
 
-		spec := replicasets.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.ReplicaSetSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := replicasets.Update(ctx, kube, owner, spec); err != nil {
+			if err := replicasets.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("replicasets[%d].update: %w", i, err)
 			}
 		} else {
@@ -102,7 +104,7 @@ func RunReplicaSets(
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := replicasets.Update(ctx, kube, owner, spec); err != nil {
+				if err := replicasets.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("replicasets[%d].reconcile: %w", i, err)
 				}
 			}

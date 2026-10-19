@@ -38,11 +38,11 @@ type Merger struct {
 	// publish holds the publishing and consumer policy of the final blueprint
 	publish *types.PublishConfig
 
-	// profiles holds the merged user-defined profile registry of the final blueprint
-	profiles types.ProfileRegistry
+	// presets holds the merged user-defined preset registry of the final blueprint
+	presets types.PresetRegistry
 
 	// specImports holds the spec.imports module list from the loaded Blueprint.
-	// These are modules whose profiles and functions are merged at the Blueprint level.
+	// These are modules whose presets and functions are merged at the Blueprint level.
 	specImports []types.ModuleImport
 
 	// functions holds the Blueprint-level user-defined function registry.
@@ -384,15 +384,15 @@ func (m *Merger) ToPublish() *types.PublishConfig {
 	return m.publish
 }
 
-// ToProfiles returns the merged user-defined profile registry of the merged result.
-// Used by BuildRuntimeBlueprint to populate Blueprint.Profiles.
-func (m *Merger) ToProfiles() types.ProfileRegistry {
+// ToPresets returns the merged user-defined preset registry of the merged result.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Presets.
+func (m *Merger) ToPresets() types.PresetRegistry {
 	m.mustBeMerged()
-	return m.profiles
+	return m.presets
 }
 
 // ToSpecImports returns the spec.imports module list from the loaded Blueprint.
-// Used by BuildRuntimeBlueprint to populate Blueprint.Spec.Imports before profile expansion.
+// Used by BuildRuntimeBlueprint to populate Blueprint.Spec.Imports before preset expansion.
 func (m *Merger) ToSpecImports() []types.ModuleImport {
 	m.mustBeMerged()
 	return m.specImports

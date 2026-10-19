@@ -729,19 +729,19 @@ func (c *CRDEntry) ValidateMetricField(field string) error {
 	return nil
 }
 
-// HasAutoscaleProfile reports whether this crd defined autoscale profile
-func (c *CRDEntry) HasAutoscaleProfile() bool {
+// HasAutoscalePreset reports whether this crd defined autoscale preset
+func (c *CRDEntry) HasAutoscalePreset() bool {
 	a := c.Box().EffectiveAutoscale()
-	return a != nil && a.Profile != ""
+	return a != nil && a.Preset != ""
 }
 
-// AutoScaleProfile returns the string value of the autoscale profile
-func (c *CRDEntry) AutoScaleProfile() string {
+// AutoScalePreset returns the string value of the autoscale preset
+func (c *CRDEntry) AutoScalePreset() string {
 	a := c.Box().EffectiveAutoscale()
 	if a == nil {
 		return ""
 	}
-	return a.Profile
+	return a.Preset
 }
 
 // EffectiveConversion returns the conversion config from admission.conversion.

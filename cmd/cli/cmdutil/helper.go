@@ -242,8 +242,8 @@ func PrintTemplateSummary(bp *blueprint.Blueprint, crds map[string]types.CRDEntr
 		// Autoscale
 		if crd.AutoscaleEnabled() {
 			a := crd.Box().EffectiveAutoscale()
-			if a.Profile != "" {
-				fmt.Printf("%s%s  profile=%s\n", indent, magenta("autoscale:"), a.Profile)
+			if a.Preset != "" {
+				fmt.Printf("%s%s  preset=%s\n", indent, magenta("autoscale:"), a.Preset)
 			} else {
 				parts := []string{}
 				if len(a.Conditions.When) > 0 {
@@ -444,8 +444,8 @@ func PrintCRDDetail(crd types.CRDEntry, g *blueprint.DependencyGraph) {
 	if crd.AutoscaleEnabled() {
 		a := crd.Box().EffectiveAutoscale()
 		fmt.Printf("  %s\n", magenta(Bold("Autoscale")))
-		if a.Profile != "" {
-			fmt.Printf("    Profile:  %s\n", magenta(a.Profile))
+		if a.Preset != "" {
+			fmt.Printf("    Preset:  %s\n", magenta(a.Preset))
 		} else {
 			fmt.Printf("    Interval: %s\n", a.EffectiveInterval())
 			fmt.Printf("    Cooldown: %s\n", a.EffectiveCooldown())

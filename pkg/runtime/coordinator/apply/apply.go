@@ -8,13 +8,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/resources/shared"
-	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/intent"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/resources/core/shared"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // FieldManager is the server-side apply field manager for resources a
@@ -127,7 +129,7 @@ func Expand(raw []map[string]interface{}, owner domain.Object) ([]map[string]int
 		if !ok {
 			return nil, fmt.Errorf("resources[%d]: 'fields' must be an object", i)
 		}
-		built, err := buildFromIntent(typ, fields, owner)
+		built, err := intent.BuildResource(typ, fields, owner)
 		if err != nil {
 			return nil, fmt.Errorf("resources[%d]: %w", i, err)
 		}

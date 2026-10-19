@@ -3,9 +3,10 @@ package crds
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func blueprintWithLabels(crdName string, labels types.Labels) *checker {

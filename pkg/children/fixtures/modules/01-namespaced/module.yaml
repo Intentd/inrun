@@ -18,7 +18,7 @@ resources:
       forEach:
         field: spec.namespaces
         as: ns
-      profile: deny-all
+      preset: deny-all
 
   resourceQuotas:
     - name: "{{ .metadata.name }}-{{ .ns }}-quota"
@@ -26,7 +26,7 @@ resources:
       forEach:
         field: spec.namespaces
         as: ns
-      profile: small
+      preset: small
 
   limitRanges:
     - name: "{{ .metadata.name }}-{{ .ns }}-limits"

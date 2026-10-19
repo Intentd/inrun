@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/cronjobs"
+	"github.com/intentd/inrun/pkg/resources/core/cronjobs"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -90,16 +92,16 @@ func RunCronJobs(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveCronJobTemplate(src)
+		resolved, err := resources.ResolveCronJob(resolver, src)
 		if err != nil {
 			return fmt.Errorf("cronjobs[%d]: %w", i, err)
 		}
 
 		// 3. Build registry spec and apply
-		spec := cronjobs.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.CronJobSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := cronjobs.Update(ctx, kube, owner, spec); err != nil {
+			if err := cronjobs.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("cronjobs[%d].update: %w", i, err)
 			}
 		} else {
@@ -107,7 +109,7 @@ func RunCronJobs(
 				return fmt.Errorf("cronjobs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := cronjobs.Update(ctx, kube, owner, spec); err != nil {
+				if err := cronjobs.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("cronjobs[%d].reconcile: %w", i, err)
 				}
 			}

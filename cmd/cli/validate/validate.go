@@ -119,15 +119,15 @@ Examples:
 
 		full, _ := cmd.Flags().GetBool("full")
 		showFunctions, _ := cmd.Flags().GetBool("functions")
-		showProfiles, _ := cmd.Flags().GetBool("profiles")
+		showPresets, _ := cmd.Flags().GetBool("presets")
 
-		// --functions / --profiles: quiet mode — skip full validate output, print only that registry.
-		if showFunctions || showProfiles {
+		// --functions / --presets: quiet mode — skip full validate output, print only that registry.
+		if showFunctions || showPresets {
 			if showFunctions {
 				printValidateFunctions(bp.Functions)
 			}
-			if showProfiles {
-				printValidateProfiles(bp.Profiles)
+			if showPresets {
+				printValidatePresets(bp.Presets)
 			}
 			return nil
 		}
@@ -164,7 +164,7 @@ Examples:
 			printCRDValidationLine(bp, entry)
 			if full {
 				printCRDPermissions(perCRDPerms[entry.Name])
-				printCRDProfiles(entry)
+				printCRDPresets(entry)
 			}
 			fmt.Println()
 
@@ -200,7 +200,7 @@ Examples:
 
 		// Always print non-empty registries inline.
 		printValidateFunctions(bp.Functions)
-		printValidateProfiles(bp.Profiles)
+		printValidatePresets(bp.Presets)
 
 		return nil
 	},
@@ -648,8 +648,8 @@ func validateModuleFile(path string) error {
 		if summary := moduleResourceSummary(m); summary != "" {
 			fmt.Printf("    %s\n", cmdutil.Gray("resources: "+summary))
 		}
-		if summary := moduleProfileSummary(m); summary != "" {
-			fmt.Printf("    %s\n", cmdutil.Gray("profiles : "+summary))
+		if summary := modulePresetSummary(m); summary != "" {
+			fmt.Printf("    %s\n", cmdutil.Gray("presets : "+summary))
 		}
 	}
 
@@ -659,10 +659,10 @@ func validateModuleFile(path string) error {
 	return nil
 }
 
-// moduleProfileSummary returns a compact string listing non-empty profile classes
+// modulePresetSummary returns a compact string listing non-empty preset classes
 // and their counts, e.g. "networkPolicies(2) resourceQuotas(1)".
-func moduleProfileSummary(m *types.Module) string {
-	reg := m.Profiles
+func modulePresetSummary(m *types.Module) string {
+	reg := m.Presets
 	if reg.Empty() {
 		return ""
 	}
@@ -675,9 +675,9 @@ func moduleProfileSummary(m *types.Module) string {
 	add("networkPolicies", len(reg.NetworkPolicies))
 	add("resourceQuotas", len(reg.ResourceQuotas))
 	add("limitRanges", len(reg.LimitRanges))
-	add("hpa", len(reg.HPA))
-	add("pdb", len(reg.PDB))
-	add("rollingUpdate", len(reg.RollingUpdate))
+	add("hpa", len(reg.HPAs))
+	add("pdb", len(reg.PDBs))
+	add("rollingUpdate", len(reg.RollingUpdates))
 	return strings.Join(parts, " ")
 }
 
@@ -718,7 +718,7 @@ func moduleResourceSummary(m *types.Module) string {
 	return strings.Join(parts, " ")
 }
 
-func printValidateProfiles(reg types.ProfileRegistry) {
+func printValidatePresets(reg types.PresetRegistry) {
 	if reg.Empty() {
 		return
 	}
@@ -727,19 +727,19 @@ func printValidateProfiles(reg types.ProfileRegistry) {
 	for _, p := range reg.Resources {
 		entries = append(entries, entry{"resources", p.Name})
 	}
-	for _, p := range reg.ContainerSecurity {
+	for _, p := range reg.ContainerSecurities {
 		entries = append(entries, entry{"containerSecurity", p.Name})
 	}
-	for _, p := range reg.PodSecurity {
+	for _, p := range reg.PodSecurities {
 		entries = append(entries, entry{"podSecurity", p.Name})
 	}
-	for _, p := range reg.HPA {
+	for _, p := range reg.HPAs {
 		entries = append(entries, entry{"hpa", p.Name})
 	}
-	for _, p := range reg.PDB {
+	for _, p := range reg.PDBs {
 		entries = append(entries, entry{"pdb", p.Name})
 	}
-	for _, p := range reg.RollingUpdate {
+	for _, p := range reg.RollingUpdates {
 		entries = append(entries, entry{"rollingUpdate", p.Name})
 	}
 	for _, p := range reg.Reconciler {
@@ -764,7 +764,7 @@ func printValidateProfiles(reg types.ProfileRegistry) {
 		}
 	}
 	fmt.Println()
-	fmt.Printf("%s\n", cmdutil.Bold(fmt.Sprintf("Profiles (%d)", len(entries))))
+	fmt.Printf("%s\n", cmdutil.Bold(fmt.Sprintf("Presets (%d)", len(entries))))
 	for _, e := range entries {
 		fmt.Printf("  %s   %s\n", cmdutil.PadRight(cmdutil.Cyan(e.kind), maxLen), cmdutil.Gray(e.name))
 	}
@@ -801,7 +801,7 @@ func init() {
 	validateCmd.Flags().StringSliceP("file", "f", nil, "Path to an Inrun pattern (repeatable or comma-separated)")
 	validateCmd.Flags().Bool("full", false, "Show per-CRD permissions, dependency graph, and system-level RBAC")
 	validateCmd.Flags().Bool("functions", false, "Quiet mode: print only the merged function registry, skip full validate output")
-	validateCmd.Flags().Bool("profiles", false, "Quiet mode: print only the merged profile registry, skip full validate output")
+	validateCmd.Flags().Bool("presets", false, "Quiet mode: print only the merged preset registry, skip full validate output")
 
 	// Shadow global flags so they don't appear under `inrun validate`
 	cmdutil.ShadowGlobalCommandFlags(validateCmd)

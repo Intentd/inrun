@@ -10,7 +10,7 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint/validate/internal/check"
 	"github.com/intentd/inrun/pkg/blueprint/validate/metadata"
 	"github.com/intentd/inrun/pkg/blueprint/validate/observe"
-	"github.com/intentd/inrun/pkg/blueprint/validate/profiles"
+	"github.com/intentd/inrun/pkg/blueprint/validate/presets"
 	"github.com/intentd/inrun/pkg/blueprint/validate/publish"
 	"github.com/intentd/inrun/pkg/blueprint/validate/reconcile"
 	"github.com/intentd/inrun/pkg/blueprint/validate/runtime"
@@ -32,7 +32,7 @@ var blocks = []func(*blueprint.Blueprint, *config.Config) error{
 	admission.Check,
 	security.Check,
 	function.Check,
-	profiles.Check,
+	presets.Check,
 	serve.Check,
 	gateway.Check,
 	publish.Check,

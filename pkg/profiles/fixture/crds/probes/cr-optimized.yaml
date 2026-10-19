@@ -1,8 +1,0 @@
-apiVersion: profiles.inrun.dev/v1alpha1
-kind: ProfileProbeOptimized
-metadata:
-  name: my-probe
-  namespace: default
-spec:
-  image: nginx:1.25
-  port: 8080

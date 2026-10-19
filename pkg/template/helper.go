@@ -6,9 +6,10 @@ import (
 	"maps"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/types"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ResolveMap evaluates template expressions in each value of a map[string]string —
@@ -135,6 +136,14 @@ func objectToMap(obj domain.Object) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("objectToMap: %w", err)
 	}
 	return result, nil
+}
+
+// ResolveRaw returns the raw value at the path in a "{{ .a.b }}" expression,
+// keeping its type ([]interface{}, map, string, float64, bool), or nil when
+// the path does not exist. Used where a template names a list, such as
+// toNamespaces: "{{ .spec.targetNamespaces }}".
+func (r *Resolver) ResolveRaw(expr string) interface{} {
+	return resolveRawValue(r.data, expr)
 }
 
 // resolveRawValue navigates a dot-notation path extracted from a template

@@ -84,8 +84,8 @@ func validateTargetOperatorBox(crdName, targetName string, box *types.OperatorBo
 		if r.Queue != (types.Queue{}) {
 			bad = append(bad, "reconcile.queue")
 		}
-		if r.Profile != "" {
-			bad = append(bad, "reconcile.profile")
+		if r.Preset != "" {
+			bad = append(bad, "reconcile.preset")
 		}
 	}
 	if box.EffectiveAutoscale() != nil {

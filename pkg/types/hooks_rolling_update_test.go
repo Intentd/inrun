@@ -20,104 +20,104 @@ func crdWithDeploymentOnCreate(deps ...types.DeploymentTemplateSource) types.CRD
 	}
 }
 
-func TestCollectRollingUpdateProfileEntries_Empty(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_Empty(t *testing.T) {
 	c := types.CRDEntry{}
-	assert.Empty(t, c.CollectRollingUpdateProfileEntries())
+	assert.Empty(t, c.CollectRollingUpdatePresetEntries())
 }
 
-func TestCollectRollingUpdateProfileEntries_NoRollingUpdate(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_NoRollingUpdate(t *testing.T) {
 	c := crdWithDeploymentOnCreate(types.DeploymentTemplateSource{Name: "app"})
-	assert.Empty(t, c.CollectRollingUpdateProfileEntries())
+	assert.Empty(t, c.CollectRollingUpdatePresetEntries())
 }
 
-func TestCollectRollingUpdateProfileEntries_RollingUpdateNoProfile(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_RollingUpdateNoPreset(t *testing.T) {
 	c := crdWithDeploymentOnCreate(types.DeploymentTemplateSource{
 		Name:          "app",
 		RollingUpdate: &types.RollingUpdateBehavior{},
 	})
-	assert.Empty(t, c.CollectRollingUpdateProfileEntries())
+	assert.Empty(t, c.CollectRollingUpdatePresetEntries())
 }
 
-func TestCollectRollingUpdateProfileEntries_ProfileReturned(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_PresetReturned(t *testing.T) {
 	c := crdWithDeploymentOnCreate(types.DeploymentTemplateSource{
 		Name:          "app",
-		RollingUpdate: &types.RollingUpdateBehavior{Profile: "safe"},
+		RollingUpdate: &types.RollingUpdateBehavior{Preset: "safe"},
 	})
-	entries := c.CollectRollingUpdateProfileEntries()
+	entries := c.CollectRollingUpdatePresetEntries()
 	require.Len(t, entries, 1)
 	assert.Equal(t, "onCreate", entries[0].Phase)
 	assert.Equal(t, "app", entries[0].ResourceName)
-	assert.Equal(t, "safe", entries[0].Profile)
+	assert.Equal(t, "safe", entries[0].Preset)
 	assert.False(t, entries[0].Mixed)
 }
 
-func TestCollectRollingUpdateProfileEntries_Mixed_MaxSurge(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_Mixed_MaxSurge(t *testing.T) {
 	c := crdWithDeploymentOnCreate(types.DeploymentTemplateSource{
 		Name: "app",
 		RollingUpdate: &types.RollingUpdateBehavior{
-			Profile:  "fast",
+			Preset:   "fast",
 			MaxSurge: "2",
 		},
 	})
-	entries := c.CollectRollingUpdateProfileEntries()
+	entries := c.CollectRollingUpdatePresetEntries()
 	require.Len(t, entries, 1)
 	assert.True(t, entries[0].Mixed)
 }
 
-func TestCollectRollingUpdateProfileEntries_Mixed_MaxUnavailable(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_Mixed_MaxUnavailable(t *testing.T) {
 	c := crdWithDeploymentOnCreate(types.DeploymentTemplateSource{
 		Name: "app",
 		RollingUpdate: &types.RollingUpdateBehavior{
-			Profile:        "blue-green",
+			Preset:         "blue-green",
 			MaxUnavailable: "0",
 		},
 	})
-	entries := c.CollectRollingUpdateProfileEntries()
+	entries := c.CollectRollingUpdatePresetEntries()
 	require.Len(t, entries, 1)
 	assert.True(t, entries[0].Mixed)
 }
 
-func TestCollectRollingUpdateProfileEntries_TemplateExpr(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_TemplateExpr(t *testing.T) {
 	c := crdWithDeploymentOnCreate(types.DeploymentTemplateSource{
-		RollingUpdate: &types.RollingUpdateBehavior{Profile: "{{ .Spec.DeployProfile }}"},
+		RollingUpdate: &types.RollingUpdateBehavior{Preset: "{{ .Spec.DeployPreset }}"},
 	})
-	entries := c.CollectRollingUpdateProfileEntries()
+	entries := c.CollectRollingUpdatePresetEntries()
 	require.Len(t, entries, 1)
-	assert.Equal(t, "{{ .Spec.DeployProfile }}", entries[0].Profile)
+	assert.Equal(t, "{{ .Spec.DeployPreset }}", entries[0].Preset)
 }
 
-func TestCollectRollingUpdateProfileEntries_StatefulSet(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_StatefulSet(t *testing.T) {
 	c := types.CRDEntry{
 		OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
 				OnCreate: &types.HookTemplates{
 					StatefulSets: []types.StatefulSetTemplateSource{
-						{Name: "db", RollingUpdate: &types.RollingUpdateBehavior{Profile: "safe"}},
+						{Name: "db", RollingUpdate: &types.RollingUpdateBehavior{Preset: "safe"}},
 					},
 				},
 			},
 		},
 	}
-	entries := c.CollectRollingUpdateProfileEntries()
+	entries := c.CollectRollingUpdatePresetEntries()
 	require.Len(t, entries, 1)
-	assert.Equal(t, "safe", entries[0].Profile)
+	assert.Equal(t, "safe", entries[0].Preset)
 	assert.Equal(t, "db", entries[0].ResourceName)
 }
 
-func TestCollectRollingUpdateProfileEntries_OnReconcile(t *testing.T) {
+func TestCollectRollingUpdatePresetEntries_OnReconcile(t *testing.T) {
 	c := types.CRDEntry{
 		OperatorBox: &types.OperatorBoxConfig{
 			Reconcile: &types.ReconcileConfig{
 				OnReconcile: &types.HookTemplates{
 					Deployments: []types.DeploymentTemplateSource{
-						{Name: "app", RollingUpdate: &types.RollingUpdateBehavior{Profile: "fast"}},
+						{Name: "app", RollingUpdate: &types.RollingUpdateBehavior{Preset: "fast"}},
 					},
 				},
 			},
 		},
 	}
-	entries := c.CollectRollingUpdateProfileEntries()
+	entries := c.CollectRollingUpdatePresetEntries()
 	require.Len(t, entries, 1)
 	assert.Equal(t, "onReconcile", entries[0].Phase)
-	assert.Equal(t, "fast", entries[0].Profile)
+	assert.Equal(t, "fast", entries[0].Preset)
 }

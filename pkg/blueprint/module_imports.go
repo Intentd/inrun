@@ -3,12 +3,12 @@
 // Two import paths:
 //
 //	spec.imports (Blueprint-wide) — expandBlueprintImports
-//	  Merges profiles: and functions: from each Module into the Blueprint-wide registries.
+//	  Merges presets: and functions: from each Module into the Blueprint-wide registries.
 //	  Resources, status, and admission in the Module are ignored at this level.
 //
 //	spec.crds[name].imports (CRD-scoped) — expandModuleImports
 //	  Merges resources, status, and admission into the target CRD.
-//	  Profiles and notes in the Module are ignored at this level.
+//	  Presets and notes in the Module are ignored at this level.
 package blueprint
 
 import (
@@ -21,8 +21,8 @@ import (
 )
 
 // expandBlueprintImports resolves spec.imports entries on the Blueprint.
-// For each import, profiles: and functions: from the expanded Module are merged
-// into the Blueprint-wide ProfileRegistry and KELFunctionRegistry respectively.
+// For each import, presets: and functions: from the expanded Module are merged
+// into the Blueprint-wide PresetRegistry and KELFunctionRegistry respectively.
 // Resources, status, and admission are ignored at this level.
 func (c *Blueprint) expandBlueprintImports() error {
 	seen := make(map[string]string) // note name → module label, for conflict detection
@@ -32,12 +32,12 @@ func (c *Blueprint) expandBlueprintImports() error {
 			return fmt.Errorf("spec.imports[%d]: %w", i, err)
 		}
 		label := fmt.Sprintf("spec.imports[%d] module %q", i, expanded.Name)
-		if !expanded.Profiles.Empty() {
-			merged, err := c.Profiles.Merge(expanded.Profiles, label)
+		if !expanded.Presets.Empty() {
+			merged, err := c.Presets.Merge(expanded.Presets, label)
 			if err != nil {
-				return fmt.Errorf("spec.imports[%d]: merging profiles from module %q: %w", i, expanded.Name, err)
+				return fmt.Errorf("spec.imports[%d]: merging presets from module %q: %w", i, expanded.Name, err)
 			}
-			c.Profiles = merged
+			c.Presets = merged
 		}
 		if !expanded.Functions.Empty() {
 			merged, err := c.Functions.MergeImport(expanded.Functions, label, seen)
@@ -73,8 +73,8 @@ func (c *Blueprint) expandModuleImports() error {
 				return fmt.Errorf("CRD %q: operatorBox.imports[%d]: merging module %q: %w",
 					name, i, imp.Module, err)
 			}
-			if !expanded.Profiles.Empty() {
-				warning := fmt.Sprintf("CRD %q: import[%d] module %q: profiles: are ignored at CRD-level imports — use spec.imports to apply profiles Blueprint-wide",
+			if !expanded.Presets.Empty() {
+				warning := fmt.Sprintf("CRD %q: import[%d] module %q: presets: are ignored at CRD-level imports — use spec.imports to apply presets Blueprint-wide",
 					name, i, expanded.Name)
 				entry.Warnings.AddWarning(warning)
 				c.Warnings.AddWarning(warning)

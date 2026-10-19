@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/services"
+	"github.com/intentd/inrun/pkg/resources/core/services"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -71,16 +73,16 @@ func RunServices(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveServiceTemplate(src)
+		resolved, err := resources.ResolveService(resolver, src)
 		if err != nil {
 			return fmt.Errorf("services[%d]: %w", i, err)
 		}
 
 		// 3. Build registry spec and apply
-		spec := services.Resolve(resolved, resolver.OwnerName())
+		spec := resources.ServiceSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := services.Update(ctx, kube, owner, spec); err != nil {
+			if err := services.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("services[%d].update: %w", i, err)
 			}
 		} else {
@@ -90,7 +92,7 @@ func RunServices(
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := services.Update(ctx, kube, owner, spec); err != nil {
+				if err := services.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("services[%d].reconcile: %w", i, err)
 				}
 			}

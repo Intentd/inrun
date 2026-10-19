@@ -1,0 +1,96 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: database-operator
+  version: 0.1.0
+  description: Manages PostgreSQL StatefulSets with persistent storage
+
+spec:
+  crds:
+    database:
+      apiTypes:
+        group: db.inrun.dev
+        version: v1alpha1
+        kind: Database
+        plural: databases
+      operatorBox:
+        reconcile:
+          onCreate:
+            statefulSets:
+            - name: "{{ .metadata.name }}"
+              namespace: "{{ .metadata.namespace }}"
+              image: "{{ .spec.image }}"
+              replicas: "{{ .spec.replicas | default \"1\" }}"
+              port: "5432"
+              serviceName: "{{ .metadata.name }}-headless"
+              resources:
+                preset: "{{ .spec.resourcePreset | default \"small\" }}"
+              reconcile: true
+              when:
+                - field: spec.image
+                  exists: true
+              volumeClaimTemplates:
+                - name: data
+                  storageClass: '{{ .spec.storageClass | default "standard" }}'
+                  storageSize: '{{ .spec.storageSize | default "10Gi" }}'
+                  mountPath: /var/lib/postgresql/data
+                - name: wal
+                  storageClass: '{{ .spec.storageClass | default "standard" }}'
+                  storageSize: '{{ .spec.walSize | default "5Gi" }}'
+                  mountPath: /var/lib/postgresql/wal
+              env:
+                - name: POSTGRES_DB
+                  value: '{{ .spec.database | default "app" }}'
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ .metadata.name }}-creds"
+                      key: username
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ .metadata.name }}-creds"
+                      key: password
+
+            # Headless service required by StatefulSet for pod DNS
+            services:
+              - name: "{{ .metadata.name }}-headless"
+                namespace: "{{ .metadata.namespace }}"
+                port: "5432"
+                headless: true
+                reconcile: true
+
+              # Regular service for client connections
+              - name: "{{ .metadata.name }}"
+                namespace: "{{ .metadata.namespace }}"
+                port: "5432"
+                reconcile: true
+
+            secrets:
+              - name: "{{ .metadata.name }}-creds"
+                namespace: "{{ .metadata.namespace }}"
+                data:
+                  username: '{{ .spec.username | default "postgres" }}'
+                  password: "{{ .spec.password }}"
+                reconcile: true
+                when:
+                  - field: spec.password
+                    exists: true
+        runtime:
+          allowedNamespaces:
+            - databases
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: spec.image
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: spec.image
+                    exists: true
+

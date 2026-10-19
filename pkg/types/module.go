@@ -32,7 +32,7 @@ type Module struct {
 	Metadata   ModuleMeta          `yaml:"metadata" json:"metadata"`
 	Inputs     []ModuleInput       `yaml:"inputs,omitempty" json:"inputs,omitempty"`
 	Functions  KELFunctionRegistry `yaml:"functions,omitempty" json:"functions,omitempty"`
-	Profiles   ProfileRegistry     `yaml:"profiles,omitempty" json:"profiles,omitempty"`
+	Presets    PresetRegistry      `yaml:"presets,omitempty" json:"presets,omitempty"`
 	Resources  *ModuleResources    `yaml:"resources,omitempty" json:"resources,omitempty"`
 	Status     *StatusConfig       `yaml:"status,omitempty" json:"status,omitempty"`
 	Admission  *Admission          `yaml:"admission,omitempty" json:"admission,omitempty"`

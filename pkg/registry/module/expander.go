@@ -39,9 +39,9 @@ type ExpandedModule struct {
 	// NotFunctionses carries user-defined functions declared in the module.
 	// Merged into the Blueprint's KELFunctionRegistry during expandBlueprintImports.
 	Functions types.KELFunctionRegistry
-	// Profiles carries user-defined profiles declared in the module.
-	// Merged into the Blueprint's ProfileRegistry during expandBlueprintImports.
-	Profiles types.ProfileRegistry
+	// Presets carries user-defined presets declared in the module.
+	// Merged into the Blueprint's PresetRegistry during expandBlueprintImports.
+	Presets types.PresetRegistry
 }
 
 // HasResources returns true when the module produced any resource templates.
@@ -146,7 +146,7 @@ func Expand(m *types.Module, bindings map[string]string) (*ExpandedModule, error
 		Status:      status,
 		Admission:   admission,
 		Functions:   m.Functions,
-		Profiles:    m.Profiles,
+		Presets:     m.Presets,
 	}, nil
 }
 

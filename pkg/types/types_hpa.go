@@ -1,13 +1,12 @@
 // pkg/types/types_hpa.go
 package types
 
+import restypes "github.com/intentd/inrun/pkg/resources/core/types"
+
 // ── HorizontalPodAutoscaler ───────────────────────────────────────────────────
 
-type ScaleTargetRef struct {
-	APIVersion string `yaml:"apiVersion" json:"apiVersion"`
-	Kind       string `yaml:"kind" json:"kind"`
-	Name       string `yaml:"name" json:"name"`
-}
+// ScaleTargetRef is restypes.ScaleTargetRef.
+type ScaleTargetRef = restypes.ScaleTargetRef
 
 // HPATemplateSource declares one HorizontalPodAutoscaler to be managed by Inrun.
 //
@@ -47,15 +46,15 @@ type HPATemplateSource struct {
 	MaxReplicas string `yaml:"maxReplicas,omitempty" json:"maxReplicas,omitempty"`
 
 	// TargetCPUUtilizationPercentage — CPU utilization target (0-100). Supports templates.
-	// When behavior.profile is set and this field is empty, the profile provides the default.
+	// When behavior.preset is set and this field is empty, the preset provides the default.
 	TargetCPUUtilizationPercentage string `yaml:"targetCPUUtilizationPercentage,omitempty" json:"targetCPUUtilizationPercentage,omitempty"`
 
 	// Behavior — scale-up and scale-down behavior configuration.
-	// Set profile for a complete preset, or configure scaleUp/scaleDown explicitly.
-	// Profile and explicit fields are mutually exclusive.
+	// Set preset for a complete preset, or configure scaleUp/scaleDown explicitly.
+	// Preset and explicit fields are mutually exclusive.
 	//
 	//	behavior:
-	//	  profile: web
+	//	  preset: web
 	//
 	//	behavior:
 	//	  scaleUp:

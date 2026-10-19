@@ -184,8 +184,8 @@ func (c *Blueprint) effectiveResolver(ctx context.Context, obj domain.Object, pr
 	if err != nil {
 		return nil
 	}
-	if !c.Profiles.Empty() {
-		resolver = resolver.WithProfiles(c.UserProfiles())
+	if !c.Presets.Empty() {
+		resolver = resolver.WithPresets(c.UserPresets())
 	}
 	if !c.Functions.Empty() {
 		resolver = resolver.WithUserFunctions(c.UserFunctions())

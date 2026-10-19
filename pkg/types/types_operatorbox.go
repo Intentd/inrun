@@ -355,9 +355,9 @@ type ReconcilerConfig struct {
 	// Signature: NewReconcilerFunc.
 	ConstructorDecl *ConstructorDeclaration `yaml:"constructor,omitempty" json:"constructor,omitempty" validate:"omitempty"`
 
-	// Profile is a named tuning preset. Built-ins: high-throughput, conservative, development.
-	// Inline Workers/Resync/Queue override the profile.
-	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
+	// Preset is a named tuning preset. Built-ins: high-throughput, conservative, development.
+	// Inline Workers/Resync/Queue override the preset.
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
 
 	// Workers is the number of concurrent reconcile goroutines. 0 → DEFAULT_WORKERS.
 	Workers int `yaml:"workers,omitempty" json:"workers,omitempty" validate:"omitempty,gte=1,lte=50"`

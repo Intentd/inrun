@@ -18,7 +18,7 @@ type Blueprint struct {
 	Spec       types.BlueprintSpec       `yaml:"spec"`
 	Security   types.BlueprintSecurity   `yaml:"security"`
 	Functions  types.KELFunctionRegistry `yaml:"functions,omitempty"`
-	Profiles   types.ProfileRegistry     `yaml:"profiles,omitempty"`
+	Presets    types.PresetRegistry      `yaml:"presets,omitempty"`
 	Gateway    *types.GatewayConfig      `yaml:"gateway,omitempty"`
 	Publish    *types.PublishConfig      `yaml:"publish,omitempty"`
 
@@ -124,12 +124,12 @@ func (c *Blueprint) UserFunctions() types.KELFunctionRegistry {
 	return c.Functions
 }
 
-// UserProfiles returns all user defined profiles in the blueprint
-func (c *Blueprint) UserProfiles() *types.ProfileRegistry {
+// UserPresets returns all user defined presets in the blueprint
+func (c *Blueprint) UserPresets() *types.PresetRegistry {
 	if c == nil {
 		return nil
 	}
-	return &c.Profiles
+	return &c.Presets
 }
 
 // Empty reports true when the blueprint is nil.

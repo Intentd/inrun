@@ -5,14 +5,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/ingresses"
+	"github.com/intentd/inrun/pkg/resources/core/ingresses"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RunIngresses resolves and applies Ingress template declarations.
@@ -68,12 +71,12 @@ func RunIngresses(
 			continue
 		}
 
-		resolved, err := resolver.ResolveIngressTemplate(src)
+		resolved, err := resources.ResolveIngress(resolver, src)
 		if err != nil {
 			return fmt.Errorf("ingresses[%d]: %w", i, err)
 		}
 
-		spec := ingresses.Resolve(resolved, resolver.OwnerName())
+		spec := resources.IngressSpec(resolved, resolver.OwnerName())
 
 		// Ensure TLS secret exists before applying the Ingress.
 		if spec.TLS != nil && spec.TLS.Create {
@@ -83,7 +86,7 @@ func RunIngresses(
 		}
 
 		if update {
-			if err := ingresses.Update(ctx, kube, owner, spec); err != nil {
+			if err := ingresses.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("ingresses[%d].update: %w", i, err)
 			}
 		} else {
@@ -91,7 +94,7 @@ func RunIngresses(
 				return fmt.Errorf("ingresses[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := ingresses.Update(ctx, kube, owner, spec); err != nil {
+				if err := ingresses.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("ingresses[%d].reconcile: %w", i, err)
 				}
 			}
@@ -109,7 +112,7 @@ func ensureIngressTLSSecret(
 	ctx context.Context,
 	kube kubeclient.Interface,
 	owner domain.Object,
-	spec ingresses.ResolvedIngressSpec,
+	spec ingresses.Spec,
 	namespace string,
 ) error {
 	secretName := spec.TLS.SecretName

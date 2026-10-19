@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/limitranges"
+	"github.com/intentd/inrun/pkg/resources/core/limitranges"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -69,12 +71,12 @@ func RunLimitRanges(
 			continue
 		}
 
-		resolved, err := resolver.ResolveLimitRangeTemplate(src)
+		resolved, err := resources.ResolveLimitRange(resolver, src)
 		if err != nil {
 			return fmt.Errorf("limitRanges[%d]: %w", i, err)
 		}
 
-		spec := limitranges.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.LimitRangeSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if len(resolved.ToNamespaces) > 0 {
 			namespaces, err := resolver.ResolveStringSlice(resolved.ToNamespaces)
@@ -90,7 +92,7 @@ func RunLimitRanges(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := limitranges.Update(ctx, kube, owner, nsSpec); err != nil {
+					if err := limitranges.Apply(ctx, kube, owner, nsSpec); err != nil {
 						return fmt.Errorf("limitRanges[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
@@ -103,7 +105,7 @@ func RunLimitRanges(
 		}
 
 		if update {
-			if err := limitranges.Update(ctx, kube, owner, spec); err != nil {
+			if err := limitranges.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("limitRanges[%d].update: %w", i, err)
 			}
 		} else {
@@ -111,7 +113,7 @@ func RunLimitRanges(
 				return fmt.Errorf("limitRanges[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := limitranges.Update(ctx, kube, owner, spec); err != nil {
+				if err := limitranges.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("limitRanges[%d].reconcile: %w", i, err)
 				}
 			}

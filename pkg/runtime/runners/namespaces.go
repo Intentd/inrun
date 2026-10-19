@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/namespaces"
+	"github.com/intentd/inrun/pkg/resources/core/namespaces"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -62,13 +64,13 @@ func RunNamespaces(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveNamespaceTemplate(src)
+		resolved, err := resources.ResolveNamespace(resolver, src)
 		if err != nil {
 			return fmt.Errorf("namespace[%d]: %w", i, err)
 		}
 
 		// 3. Build registry spec and apply
-		spec := namespaces.Resolve(resolved, resolver.OwnerName())
+		spec := resources.NamespaceSpec(resolved, resolver.OwnerName())
 
 		// Always create — Namespaces have no meaningful drift to correct
 		if err := namespaces.Create(ctx, kube, owner, spec); err != nil {

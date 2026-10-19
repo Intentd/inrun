@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	apiv1 "github.com/intentd/inrun-args-hooks-targets/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/resources/deployments"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/intentd/inrun/pkg/resources/core/deployments"
 )
 
 // BlockchainAppWithTargetsReconciler is the per-target constructor reconciler
@@ -51,7 +52,7 @@ func (r *BlockchainAppWithTargetsReconciler) Reconcile(ctx context.Context, req 
 		replicas = 1
 	}
 
-	spec := deployments.ResolvedDeploymentSpec{
+	spec := deployments.Spec{
 		Name:      app.Name,
 		Namespace: app.Namespace,
 		Image:     app.Spec.Image,

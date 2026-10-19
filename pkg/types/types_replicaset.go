@@ -80,11 +80,11 @@ type ReplicaSetTemplateSource struct {
 	Annotations Labels `yaml:"annotations,omitempty" json:"annotations,omitempty" validate:"omitempty"`
 
 	// Resources — CPU and memory requests/limits for the primary container.
-	// Set resources.profile for a named preset, or resources.requests/limits for
-	// explicit values. Profile and explicit values are mutually exclusive.
+	// Set resources.preset for a named preset, or resources.requests/limits for
+	// explicit values. Preset and explicit values are mutually exclusive.
 	//
 	//	resources:
-	//	  profile: burst
+	//	  preset: burst
 	Resources *ResourceRequirements `yaml:"resources,omitempty" json:"resources,omitempty" validate:"omitempty"`
 
 	// Env — environment variables for the primary container, in Kubernetes-native list format.
@@ -149,16 +149,16 @@ type ReplicaSetTemplateSource struct {
 	Probes *ProbesConfig `yaml:"probes,omitempty" json:"probes,omitempty"`
 
 	// SecurityContext — container-level security settings.
-	// Set securityContext.profile for a named preset (baseline, restricted, hardened)
-	// or declare individual fields. Profile and explicit fields are mutually exclusive.
+	// Set securityContext.preset for a named preset (baseline, restricted, hardened)
+	// or declare individual fields. Preset and explicit fields are mutually exclusive.
 	SecurityContext *ContainerSecurityContext `yaml:"securityContext,omitempty" json:"securityContext,omitempty"`
 
 	// PodSecurity — pod-level security settings applied to the pod spec.
-	// Set podSecurity.profile for a named preset or declare individual fields.
+	// Set podSecurity.preset for a named preset or declare individual fields.
 	PodSecurity *PodSecurityContext `yaml:"podSecurity,omitempty" json:"podSecurity,omitempty"`
 
 	// RollingUpdate — rolling update strategy for this ReplicaSet.
-	// Set rollingUpdate.profile for a named preset (safe, fast, blue-green),
+	// Set rollingUpdate.preset for a named preset (safe, fast, blue-green),
 	// or declare maxSurge/maxUnavailable explicitly.
 	RollingUpdate *RollingUpdateBehavior `yaml:"rollingUpdate,omitempty" json:"rollingUpdate,omitempty"`
 

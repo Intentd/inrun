@@ -8,20 +8,23 @@ import (
 	"strings"
 	texttemplate "text/template"
 
+	"github.com/intentd/kel/core"
+
 	"github.com/intentd/inrun/pkg/util/kube"
 	"github.com/intentd/inrun/pkg/util/structured"
 	"github.com/intentd/inrun/pkg/util/term"
-	"github.com/intentd/kel/core"
 
 	"github.com/go-playground/validator/v10"
+	"k8s.io/apimachinery/pkg/api/validate/content"
+
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/funcs"
-	"k8s.io/apimachinery/pkg/api/validate/content"
+
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/intentd/inrun/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // Checker is what every block's checks read: the Blueprint under validation and

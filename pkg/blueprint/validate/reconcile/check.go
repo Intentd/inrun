@@ -24,7 +24,7 @@ func Check(bp *blueprint.Blueprint, cfg *config.Config) error {
 		c.validateHPAReference,
 		c.validateService,
 		c.validateCustomResources,
-		c.validateSecurityProfiles,
+		c.validateSecurityPresets,
 		c.validateSecurityCapabilities,
 		c.validatePortProtocols,
 		c.validateWorkloadAutoscale,

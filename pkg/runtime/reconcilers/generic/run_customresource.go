@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/customresources"
+	"github.com/intentd/inrun/pkg/resources/core/customresources"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -84,18 +86,18 @@ func runCustomResources(
 		}
 
 		// Resolve the templated custom resource declaration into a concrete CustomResource
-		resolved, err := resolver.ResolveCustomResourceTemplate(src)
+		resolved, err := resources.ResolveCustomResource(resolver, src)
 		if err != nil {
 			return fmt.Errorf("custom[%d]: resolve template: %w", i, err)
 		}
 
-		// Convert resolved template into the runtime ResolvedCustomResourceSpec
-		spec := customresources.Resolve(resolved, resolver.OwnerName())
+		// Convert resolved template into the runtime customresources.Spec
+		spec := resources.CustomResourceSpec(resolved, resolver.OwnerName())
 
 		// Create is a no-op if the resource already exists (idempotent OnCreate).
 		// Update always corrects drift — delete drift (recreate) and spec drift.
 		if update {
-			if err := customresources.Update(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
+			if err := customresources.Apply(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
 				return fmt.Errorf("custom[%d].update: %w", i, err)
 			}
 		} else {
@@ -105,7 +107,7 @@ func runCustomResources(
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := customresources.Update(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
+				if err := customresources.Apply(ctx, kube, owner, spec, labelMgr, shouldProtect); err != nil {
 					return fmt.Errorf("custom[%d].reconcile: %w", i, err)
 				}
 			}

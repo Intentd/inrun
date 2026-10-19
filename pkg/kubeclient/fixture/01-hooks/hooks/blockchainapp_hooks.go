@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	apiv1 "github.com/intentd/inrun-args-hooks/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/resources/deployments"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/intentd/inrun/pkg/resources/core/deployments"
 )
 
 // BlockchainAppHooks returns the hook implementation registered in the Blueprint.
@@ -40,7 +41,7 @@ func onBlockchainAppReconcile(ctx context.Context, req domain.Request, obj *apiv
 		replicas = 1
 	}
 
-	spec := deployments.ResolvedDeploymentSpec{
+	spec := deployments.Spec{
 		Name:      obj.Name,
 		Namespace: obj.Namespace,
 		Image:     obj.Spec.Image,

@@ -250,7 +250,7 @@ func (c *CRDEntry) EffectiveOperatorBox(target string) *OperatorBoxConfig {
 }
 
 // mergeReconcileConfig merges a per-target reconcile block on top of the CRD-level one.
-// Workers, resync, queue, and profile are always inherited from the CRD-level.
+// Workers, resync, queue, and preset are always inherited from the CRD-level.
 // Hook identity fields (location, function, alias) come from CRD-level when the
 // target omits them. A target's onCreate, onReconcile and onDelete replace the
 // CRD-level phase they name. Args are merged key-by-key with target winning; the
@@ -262,7 +262,7 @@ func mergeReconcileConfig(base, target *ReconcileConfig) *ReconcileConfig {
 	if base == nil {
 		return target
 	}
-	// Start from base so workers/resync/queue/profile/default/constructor are inherited.
+	// Start from base so workers/resync/queue/preset/default/constructor are inherited.
 	merged := *base
 	if target.Hooks != nil {
 		if merged.Hooks == nil {

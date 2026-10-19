@@ -14,7 +14,7 @@
 //     c. once: false                       — standard create/update
 //  3. Resolve template expressions         — randomAlphanumeric evaluated here
 //  4. TLS generation (if tls: is set)      — generate CA + cert, skip data resolution
-//  5. Create/Update/CopyToNamespaces
+//  5. Create/Apply/CopyToNamespaces
 //  6. Annotate with generated-at           — only when rotateAfter is set
 package runners
 
@@ -22,12 +22,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/secrets"
+	"github.com/intentd/inrun/pkg/resources/core/secrets"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -66,7 +68,7 @@ func RunSecrets(
 		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
 
 		// Resolve name and namespace early — needed for guard check, once: checks,
-		// and DeleteIfOwned cleanup. ResolveSecretTemplate resolves these again
+		// and DeleteIfOwned cleanup. resources.ResolveSecret resolves these again
 		// internally — intentional, cheap.
 		name, _ := resolver.Resolve(src.Name)
 		if name == "" && src.TLS != nil {
@@ -161,11 +163,11 @@ func RunSecrets(
 		// ── Step 3: resolve template expressions ────────────────────────────────
 		// randomAlphanumeric, randomHex, randomBase64 are evaluated here.
 		// The once: check above ensures this only runs on first creation or after rotation.
-		resolved, err := resolver.ResolveSecretTemplate(src)
+		resolved, err := resources.ResolveSecret(resolver, src)
 		if err != nil {
 			return fmt.Errorf("secrets[%d]: %w", i, err)
 		}
-		// Apply resolved name/ns (may have been resolved before ResolveSecretTemplate)
+		// Apply resolved name/ns (may have been resolved before resources.ResolveSecret)
 		if resolved.Name == "" {
 			resolved.Name = name
 		}
@@ -174,7 +176,7 @@ func RunSecrets(
 		}
 
 		// ── Step 5: apply ────────────────────────────────────────────────────────
-		spec := secrets.Resolve(resolved, resolver.OwnerName())
+		spec := resources.SecretSpec(resolved, resolver.OwnerName())
 
 		// Attach rotation annotation when rotateAfter is declared
 		if src.RotateAfter != "" && spec.Annotations == nil {
@@ -195,7 +197,7 @@ func RunSecrets(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := secrets.Update(ctx, kube, owner, nsSpec); err != nil {
+					if err := secrets.Apply(ctx, kube, owner, nsSpec); err != nil {
 						return fmt.Errorf("secrets[%d].sync namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
@@ -208,7 +210,7 @@ func RunSecrets(
 		}
 
 		if update {
-			if err := secrets.Update(ctx, kube, owner, spec); err != nil {
+			if err := secrets.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("secrets[%d].update: %w", i, err)
 			}
 		} else {
@@ -216,7 +218,7 @@ func RunSecrets(
 				return fmt.Errorf("secrets[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := secrets.Update(ctx, kube, owner, spec); err != nil {
+				if err := secrets.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("secrets[%d].reconcile: %w", i, err)
 				}
 			}

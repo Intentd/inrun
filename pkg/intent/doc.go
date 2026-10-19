@@ -1,8 +1,10 @@
-// Package intent turns an intent into a custom resource and reads it back.
+// Package intent turns an intent into an object and reads it back.
 //
-// An intent is the flat payload a caller sends to the gateway, in the
-// caller's own vocabulary, with no apiVersion, kind or spec. Build maps it
-// onto the CRD using the CRD's serve declaration. FromObject and Target
-// read the intent and its target back from a stored resource, so the
-// runtime can reconcile it per target.
+// An intent is a flat payload in the caller's own vocabulary, with no
+// apiVersion, kind or spec. BuildCR maps a gateway intent onto a CRD using the
+// CRD's serve declaration. BuildResource maps a resource intent, which a
+// remote reconciler returns, onto a built-in kind such as a Deployment; the
+// builders for each kind are in package resources. FromObject and Target read
+// an intent and its target back from a stored resource, so the runtime can
+// reconcile it per target.
 package intent

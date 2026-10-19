@@ -1,20 +1,20 @@
-// Security Profile Validation
+// Security Preset Validation
 //
-// Security profiles are named presets that expand into concrete security
-// context fields at blueprint load time. Profile and explicit fields are mutually
+// Security presets are named presets that expand into concrete security
+// context fields at blueprint load time. Preset and explicit fields are mutually
 // exclusive — mixing them creates ambiguity and is rejected at load time.
 //
 // Validation enforces:
 //
-//  1. Profile-only usage:
-//     securityContext.profile cannot appear alongside explicit security fields.
-//     podSecurity.profile cannot appear alongside explicit pod security fields.
+//  1. Preset-only usage:
+//     securityContext.preset cannot appear alongside explicit security fields.
+//     podSecurity.preset cannot appear alongside explicit pod security fields.
 //
-//  2. Known profile names:
+//  2. Known preset names:
 //     Allowed: baseline, restricted, hardened.
 //
 //  3. Template expressions:
-//     Profile values containing "{{" are skipped at load time and validated
+//     Preset values containing "{{" are skipped at load time and validated
 //     at reconcile time instead.
 
 package reconcile
@@ -23,31 +23,31 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/resources/presets"
 )
 
-// validateSecurityProfiles ensures that security profiles are used correctly
+// validateSecurityPresets ensures that security presets are used correctly
 // across all template resources in every hook phase.
-func (c *checker) validateSecurityProfiles() error {
+func (c *checker) validateSecurityPresets() error {
 	for crdName, crd := range c.Blueprint.EnabledCRDs() {
-		for _, entry := range crd.CollectSecurityProfileEntries() {
-			if isTemplate(entry.Profile) {
+		for _, entry := range crd.CollectSecurityPresetEntries() {
+			if isTemplate(entry.Preset) {
 				continue
 			}
-			_, csUser := c.Blueprint.Profiles.LookupContainerSecurity(entry.Profile)
-			_, psUser := c.Blueprint.Profiles.LookupPodSecurity(entry.Profile)
-			if !csUser && !psUser && !profiles.IsValidSecurityProfile(entry.Profile) {
+			_, csUser := c.Blueprint.Presets.ContainerSecurity(entry.Preset)
+			_, psUser := c.Blueprint.Presets.PodSecurity(entry.Preset)
+			if !csUser && !psUser && !isBuiltinSecurity(entry.Preset) {
 				return fmt.Errorf(
-					"%s crd %q: %s %q (phase %s) has unknown %s security profile %q — "+
-						"allowed: baseline, restricted, hardened, or a user-defined profile declared in profiles.containerSecurity / profiles.podSecurity",
-					failureMark(), crdName, entry.Resource, entry.ResourceName, entry.Phase, entry.Kind, entry.Profile,
+					"%s crd %q: %s %q (phase %s) has unknown %s security preset %q — "+
+						"allowed: baseline, restricted, hardened, or a user-defined preset declared in presets.containerSecurity / presets.podSecurity",
+					failureMark(), crdName, entry.Resource, entry.ResourceName, entry.Phase, entry.Kind, entry.Preset,
 				)
 			}
 			if entry.Mixed {
 				return fmt.Errorf(
-					"%s crd %q: %s %q (phase %s) declares both a %s security profile (%q) and "+
+					"%s crd %q: %s %q (phase %s) declares both a %s security preset (%q) and "+
 						"explicit security fields — use one or the other, not both",
-					failureMark(), crdName, entry.Resource, entry.ResourceName, entry.Phase, entry.Kind, entry.Profile,
+					failureMark(), crdName, entry.Resource, entry.ResourceName, entry.Phase, entry.Kind, entry.Preset,
 				)
 			}
 		}
@@ -130,5 +130,11 @@ var knownLinuxCapabilities = map[string]struct{}{
 
 func isKnownLinuxCapability(name string) bool {
 	_, ok := knownLinuxCapabilities[name]
+	return ok
+}
+
+// isBuiltinSecurity reports whether name is a built-in security preset.
+func isBuiltinSecurity(name string) bool {
+	_, ok := presets.Builtin().ContainerSecurity(name)
 	return ok
 }

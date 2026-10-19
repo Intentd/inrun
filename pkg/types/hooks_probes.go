@@ -5,16 +5,16 @@ import (
 	"strings"
 )
 
-// ProbeProfileEntry describes a single probe profile reference found in a
-// HookTemplates resource. Used by validation to fail fast on unknown profiles
-// and to enforce mutual exclusivity between profile and explicit timing fields.
-type ProbeProfileEntry struct {
+// ProbePresetEntry describes a single probe preset reference found in a
+// HookTemplates resource. Used by validation to fail fast on unknown presets
+// and to enforce mutual exclusivity between preset and explicit timing fields.
+type ProbePresetEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	Resource     string // e.g. "Deployment", "StatefulSet"
 	ResourceName string // template name field (may be Empty()
 	ProbeType    string // "startup", "liveness", "readiness"
-	Profile      string // raw profile name as written in the blueprint
-	Mixed        bool   // true when profile is set alongside explicit timing overrides
+	Preset       string // raw preset name as written in the blueprint
+	Mixed        bool   // true when preset is set alongside explicit timing overrides
 }
 
 // prober is a tiny interface satisfied by resources that carry a ProbesConfig.
@@ -29,16 +29,16 @@ func (t ReplicaSetTemplateSource) GetProbes() *ProbesConfig  { return t.Probes }
 func (t StatefulSetTemplateSource) GetProbes() *ProbesConfig { return t.Probes }
 func (t PodTemplateSource) GetProbes() *ProbesConfig         { return t.Probes }
 
-// CollectProbeProfileEntries returns all probe profile references declared for
+// CollectProbePresetEntries returns all probe preset references declared for
 // this CRD across OnCreate, OnReconcile, and OnDelete.
-// Only entries with a non-empty Profile string are returned — omitted profiles
+// Only entries with a non-empty Preset string are returned — omitted presets
 // (which fall back to "standard") are not surfaced for validation.
-func (c *CRDEntry) CollectProbeProfileEntries() []ProbeProfileEntry {
+func (c *CRDEntry) CollectProbePresetEntries() []ProbePresetEntry {
 	if !c.HasAnyHookTemplates() {
 		return nil
 	}
 
-	var out []ProbeProfileEntry
+	var out []ProbePresetEntry
 
 	collect := func(phase string, ht *HookTemplates) {
 		if ht == nil {
@@ -69,7 +69,7 @@ func (c *CRDEntry) CollectProbeProfileEntries() []ProbeProfileEntry {
 				"liveness":  probes.Liveness,
 				"readiness": probes.Readiness,
 			} {
-				if cfg == nil || cfg.Profile == "" {
+				if cfg == nil || cfg.Preset == "" {
 					continue
 				}
 				mixed := cfg.InitialDelaySeconds != nil ||
@@ -77,12 +77,12 @@ func (c *CRDEntry) CollectProbeProfileEntries() []ProbeProfileEntry {
 					cfg.FailureThreshold != nil ||
 					cfg.SuccessThreshold != nil ||
 					cfg.TimeoutSeconds != nil
-				out = append(out, ProbeProfileEntry{
+				out = append(out, ProbePresetEntry{
 					Phase:        phase,
 					Resource:     rtype,
 					ResourceName: rname,
 					ProbeType:    probeType,
-					Profile:      cfg.Profile,
+					Preset:       cfg.Preset,
 					Mixed:        mixed,
 				})
 			}

@@ -3,10 +3,11 @@ package validate
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestApplyDefaults_ModeFromLocation(t *testing.T) {

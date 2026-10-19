@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/resourcequotas"
+	"github.com/intentd/inrun/pkg/resources/core/resourcequotas"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -69,12 +71,12 @@ func RunResourceQuotas(
 			continue
 		}
 
-		resolved, err := resolver.ResolveResourceQuotaTemplate(src)
+		resolved, err := resources.ResolveResourceQuota(resolver, src)
 		if err != nil {
 			return fmt.Errorf("resourceQuotas[%d]: %w", i, err)
 		}
 
-		spec := resourcequotas.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.ResourceQuotaSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if len(resolved.ToNamespaces) > 0 {
 			namespaces, err := resolver.ResolveStringSlice(resolved.ToNamespaces)
@@ -90,7 +92,7 @@ func RunResourceQuotas(
 				nsSpec := spec
 				nsSpec.Namespace = targetNs
 				if shouldSync {
-					if err := resourcequotas.Update(ctx, kube, owner, nsSpec); err != nil {
+					if err := resourcequotas.Apply(ctx, kube, owner, nsSpec); err != nil {
 						return fmt.Errorf("resourceQuotas[%d].update namespace=%s: %w", i, targetNs, err)
 					}
 				} else {
@@ -103,7 +105,7 @@ func RunResourceQuotas(
 		}
 
 		if update {
-			if err := resourcequotas.Update(ctx, kube, owner, spec); err != nil {
+			if err := resourcequotas.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("resourceQuotas[%d].update: %w", i, err)
 			}
 		} else {
@@ -111,7 +113,7 @@ func RunResourceQuotas(
 				return fmt.Errorf("resourceQuotas[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := resourcequotas.Update(ctx, kube, owner, spec); err != nil {
+				if err := resourcequotas.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("resourceQuotas[%d].reconcile: %w", i, err)
 				}
 			}

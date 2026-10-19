@@ -342,15 +342,15 @@ func (r *Resolver) shallowCopy() map[string]interface{} {
 }
 
 // copyWith returns a new Resolver with newData as its data map and all other
-// fields (mergedFuncs, profiles, ownerName, ownerNamespace) inherited from r.
+// fields (mergedFuncs, presets, ownerName, ownerNamespace) inherited from r.
 // All With* methods must use this instead of &Resolver{...} so that user-defined
-// notes and profiles are not silently dropped when the resolver is extended.
+// notes and presets are not silently dropped when the resolver is extended.
 func (r *Resolver) copyWith(newData map[string]interface{}) *Resolver {
 	return &Resolver{
 		data:           newData,
 		ownerName:      r.ownerName,
 		ownerNamespace: r.ownerNamespace,
-		profiles:       r.profiles,
+		presets:        r.presets,
 		mergedFuncs:    r.mergedFuncs,
 	}
 }

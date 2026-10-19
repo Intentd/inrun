@@ -1,0 +1,189 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: preset-probe-autoscale
+  author: intentd
+  version: 0.1.0
+  description: >
+    PresetProbe — living integration test for autoscale presets.
+    Each CRD uses a different autoscale preset. The preset expands at
+    blueprint load time into a full autoscale block. Run the operator and
+    trigger load to observe autoscaler behavior per preset.
+
+spec:
+  crds:
+    preset-probe-burst:
+      crdFile: crds/probes/crd-burst.yaml
+      crFiles:
+        - crds/probes/cr-burst.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 2
+          resync: 30s
+          queue:
+            maxDepth: 50
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-burst"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+        runtime:
+          autoscale:
+            preset: burst
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+
+    preset-probe-steady:
+      crdFile: crds/probes/crd-steady.yaml
+      crFiles:
+        - crds/probes/cr-steady.yaml
+      operatorBox:
+        reconcile:
+          workers: 2
+          resync: 30s
+          queue:
+            maxDepth: 50
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-steady"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+        runtime:
+          autoscale:
+            preset: steady
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+
+    preset-probe-batch:
+      crdFile: crds/probes/crd-batch.yaml
+      crFiles:
+        - crds/probes/cr-batch.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 2
+          resync: 30s
+          queue:
+            maxDepth: 50
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-batch"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+        runtime:
+          autoscale:
+            preset: batch
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+
+    preset-probe-latency-sensitive:
+      crdFile: crds/probes/crd-latency-sensitive.yaml
+      crFiles:
+        - crds/probes/cr-latency-sensitive.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 4
+          resync: 30s
+          queue:
+            maxDepth: 100
+
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-latency"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+        runtime:
+          autoscale:
+            preset: latency-sensitive
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+
+    preset-probe-cost-optimized:
+      crdFile: crds/probes/crd-optimized.yaml
+      crFiles:
+        - crds/probes/cr-optimized.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 4
+          resync: 30s
+          queue:
+            maxDepth: 100
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-cost"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+        runtime:
+          autoscale:
+            preset: cost-optimized
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployment }}"
+                    equals: "true"
+

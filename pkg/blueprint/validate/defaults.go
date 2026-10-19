@@ -19,7 +19,7 @@ import (
 //   - mode: typed when apiTypes.location is set, dynamic otherwise
 //   - runtime.ignoreStatusPatch / ignoreObservedGeneration for built-in kinds
 //     that have no status subresource or observedGeneration
-//   - an autoscale.profile expanded into the full autoscale spec
+//   - an autoscale.preset expanded into the full autoscale spec
 //   - queue.behaviour.onThreshold.drop: always on at the threshold
 func applyDefaults(bp *blueprint.Blueprint) error {
 	for name, crd := range bp.EnabledCRDs() {
@@ -45,11 +45,11 @@ func applyDefaults(bp *blueprint.Blueprint) error {
 			}
 		}
 
-		if crd.Box().EffectiveAutoscale() != nil && crd.HasAutoscaleProfile() {
-			expanded, err := runtime.ExpandAutoscaleProfile(&crd)
+		if crd.Box().EffectiveAutoscale() != nil && crd.HasAutoscalePreset() {
+			expanded, err := runtime.ExpandAutoscalePreset(&crd)
 			if err != nil {
-				return fmt.Errorf("%s CRD %q: autoscale.profile %q expansion failed: %w",
-					check.FailureMark(), name, crd.AutoScaleProfile(), err)
+				return fmt.Errorf("%s CRD %q: autoscale.preset %q expansion failed: %w",
+					check.FailureMark(), name, crd.AutoScalePreset(), err)
 			}
 			if crd.Box().Runtime == nil {
 				crd.Box().Runtime = &types.RuntimeConfig{}

@@ -3,10 +3,11 @@ package intent
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/intentd/inrun/pkg/types"
 )
 
 func TestNewCRSkeleton(t *testing.T) {
@@ -408,7 +409,7 @@ func TestNewBuild(t *testing.T) {
 		"jira-ticket": "PLAT-1234",
 	}
 
-	obj, err := Build(raw, crd, notes)
+	obj, err := BuildCR(raw, crd, notes)
 	require.NoError(t, err)
 
 	expectedAPIVersion := crd.APITypes.Group + "/" + crd.APITypes.Version
@@ -495,7 +496,7 @@ func TestBuild(t *testing.T) {
 			"jira-ticket": "PLAT-1234",
 		}
 
-		obj, err := Build(raw, appCRD, types.KELFunctionRegistry{})
+		obj, err := BuildCR(raw, appCRD, types.KELFunctionRegistry{})
 		require.NoError(t, err)
 
 		spec := obj.Object["spec"].(map[string]interface{})
@@ -523,7 +524,7 @@ func TestBuild(t *testing.T) {
 			"environment":   "staging",
 			"unknown-field": "should be ignored",
 		}
-		obj, err := Build(raw, appCRD, types.KELFunctionRegistry{})
+		obj, err := BuildCR(raw, appCRD, types.KELFunctionRegistry{})
 		require.NoError(t, err)
 
 		spec := obj.Object["spec"].(map[string]interface{})
@@ -538,7 +539,7 @@ func TestBuild(t *testing.T) {
 			"team":        "payments",
 			"environment": "staging",
 		}
-		obj, err := Build(raw, appCRD, types.KELFunctionRegistry{})
+		obj, err := BuildCR(raw, appCRD, types.KELFunctionRegistry{})
 		require.NoError(t, err)
 		assert.Equal(t, "platform.myorg.io/v1", obj.GetAPIVersion())
 		assert.Equal(t, "App", obj.GetKind())

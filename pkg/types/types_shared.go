@@ -34,70 +34,22 @@ package types
 
 import (
 	"fmt"
-	"sort"
-	"strings"
+
+	restypes "github.com/intentd/inrun/pkg/resources/core/types"
 
 	"gopkg.in/yaml.v3"
 )
 
 // ── Shared resource value types ───────────────────────────────────────────────
 
-// Labels is a set of Kubernetes labels or annotations. When used in hook template
-// declarations, values support Go text/template expressions evaluated against the
-// live CR at reconcile time.
-// e.g. {app: "{{ .metadata.name }}"}
-type Labels map[string]string
+// Labels is restypes.Labels.
+type Labels = restypes.Labels
 
-// Stringifier
-func (l Labels) String() string {
-	if len(l) == 0 {
-		return ""
-	}
-	parts := make([]string, 0, len(l))
-	for k, v := range l {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, v))
-	}
-	sort.Strings(parts)
-	return strings.Join(parts, ",")
-}
+// ResourceRequirements is restypes.ResourceRequirements.
+type ResourceRequirements = restypes.ResourceRequirements
 
-func (l Labels) Contains(lbl map[string]string) bool {
-	if l.Empty() {
-		return false
-	}
-	for kl, vl := range l {
-		for lblKey, lblVaal := range lbl {
-			if kl == lblKey && vl == lblVaal {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (l Labels) Empty() bool {
-	return len(l) == 0
-}
-
-// ResourceRequirements mirrors Kubernetes resource requests and limits.
-// Values are static Kubernetes quantity strings — template expressions
-// are not supported here.
-// e.g. requests: {cpu: "100m", memory: "128Mi"}
-//
-// Profile is mutually exclusive with Requests and Limits. When Profile is set,
-// it expands into a complete ResourceRequirements at reconcile time.
-type ResourceRequirements struct {
-	Profile  string            `yaml:"profile,omitempty" json:"profile,omitempty" validate:"omitempty"`
-	Requests map[string]string `yaml:"requests,omitempty" json:"requests,omitempty" validate:"omitempty"`
-	Limits   map[string]string `yaml:"limits,omitempty" json:"limits,omitempty" validate:"omitempty"`
-}
-
-// EnvVar is a single container environment variable in Kubernetes-native format.
-type EnvVar struct {
-	Name      string     `yaml:"name" json:"name"`
-	Value     string     `yaml:"value,omitempty" json:"value,omitempty"`
-	ValueFrom *ValueFrom `yaml:"valueFrom,omitempty" json:"valueFrom,omitempty"`
-}
+// EnvVar is restypes.EnvVar.
+type EnvVar = restypes.EnvVar
 
 // EnvVarList is a []EnvVar with a custom YAML unmarshaller that detects the
 // legacy map format (KEY:\n  value: VAL) and returns a clear migration error.
@@ -111,47 +63,17 @@ func (l *EnvVarList) UnmarshalYAML(value *yaml.Node) error {
 	return value.Decode((*plain)(l))
 }
 
-// ValueFrom holds the source of an environment variable value.
-// At most one field should be set.
-type ValueFrom struct {
-	SecretKeyRef    *SecretKeyRef    `yaml:"secretKeyRef,omitempty" json:"secretKeyRef,omitempty"`
-	ConfigMapKeyRef *ConfigMapKeyRef `yaml:"configMapKeyRef,omitempty" json:"configMapKeyRef,omitempty"`
-}
+// ValueFrom is restypes.ValueFrom.
+type ValueFrom = restypes.ValueFrom
 
-// EnvFromRef is one secretRef/configMapRef entry under envFrom.
-//
-// Name, Prefix, and Optional map directly onto Kubernetes' own EnvFromSource /
-// SecretEnvSource / ConfigMapEnvSource fields. Keys and Suffix are Inrun
-// extensions with no Kubernetes equivalent — Kubernetes' envFrom is a blanket
-// import with no per-key rename mechanism, so a ref that sets Keys is expanded
-// into individual env entries at build time instead of a native envFrom source.
-// Suffix without Keys is a validation error — see pkg/blueprint/validate_envfrom.go.
-type EnvFromRef struct {
-	Name     string   `yaml:"name" json:"name" validate:"required"`
-	Prefix   string   `yaml:"prefix,omitempty" json:"prefix,omitempty"`
-	Suffix   string   `yaml:"suffix,omitempty" json:"suffix,omitempty"`
-	Optional *bool    `yaml:"optional,omitempty" json:"optional,omitempty"`
-	Keys     []string `yaml:"keys,omitempty" json:"keys,omitempty"`
-}
+// EnvFromRef is restypes.EnvFromRef.
+type EnvFromRef = restypes.EnvFromRef
 
-// EnvFrom groups environment sources by type.
-type EnvFrom struct {
-	SecretRef    []EnvFromRef `yaml:"secretRef,omitempty" json:"secretRef,omitempty"`
-	ConfigMapRef []EnvFromRef `yaml:"configMapRef,omitempty" json:"configMapRef,omitempty"`
-}
+// EnvFrom is restypes.EnvFrom.
+type EnvFrom = restypes.EnvFrom
 
-// SecretKeyRef selects a key from a Kubernetes Secret.
-// Name and Key are required. Optional mirrors corev1.SecretKeySelector.Optional.
-type SecretKeyRef struct {
-	Name     string `yaml:"name" json:"name"`
-	Key      string `yaml:"key" json:"key"`
-	Optional *bool  `yaml:"optional,omitempty" json:"optional,omitempty"`
-}
+// SecretKeyRef is restypes.SecretKeyRef.
+type SecretKeyRef = restypes.SecretKeyRef
 
-// ConfigMapKeyRef selects a key from a Kubernetes ConfigMap.
-// Name and Key are required. Optional mirrors corev1.ConfigMapKeySelector.Optional.
-type ConfigMapKeyRef struct {
-	Name     string `yaml:"name" json:"name"`
-	Key      string `yaml:"key" json:"key"`
-	Optional *bool  `yaml:"optional,omitempty" json:"optional,omitempty"`
-}
+// ConfigMapKeyRef is restypes.ConfigMapKeyRef.
+type ConfigMapKeyRef = restypes.ConfigMapKeyRef

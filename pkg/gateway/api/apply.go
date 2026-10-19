@@ -227,7 +227,7 @@ func applyHandler(
 				return
 			}
 
-			built, err := intent.Build(raw, crd, notes)
+			built, err := intent.BuildCR(raw, crd, notes)
 			if err != nil {
 				writeJSON(w, http.StatusBadRequest, ApplyResponse{
 					Message: err.Error(),

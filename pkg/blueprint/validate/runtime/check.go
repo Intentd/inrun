@@ -13,7 +13,7 @@ type checker struct{ check.Checker }
 func Check(bp *blueprint.Blueprint, cfg *config.Config) error {
 	c := &checker{check.New(bp, cfg)}
 	return check.First(
-		c.validateAutoscaleProfile,
+		c.validateAutoscalePreset,
 		c.validateAutoscalerMetrics,
 		c.validateNamespaceProtection,
 		c.validateCrossNamespaceOps,

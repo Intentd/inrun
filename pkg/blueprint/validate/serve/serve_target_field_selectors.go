@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
+
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // validateServeFieldSelector validates serve.target fieldSelector configuration.

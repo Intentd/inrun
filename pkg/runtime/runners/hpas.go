@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/hpas"
+	"github.com/intentd/inrun/pkg/resources/core/hpas"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -64,15 +66,15 @@ func RunHPAs(
 			continue
 		}
 
-		resolved, err := resolver.ResolveHPATemplate(src)
+		resolved, err := resources.ResolveHPA(resolver, src)
 		if err != nil {
 			return fmt.Errorf("hpas[%d]: %w", i, err)
 		}
 
-		spec := hpas.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.HPASpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := hpas.Update(ctx, kube, owner, spec); err != nil {
+			if err := hpas.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("hpas[%d].update: %w", i, err)
 			}
 		} else {
@@ -80,7 +82,7 @@ func RunHPAs(
 				return fmt.Errorf("hpas[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := hpas.Update(ctx, kube, owner, spec); err != nil {
+				if err := hpas.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("hpas[%d].reconcile: %w", i, err)
 				}
 			}

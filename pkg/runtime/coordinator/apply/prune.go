@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/types"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/types"
 )
 
 // Pruned names a child deleted because the Result no longer returned it.

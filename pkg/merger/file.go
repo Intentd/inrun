@@ -203,7 +203,7 @@ func (m *Merger) loadBlueprint(path string, doc *types.BlueprintFile) (map[strin
 	m.security = doc.Security
 	m.gateway = doc.Gateway
 	m.publish = doc.Publish
-	m.profiles = doc.Profiles
+	m.presets = doc.Presets
 	// Expand functions.include against this Blueprint's own directory, so a Blueprint
 	// imported by a Stack brings its included functions with it.
 	functions := doc.Functions
@@ -240,7 +240,7 @@ func (m *Merger) loadStack(path string, doc *types.BlueprintFile) (map[string]ty
 	// as side-effects on m; we capture and merge here so they are not discarded
 	// when the Stack's own (possibly Empty() block is applied at the end.
 	var accSecurity types.BlueprintSecurity
-	var accProfiles types.ProfileRegistry
+	var accPresets types.PresetRegistry
 	var accSpecImports []types.ModuleImport
 	var accFunctions types.KELFunctionRegistry
 	functionsSeen := make(map[string]string) // function name → import label, for cross-Blueprint conflict detection
@@ -265,13 +265,13 @@ func (m *Merger) loadStack(path string, doc *types.BlueprintFile) (map[string]ty
 				allCRDs[name] = crd
 			}
 
-			// Accumulate security and profiles from registry source Blueprint.
+			// Accumulate security and presets from registry source Blueprint.
 			accSecurity = mergeBlueprintSecurity(accSecurity, m.security)
-			merged, err := accProfiles.Merge(m.profiles, fmt.Sprintf("registry:%d", i))
+			merged, err := accPresets.Merge(m.presets, fmt.Sprintf("registry:%d", i))
 			if err != nil {
-				return nil, fmt.Errorf("%q imports.registry[%d]: profiles: %w", path, i, err)
+				return nil, fmt.Errorf("%q imports.registry[%d]: presets: %w", path, i, err)
 			}
-			accProfiles = merged
+			accPresets = merged
 			accSpecImports = append(accSpecImports, m.specImports...)
 			mergedFunctions, err := accFunctions.MergeImport(m.functions, fmt.Sprintf("registry:%d", i), functionsSeen)
 			if err != nil {
@@ -320,13 +320,13 @@ func (m *Merger) loadStack(path string, doc *types.BlueprintFile) (map[string]ty
 				allCRDs[name] = crd
 			}
 
-			// Accumulate security and profiles from this Blueprint file import.
+			// Accumulate security and presets from this Blueprint file import.
 			accSecurity = mergeBlueprintSecurity(accSecurity, m.security)
-			merged, err := accProfiles.Merge(m.profiles, "file:"+resolved)
+			merged, err := accPresets.Merge(m.presets, "file:"+resolved)
 			if err != nil {
-				return nil, fmt.Errorf("%q imports.files[%q]: profiles: %w", path, resolved, err)
+				return nil, fmt.Errorf("%q imports.files[%q]: presets: %w", path, resolved, err)
 			}
-			accProfiles = merged
+			accPresets = merged
 			accSpecImports = append(accSpecImports, m.specImports...)
 			mergedFunctions, err := accFunctions.MergeImport(m.functions, "file:"+resolved, functionsSeen)
 			if err != nil {
@@ -353,13 +353,13 @@ func (m *Merger) loadStack(path string, doc *types.BlueprintFile) (map[string]ty
 				allCRDs[name] = crd
 			}
 
-			// Accumulate security and profiles from this Helm import.
+			// Accumulate security and presets from this Helm import.
 			accSecurity = mergeBlueprintSecurity(accSecurity, m.security)
-			merged, err := accProfiles.Merge(m.profiles, srcName)
+			merged, err := accPresets.Merge(m.presets, srcName)
 			if err != nil {
-				return nil, fmt.Errorf("%q imports.helm[%d]: profiles: %w", path, i, err)
+				return nil, fmt.Errorf("%q imports.helm[%d]: presets: %w", path, i, err)
 			}
-			accProfiles = merged
+			accPresets = merged
 			accSpecImports = append(accSpecImports, m.specImports...)
 			mergedFunctions, err := accFunctions.MergeImport(m.functions, srcName, functionsSeen)
 			if err != nil {
@@ -472,14 +472,14 @@ func (m *Merger) loadStack(path string, doc *types.BlueprintFile) (map[string]ty
 		m.policy = doc.Policy
 	}
 
-	mergedProfiles, err := accProfiles.Merge(doc.Profiles, path)
+	mergedPresets, err := accPresets.Merge(doc.Presets, path)
 	if err != nil {
-		return nil, fmt.Errorf("%q: profiles: %w", path, err)
+		return nil, fmt.Errorf("%q: presets: %w", path, err)
 	}
-	m.profiles = mergedProfiles
+	m.presets = mergedPresets
 
 	if len(doc.Spec.Imports) > 0 {
-		return nil, fmt.Errorf("%q: Stack does not support spec.imports — declare functions: and profiles: inline to override Blueprint-wide settings", path)
+		return nil, fmt.Errorf("%q: Stack does not support spec.imports — declare functions: and presets: inline to override Blueprint-wide settings", path)
 	}
 	m.specImports = accSpecImports
 	mergedFunctions, err := doc.Functions.Merge(accFunctions, "blueprint")

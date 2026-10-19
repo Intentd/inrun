@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
+	batchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/jobs"
+	"github.com/intentd/inrun/pkg/resources/core/jobs"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	batchv1 "k8s.io/api/batch/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const jobCompletionPollInterval = 3 * time.Second
@@ -36,7 +39,7 @@ func RunJobs(
 		// Jobs are terminal (no DeleteIfOwned on condition fail), but guard
 		// still prevents creating jobs in restricted namespaces.
 		name, _ := resolver.Resolve(src.Name)
-		_ = name // resolved for guard; ResolveJobTemplate re-resolves internally
+		_ = name // resolved for guard; resources.ResolveJob re-resolves internally
 		ns, _ := resolver.Resolve(src.Namespace)
 		if ns == "" {
 			ns = owner.GetNamespace()
@@ -57,13 +60,13 @@ func RunJobs(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveJobTemplate(src)
+		resolved, err := resources.ResolveJob(resolver, src)
 		if err != nil {
 			return fmt.Errorf("jobs[%d]: %w", i, err)
 		}
 
 		// 3. Build registry spec and apply
-		spec := jobs.Resolve(resolved, resolved.BackoffLimit, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.JobSpec(resolved, resolved.BackoffLimit, resolver.OwnerName(), resolver.Presets())
 
 		// Jobs are always creates — no update semantics
 		if err := jobs.Create(ctx, kube, owner, spec); err != nil {
@@ -109,12 +112,12 @@ func RunDeleteJobs(
 			continue
 		}
 
-		resolved, err := resolver.ResolveJobTemplate(src)
+		resolved, err := resources.ResolveJob(resolver, src)
 		if err != nil {
 			return fmt.Errorf("delete-jobs[%d]: %w", i, err)
 		}
 
-		spec := jobs.Resolve(resolved, resolved.BackoffLimit, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.JobSpec(resolved, resolved.BackoffLimit, resolver.OwnerName(), resolver.Presets())
 
 		if err := jobs.CreateForDelete(ctx, kube, owner, spec); err != nil {
 			return fmt.Errorf("delete-jobs[%d].create: %w", i, err)

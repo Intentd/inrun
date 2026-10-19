@@ -1,0 +1,95 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: preset-probe-resource
+  author: intentd
+  version: 0.1.0
+  description: >
+    PresetProbe — living integration test for resource presets.
+    Creates one Deployment per preset. Inspect each Deployment's
+    resource requests/limits to verify expansion.
+    kubectl get deployment -l inrun.dev/managed-by=my-probe -o yaml
+
+spec:
+  crds:
+    preset-probe-resource:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 1
+          resync: 30s
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-tiny"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: tiny
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-small"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: small
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-medium"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: medium
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-large"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: large
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-burst"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: burst
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-steady"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: steady
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-compute-heavy"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: compute-heavy
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-memory-heavy"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                resources:
+                  preset: memory-heavy
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployments.my-probe-medium }}"
+                    equals: "true"
+

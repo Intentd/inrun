@@ -1,0 +1,95 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: preset-probe-probes
+  author: intentd
+  version: 0.1.0
+  description: >
+    PresetProbe — living integration test for probe timing presets.
+    Creates one Deployment per probe preset. Inspect each Deployment's
+    liveness probe to verify timing expansion.
+    kubectl get deployment -l inrun.dev/managed-by=my-probe -o yaml
+
+spec:
+  crds:
+    preset-probe-probes:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        reconcile:
+          default: true
+          workers: 1
+          resync: 30s
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-fast"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  liveness:
+                    type: http
+                    path: /healthz
+                    preset: fast
+                  readiness:
+                    type: http
+                    path: /readyz
+                    preset: fast
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-standard"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  liveness:
+                    type: http
+                    path: /healthz
+                    preset: standard
+                  readiness:
+                    type: http
+                    path: /readyz
+                    preset: standard
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-patient"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  liveness:
+                    type: http
+                    path: /healthz
+                    preset: patient
+                  readiness:
+                    type: http
+                    path: /readyz
+                    preset: patient
+                reconcile: true
+
+              - name: "{{ .metadata.name }}-slow-start"
+                image: "{{ .spec.image }}"
+                port: "{{ .spec.port }}"
+                probes:
+                  startup:
+                    type: http
+                    path: /healthz
+                    preset: slow-start
+                  liveness:
+                    type: http
+                    path: /healthz
+                    preset: standard
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Ready"
+                when:
+                  - field: "{{ allReplicasReady .children.deployments.my-probe-standard }}"
+                    equals: "true"
+

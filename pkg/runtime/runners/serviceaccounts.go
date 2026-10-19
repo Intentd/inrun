@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/serviceaccounts"
+	"github.com/intentd/inrun/pkg/resources/core/serviceaccounts"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -76,13 +78,13 @@ func RunServiceAccounts(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveServiceAccountTemplate(src)
+		resolved, err := resources.ResolveServiceAccount(resolver, src)
 		if err != nil {
 			return fmt.Errorf("serviceaccounts[%d]: %w", i, err)
 		}
 
 		// 3. Build registry spec and apply
-		spec := serviceaccounts.Resolve(resolved, resolver.OwnerName())
+		spec := resources.ServiceAccountSpec(resolved, resolver.OwnerName())
 
 		// Always create — ServiceAccounts have no meaningful drift to correct
 		if err := serviceaccounts.Create(ctx, kube, owner, spec); err != nil {

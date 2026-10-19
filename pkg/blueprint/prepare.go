@@ -8,7 +8,7 @@ import (
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/profiles"
+	"github.com/intentd/inrun/pkg/presets"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -136,8 +136,8 @@ func (c *Blueprint) SetDefaults(cfg *config.Config) error {
 			crd.Box().Reconcile = &types.ReconcileConfig{}
 		}
 		rec := crd.Box().Reconcile
-		if rec.Profile != "" {
-			result, err := profiles.ApplyReconcilerProfile(rec.Profile, &c.Profiles)
+		if rec.Preset != "" {
+			result, err := presets.ApplyReconcilerPreset(rec.Preset, &c.Presets)
 			if err != nil {
 				return fmt.Errorf("%s CRD %q: %w", failureMark(), name, err)
 			}

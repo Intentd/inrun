@@ -84,10 +84,10 @@ spec:
                   default: 8080
                   description: Port exposed by the container
                 
-                resourceProfile:
+                resourcePreset:
                   type: string
                   default: burst
-                  description: Resource profile to use for HPA
+                  description: Resource preset to use for HPA
 
                 schedule:
                   type: string

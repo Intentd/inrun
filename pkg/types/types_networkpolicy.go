@@ -1,6 +1,8 @@
 // pkg/types/types_networkpolicy.go
 package types
 
+import restypes "github.com/intentd/inrun/pkg/resources/core/types"
+
 // NetworkPolicyTemplateSource declares one NetworkPolicy to be managed by Inrun.
 //
 // Usage patterns:
@@ -86,10 +88,10 @@ type NetworkPolicyTemplateSource struct {
 	// Or — at least one must pass.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
-	// Profile — named NetworkPolicy preset. Expands into ingress/egress rules and policy types.
+	// Preset — named NetworkPolicy preset. Expands into ingress/egress rules and policy types.
 	// Allowed values: deny-all, deny-all-ingress, deny-all-egress, allow-same-namespace, allow-dns-egress.
-	// Mutually exclusive with Ingress/Egress/PolicyTypes — set profile or explicit rules, not both.
-	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
+	// Mutually exclusive with Ingress/Egress/PolicyTypes — set preset or explicit rules, not both.
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
 
 	// Reconcile: true — sync on every reconcile (drift correction).
 	Reconcile bool `yaml:"reconcile,omitempty" json:"reconcile,omitempty"`
@@ -107,38 +109,17 @@ type NetworkPolicyTemplateSource struct {
 	ForceConflict *bool `yaml:"forceConflict,omitempty" json:"forceConflict,omitempty"`
 }
 
-// NetworkPolicyIngressRule describes one ingress rule.
-type NetworkPolicyIngressRule struct {
-	From  []NetworkPolicyPeer `yaml:"from,omitempty" json:"from,omitempty"`
-	Ports []NetworkPolicyPort `yaml:"ports,omitempty" json:"ports,omitempty"`
-}
+// NetworkPolicyIngressRule is restypes.NetworkPolicyIngressRule.
+type NetworkPolicyIngressRule = restypes.NetworkPolicyIngressRule
 
-// NetworkPolicyEgressRule describes one egress rule.
-type NetworkPolicyEgressRule struct {
-	To    []NetworkPolicyPeer `yaml:"to,omitempty" json:"to,omitempty"`
-	Ports []NetworkPolicyPort `yaml:"ports,omitempty" json:"ports,omitempty"`
-}
+// NetworkPolicyEgressRule is restypes.NetworkPolicyEgressRule.
+type NetworkPolicyEgressRule = restypes.NetworkPolicyEgressRule
 
-// NetworkPolicyPeer selects a set of pods or namespaces.
-type NetworkPolicyPeer struct {
-	// PodSelector selects pods within the namespace. Empty = all pods.
-	PodSelector map[string]string `yaml:"podSelector,omitempty" json:"podSelector,omitempty"`
-	// NamespaceSelector selects namespaces. Empty = all namespaces.
-	NamespaceSelector map[string]string `yaml:"namespaceSelector,omitempty" json:"namespaceSelector,omitempty"`
-	// IPBlock selects a CIDR range.
-	IPBlock *NetworkPolicyIPBlock `yaml:"ipBlock,omitempty" json:"ipBlock,omitempty"`
-}
+// NetworkPolicyPeer is restypes.NetworkPolicyPeer.
+type NetworkPolicyPeer = restypes.NetworkPolicyPeer
 
-// NetworkPolicyIPBlock describes an IP CIDR range.
-type NetworkPolicyIPBlock struct {
-	CIDR   string   `yaml:"cidr" json:"cidr"`
-	Except []string `yaml:"except,omitempty" json:"except,omitempty"`
-}
+// NetworkPolicyIPBlock is restypes.NetworkPolicyIPBlock.
+type NetworkPolicyIPBlock = restypes.NetworkPolicyIPBlock
 
-// NetworkPolicyPort describes a port allowed by a rule.
-type NetworkPolicyPort struct {
-	// Protocol — TCP (default), UDP, or SCTP.
-	Protocol string `yaml:"protocol,omitempty" json:"protocol,omitempty"`
-	// Port — port number or named port. Supports template expressions.
-	Port string `yaml:"port,omitempty" json:"port,omitempty"`
-}
+// NetworkPolicyPort is restypes.NetworkPolicyPort.
+type NetworkPolicyPort = restypes.NetworkPolicyPort

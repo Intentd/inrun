@@ -41,11 +41,11 @@ type PDBTemplateSource struct {
 	Labels Labels `yaml:"labels,omitempty" json:"labels,omitempty"`
 
 	// Behavior — disruption limit configuration.
-	// Set behavior.profile for a named preset, or declare minAvailable/maxUnavailable explicitly.
-	// Profile and explicit fields are mutually exclusive.
+	// Set behavior.preset for a named preset, or declare minAvailable/maxUnavailable explicitly.
+	// Preset and explicit fields are mutually exclusive.
 	//
 	//	behavior:
-	//	  profile: zero-downtime
+	//	  preset: zero-downtime
 	Behavior *PDBBehavior `yaml:"behavior,omitempty" json:"behavior,omitempty"`
 
 	// Reconcile: true — also apply this declaration as drift correction on every

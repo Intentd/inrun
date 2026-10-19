@@ -190,18 +190,18 @@ func TestValidateServeTarget_ReconcilerQueue(t *testing.T) {
 	}
 }
 
-func TestValidateServeTarget_ReconcilerProfile(t *testing.T) {
+func TestValidateServeTarget_ReconcilerPreset(t *testing.T) {
 	box := &types.OperatorBoxConfig{
-		Reconcile: &types.ReconcileConfig{Profile: "high-throughput"},
+		Reconcile: &types.ReconcileConfig{Preset: "high-throughput"},
 	}
 	err := blueprintWithTargetCRDs(map[string]types.CRDEntry{
 		"res": crdWithTargetAndBox("web", box),
 	}).validateServeTarget()
 	if err == nil {
-		t.Fatal("expected error for reconciler.profile on target box")
+		t.Fatal("expected error for reconciler.preset on target box")
 	}
-	if !strings.Contains(err.Error(), "reconcile.profile") {
-		t.Errorf("error should name reconciler.profile, got: %v", err)
+	if !strings.Contains(err.Error(), "reconcile.preset") {
+		t.Errorf("error should name reconciler.preset, got: %v", err)
 	}
 }
 
@@ -224,7 +224,7 @@ func TestValidateServeTarget_MultipleViolations(t *testing.T) {
 	box := &types.OperatorBoxConfig{
 		Reconcile: &types.ReconcileConfig{
 			Workers: 5,
-			Profile: "high-throughput",
+			Preset:  "high-throughput",
 		},
 		Runtime: &types.RuntimeConfig{Autoscale: &types.AutoscaleSpec{}},
 	}
@@ -235,7 +235,7 @@ func TestValidateServeTarget_MultipleViolations(t *testing.T) {
 		t.Fatal("expected error for multiple violations")
 	}
 	msg := err.Error()
-	for _, field := range []string{"reconcile.workers", "reconcile.profile", "autoscale"} {
+	for _, field := range []string{"reconcile.workers", "reconcile.preset", "autoscale"} {
 		if !strings.Contains(msg, field) {
 			t.Errorf("error should name %q, got: %v", field, msg)
 		}

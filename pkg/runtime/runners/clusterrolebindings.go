@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/clusterrolebindings"
+	"github.com/intentd/inrun/pkg/resources/core/clusterrolebindings"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -55,15 +57,15 @@ func RunClusterRoleBindings(
 			continue
 		}
 
-		resolved, err := resolver.ResolveClusterRoleBindingTemplate(src)
+		resolved, err := resources.ResolveClusterRoleBinding(resolver, src)
 		if err != nil {
 			return fmt.Errorf("clusterRoleBindings[%d]: %w", i, err)
 		}
 
-		spec := clusterrolebindings.Resolve(resolved, resolver.OwnerName())
+		spec := resources.ClusterRoleBindingSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := clusterrolebindings.Update(ctx, kube, owner, spec); err != nil {
+			if err := clusterrolebindings.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("clusterRoleBindings[%d].update: %w", i, err)
 			}
 		} else {
@@ -71,7 +73,7 @@ func RunClusterRoleBindings(
 				return fmt.Errorf("clusterRoleBindings[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := clusterrolebindings.Update(ctx, kube, owner, spec); err != nil {
+				if err := clusterrolebindings.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("clusterRoleBindings[%d].reconcile: %w", i, err)
 				}
 			}

@@ -16,8 +16,8 @@ func (c *Blueprint) expandIncludes() error {
 	if err := types.ExpandFunctionsInclude(&c.Functions, c.blueprintDir); err != nil {
 		return fmt.Errorf("functions: %w", err)
 	}
-	if err := types.ExpandProfileInclude(&c.Profiles, c.blueprintDir); err != nil {
-		return fmt.Errorf("profiles: %w", err)
+	if err := types.ExpandPresetInclude(&c.Presets, c.blueprintDir); err != nil {
+		return fmt.Errorf("presets: %w", err)
 	}
 	if err := types.ExpandGatewayAPIAuthInclude(c.Gateway, c.blueprintDir); err != nil {
 		return fmt.Errorf("gateway API auth: %w", err)

@@ -3,9 +3,10 @@ package intent
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/labels"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
+
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 // Target extracts the effective target from a CR's annotations.

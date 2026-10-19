@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/deployments"
+	"github.com/intentd/inrun/pkg/resources/core/deployments"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -16,9 +18,9 @@ import (
 // RunDeployments resolves and applies Deployment template declarations.
 //
 // update=false  onCreate path  — idempotent Create
-// update=true   onReconcile path — Update for drift correction
+// update=true   onReconcile path — Apply for drift correction
 //
-// reconcile: true on an onCreate entry means also call Update on that
+// reconcile: true on an onCreate entry means also call Apply on that
 // same reconcile loop — the shorthand for "create it and keep it in sync"
 // without a separate onReconcile declaration.
 func RunDeployments(
@@ -49,7 +51,7 @@ func RunDeployments(
 		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
 
 		// Early name/ns resolution — needed for guard check and DeleteIfOwned cleanup.
-		// ResolveDeploymentTemplate resolves these again internally — intentional, cheap.
+		// resources.ResolveDeployment resolves these again internally — intentional, cheap.
 		name, _ := resolver.Resolve(src.Name)
 		ns, _ := resolver.Resolve(src.Namespace)
 		if ns == "" {
@@ -82,15 +84,15 @@ func RunDeployments(
 		}
 
 		// 2. Resolve template expressions
-		resolved, err := resolver.ResolveDeploymentTemplate(src)
+		resolved, err := resources.ResolveDeployment(resolver, src)
 		if err != nil {
 			return fmt.Errorf("deployments[%d]: %w", i, err)
 		}
 
-		spec := deployments.Resolve(resolved, resolver.OwnerName(), resolver.Profiles())
+		spec := resources.DeploymentSpec(resolved, resolver.OwnerName(), resolver.Presets())
 
 		if update {
-			if err := deployments.Update(ctx, kube, owner, spec); err != nil {
+			if err := deployments.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("deployments[%d].update: %w", i, err)
 			}
 		} else {
@@ -100,7 +102,7 @@ func RunDeployments(
 
 			// reconcile: true
 			if src.Reconcile {
-				if err := deployments.Update(ctx, kube, owner, spec); err != nil {
+				if err := deployments.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("deployments[%d].reconcile: %w", i, err)
 				}
 			}

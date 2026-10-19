@@ -1,16 +1,16 @@
 package types
 
-// RollingUpdateProfileEntry describes a single rollingUpdate.profile reference found in a
-// DeploymentTemplateSource. Used by blueprint validation to fail fast on unknown profiles
+// RollingUpdatePresetEntry describes a single rollingUpdate.preset reference found in a
+// DeploymentTemplateSource. Used by blueprint validation to fail fast on unknown presets
 // and to enforce mutual exclusivity with explicit maxSurge/maxUnavailable.
-type RollingUpdateProfileEntry struct {
+type RollingUpdatePresetEntry struct {
 	Phase        string // "onCreate", "onReconcile", "onDelete"
 	ResourceName string // Deployment name template (may be Empty()
-	Profile      string // raw profile name as written in the blueprint
-	Mixed        bool   // true when profile is set alongside explicit maxSurge or maxUnavailable
+	Preset       string // raw preset name as written in the blueprint
+	Mixed        bool   // true when preset is set alongside explicit maxSurge or maxUnavailable
 }
 
-type rollingUpdateProfiled interface {
+type rollingUpdatePresetd interface {
 	GetRollingUpdate() *RollingUpdateBehavior
 }
 
@@ -18,27 +18,27 @@ func (t DeploymentTemplateSource) GetRollingUpdate() *RollingUpdateBehavior  { r
 func (t StatefulSetTemplateSource) GetRollingUpdate() *RollingUpdateBehavior { return t.RollingUpdate }
 func (t ReplicaSetTemplateSource) GetRollingUpdate() *RollingUpdateBehavior  { return t.RollingUpdate }
 
-// CollectRollingUpdateProfileEntries returns all rollingUpdate.profile references declared
+// CollectRollingUpdatePresetEntries returns all rollingUpdate.preset references declared
 // for this CRD across OnCreate, OnReconcile, and OnDelete.
-// Only entries with a non-empty Profile string are returned.
-func (c *CRDEntry) CollectRollingUpdateProfileEntries() []RollingUpdateProfileEntry {
+// Only entries with a non-empty Preset string are returned.
+func (c *CRDEntry) CollectRollingUpdatePresetEntries() []RollingUpdatePresetEntry {
 	if !c.HasAnyHookTemplates() {
 		return nil
 	}
 
-	var out []RollingUpdateProfileEntry
+	var out []RollingUpdatePresetEntry
 
 	collect := func(phase string, ht *HookTemplates) {
 		if ht == nil {
 			return
 		}
 		ht.VisitResources(func(res interface{}) {
-			rp, ok := res.(rollingUpdateProfiled)
+			rp, ok := res.(rollingUpdatePresetd)
 			if !ok {
 				return
 			}
 			b := rp.GetRollingUpdate()
-			if b == nil || b.Profile == "" {
+			if b == nil || b.Preset == "" {
 				return
 			}
 
@@ -49,10 +49,10 @@ func (c *CRDEntry) CollectRollingUpdateProfileEntries() []RollingUpdateProfileEn
 
 			mixed := b.MaxSurge != "" || b.MaxUnavailable != ""
 
-			out = append(out, RollingUpdateProfileEntry{
+			out = append(out, RollingUpdatePresetEntry{
 				Phase:        phase,
 				ResourceName: rname,
-				Profile:      b.Profile,
+				Preset:       b.Preset,
 				Mixed:        mixed,
 			})
 		})

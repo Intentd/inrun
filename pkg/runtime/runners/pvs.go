@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/template/resources"
+
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/resources/pvs"
+	"github.com/intentd/inrun/pkg/resources/core/pvs"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -52,15 +54,15 @@ func RunPVs(
 			continue
 		}
 
-		resolved, err := resolver.ResolvePVTemplate(src)
+		resolved, err := resources.ResolvePV(resolver, src)
 		if err != nil {
 			return fmt.Errorf("pvs[%d]: %w", i, err)
 		}
 
-		spec := pvs.Resolve(resolved, resolver.OwnerName())
+		spec := resources.PVSpec(resolved, resolver.OwnerName())
 
 		if update {
-			if err := pvs.Update(ctx, kube, owner, spec); err != nil {
+			if err := pvs.Apply(ctx, kube, owner, spec); err != nil {
 				return fmt.Errorf("pvs[%d].update: %w", i, err)
 			}
 		} else {
@@ -68,7 +70,7 @@ func RunPVs(
 				return fmt.Errorf("pvs[%d].create: %w", i, err)
 			}
 			if src.Reconcile {
-				if err := pvs.Update(ctx, kube, owner, spec); err != nil {
+				if err := pvs.Apply(ctx, kube, owner, spec); err != nil {
 					return fmt.Errorf("pvs[%d].reconcile: %w", i, err)
 				}
 			}

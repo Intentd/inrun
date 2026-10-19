@@ -13,7 +13,7 @@ package types
 //	      replicas: "3"
 //	      port: "8080"
 //	      resources:
-//	        profile: burst      # Use inrun's burst resource configuration
+//	        preset: burst      # Use inrun's burst resource configuration
 //
 // Full example — dynamic values from the CR:
 //
@@ -76,11 +76,11 @@ type DeploymentTemplateSource struct {
 	Annotations Labels `yaml:"annotations,omitempty" json:"annotations,omitempty" validate:"omitempty"`
 
 	// Resources — CPU and memory requests/limits for the primary container.
-	// Set resources.profile for a named preset, or resources.requests/limits for
-	// explicit values. Profile and explicit values are mutually exclusive.
+	// Set resources.preset for a named preset, or resources.requests/limits for
+	// explicit values. Preset and explicit values are mutually exclusive.
 	//
 	//	resources:
-	//	  profile: burst
+	//	  preset: burst
 	//
 	//	resources:
 	//	  requests:
@@ -184,18 +184,18 @@ type DeploymentTemplateSource struct {
 	//	  liveness:
 	//	    type: http
 	//	    path: /healthz
-	//	    profile: standard
+	//	    preset: standard
 	//	  readiness:
 	//	    type: tcp
-	//	    profile: fast
+	//	    preset: fast
 	Probes *ProbesConfig `yaml:"probes,omitempty" json:"probes,omitempty"`
 
 	// SecurityContext — container-level security settings.
-	// Set securityContext.profile for a named preset (baseline, restricted, hardened)
-	// or declare individual fields. Profile and explicit fields are mutually exclusive.
+	// Set securityContext.preset for a named preset (baseline, restricted, hardened)
+	// or declare individual fields. Preset and explicit fields are mutually exclusive.
 	//
 	//	securityContext:
-	//	  profile: restricted
+	//	  preset: restricted
 	//
 	//	securityContext:
 	//	  runAsNonRoot: true
@@ -203,10 +203,10 @@ type DeploymentTemplateSource struct {
 	SecurityContext *ContainerSecurityContext `yaml:"securityContext,omitempty" json:"securityContext,omitempty"`
 
 	// PodSecurity — pod-level security settings applied to the pod spec.
-	// Set podSecurity.profile for a named preset or declare individual fields.
+	// Set podSecurity.preset for a named preset or declare individual fields.
 	//
 	//	podSecurity:
-	//	  profile: baseline
+	//	  preset: baseline
 	//
 	//	podSecurity:
 	//	  runAsNonRoot: true
@@ -214,12 +214,12 @@ type DeploymentTemplateSource struct {
 	PodSecurity *PodSecurityContext `yaml:"podSecurity,omitempty" json:"podSecurity,omitempty"`
 
 	// RollingUpdate — rolling update strategy for this Deployment.
-	// Set rollingUpdate.profile for a named preset (safe, fast, blue-green),
+	// Set rollingUpdate.preset for a named preset (safe, fast, blue-green),
 	// or declare maxSurge/maxUnavailable explicitly.
-	// Profile and explicit fields are mutually exclusive.
+	// Preset and explicit fields are mutually exclusive.
 	//
 	//	rollingUpdate:
-	//	  profile: safe
+	//	  preset: safe
 	//
 	//	rollingUpdate:
 	//	  maxSurge: "1"

@@ -32,7 +32,7 @@ func (c *Blueprint) SerializeExpanded() ([]byte, error) {
 		Spec:       types.BlueprintSpec{CRDs: withoutLocalPaths(c.enabledCRDs)},
 		Security:   c.Security,
 		Gateway:    c.Gateway,
-		Profiles:   c.Profiles,
+		Presets:    c.Presets,
 		Functions:  c.Functions,
 	}
 

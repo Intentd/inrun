@@ -3,9 +3,10 @@ package runtime
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func finalizerTimeoutExec(crdTimeout, targetTimeout string) *checker {

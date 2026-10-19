@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/labels"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/intentd/inrun/pkg/labels"
 )
 
 func TestSetTarget(t *testing.T) {

@@ -57,7 +57,7 @@ func planChain(c *blueprint.Blueprint, raw map[string]interface{}, tokenName str
 	// Stage 3: CR construction
 	n.stage(3, "CR construction")
 	funcs := c.Functions
-	obj, err := intent.Build(raw, crd, funcs)
+	obj, err := intent.BuildCR(raw, crd, funcs)
 	if err != nil {
 		n.fail(err.Error())
 		return nil, nil, "", err
@@ -288,7 +288,7 @@ func RunIntentPlay(blueprintPath, intentFile string) (string, error) {
 		return target, fmt.Errorf("intent file must declare a 'token' — token: <name>")
 	}
 
-	obj, err := intent.Build(raw, crd, c.Functions)
+	obj, err := intent.BuildCR(raw, crd, c.Functions)
 	if err != nil {
 		return target, fmt.Errorf("CR construction: %w", err)
 	}

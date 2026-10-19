@@ -83,10 +83,10 @@ type ResourceQuotaTemplateSource struct {
 	// ForEach — expand this entry once per item in a list or map field.
 	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
 
-	// Profile — named resource quota preset. Expands into hard limits.
+	// Preset — named resource quota preset. Expands into hard limits.
 	// Allowed values: small, medium, large, xlarge.
 	// Mutually exclusive with Hard — set one or the other, not both.
-	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
 
 	// Sleep injects an artificial delay.
 	// Accepts extended duration units (s, m, h, d, w, mo, y).

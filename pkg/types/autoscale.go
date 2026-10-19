@@ -58,10 +58,10 @@ type AutoscaleSpec struct {
 	// Fields omitted in Do are not changed — only declared fields are overridden.
 	Do AutoscaleAction `yaml:"do" json:"do"`
 
-	// A profile is:
+	// A preset is:
 	// 	a named preset that expands into a complete autoscale configuration
 	// using computed heuristics tuned for a specific behavior pattern
-	Profile string `yaml:"profile,omitempty" json:"profile,omitempty"`
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
 }
 
 // AutoscaleConditions holds the condition blocks for autoscale evaluation.

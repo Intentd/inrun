@@ -2,15 +2,17 @@ package apply
 
 import (
 	"fmt"
-	"github.com/intentd/inrun/pkg/labels"
 	"time"
+
+	"github.com/intentd/inrun/pkg/labels"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/kubeclient"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // metadata carries optional labels and annotations to apply to a built object.
