@@ -1,6 +1,6 @@
 # Contributing to the Console
 
-The console (`cmd/console`) is a lightweight Go web server with embedded HTML templates. It connects to one or more running Inrun runtimes via their `/catalog` HTTP API to present what is running, and — for CRDs with `serve.enabled: true` — to a companion gateway's Gateway API to let a developer create new instances through a form.
+The console (`cmd/console`) is a lightweight Go web server with embedded HTML templates. It connects to one or more running Inrun runtimes via their `/blueprint` HTTP API to present what is running, and — for CRDs with `serve.enabled: true` — to a companion gateway's Gateway API to let a developer create new instances through a form.
 
 ---
 
@@ -10,12 +10,12 @@ The console currently surfaces:
 
 | Page | Path | What it shows |
 |------|------|---------------|
-| Dashboard | `/` | All connected Catalogs — health, CRD count, worker count, resource count |
-| Catalog panel | `/catalog/{name}` | CRD list for one Catalog, status per CRD |
-| CRD detail | `/catalog/{name}/crd/{crd}` | CRD config, worker count, recent reconcile status |
-| CR list | `/catalog/{name}/crd/{crd}/cr` | All custom resource instances |
-| CR detail | `/catalog/{name}/crd/{crd}/cr/{ns}/{name}` | One CR — spec, status, children, events |
-| IDP form | `/catalog/{name}/crd/{crd}/cr/create` | Self-service create form for CRDs with `serve.enabled: true` — submits target mode to the gateway, builds no CR itself |
+| Dashboard | `/` | All connected Blueprints — health, CRD count, worker count, resource count |
+| Blueprint panel | `/blueprint/{name}` | CRD list for one Blueprint, status per CRD |
+| CRD detail | `/blueprint/{name}/crd/{crd}` | CRD config, worker count, recent reconcile status |
+| CR list | `/blueprint/{name}/crd/{crd}/cr` | All custom resource instances |
+| CR detail | `/blueprint/{name}/crd/{crd}/cr/{ns}/{name}` | One CR — spec, status, children, events |
+| IDP form | `/blueprint/{name}/crd/{crd}/cr/create` | Self-service create form for CRDs with `serve.enabled: true` — submits target mode to the gateway, builds no CR itself |
 | In-package docs | `/docs` | Rendered inrun-docs for the connected operator |
 | Metrics | `/metrics` | Metrics page — template exists, data not yet wired |
 | Runtime manager | (conditional) | Add / remove / update connected runtime instances |
@@ -48,11 +48,11 @@ The CRD detail page shows current health but not history. A small time-series ch
 
 ### Multi-instance diff view
 
-When two runtime instances are connected, there is no view that compares them. A diff view showing which Catalogs / CRDs differ between instances would help multi-cluster operators.
+When two runtime instances are connected, there is no view that compares them. A diff view showing which Blueprints / CRDs differ between instances would help multi-cluster operators.
 
 ### Gateway status
 
-When a Catalog has a `gatewayEndpoint`, the console knows the gateway URL from the `/catalog` response. It does not currently show webhook stats (admission calls, conversion calls, deletion protection blocks). The gateway exposes these on `/webhook-stats`.
+When a Blueprint has a `gatewayEndpoint`, the console knows the gateway URL from the `/blueprint` response. It does not currently show webhook stats (admission calls, conversion calls, deletion protection blocks). The gateway exposes these on `/webhook-stats`.
 
 ### IDP mode — follow-on improvements
 

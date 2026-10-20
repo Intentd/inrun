@@ -1,48 +1,36 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
-  # push:
-  #   branches: [main]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'domain/**'
+      - 'examples/**'
+      - 'go.mod'
+      - 'go.sum'
   pull_request:
-    branches: [disabled]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'domain/**'
+      - 'examples/**'
+      - 'go.mod'
+      - 'go.sum'
 
 jobs:
-  # ── Lint ──────────────────────────────────────────────────────────────────
-  lint:
-    name: Lint
+  validate-functions:
+    name: Validate generated functions
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v6
-
-      # - name: Set up Go
-      #   uses: actions/setup-go@v5
-      #   with:
-      #     go-version-file: go.mod
-      #     cache: true
-
-      # - name: golangci-lint
-      #   uses: golangci/golangci-lint-action@v6
-      #   with:
-      #     version: latest
-
-      - name: Write summary
-        if: always()
-        run: |
-          echo "## Lint" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Check | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| golangci-lint | ${{ job.status == 'success' && '✅ passed' || '❌ failed' }} |" >> "$GITHUB_STEP_SUMMARY"
-
-  # ── Build ──────────────────────────────────────────────────────────────────
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -50,132 +38,123 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build
-        run: go build ./...
+      - name: Run function generator
+        run: make generate-functions
 
-      - name: Build CLI binary
+      - name: Check for uncommitted changes (generated function registries)
         run: |
-          go build -o ./bin/inrun ./cmd/inrun/
-          echo "✅ Binary built:"
-          ls -lh ./bin/inrun
-
-      - name: Write summary
-        if: always()
-        run: |
-          echo "## Build" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Step | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| go build ./... | ${{ job.status == 'success' && '✅ passed' || '❌ failed' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| CLI binary | ${{ job.status == 'success' && '✅ built' || '❌ failed' }} |" >> "$GITHUB_STEP_SUMMARY"
-
-  # ── Test ───────────────────────────────────────────────────────────────────
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      # - name: Set up Go
-      #   uses: actions/setup-go@v5
-      #   with:
-      #     go-version-file: go.mod
-      #     cache: true
-
-      - name: Run tests
-        run: |
-          go test ./... \
-            -v \
-            -race \
-            -coverprofile=coverage.out \
-            -covermode=atomic \
-            -timeout 120s \
-            2>&1 | tee test_output.txt
-
-      - name: Vulnerability scan
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
-
-      - name: Coverage report
-        run: |
-          go tool cover -func=coverage.out | tail -1
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
-          echo "COVERAGE=${COVERAGE}" >> "$GITHUB_ENV"
-
-      - name: Write summary
-        if: always()
-        run: |
-          echo "## Tests" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          # Count pass/fail
-          PASSED=$(grep -c "^--- PASS" test_output.txt 2>/dev/null || echo 0)
-          FAILED=$(grep -c "^--- FAIL" test_output.txt 2>/dev/null || echo 0)
-
-          echo "| Result | Count |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Passed | ${PASSED} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ❌ Failed | ${FAILED} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| 📊 Coverage | ${COVERAGE:-n/a} |" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "${FAILED}" -gt 0 ]; then
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "### Failed tests" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            grep "^--- FAIL" test_output.txt >> "$GITHUB_STEP_SUMMARY" || true
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-  # ── Validate examples ──────────────────────────────────────────────────────
-  validate-examples:
-    name: Validate examples
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Build CLI
-        run: go build -o ./bin/inrun ./cmd/inrun/
-
-      - name: Validate examples
-        run: |
-          for k in $(find examples -name blueprint.yaml | sort); do
-            ./bin/inrun validate --file "$k"
-          done
-
-  # ── Summary ────────────────────────────────────────────────────────────────
-  summary:
-    name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [lint, build, test, validate-examples]
-    if: always()
-
-    steps:
-      - name: Write final summary
-        run: |
-          echo "## CI Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Lint | ${{ needs.lint.result == 'success' && '✅' || '❌' }} ${{ needs.lint.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Build | ${{ needs.build.result == 'success' && '✅' || '❌' }} ${{ needs.build.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Test | ${{ needs.test.result == 'success' && '✅' || '❌' }} ${{ needs.test.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Validate examples | ${{ needs.validate-examples.result == 'success' && '✅' || '❌' }} ${{ needs.validate-examples.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          ALL_PASSED="${{ needs.lint.result == 'success' && needs.build.result == 'success' && needs.test.result == 'success' && needs.validate-examples.result == 'success' }}"
-          if [ "$ALL_PASSED" = "true" ]; then
-            echo "### ✅ All checks passed — ready to merge" >> "$GITHUB_STEP_SUMMARY"
+          FUNCS="pkg/template/funcs/funcs_generated.go docs/reference/inrun-functions"
+          if ! git diff --quiet -- $FUNCS; then
+            echo "❌ Generated function files are out of date:"
+            git diff --stat -- $FUNCS
+            echo "Run 'make generate-functions' locally and commit the changes."
+            exit 1
           else
-            echo "### ❌ Some checks failed — review above" >> "$GITHUB_STEP_SUMMARY"
+            echo "✅ Function list is up-to-date."
           fi
+
+  validate-resource-docs:
+    name: Validate generated resource docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run resource docs generator
+        run: make generate-resource-docs
+
+      - name: Check for uncommitted changes (docs/reference/schema/06-resources)
+        run: |
+          if ! git diff --quiet docs/reference/schema/06-resources/; then
+            echo "❌ docs/reference/schema/06-resources/ is out of date."
+            echo "Run 'make generate-resource-docs' locally and commit the changes."
+            exit 1
+          else
+            echo "✅ Resource docs are up-to-date."
+          fi
+
+  validate-code:
+    name: Run static checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests (no cluster required)
+        run: make test
+
+  # Runs every example's simulate.yaml against the CLI built from this
+  # checkout, the way each example's README tells users to. No cluster.
+  # Typed examples are skipped: each builds its own binary from a nested
+  # module, which needs a published Inrun version.
+  simulate-examples:
+    name: Simulate examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build inrun
+        run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
+
+      - name: Start the remote example's reconciler
+        working-directory: examples/reconcilers/remote/endpoint
+        env:
+          RECONCILER_TOKEN: inrun-demo-token
+        run: |
+          python3 reconciler/main.py > "$RUNNER_TEMP/reconciler.log" 2>&1 &
+          for i in $(seq 30); do
+            curl -s -o /dev/null localhost:8025 && exit 0
+            sleep 1
+          done
+          echo "reconciler did not start"; cat "$RUNNER_TEMP/reconciler.log"; exit 1
+
+      - name: Simulate declarative and remote examples
+        working-directory: examples
+        run: |
+          "$RUNNER_TEMP/inrun" simulate ./... --skip typed,intent --dev-server
+
+      - name: Simulate the intent example
+        working-directory: examples/intent
+        run: |
+          "$RUNNER_TEMP/inrun" serve play -i intent.json --token dev --simulate=test/simulate.yaml
+
+  vuln-check:
+    name: Vulnerability check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [vuln-console, vuln-runtime, vuln-gateway]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run vulnerability check
+        run: make ${{ matrix.target }}

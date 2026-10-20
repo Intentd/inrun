@@ -10,7 +10,7 @@ Create the example directory under the right pack with the required files:
 
 ```text
 examples/beginner/05-my-example/
-  catalog.yaml
+  blueprint.yaml
   crd.yaml
   cr.yaml
   README.md
@@ -30,7 +30,7 @@ A new top-level pack (e.g., `examples/maintenance/`) touches four files beyond t
 ```text
 examples/new-pack/
   example-1/
-    catalog.yaml
+    blueprint.yaml
     crd.yaml
     cr.yaml
     README.md

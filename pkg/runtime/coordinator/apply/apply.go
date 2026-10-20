@@ -16,8 +16,8 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
-	resapply "github.com/intentd/kubekit/core/apply"
-	restypes "github.com/intentd/kubekit/core/types"
+	resapply "github.com/intentd/kubewright/core/apply"
+	restypes "github.com/intentd/kubewright/core/types"
 )
 
 // FieldManager is the server-side apply field manager for resources a

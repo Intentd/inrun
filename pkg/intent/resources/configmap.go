@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/kubekit/core/configmaps"
+	"github.com/intentd/kubewright/core/configmaps"
 )
 
 // ConfigMapFields are the fields accepted in the remote reconciler

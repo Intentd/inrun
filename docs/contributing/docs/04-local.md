@@ -34,7 +34,7 @@ Output shows every file synced and any section indices auto-created:
 Cleaning content/docs ...
 Syncing docs: .../documentation → .../website/content/docs
   docs: getting-started/index.md
-  docs: inrun-registry/catalogs.md
+  docs: inrun-registry/blueprints.md
   ...
 Done.
 ```

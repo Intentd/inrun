@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kubekit/core/pvcs"
+	"github.com/intentd/kubewright/core/pvcs"
 )
 
 // RunPVCs resolves and applies PersistentVolumeClaim template declarations.

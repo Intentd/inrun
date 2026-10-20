@@ -9,6 +9,7 @@ Answer the questions about any Kubernetes object that every controller asks: its
 | [`annotations`](#annotations) | Returns the `metadata.annotations` map. |
 | [`conditionMessage`](#conditionmessage) | Returns the `message` field of a named condition. |
 | [`conditionReason`](#conditionreason) | Returns the `reason` field of a named condition. |
+| [`conditionsHealthy`](#conditionshealthy) | Reports whether an object's standard conditions say it is healthy, for any kind that reports them: Flux, cert-manager, Crossplane, Argo and most operators. |
 | [`generation`](#generation) | Returns `metadata.generation` as int64. |
 | [`get`](#get) | Navigates a nested path through a Kubernetes object using variadic string segments. |
 | [`getAnnotation`](#getannotation) | Returns the value of a single annotation key from `metadata.annotations`. |
@@ -61,6 +62,15 @@ Answer the questions about any Kubernetes object that every controller asks: its
 
 ```text
 {{ conditionReason .deployment "Available" }}  → "MinimumReplicasAvailable"
+```
+
+### conditionsHealthy
+
+`conditionsHealthy` reports whether an object's standard conditions say it is healthy, for any kind that reports them: Flux, cert-manager, Crossplane, Argo and most operators. It is true when the controller has seen the latest spec and either Ready, or Available when there is no Ready, is "True". It is false when there are no such conditions, Stalled or Reconciling is "True", Progressing or Synced is "False", or status.observedGeneration (or Ready's own observedGeneration) is behind metadata.generation. For a Deployment or StatefulSet use rolloutComplete as well: Available stays "True" while a rollout is stuck on old pods.
+
+```text
+{{ conditionsHealthy .helmRelease }}  → true
+{{ conditionsHealthy .deployment }}  → true
 ```
 
 ### generation

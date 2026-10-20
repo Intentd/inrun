@@ -14,14 +14,14 @@ The reconciliation engine. Watches Kubernetes resources, runs operatorBox logic,
 
 | Package | What it does |
 |---------|-------------|
-| `pkg/catalog` | Loads, merges, and validates the Catalog. The link between YAML config and every runtime decision. |
+| `pkg/blueprint` | Loads, merges, and validates the Blueprint. The link between YAML config and every runtime decision. |
 | `pkg/runtime/reconciler` | `Generic Reconciler` — the reconcile loop. |
 | `pkg/runtime/coordinator` | Orchestrates reconcilers per CRD; manages CRD health, degradation, and dependency ordering. |
 | `pkg/children` | Fetches and enriches child resources (`_pods`, `_replicaSets`, `_owner`, etc.) and builds the `.children` map available in status templates. |
 | `pkg/runtime/informer` | Shared index informers and factory lifecycle. |
 | `pkg/kubeclient` | Core, dynamic, and apiextensions clients; REST mapper. |
 | `pkg/resources` | Built-in resource handlers: deployments, services, configMaps, jobs, etc. |
-| `pkg/merger` | Stack — multi-source Catalog merging. |
+| `pkg/merger` | Stack — multi-source Blueprint merging. |
 | `pkg/registry/module` | Module expansion — assembles reusable resource building blocks at load time. |
 | `pkg/webhook` | Admission and conversion webhook server. |
 | `pkg/certmanager` | TLS certificate provisioning for webhook servers. |
@@ -42,7 +42,7 @@ An HTTPS sidecar that owns all webhook endpoints (admission, conversion, deletio
 
 ### Console (`cmd/console`)
 
-A read-only web UI that aggregates status from one or more running runtimes. Written in Go with embedded HTML templates. No Kubernetes access of its own — pulls everything via the runtime's `/catalog` HTTP API.
+A read-only web UI that aggregates status from one or more running runtimes. Written in Go with embedded HTML templates. No Kubernetes access of its own — pulls everything via the runtime's `/blueprint` HTTP API.
 
 ---
 
@@ -52,7 +52,7 @@ These are imported by more than one binary.
 
 | Package | Notes |
 |---------|-------|
-| `pkg/types` | All Catalog YAML structs, registries, and generated type interfaces. |
+| `pkg/types` | All Blueprint YAML structs, registries, and generated type interfaces. |
 | `pkg/config` | Environment variable parsing and startup configuration. |
 | `pkg/logger` | Structured zerolog wrapper. |
 | `pkg/utils` | Small helpers (cluster detection, env expansion, exit). |
@@ -70,7 +70,7 @@ These are imported by more than one binary.
 
 Every package with a `README.md` explains what it does, what it owns, and what it does not own. Start there. Packages without a README are small enough to read directly.
 
-The `pkg/catalog` package is the connective tissue of the entire project. If you are unsure how a feature works end-to-end, start from the Catalog accessor for that feature and follow callers inward.
+The `pkg/blueprint` package is the connective tissue of the entire project. If you are unsure how a feature works end-to-end, start from the Blueprint accessor for that feature and follow callers inward.
 
 ---
 
@@ -82,6 +82,6 @@ The `inrun` CLI is built with a `!runtime` build tag so it is excluded from the 
 - `inrun generate registry` — emit `pkg/typeregistry/zz_generated_typeregistry.go`
 - `inrun generate bundle` — emit Kubernetes manifests for the runtime or gateway
 - `inrun init` — scaffold a new operator project from an example pack
-- `inrun validate` — validate a Catalog offline
+- `inrun validate` — validate a Blueprint offline
 - `inrun simulate` — dry-run a reconcile loop without a cluster
 - `inrun console` — manage a running runtime (start, stop, reload)

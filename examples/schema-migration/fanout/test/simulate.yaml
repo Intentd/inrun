@@ -8,7 +8,7 @@ metadata:
 
 spec:
   blueprint: ../blueprint.yaml
-  intent: ../intent.yaml
+  intent: ../intents/intent.yaml
   token: dev
   cycles: 5
 

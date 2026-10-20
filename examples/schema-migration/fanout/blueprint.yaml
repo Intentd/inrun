@@ -58,7 +58,7 @@ spec:
               action: deny
 
             - field: spec.image
-              operator: exists
+              exists: true
               message: "image is required"
               action: deny
 

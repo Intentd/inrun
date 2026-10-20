@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kubekit/core/limitranges"
+	"github.com/intentd/kubewright/core/limitranges"
 )
 
 // RunLimitRanges resolves and applies LimitRange template declarations.

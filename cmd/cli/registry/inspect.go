@@ -161,6 +161,10 @@ var inspectCmd = &cobra.Command{
 			}
 			for _, name := range strings.Split(viewArg, ",") {
 				name = strings.TrimSpace(name)
+				// cr.yaml finds manifests/cr.yaml, e2e.yaml finds test/e2e.yaml.
+				if rel := registry.ResolvePatternFile(name, func(rel string) bool { _, ok := fileMap[rel]; return ok }); rel != "" {
+					name = rel
+				}
 				f, ok := fileMap[name]
 				if !ok {
 					fmt.Printf("  %s %q not in artifact (available: %s)\n", cmdutil.WarningMark(), name, strings.Join(available, ", "))
@@ -210,7 +214,7 @@ var inspectCmd = &cobra.Command{
 		fmt.Printf("  Size:        %s\n", cmdutil.FormatSize(info.Size))
 		fmt.Printf("\n  Description: %s\n", cmdutil.WordWrap(m.Description, 55, "               "))
 		if len(m.Tags) > 0 {
-			fmt.Printf("  Tags:        %s\n", strings.Join(m.Tags, ", "))
+			fmt.Printf("  Tags:        %s\n", cmdutil.WordWrap(strings.Join(m.Tags, ", "), 55, "               "))
 		}
 		if m.Author != "" {
 			fmt.Printf("  Author:      %s\n", m.Author)
@@ -321,6 +325,10 @@ var inspectCmd = &cobra.Command{
 		if m.RuntimeVersion != "" {
 			fmt.Printf("  Runtime:     %s\n", m.RuntimeVersion)
 		}
+		if m.Replaces != "" {
+			fmt.Printf("  Replaces:    %s\n", m.Replaces)
+			fmt.Printf("               %s\n", cmdutil.Yellow("an earlier "+m.Version+", pushed over with --overwrite"))
+		}
 		if len(info.Files) > 0 {
 			fmt.Printf("\n  Files:\n")
 			for _, f := range info.Files {
@@ -328,10 +336,12 @@ var inspectCmd = &cobra.Command{
 			}
 		}
 		fmt.Printf("\nTo pull:\n")
+		// The reference as inspected: a digest or another registry pulls exactly
+		// this artifact, which name:version alone would not.
 		if m.Kind == registry.ModuleKind {
-			fmt.Printf("  inrun pull %s:%s --module %s\n", m.Name, m.Version, deprecated)
+			fmt.Printf("  inrun pull %s --module %s\n", ref.String(), deprecated)
 		} else {
-			fmt.Printf("  inrun pull %s:%s %s\n", m.Name, m.Version, deprecated)
+			fmt.Printf("  inrun pull %s %s\n", ref.String(), deprecated)
 		}
 		fmt.Printf("\nTo import:\n")
 		if m.Kind == registry.ModuleKind {

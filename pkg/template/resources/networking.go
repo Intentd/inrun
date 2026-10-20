@@ -7,10 +7,10 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/kubekit/core/ingresses"
-	"github.com/intentd/kubekit/core/networkpolicies"
-	"github.com/intentd/kubekit/core/services"
-	"github.com/intentd/kubekit/presets"
+	"github.com/intentd/kubewright/core/ingresses"
+	"github.com/intentd/kubewright/core/networkpolicies"
+	"github.com/intentd/kubewright/core/services"
+	"github.com/intentd/kubewright/presets"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

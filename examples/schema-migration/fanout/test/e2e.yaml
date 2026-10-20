@@ -68,4 +68,4 @@ spec:
               Authorization: "Bearer ${DEV_TOKEN}"
               Content-Type: "application/json"
             body: '{"target":"cronjob","name":"bad-cron","schedule":"not-a-cron","image":"busybox:latest"}'
-            outputContains: '"accepted":false'
+            contains: '"accepted":false'

@@ -97,7 +97,7 @@ Example:
 func gateEvalRunE(cmd *cobra.Command, args []string) error {
 	crFile, _ := cmd.Flags().GetString("cr")
 	if crFile == "" {
-		crFile = cmdutil.FindFile(cmdutil.FileCr, cmdutil.DirManifests)
+		crFile = cmdutil.FindFile(cmdutil.FileCr)
 	}
 
 	paths, _ := cmd.Flags().GetStringSlice("file")

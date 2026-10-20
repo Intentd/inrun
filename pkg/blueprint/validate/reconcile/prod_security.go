@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/kubekit/presets"
+	"github.com/intentd/kubewright/presets"
 )
 
 // validateSecurityPresets ensures that security presets are used correctly

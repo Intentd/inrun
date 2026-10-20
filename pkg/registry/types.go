@@ -30,6 +30,7 @@ type PatternMeta struct {
 	Intent         *PatternIntent     // populated at push time from running inrun serve play; nil when absent
 	Typed          *PatternTyped      // populated at push time from inspecting blueprint CRDs; nil for modules or non-typed blueprints
 	Deprecated     *PatternDeprecated // populated from metadata.deprecation in the source YAML; nil when absent
+	Replaces       string             // digest of the artifact this push replaced at the same version (push --overwrite); "" when none
 }
 
 // PatternTyped carries the typed-operator annotation flags for a blueprint.
@@ -94,6 +95,7 @@ type PushOptions struct {
 	Intent         *PatternIntent
 	Typed          *PatternTyped
 	RuntimeVersion string
+	Replaces       string // digest of the artifact being replaced at the same version, recorded in the new one
 }
 
 // PatternIndex is the top-level index stored at registry/index:latest.

@@ -1,7 +1,7 @@
 // pkg/types/types_limitrange.go
 package types
 
-import restypes "github.com/intentd/kubekit/core/types"
+import restypes "github.com/intentd/kubewright/core/types"
 
 // LimitRangeTemplateSource declares one LimitRange to be managed by Inrun.
 //

@@ -16,7 +16,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kubekit/core/jobs"
+	"github.com/intentd/kubewright/core/jobs"
 )
 
 const jobCompletionPollInterval = 3 * time.Second

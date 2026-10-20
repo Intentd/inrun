@@ -56,6 +56,8 @@ Read the replica counts of a workload (desired, ready, available and updated) an
 - DaemonSet: every scheduled node runs the new template and is available.
 - Any other kind: updated replicas equal desired replicas.
 
+An object without kind, such as a typed object from a list call converted to a map, is read by its shape: a DaemonSet's status, a StatefulSet's revisions or a Deployment's strategy.
+
 ```text
 {{ rolloutComplete .deployment }}  → true
 ```

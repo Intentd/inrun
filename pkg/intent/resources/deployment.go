@@ -7,7 +7,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/kubekit/core/deployments"
+	"github.com/intentd/kubewright/core/deployments"
 )
 
 // DeploymentFields are the fields accepted in the remote reconciler

@@ -49,7 +49,7 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 			file = args[0]
 		}
 		if file == "" {
-			file = cmdutil.FindFile(cmdutil.FileE2e, cmdutil.DirTest)
+			file = cmdutil.FindFile(cmdutil.FileE2e)
 		}
 		if file == "" {
 			return fmt.Errorf("no %s found here or in %s/ — pass -f <file>", cmdutil.FileE2e, cmdutil.DirTest)
@@ -65,10 +65,7 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 		}
 		valuesFiles, _ := cmd.Flags().GetStringSlice("values")
 		helmArgRaw, _ := cmd.Flags().GetStringSlice("set")
-		var helmArgs []string
-		for _, arg := range helmArgRaw {
-			helmArgs = append(helmArgs, "--set", arg)
-		}
+		helmArgs := cmdutil.HelmSetArgs(helmArgRaw)
 		devServer, _ := cmd.Flags().GetBool("dev-server")
 		noRuntime, _ := cmd.Flags().GetBool("no-runtime")
 		wait, _ := cmd.Flags().GetString("wait")
@@ -252,8 +249,8 @@ func e2eInitScaffold(cmd *cobra.Command) error {
 
 	// Paths in the spec are relative to the spec file, in test/.
 	relBlueprint := relFromDir(cmdutil.DirTest, blueprintFile)
-	relCRD := relFromDir(cmdutil.DirTest, projectFile(blueprintFile, cmdutil.FileCrd, cmdutil.DirManifests))
-	relCR := relFromDir(cmdutil.DirTest, projectFile(blueprintFile, cmdutil.FileCr, cmdutil.DirManifests))
+	relCRD := relFromDir(cmdutil.DirTest, projectFile(blueprintFile, cmdutil.FileCrd))
+	relCR := relFromDir(cmdutil.DirTest, projectFile(blueprintFile, cmdutil.FileCr))
 
 	crdNames := bp.CRDNames()
 	var crds []crdInfo
@@ -511,19 +508,8 @@ func init() {
 	cmdutil.ShadowGlobalCommandFlags(e2eCmd)
 }
 
-// chartFlag returns --chart as an absolute path, or "" when unset. The path
-// must be a chart directory: e2e may change directory before installing.
+// chartFlag returns --chart as an absolute chart directory, or "" when unset.
 func chartFlag(cmd *cobra.Command) (string, error) {
 	chart, _ := cmd.Flags().GetString("chart")
-	if chart == "" {
-		return "", nil
-	}
-	abs, err := filepath.Abs(chart)
-	if err != nil {
-		return "", fmt.Errorf("--chart %q: %w", chart, err)
-	}
-	if _, err := os.Stat(filepath.Join(abs, "Chart.yaml")); err != nil {
-		return "", fmt.Errorf("--chart %q: not a Helm chart directory (no Chart.yaml)", chart)
-	}
-	return abs, nil
+	return cmdutil.ChartDir(chart)
 }

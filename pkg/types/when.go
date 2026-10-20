@@ -44,7 +44,7 @@ import (
 // reconcile data map, including all KEL functions and enriched children.
 // Returns (result, true) on success; ("", false) on any error.
 // Implemented by the resolver package and injected at call sites.
-// nil disables template evaluation — all existing callers are backward-compatible.
+// nil disables template evaluation
 type TemplateEvaluator func(tmpl string) (string, bool)
 
 // IsTemplate reports whether s contains a Go template expression.
@@ -52,7 +52,7 @@ func IsTemplate(s string) bool { return strings.Contains(s, "{{") }
 
 // EvaluateConditions evaluates when: (allOf, AND) and or: (OR) conditions.
 // data is resolver.Data() — full CR map including children, external, cross.
-// eval is optional — pass nil to disable template evaluation (backward compatible).
+// eval is optional — pass nil to disable template evaluation
 //
 // Both blocks must pass when both are declared.
 // Empty blocks always pass.

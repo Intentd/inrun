@@ -18,7 +18,7 @@ import (
 //	enrich:
 //	  - events:
 //	      when:
-//	        - field: "{{ replicasReady .children.deployment }}"
+//	        - field: "{{ allReplicasReady .children.deployment }}"
 //	          equals: "false"
 //	  - replicasets:
 //	      or:
@@ -30,7 +30,7 @@ type EnrichTarget struct {
 
 	// When gates this enrichment using AND semantics. Template expressions
 	// in field: values are evaluated against the resolver's full data map
-	// so KEL's functions (replicasReady, hasCrashingPod, …) have their inputs.
+	// so KEL's functions (allReplicasReady, hasCrashingPod, …) have their inputs.
 	// Empty: always enriches (same as shorthand).
 	When []Condition `yaml:"when,omitempty"`
 	Or   []Condition `yaml:"or,omitempty"`

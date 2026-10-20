@@ -56,8 +56,7 @@ type SetupConfig struct {
 	Wait []SetupWait `yaml:"wait,omitempty"`
 }
 
-// UnmarshalYAML allows setup: to be written as either a plain list of strings
-// (backward-compatible shorthand for setup.apply) or a full struct.
+// UnmarshalYAML allows setup: to be written as either a plain list of strings (setup.apply) or a full struct.
 func (s *SetupConfig) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.SequenceNode {
 		for _, item := range value.Content {
@@ -294,7 +293,7 @@ type E2ESpec struct {
 	Cluster E2ECluster `yaml:"cluster"`
 
 	// Setup declares prerequisite resources to apply before Inrun starts.
-	// Shorthand: a plain list of strings applies each file (backward compatible).
+	// Shorthand: a plain list of strings applies each file
 	// Struct form adds helm installs and resource waiting.
 	Setup *SetupConfig `yaml:"setup,omitempty"`
 

@@ -6,33 +6,34 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 | Function | Description |
 |----------|-------------|
-| [`hasCrashingPod`](#hascrashingpod) | Reports whether any pod is unhealthy: restarted more than twice, or a container waiting or terminated with a failure reason (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …). |
+| [`hasCrashingPod`](#hascrashingpod) | Reports whether any container is failing now: waiting or terminated with a failure reason (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …), or not running after restarting before. |
 | [`podByOrdinal`](#podbyordinal) | Returns the pod whose name ends in -&lt;ordinal&gt;, as StatefulSet pods are named (web-0, web-1, …); nil when none does. |
 | [`podContainerReasons`](#podcontainerreasons) | Returns the distinct reasons containers are waiting or terminated with, across all pods, in first-seen order. |
 | [`podContainerState`](#podcontainerstate) | Returns the state (Running, Waiting, Terminated) of a named container in the pod at ordinal; "" when either is not found. |
 | [`podCount`](#podcount) | Returns the number of pods. |
-| [`podCrashLoopDetected`](#podcrashloopdetected) | Reports whether any container in the pods is waiting or terminated with reason CrashLoopBackOff. |
-| [`podCreateContainerErrorDetected`](#podcreatecontainererrordetected) | Reports whether any container in the pods is waiting or terminated with reason CreateContainerError. |
-| [`podErrImagePullDetected`](#poderrimagepulldetected) | Reports whether any container in the pods is waiting or terminated with reason ErrImagePull. |
-| [`podErrorDetected`](#poderrordetected) | Reports whether any container in the pods is waiting or terminated with reason Error. |
+| [`podCrashLoopDetected`](#podcrashloopdetected) | Reports whether any container in the pods is crash looping: waiting with reason CrashLoopBackOff, or terminated with a non-zero exit code after restarting before, as it shows between back-offs. |
+| [`podCreateContainerErrorDetected`](#podcreatecontainererrordetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, CreateContainerError. |
+| [`podErrImagePullDetected`](#poderrimagepulldetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, ErrImagePull. |
+| [`podErrorDetected`](#poderrordetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, Error. |
 | [`podIPs`](#podips) | Returns the pods' IP addresses; pods without one yet are skipped. |
-| [`podImagePullBackOffDetected`](#podimagepullbackoffdetected) | Reports whether any container in the pods is waiting or terminated with reason ImagePullBackOff. |
-| [`podInvalidImageNameDetected`](#podinvalidimagenamedetected) | Reports whether any container in the pods is waiting or terminated with reason InvalidImageName. |
+| [`podImagePullBackOffDetected`](#podimagepullbackoffdetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, ImagePullBackOff. |
+| [`podInvalidImageNameDetected`](#podinvalidimagenamedetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, InvalidImageName. |
 | [`podMaxRestarts`](#podmaxrestarts) | Returns the highest restart count of any pod (the sum over its containers). |
 | [`podNames`](#podnames) | Returns the pods' names, in order. |
 | [`podNodes`](#podnodes) | Returns the nodes the pods are scheduled on; pending pods are skipped. |
-| [`podOOMKilledDetected`](#podoomkilleddetected) | Reports whether any container in the pods is waiting or terminated with reason OOMKilled. |
+| [`podOOMKilledDetected`](#podoomkilleddetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, OOMKilled. |
 | [`podPhases`](#podphases) | Returns each pod's phase, in order. |
-| [`podPostStartHookErrorDetected`](#podpoststarthookerrordetected) | Reports whether any container in the pods is waiting or terminated with reason PostStartHookError. |
-| [`podPreStartHookErrorDetected`](#podprestarthookerrordetected) | Reports whether any container in the pods is waiting or terminated with reason PreStartHookError. |
-| [`podRunContainerErrorDetected`](#podruncontainererrordetected) | Reports whether any container in the pods is waiting or terminated with reason RunContainerError. |
+| [`podPostStartHookErrorDetected`](#podpoststarthookerrordetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, PostStartHookError. |
+| [`podPreStartHookErrorDetected`](#podprestarthookerrordetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, PreStartHookError. |
+| [`podRestartedWithin`](#podrestartedwithin) | Reports whether any container in the pods last terminated within window ("10m", "1h", "1d"), going by its last termination's finishedAt. |
+| [`podRunContainerErrorDetected`](#podruncontainererrordetected) | Reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, RunContainerError. |
 | [`readyPodCount`](#readypodcount) | Returns the number of pods whose Ready condition is True. |
 
 ## Functions
 
 ### hasCrashingPod
 
-`hasCrashingPod` reports whether any pod is unhealthy: restarted more than twice, or a container waiting or terminated with a failure reason (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …).
+`hasCrashingPod` reports whether any container is failing now: waiting or terminated with a failure reason (CrashLoopBackOff, OOMKilled, ImagePullBackOff, …), or not running after restarting before. Init containers count. A container that is running again is not crashing, however often it restarted: restart counts only reset when the pod is replaced. For one that runs and crashes in turn, use podRestartedWithin.
 
 ```text
 {{ hasCrashingPod .pods }}  → true
@@ -72,7 +73,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podCrashLoopDetected
 
-`podCrashLoopDetected` reports whether any container in the pods is waiting or terminated with reason CrashLoopBackOff.
+`podCrashLoopDetected` reports whether any container in the pods is crash looping: waiting with reason CrashLoopBackOff, or terminated with a non-zero exit code after restarting before, as it shows between back-offs.
 
 ```text
 {{ podCrashLoopDetected .pods }}  → false
@@ -80,7 +81,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podCreateContainerErrorDetected
 
-`podCreateContainerErrorDetected` reports whether any container in the pods is waiting or terminated with reason CreateContainerError.
+`podCreateContainerErrorDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, CreateContainerError.
 
 ```text
 {{ podCreateContainerErrorDetected .pods }}  → false
@@ -88,7 +89,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podErrImagePullDetected
 
-`podErrImagePullDetected` reports whether any container in the pods is waiting or terminated with reason ErrImagePull.
+`podErrImagePullDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, ErrImagePull.
 
 ```text
 {{ podErrImagePullDetected .pods }}  → false
@@ -96,7 +97,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podErrorDetected
 
-`podErrorDetected` reports whether any container in the pods is waiting or terminated with reason Error.
+`podErrorDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, Error.
 
 ```text
 {{ podErrorDetected .pods }}  → false
@@ -112,7 +113,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podImagePullBackOffDetected
 
-`podImagePullBackOffDetected` reports whether any container in the pods is waiting or terminated with reason ImagePullBackOff.
+`podImagePullBackOffDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, ImagePullBackOff.
 
 ```text
 {{ podImagePullBackOffDetected .pods }}  → true
@@ -120,7 +121,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podInvalidImageNameDetected
 
-`podInvalidImageNameDetected` reports whether any container in the pods is waiting or terminated with reason InvalidImageName.
+`podInvalidImageNameDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, InvalidImageName.
 
 ```text
 {{ podInvalidImageNameDetected .pods }}  → false
@@ -153,7 +154,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podOOMKilledDetected
 
-`podOOMKilledDetected` reports whether any container in the pods is waiting or terminated with reason OOMKilled.
+`podOOMKilledDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, OOMKilled.
 
 ```text
 {{ podOOMKilledDetected .pods }}  → false
@@ -169,7 +170,7 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podPostStartHookErrorDetected
 
-`podPostStartHookErrorDetected` reports whether any container in the pods is waiting or terminated with reason PostStartHookError.
+`podPostStartHookErrorDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, PostStartHookError.
 
 ```text
 {{ podPostStartHookErrorDetected .pods }}  → false
@@ -177,15 +178,23 @@ Answer questions about a set of Pods, as the API returns them, passed as a list 
 
 ### podPreStartHookErrorDetected
 
-`podPreStartHookErrorDetected` reports whether any container in the pods is waiting or terminated with reason PreStartHookError.
+`podPreStartHookErrorDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, PreStartHookError.
 
 ```text
 {{ podPreStartHookErrorDetected .pods }}  → false
 ```
 
+### podRestartedWithin
+
+`podRestartedWithin` reports whether any container in the pods last terminated within window ("10m", "1h", "1d"), going by its last termination's finishedAt. It catches a container that runs for a while and crashes in turn, which looks healthy whenever it is running. An error when window is not a positive duration.
+
+```text
+{{ podRestartedWithin .pods "10m" }}  → false
+```
+
 ### podRunContainerErrorDetected
 
-`podRunContainerErrorDetected` reports whether any container in the pods is waiting or terminated with reason RunContainerError.
+`podRunContainerErrorDetected` reports whether any container in the pods is waiting or terminated with reason, or last terminated with reason while not running, RunContainerError.
 
 ```text
 {{ podRunContainerErrorDetected .pods }}  → false

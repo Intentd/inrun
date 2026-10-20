@@ -9,7 +9,6 @@ import (
 // ── annotation round-trip ─────────────────────────────────────────────────────
 
 func TestAnnotationRoundTrip_Typed(t *testing.T) {
-	ref, _ := parseRef("ghcr.io/test/patterns/postgres:v1")
 	meta := &PatternMeta{
 		Kind:    BlueprintKind,
 		Name:    "postgres",
@@ -20,7 +19,7 @@ func TestAnnotationRoundTrip_Typed(t *testing.T) {
 		},
 	}
 
-	ann := artifactMetaToAnnotations(meta, ref)
+	ann := artifactMetaToAnnotations(meta)
 
 	if ann["io.inrun.blueprint.typed"] != "true" {
 		t.Errorf("typed annotation not set")
@@ -45,7 +44,6 @@ func TestAnnotationRoundTrip_Typed(t *testing.T) {
 }
 
 func TestAnnotationRoundTrip_TypedBoth(t *testing.T) {
-	ref, _ := parseRef("ghcr.io/test/patterns/redis:v2")
 	meta := &PatternMeta{
 		Kind:    BlueprintKind,
 		Name:    "redis",
@@ -56,7 +54,7 @@ func TestAnnotationRoundTrip_TypedBoth(t *testing.T) {
 		},
 	}
 
-	ann := artifactMetaToAnnotations(meta, ref)
+	ann := artifactMetaToAnnotations(meta)
 	got := annotationsToMeta(ann)
 
 	if got.Typed == nil {
@@ -68,7 +66,6 @@ func TestAnnotationRoundTrip_TypedBoth(t *testing.T) {
 }
 
 func TestAnnotationRoundTrip_Deprecated(t *testing.T) {
-	ref, _ := parseRef("ghcr.io/test/patterns/old-postgres:v1")
 	meta := &PatternMeta{
 		Kind:    BlueprintKind,
 		Name:    "old-postgres",
@@ -79,7 +76,7 @@ func TestAnnotationRoundTrip_Deprecated(t *testing.T) {
 		},
 	}
 
-	ann := artifactMetaToAnnotations(meta, ref)
+	ann := artifactMetaToAnnotations(meta)
 
 	if ann["io.inrun.blueprint.deprecated"] != "true" {
 		t.Errorf("deprecated annotation not set")
@@ -104,14 +101,13 @@ func TestAnnotationRoundTrip_Deprecated(t *testing.T) {
 }
 
 func TestAnnotationRoundTrip_NoTypedNoDeprecated(t *testing.T) {
-	ref, _ := parseRef("ghcr.io/test/patterns/plain:v1")
 	meta := &PatternMeta{
 		Kind:    BlueprintKind,
 		Name:    "plain",
 		Version: "v1",
 	}
 
-	ann := artifactMetaToAnnotations(meta, ref)
+	ann := artifactMetaToAnnotations(meta)
 	got := annotationsToMeta(ann)
 
 	if got.Typed != nil {

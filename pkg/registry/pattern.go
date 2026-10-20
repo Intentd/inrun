@@ -211,8 +211,18 @@ func PatternFilePaths(name string) []string {
 // FindPatternFile returns the relative path of name within dir, or "" when
 // the pattern does not have it.
 func FindPatternFile(dir, name string) string {
+	return ResolvePatternFile(name, func(rel string) bool {
+		_, err := os.Stat(filepath.Join(dir, rel))
+		return err == nil
+	})
+}
+
+// ResolvePatternFile returns the first of name's paths in a pattern (see
+// PatternFilePaths) for which exists reports true, or "". FindPatternFile
+// checks a directory; callers holding a pattern's file list check that.
+func ResolvePatternFile(name string, exists func(rel string) bool) string {
 	for _, rel := range PatternFilePaths(name) {
-		if _, err := os.Stat(filepath.Join(dir, rel)); err == nil {
+		if exists(rel) {
 			return rel
 		}
 	}

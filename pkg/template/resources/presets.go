@@ -2,8 +2,8 @@ package resources
 
 import (
 	"github.com/intentd/inrun/pkg/logger"
-	restypes "github.com/intentd/kubekit/core/types"
-	"github.com/intentd/kubekit/presets"
+	restypes "github.com/intentd/kubewright/core/types"
+	"github.com/intentd/kubewright/presets"
 )
 
 // presetResources fills resource requirements from their preset; an unknown

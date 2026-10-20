@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/util/term"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
@@ -82,7 +83,7 @@ should produce so the run is repeatable and verifiable:
 		blueprintFile, _ := cmd.Flags().GetString("file")
 		if blueprintFile == "" {
 			// Auto-detect: simulate.yaml (here, then test/) → blueprint.yaml/stack.yaml
-			switch sim := cmdutil.FindFile(cmdutil.FileSimulate, cmdutil.DirTest); {
+			switch sim := cmdutil.FindFile(cmdutil.FileSimulate); {
 			case sim != "":
 				blueprintFile = sim
 			default:
@@ -107,7 +108,7 @@ should produce so the run is repeatable and verifiable:
 
 		crFile, _ := cmd.Flags().GetString("cr")
 		if crFile == "" {
-			crFile = cmdutil.FindFile(cmdutil.FileCr, cmdutil.DirManifests)
+			crFile = cmdutil.FindFile(cmdutil.FileCr)
 		}
 		if crFile == "" {
 			return fmt.Errorf("--cr is required")
@@ -586,7 +587,7 @@ observed cycle-1 create operations as expect: rules. Edit and refine from there.
 			return err
 		}
 		if crFile == "" {
-			crFile = projectFile(blueprintFile, cmdutil.FileCr, cmdutil.DirManifests)
+			crFile = projectFile(blueprintFile, cmdutil.FileCr)
 		} else if abs, err := filepath.Abs(crFile); err == nil {
 			crFile = abs
 		}
@@ -928,12 +929,12 @@ func init() {
 	cmdutil.ShadowGlobalCommandFlags(simulateCmd)
 }
 
-// projectFile returns name next to the Blueprint, or in its sub directory dir
-// when only that exists. The path next to the Blueprint is the fallback.
-func projectFile(blueprintFile, name, dir string) string {
+// projectFile returns where name is in the Blueprint's project: next to it,
+// else its place in the standard layout. Next to it is the fallback.
+func projectFile(blueprintFile, name string) string {
 	base := filepath.Dir(blueprintFile)
-	if p := filepath.Join(base, dir, name); cmdutil.FileExists(p) && !cmdutil.FileExists(filepath.Join(base, name)) {
-		return p
+	if rel := registry.FindPatternFile(base, name); rel != "" {
+		return filepath.Join(base, rel)
 	}
 	return filepath.Join(base, name)
 }

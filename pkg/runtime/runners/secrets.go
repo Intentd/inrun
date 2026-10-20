@@ -32,7 +32,7 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kubekit/core/secrets"
+	"github.com/intentd/kubewright/core/secrets"
 )
 
 func RunSecrets(

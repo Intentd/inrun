@@ -3,6 +3,7 @@ package term
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 func FormatSize(b int64) string {
@@ -18,11 +19,28 @@ func FormatSize(b int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
+// WordWrap breaks s into lines of at most width characters, between words,
+// and starts each line after the first with indent. A word longer than width
+// gets a line of its own.
 func WordWrap(s string, width int, indent string) string {
-	if len(s) <= width {
-		return s
+	var b strings.Builder
+	line := 0
+	for _, w := range strings.Fields(s) {
+		n := utf8.RuneCountInString(w)
+		switch {
+		case line == 0:
+		case line+1+n > width:
+			b.WriteString("\n")
+			b.WriteString(indent)
+			line = 0
+		default:
+			b.WriteByte(' ')
+			line++
+		}
+		b.WriteString(w)
+		line += n
 	}
-	return s[:width] + "\n" + indent + WordWrap(s[width:], width, indent)
+	return b.String()
 }
 
 // VisibleLen returns the visible rune count of s, stripping ANSI escape sequences.

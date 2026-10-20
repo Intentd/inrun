@@ -7,7 +7,7 @@ Every page maps directly from `documentation/` to its URL:
 | File | URL |
 |---|---|
 | `documentation/getting-started/index.md` | `/docs/getting-started/` |
-| `documentation/inrun-registry/catalogs.md` | `/docs/inrun-registry/catalogs/` |
+| `documentation/inrun-registry/blueprints.md` | `/docs/inrun-registry/blueprints/` |
 | `documentation/blog/why-inrun.md` | `/blog/why-inrun/` |
 
 Open the file, edit, save. The sync handles the rest.
@@ -50,7 +50,7 @@ spec:
 
 ```text
 postgres/
-  catalog.yaml
+  blueprint.yaml
   crd.yaml
 ```
 ````
@@ -63,7 +63,7 @@ Use relative `.md` paths when linking to other docs pages. The sync rewrites the
 
 ```markdown
 [Learning Inrun](../getting-started/learning-inrun.md)
-[Catalog schema](../reference/schema/02-catalog/01-top-level.md)
+[Blueprint schema](../reference/schema/02-blueprint/01-top-level.md)
 ```
 
 Do not use absolute `/docs/...` paths inside documentation source files — they bypass the rewriter and break in local preview.

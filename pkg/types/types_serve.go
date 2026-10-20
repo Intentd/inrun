@@ -437,8 +437,7 @@ func (f ServeFieldConfig) HasOverride() bool {
 }
 
 // HasTokenRestrictions reports whether any per-token access rules are declared.
-// When false, any valid gateway token may access this CRD — backward-compatible
-// with the previous model where tokens were only checked for existence.
+// When false, any valid gateway token may access this CRD
 func (i *ServeConfig) HasTokenRestrictions() bool {
 	if i == nil {
 		return false

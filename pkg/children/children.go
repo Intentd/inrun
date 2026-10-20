@@ -47,7 +47,7 @@ func ReadChildren(
 	// unconditional enrichments (e.g. pods) are applied, populating .children.*.
 	//
 	// Phase 2: after reads complete, re-evaluate conditional targets with the
-	// now-populated children map. Gates like {{ replicasReady .children.deployment }}
+	// now-populated children map. Gates like {{ allReplicasReady .children.deployment }}
 	// depend on child data that does not exist at function entry — evaluating them
 	// upfront against the empty resolver always fails.
 	//
@@ -295,7 +295,7 @@ func ReadChildren(
 	//
 	// resolver.WithChildren injects children into both r.data AND the
 	// TemplateEvaluator closure — both must see .children.* for template
-	// expressions like {{ replicasReady .children.deployment }} to work.
+	// expressions like {{ allReplicasReady .children.deployment }} to work.
 	// Building data2 manually and reusing the original evaluator does not work:
 	// the evaluator is a closure over r.data and ignores data2 entirely.
 	if !crd.EnrichAll && len(originalEnrich) > len(crd.Enrich) {

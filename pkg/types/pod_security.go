@@ -1,6 +1,6 @@
 package types
 
-import restypes "github.com/intentd/kubekit/core/types"
+import restypes "github.com/intentd/kubewright/core/types"
 
 // PodSecurityContext is restypes.PodSecurityContext.
 type PodSecurityContext = restypes.PodSecurityContext

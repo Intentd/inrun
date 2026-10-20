@@ -8,10 +8,10 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/intentd/kubekit/core/clusterrolebindings"
-	"github.com/intentd/kubekit/core/clusterroles"
-	"github.com/intentd/kubekit/core/rolebindings"
-	"github.com/intentd/kubekit/core/roles"
+	"github.com/intentd/kubewright/core/clusterrolebindings"
+	"github.com/intentd/kubewright/core/clusterroles"
+	"github.com/intentd/kubewright/core/rolebindings"
+	"github.com/intentd/kubewright/core/roles"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

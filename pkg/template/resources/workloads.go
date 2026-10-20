@@ -10,12 +10,12 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 
-	"github.com/intentd/kubekit/core/cronjobs"
-	"github.com/intentd/kubekit/core/deployments"
-	"github.com/intentd/kubekit/core/jobs"
-	"github.com/intentd/kubekit/core/pods"
-	"github.com/intentd/kubekit/core/replicasets"
-	"github.com/intentd/kubekit/core/statefulsets"
+	"github.com/intentd/kubewright/core/cronjobs"
+	"github.com/intentd/kubewright/core/deployments"
+	"github.com/intentd/kubewright/core/jobs"
+	"github.com/intentd/kubewright/core/pods"
+	"github.com/intentd/kubewright/core/replicasets"
+	"github.com/intentd/kubewright/core/statefulsets"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

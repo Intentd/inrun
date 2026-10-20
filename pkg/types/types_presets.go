@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/intentd/kubekit/presets"
+	"github.com/intentd/kubewright/presets"
 )
 
 // PresetRegistry holds all user-defined presets declared in a Blueprint or Module.

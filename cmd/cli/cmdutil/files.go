@@ -5,16 +5,17 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/util/fileio"
 )
 
 const (
-	FileBlueprint  = "blueprint.yaml"
-	fileStack      = "stack.yaml"
-	FileE2e        = "e2e.yaml"
-	FileSimulate   = "simulate.yaml"
-	FileCrd        = "crd.yaml"
-	FileCr         = "cr.yaml"
+	FileBlueprint  = registry.FileBlueprint
+	fileStack      = registry.FileStack
+	FileE2e        = registry.FileE2E
+	FileSimulate   = registry.FileSimulate
+	FileCrd        = registry.FileCRD
+	FileCr         = registry.FileCR
 	FileReadMe     = "README.md"
 	FileMakeFile   = "Makefile"
 	FileDockerfile = "Dockerfile"
@@ -23,22 +24,14 @@ const (
 	// A project keeps blueprint.yaml at its root, what it applies to the cluster
 	// (crd.yaml, cr.yaml, setup files) in manifests/, and its simulate.yaml,
 	// e2e.yaml and test values in test/.
-	DirManifests = "manifests"
-	DirTest      = "test"
+	DirManifests = registry.DirManifests
+	DirTest      = registry.DirTest
 )
 
-// FindFile returns name if it exists in the current directory, else the
-// first dirs/name that exists, else "".
-func FindFile(name string, dirs ...string) string {
-	if FileExists(name) {
-		return name
-	}
-	for _, d := range dirs {
-		if p := filepath.Join(d, name); FileExists(p) {
-			return p
-		}
-	}
-	return ""
+// FindFile returns where name is in the project in the current directory:
+// its root, else its place in the standard layout (manifests/ or test/), else "".
+func FindFile(name string) string {
+	return registry.FindPatternFile(".", name)
 }
 
 // ResolveBlueprintPaths resolves the blueprint file paths in the following order:
@@ -112,8 +105,33 @@ func ResolveBlueprintFile(flagValue string) (string, error) {
 	return flagValue, nil
 }
 
-// File helpers live in pkg/util/fileio; these names keep existing callers unchanged.
 var (
 	FileExists = fileio.FileExists
 	IsDir      = fileio.IsDir
 )
+
+// ChartDir returns a --chart flag value as an absolute path, or "" when it is
+// empty. The path must be a Helm chart directory: e2e may change directory
+// before installing.
+func ChartDir(chart string) (string, error) {
+	if chart == "" {
+		return "", nil
+	}
+	abs, err := filepath.Abs(chart)
+	if err != nil {
+		return "", fmt.Errorf("--chart %q: %w", chart, err)
+	}
+	if _, err := os.Stat(filepath.Join(abs, "Chart.yaml")); err != nil {
+		return "", fmt.Errorf("--chart %q: not a Helm chart directory (no Chart.yaml)", chart)
+	}
+	return abs, nil
+}
+
+// HelmSetArgs turns --set flag values into helm arguments: "--set", value, …
+func HelmSetArgs(sets []string) []string {
+	var args []string
+	for _, s := range sets {
+		args = append(args, "--set", s)
+	}
+	return args
+}

@@ -168,7 +168,7 @@ func (c *CRDEntry) UnconditionalEnrichTargets() []EnrichTarget {
 
 // ConditionalActiveEnrichTargets returns entries that HAVE conditions and whose
 // conditions pass for the given data. Called in phase 2 of ReadChildren after
-// children data is available — gates like {{ replicasReady .children.deployment }}
+// children data is available — gates like {{ allReplicasReady .children.deployment }}
 // can only be evaluated once the deployment has been read.
 func (c *CRDEntry) ConditionalActiveEnrichTargets(data map[string]interface{}, eval TemplateEvaluator) []EnrichTarget {
 	result := make([]EnrichTarget, 0)

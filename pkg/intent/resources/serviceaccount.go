@@ -5,7 +5,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/kubekit/core/serviceaccounts"
+	"github.com/intentd/kubewright/core/serviceaccounts"
 )
 
 // ServiceAccountFields are the fields accepted in the remote reconciler

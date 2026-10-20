@@ -4,6 +4,7 @@ package registry
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,6 +37,11 @@ var (
 	pushE2ECluster    string
 	pushE2EUseCurrent bool
 	pushE2EWorkers    int
+	pushE2EChart      string
+	pushE2EVersion    string
+	pushE2EValues     []string
+	pushE2ESet        []string
+	pushOverwrite     bool
 	pushAddIntent     string
 )
 
@@ -114,6 +120,15 @@ var pushCmd = &cobra.Command{
 		ref, err := registry.ResolveForKind(refArg, patternKind)
 		if err != nil {
 			return fmt.Errorf("invalid reference: %w", err)
+		}
+
+		// A published version is never replaced by accident: consumers who pulled
+		// it, and the proof recorded for it, refer to what was there. Checked
+		// before the gates, so a refused push doesn't wait for them first. With
+		// --overwrite, the new artifact records the digest it replaces.
+		replaces, err := checkPublished(cmd.Context(), ref)
+		if err != nil {
+			return err
 		}
 
 		cmdutil.PrintBanner()
@@ -227,7 +242,14 @@ var pushCmd = &cobra.Command{
 					}
 				} else {
 					fmt.Printf("\nRunning E2E gate (%s)...\n", registry.FileE2E)
-					runner, err := e2e.New(e2eFile, e2e.Options{ClusterCtx: pushE2ECluster, UseCurrentCtx: pushE2EUseCurrent, Workers: pushE2EWorkers})
+					chart, err := cmdutil.ChartDir(pushE2EChart)
+					if err != nil {
+						return err
+					}
+					runner, err := e2e.New(e2eFile, e2e.Options{
+						ClusterCtx: pushE2ECluster, UseCurrentCtx: pushE2EUseCurrent, Workers: pushE2EWorkers,
+						InrunVersion: pushE2EVersion, InrunChart: chart, ValueFiles: pushE2EValues, HelmArgs: cmdutil.HelmSetArgs(pushE2ESet),
+					})
 					if err != nil {
 						return fmt.Errorf("e2e gate: %w\n\nUse --force or --no-e2e to skip", err)
 					}
@@ -307,6 +329,7 @@ var pushCmd = &cobra.Command{
 			Intent:         intentMeta,
 			Typed:          typedMeta,
 			RuntimeVersion: runtimeVersion,
+			Replaces:       replaces,
 		}
 		digest, err := client.Push(cmd.Context(), ref, dir, opts, progress)
 		if err != nil {
@@ -322,10 +345,16 @@ var pushCmd = &cobra.Command{
 			moduleYAML := filepath.Join(dir, registry.FileModule)
 			if _, err := os.Stat(moduleYAML); err == nil {
 				moduleRef, err := registry.ResolveForKind(fmt.Sprintf("%s:%s", meta.Name, meta.Version), registry.ModuleKind)
+				var moduleReplaces string
+				if err == nil {
+					if moduleReplaces, err = checkPublished(cmd.Context(), moduleRef); err != nil {
+						fmt.Fprintf(os.Stderr, "warning: not pushing %s: %v\n", registry.FileModule, err)
+					}
+				}
 				if err == nil {
 					fmt.Printf("\nAlso pushing %s to %s...\n", registry.FileModule, moduleRef.Registry)
 					spinModule := cmdutil.StartSpinner(fmt.Sprintf("Pushing %s...", registry.FileModule))
-					if mDigest, err := client.Push(cmd.Context(), moduleRef, dir, registry.PushOptions{RuntimeVersion: version.Short()}, nil); err != nil {
+					if mDigest, err := client.Push(cmd.Context(), moduleRef, dir, registry.PushOptions{RuntimeVersion: version.Short(), Replaces: moduleReplaces}, nil); err != nil {
 						spinModule.Failure()
 						fmt.Fprintf(os.Stderr, "warning: module push failed: %v\n", err)
 					} else {
@@ -361,6 +390,11 @@ func init() {
 	pushCmd.Flags().StringVar(&pushE2ECluster, "cluster", "", "Reuse an existing kind cluster context for the e2e gate (skips cluster creation)")
 	pushCmd.Flags().BoolVar(&pushE2EUseCurrent, "use-current", false, "Use the current kubeconfig context for the e2e gate (skips cluster creation)")
 	pushCmd.Flags().IntVar(&pushE2EWorkers, "workers", 0, "Number of kind worker nodes for the e2e gate cluster (0 = control-plane only)")
+	pushCmd.Flags().BoolVar(&pushOverwrite, "overwrite", false, "Replace a version that is already published (anyone who pulled it keeps the old content)")
+	pushCmd.Flags().StringVar(&pushE2EChart, "chart", "", "Local Inrun chart directory for the e2e gate to install instead of the published chart")
+	pushCmd.Flags().StringVar(&pushE2EVersion, "version", "", "Inrun version for the e2e gate to install (e.g. v1.2.3)")
+	pushCmd.Flags().StringSliceVar(&pushE2EValues, "values", nil, "Helm values files for the e2e gate's Inrun install")
+	pushCmd.Flags().StringSliceVar(&pushE2ESet, "set", nil, "Helm --set arguments for the e2e gate's Inrun install (e.g. key=value)")
 	pushCmd.Flags().StringVar(&pushAddIntent, "add-intent", "", "Run inrun serve play against this intent file (YAML or JSON) and bake the result into the artifact")
 	cmdutil.RootCmd.AddCommand(pushCmd)
 
@@ -511,4 +545,22 @@ func detectRunner() string {
 	default:
 		return "local"
 	}
+}
+
+// checkPublished returns the digest ref already has in the registry, for the
+// new artifact to record, or "" when ref is not published. Without
+// --overwrite, a published ref is an error.
+func checkPublished(ctx context.Context, ref *registry.Ref) (string, error) {
+	client, err := registry.NewClient()
+	if err != nil {
+		return "", err
+	}
+	current, err := client.Published(ctx, ref)
+	if err != nil {
+		return "", err
+	}
+	if current != "" && !pushOverwrite {
+		return "", fmt.Errorf("%s is already published\n  Bump metadata.version to publish a change, or pass --overwrite to replace it", ref.String())
+	}
+	return current, nil
 }

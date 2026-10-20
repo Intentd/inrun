@@ -6,8 +6,8 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
 
-	"github.com/intentd/kubekit/core/pvcs"
-	"github.com/intentd/kubekit/core/pvs"
+	"github.com/intentd/kubewright/core/pvcs"
+	"github.com/intentd/kubewright/core/pvs"
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"

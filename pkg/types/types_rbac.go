@@ -1,7 +1,7 @@
 // pkg/types/types_rbac.go
 package types
 
-import restypes "github.com/intentd/kubekit/core/types"
+import restypes "github.com/intentd/kubewright/core/types"
 
 // ── Role / RoleBinding ────────────────────────────────────────────────────────
 

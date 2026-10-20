@@ -1,6 +1,6 @@
 package types
 
-import restypes "github.com/intentd/kubekit/core/types"
+import restypes "github.com/intentd/kubewright/core/types"
 
 // HPABehavior is restypes.HPABehavior.
 type HPABehavior = restypes.HPABehavior

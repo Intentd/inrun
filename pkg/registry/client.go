@@ -25,6 +25,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,6 +40,7 @@ import (
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/content/memory"
+	"oras.land/oras-go/v2/errdef"
 
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -91,6 +93,9 @@ func (c *Client) Push(ctx context.Context, ref *Ref, dir string, opts PushOption
 	if opts.RuntimeVersion != "" {
 		meta.RuntimeVersion = opts.RuntimeVersion
 	}
+	if opts.Replaces != "" {
+		meta.Replaces = opts.Replaces
+	}
 
 	store := memory.New()
 
@@ -114,9 +119,9 @@ func (c *Client) Push(ctx context.Context, ref *Ref, dir string, opts PushOption
 		descs = append(descs, desc)
 	}
 
-	annotations := artifactMetaToAnnotations(meta, ref)
-	manifestDesc, err := oras.Pack(ctx, store, spec.MediaType, descs, oras.PackOptions{
-		PackImageManifest:   true,
+	annotations := artifactMetaToAnnotations(meta)
+	manifestDesc, err := oras.PackManifest(ctx, store, oras.PackManifestVersion1_1, spec.MediaType, oras.PackManifestOptions{
+		Layers:              descs,
 		ManifestAnnotations: annotations,
 	})
 	if err != nil {
@@ -193,6 +198,24 @@ func (c *Client) Pull(ctx context.Context, ref *Ref, refresh bool) (string, erro
 	}
 
 	return cacheDir, nil
+}
+
+// Published returns the digest ref's tag points to in the registry, or ""
+// when the tag is not there. Any other failure is an error, so a registry
+// that can't be reached never reads as "free to publish".
+func (c *Client) Published(ctx context.Context, ref *Ref) (string, error) {
+	repo, err := c.remoteRepo(ref)
+	if err != nil {
+		return "", err
+	}
+	desc, err := repo.Resolve(ctx, ref.Tag)
+	if err != nil {
+		if errors.Is(err, errdef.ErrNotFound) {
+			return "", nil
+		}
+		return "", fmt.Errorf("checking whether %s is published: %w", ref.String(), err)
+	}
+	return desc.Digest.String(), nil
 }
 
 // Info fetches manifest metadata without downloading the pattern files.
@@ -494,7 +517,7 @@ func (c *Client) remoteRepo(ref *Ref) (*remote.Repository, error) {
 }
 
 // artifactMetaToAnnotations converts PatternMeta to OCI manifest annotations.
-func artifactMetaToAnnotations(meta *PatternMeta, ref *Ref) map[string]string {
+func artifactMetaToAnnotations(meta *PatternMeta) map[string]string {
 	ann := map[string]string{
 		"org.opencontainers.image.created":     time.Now().UTC().Format(time.RFC3339),
 		"org.opencontainers.image.title":       meta.Name,
@@ -575,6 +598,9 @@ func artifactMetaToAnnotations(meta *PatternMeta, ref *Ref) map[string]string {
 	if meta.RuntimeVersion != "" {
 		ann["io.inrun.blueprint.runtime_version"] = meta.RuntimeVersion
 	}
+	if meta.Replaces != "" {
+		ann["io.inrun.pattern.replaces"] = meta.Replaces
+	}
 	return ann
 }
 
@@ -653,5 +679,6 @@ func annotationsToMeta(ann map[string]string) *PatternMeta {
 		}
 	}
 	meta.RuntimeVersion = ann["io.inrun.blueprint.runtime_version"]
+	meta.Replaces = ann["io.inrun.pattern.replaces"]
 	return meta
 }
