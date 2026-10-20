@@ -67,27 +67,9 @@ type JobTemplateSource struct {
 	// +optional
 	ServiceAccountName string `yaml:"serviceAccountName,omitempty" json:"serviceAccountName,omitempty"`
 
-	// Conditions declares the set of runtime predicates that must all evaluate to
-	// true for this resource template to be applied during reconciliation.
-	//
-	// Each condition inspects a field on the live Custom Resource using dot-notation
-	// (e.g. "spec.enabled", "metadata.labels.tier") and compares it against a value
-	// using the chosen operator. All conditions in the list are AND‑ed together.
-	//
-	// If any condition fails, the resource is skipped for that reconcile cycle.
-	// This is not an error — it simply means "do not create/update this resource
-	// right now". This enables expressive, data‑driven orchestration such as:
-	//
-	//   when:
-	//     - field: spec.exposePublicly
-	//       equals: "true"
-	//     - field: spec.environment
-	//       prefix: "prod"
-	//
-	// Conditions allow templates to be selectively activated based on the CR's
-	// state, enabling dynamic topologies, feature flags, environment‑specific
-	// behavior, and conditional provisioning without writing Go code.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this Job to be created; see
+	// Condition. A Job is not removed when they stop passing: it runs to completion.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// Reconcile has no effect on a Job entry. Jobs are always a one-time,
 	// idempotent create — Inrun never re-applies or updates a Job after it
@@ -104,14 +86,7 @@ type JobTemplateSource struct {
 	//	  as: region
 	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource to be created.
-	// Works alongside the existing Conditions (when:) field which uses AND semantics.
-	//
-	//	or:
-	//	  - field: spec.tier
-	//	    equals: pro
-	//	  - field: spec.tier
-	//	    equals: enterprise
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// WorkingDirectory sets the container's working directory (container.WorkingDir).
@@ -223,27 +198,10 @@ type CronJobTemplateSource struct {
 	// onReconcile. When false (default), only runs on onCreate (idempotent create).
 	Reconcile bool `yaml:"reconcile,omitempty" json:"reconcile,omitempty" validate:"omitempty"`
 
-	// Conditions declares the set of runtime predicates that must all evaluate to
-	// true for this resource template to be applied during reconciliation.
-	//
-	// Each condition inspects a field on the live Custom Resource using dot-notation
-	// (e.g. "spec.enabled", "metadata.labels.tier") and compares it against a value
-	// using the chosen operator. All conditions in the list are AND‑ed together.
-	//
-	// If any condition fails, the resource is skipped for that reconcile cycle.
-	// This is not an error — it simply means "do not create/update this resource
-	// right now". This enables expressive, data‑driven orchestration such as:
-	//
-	//   when:
-	//     - field: spec.exposePublicly
-	//       equals: "true"
-	//     - field: spec.environment
-	//       prefix: "prod"
-	//
-	// Conditions allow templates to be selectively activated based on the CR's
-	// state, enabling dynamic topologies, feature flags, environment‑specific
-	// behavior, and conditional provisioning without writing Go code.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// Suspend — when "true", the schedule stops firing new Jobs; existing runs
 	// are unaffected. Accepts a template expression. Default: "false".
@@ -285,14 +243,7 @@ type CronJobTemplateSource struct {
 	//	  as: region
 	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource to be created.
-	// Works alongside the existing Conditions (when:) field which uses AND semantics.
-	//
-	//	or:
-	//	  - field: spec.tier
-	//	    equals: pro
-	//	  - field: spec.tier
-	//	    equals: enterprise
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// WorkingDirectory sets the container's working directory (container.WorkingDir).

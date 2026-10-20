@@ -33,7 +33,7 @@ func RunJobs(
 ) error {
 	for i, src := range srcs {
 		// 1. Evaluate conditions BEFORE resolving templates
-		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
+		conditionPassed := types.EvaluateConditions(resolver.Data(), src.When, src.Or, resolver.TemplateEvaluator())
 
 		// Early name/ns resolution — needed for guard check.
 		// Jobs are terminal (no DeleteIfOwned on condition fail), but guard
@@ -95,7 +95,7 @@ func RunDeleteJobs(
 	deadline time.Time,
 ) error {
 	for i, src := range srcs {
-		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
+		conditionPassed := types.EvaluateConditions(resolver.Data(), src.When, src.Or, resolver.TemplateEvaluator())
 
 		name, _ := resolver.Resolve(src.Name)
 		ns, _ := resolver.Resolve(src.Namespace)

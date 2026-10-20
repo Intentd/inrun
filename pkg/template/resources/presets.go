@@ -2,13 +2,13 @@ package resources
 
 import (
 	"github.com/intentd/inrun/pkg/logger"
-	restypes "github.com/intentd/kubewright/core/types"
+	kwtypes "github.com/intentd/kubewright/core/types"
 	"github.com/intentd/kubewright/presets"
 )
 
 // presetResources fills resource requirements from their preset; an unknown
 // preset is logged and the field left unset.
-func presetResources(r *restypes.ResourceRequirements, reg presets.Registry) *restypes.ResourceRequirements {
+func presetResources(r *kwtypes.ResourceRequirements, reg presets.Registry) *kwtypes.ResourceRequirements {
 	out, err := presets.ExpandResources(r, reg)
 	if err != nil {
 		logger.Warn().Err(err).Msg("skipping resources")
@@ -18,7 +18,7 @@ func presetResources(r *restypes.ResourceRequirements, reg presets.Registry) *re
 
 // presetContainerSecurity fills a container security context from its preset;
 // an unknown preset is logged and the field left unset.
-func presetContainerSecurity(sc *restypes.ContainerSecurityContext, reg presets.Registry) *restypes.ContainerSecurityContext {
+func presetContainerSecurity(sc *kwtypes.ContainerSecurityContext, reg presets.Registry) *kwtypes.ContainerSecurityContext {
 	out, err := presets.ExpandContainerSecurity(sc, reg)
 	if err != nil {
 		logger.Warn().Err(err).Msg("skipping securityContext")
@@ -28,7 +28,7 @@ func presetContainerSecurity(sc *restypes.ContainerSecurityContext, reg presets.
 
 // presetPodSecurity fills a pod security context from its preset; an unknown
 // preset is logged and the field left unset.
-func presetPodSecurity(ps *restypes.PodSecurityContext, reg presets.Registry) *restypes.PodSecurityContext {
+func presetPodSecurity(ps *kwtypes.PodSecurityContext, reg presets.Registry) *kwtypes.PodSecurityContext {
 	out, err := presets.ExpandPodSecurity(ps, reg)
 	if err != nil {
 		logger.Warn().Err(err).Msg("skipping podSecurity")
@@ -38,7 +38,7 @@ func presetPodSecurity(ps *restypes.PodSecurityContext, reg presets.Registry) *r
 
 // presetRollingUpdate fills a rolling update from its preset; an unknown
 // preset is logged and the field left unset.
-func presetRollingUpdate(r *restypes.RollingUpdateBehavior, reg presets.Registry) *restypes.RollingUpdateBehavior {
+func presetRollingUpdate(r *kwtypes.RollingUpdateBehavior, reg presets.Registry) *kwtypes.RollingUpdateBehavior {
 	out, err := presets.ExpandRollingUpdate(r, reg)
 	if err != nil {
 		logger.Warn().Err(err).Msg("skipping rollingUpdate")
@@ -48,7 +48,7 @@ func presetRollingUpdate(r *restypes.RollingUpdateBehavior, reg presets.Registry
 
 // presetHPA fills an HPA's behavior and CPU target from its preset; an
 // unknown preset is logged and the behavior left unset.
-func presetHPA(b *restypes.HPABehavior, cpuTarget int32, reg presets.Registry) (*restypes.HPABehavior, int32) {
+func presetHPA(b *kwtypes.HPABehavior, cpuTarget int32, reg presets.Registry) (*kwtypes.HPABehavior, int32) {
 	out, target, err := presets.ExpandHPA(b, cpuTarget, reg)
 	if err != nil {
 		logger.Warn().Err(err).Msg("skipping hpa behavior")
@@ -88,7 +88,7 @@ func presetResourceQuota(name string, hard map[string]string, reg presets.Regist
 
 // presetLimitRange fills empty limits from their preset; an unknown preset is
 // logged and the limits kept.
-func presetLimitRange(name string, limits []restypes.LimitRangeItem, reg presets.Registry) []restypes.LimitRangeItem {
+func presetLimitRange(name string, limits []kwtypes.LimitRangeItem, reg presets.Registry) []kwtypes.LimitRangeItem {
 	out, err := presets.ExpandLimitRange(name, limits, reg)
 	if err != nil {
 		logger.Warn().Err(err).Msg("skipping limitRange preset")

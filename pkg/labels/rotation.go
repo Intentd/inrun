@@ -1,5 +1,3 @@
-// pkg/types/secret_rotation.go
-//
 // Secret rotation — time-based credential renewal.
 //
 // Extends the existing once: true pattern with a rotateAfter duration.
@@ -81,7 +79,7 @@
 //  These annotations are the source of truth for rotation decisions.
 //  Do not remove them manually — doing so will cause regeneration on next reconcile.
 
-package types
+package labels
 
 import (
 	"time"
@@ -90,32 +88,23 @@ import (
 )
 
 const (
-	// AnnotationGeneratedAt is the RFC3339 timestamp when the secret was last generated.
+	// AnnotationGeneratedAt is the RFC3339 time a Secret was last generated.
 	AnnotationGeneratedAt = "inrun.dev/generated-at"
 
-	// AnnotationRotateAfter stores the declared rotation duration.
+	// AnnotationRotateAfter is the rotation duration a Secret was generated with.
 	AnnotationRotateAfter = "inrun.dev/rotate-after"
 )
 
-// TLSSpec declares TLS certificate generation for a secret.
-// When set, the secret is created as type kubernetes.io/tls with
-// tls.crt, tls.key, and ca.crt fields.
-type TLSSpec struct {
-	// CommonName is the certificate's CN field.
-	//   commonName: "{{ .metadata.name }}.{{ .metadata.namespace }}.svc"
-	CommonName string `yaml:"commonName" json:"commonName"`
-
-	// DNSNames are the Subject Alternative Names.
-	// Template expressions supported per entry.
-	DNSNames []string `yaml:"dnsNames,omitempty" json:"dnsNames,omitempty"`
-
-	// ValidFor is the certificate validity period.
-	// Default: same as rotateAfter, or 1y if rotateAfter is not set.
-	// Must be >= rotateAfter to avoid immediate expiry on rotation.
-	ValidFor string `yaml:"validFor,omitempty" json:"validFor,omitempty"`
-
-	// Organization is the cert's O field. Default: "inrun"
-	Organization string `yaml:"organization,omitempty" json:"organization,omitempty"`
+// GenerationAnnotations returns the annotations a freshly generated Secret
+// carries: when it was generated and, when it rotates, after how long.
+func GenerationAnnotations(rotateAfter string) map[string]string {
+	annotations := map[string]string{
+		AnnotationGeneratedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if rotateAfter != "" {
+		annotations[AnnotationRotateAfter] = rotateAfter
+	}
+	return annotations
 }
 
 // NeedsRotation returns true when the secret has exceeded its rotation threshold.

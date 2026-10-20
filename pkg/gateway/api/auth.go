@@ -12,8 +12,9 @@
 // The resolved values are stored in TokenSet, which the auth closure uses
 // to validate incoming Authorization: Bearer <token> headers.
 //
-// Self-bootstrap and rotation reuse pkg/secrets helpers so the
-// annotation-based rotation clock is identical to operator-managed secrets.
+// Self-bootstrap and rotation use the same rotation annotations (pkg/labels)
+// and checks (pkg/util/kube) as operator-managed secrets, so their rotation
+// clock is identical.
 package api
 
 import (
@@ -31,8 +32,8 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/secrets"
 	"github.com/intentd/inrun/pkg/types"
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
 )
 
 // TokenSet holds resolved static bearer tokens and OIDC token configurations.
@@ -122,7 +123,8 @@ func LoadTokens(ctx context.Context, tokens []types.APIToken, kube kubeclient.In
 }
 
 // ResolveSecretRef reads the token from a Kubernetes Secret, creating or
-// rotating it as needed using the same annotation-based rotation as pkg/secrets.
+// rotating it as needed with the same annotation-based rotation as the
+// Secrets the runtime generates.
 func ResolveSecretRef(ctx context.Context, ref *types.APISecretRef, kube kubeclient.Interface, ownNamespace string) (string, error) {
 	ns := ref.Namespace
 	if ns == "" {
@@ -132,7 +134,7 @@ func ResolveSecretRef(ctx context.Context, ref *types.APISecretRef, kube kubecli
 	// Rotation check: if the Secret exists and rotateAfter has elapsed, delete it
 	// so the create step below regenerates it with a fresh token.
 	if ref.RotateAfter != "" {
-		needsRotation, err := secrets.SecretNeedsRotation(ctx, kube, ns, ref.Name, ref.RotateAfter)
+		needsRotation, err := kubeutil.SecretNeedsRotation(ctx, kube.Clientset(), ns, ref.Name, ref.RotateAfter)
 		if err != nil {
 			return "", fmt.Errorf("checking rotation for %s/%s: %w", ns, ref.Name, err)
 		}
@@ -142,14 +144,14 @@ func ResolveSecretRef(ctx context.Context, ref *types.APISecretRef, kube kubecli
 				Str("namespace", ns).
 				Str("rotateAfter", ref.RotateAfter).
 				Msg("gateway API token rotation: deleting expired secret")
-			if err := secrets.DeleteSecretForRotation(ctx, kube, ns, ref.Name); err != nil {
+			if err := kubeutil.DeleteSecret(ctx, kube.Clientset(), ns, ref.Name); err != nil {
 				return "", fmt.Errorf("rotating %s/%s: %w", ns, ref.Name, err)
 			}
 		}
 	}
 
 	// Read or bootstrap: check existence, create if missing.
-	exists, err := secrets.SecretExists(ctx, kube, ns, ref.Name)
+	exists, err := kubeutil.SecretExists(ctx, kube.Clientset(), ns, ref.Name)
 	if err != nil {
 		return "", fmt.Errorf("checking secret %s/%s: %w", ns, ref.Name, err)
 	}
@@ -169,13 +171,13 @@ func ResolveSecretRef(ctx context.Context, ref *types.APISecretRef, kube kubecli
 	}
 
 	// Secret exists — read the token value.
-	return secrets.ReadSecretKey(ctx, kube.Clientset(), ns, ref.Name, ref.Key)
+	return kubeutil.ReadSecretKey(ctx, kube.Clientset(), ns, ref.Name, ref.Key)
 }
 
 // createTokenSecret creates a new Kubernetes Secret with the given token value
 // and generation annotations for the rotation clock.
 func createTokenSecret(ctx context.Context, kube kubeclient.Interface, ns, name, key, token, rotateAfter string) error {
-	annotations := secrets.GenerationAnnotations(rotateAfter)
+	annotations := labels.GenerationAnnotations(rotateAfter)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

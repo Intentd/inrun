@@ -130,8 +130,10 @@ type ReplicaSetTemplateSource struct {
 	// onReconcile. When false (default), only runs on onCreate (idempotent create).
 	Reconcile bool `yaml:"reconcile,omitempty" json:"reconcile,omitempty" validate:"omitempty"`
 
-	// Conditions (when) — AND semantics.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// ForEach declares dynamic expansion over a list field.
 	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
@@ -139,7 +141,7 @@ type ReplicaSetTemplateSource struct {
 	// Autoscale declares workload autoscaling behaviour for this ReplicaSet.
 	Autoscale *WorkloadAutoscale `yaml:"autoscale,omitempty" json:"autoscale,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource.
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// WorkingDirectory sets the container's working directory (container.WorkingDir).

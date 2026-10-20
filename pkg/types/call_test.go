@@ -73,7 +73,7 @@ continueOnError: true
 	assert.Equal(t, "POST", call.Method)
 	assert.Equal(t, "{{ .metadata.namespace }}", call.Headers["X-Tenant"])
 	assert.Equal(t, []int{201}, call.ExpectedStatus)
-	assert.Len(t, call.Conditions, 1)
+	assert.Len(t, call.When, 1)
 	assert.True(t, call.IdempotencyKey.IsDisabled())
 	assert.True(t, call.ContinueOnError)
 }

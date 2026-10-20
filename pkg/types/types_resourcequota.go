@@ -71,10 +71,12 @@ type ResourceQuotaTemplateSource struct {
 	// Labels — applied to ResourceQuota metadata.
 	Labels Labels `yaml:"labels,omitempty" json:"labels,omitempty"`
 
-	// Conditions (when:) — all must pass for this resource to be applied.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
-	// Or — at least one must pass.
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// Reconcile: true — sync on every reconcile (drift correction).

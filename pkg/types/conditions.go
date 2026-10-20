@@ -1,28 +1,39 @@
 // pkg/types/conditions.go
 package types
 
-// ── Conditional provisioning ───────────────────────────────────────────────────
+// Condition is one test against the CR or runtime state. Field is a
+// dot-notation path (spec.environment, metadata.name, metrics.queueDepth) and
+// the comparison fields say what its value must be.
 //
-// When conditions are declared on individual template sources under onCreate,
-// onReconcile, or onDelete. The reconciler evaluates them against the live CR
-// before calling the registry. If any condition fails, the resource is skipped
-// for this reconcile cycle — not an error, just a no-op.
+// On a template entry, under onCreate, onReconcile or onDelete, conditions
+// decide whether that entry is written this pass:
 //
-// All conditions in a When block are AND'd:
-//   when:
-//     - field: spec.environment
-//       equals: production
-//     - field: spec.enabled
-//       equals: "true"
+//   - when: lists conditions that must all pass.
 //
-// Both must pass for the resource to be created.
-
-// Condition declares a single condition to evaluate against the CR or runtime state.
-// Fields reference CR paths using dot notation: spec.environment, metadata.name.
+//   - or: lists conditions of which at least one must pass.
 //
-// The same type is used in:
-//   - when: / or: on template sources (resource conditions)
-//   - operatorBox.autoscale.conditions.or and when: (autoscale conditions)
+//   - With both set, both must hold; with neither, the entry always runs.
+//
+//     when:
+//
+//   - field: spec.environment
+//     equals: production
+//     or:
+//
+//   - field: spec.tier
+//     equals: gold
+//
+//   - field: spec.replicas
+//     greaterThan: "3"
+//
+// An entry whose conditions fail is skipped, which is not an error. If the
+// entry is kept in sync (onReconcile, or reconcile: true) the object it wrote
+// is also removed, as long as Inrun owns it and no other passing entry writes
+// the same name. Jobs are the exception: they are never removed.
+//
+// Every other when: and or: in a Blueprint (autoscale, call: steps, hooks,
+// admission, enrichment, emit, status, cron and e2e) uses this type and
+// combines the two lists the same way.
 type Condition struct {
 	// Field — dot-notation path to a field in the CR object or a runtime metric.
 	// e.g. "spec.environment", "metrics.queueDepth", "cross.managed-database.metrics.queueDepth"

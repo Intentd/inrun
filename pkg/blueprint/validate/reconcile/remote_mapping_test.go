@@ -74,13 +74,13 @@ func TestValidateRemoteMapping_RequeueAfter(t *testing.T) {
 
 func TestValidateRemoteMapping_CallConditions(t *testing.T) {
 	require.NoError(t, mappedRemote(t, func(r *types.RemoteReconcilerDeclaration) {
-		r.Request.Conditions = []types.Condition{{Field: "external.current.status", Equals: "404"}}
+		r.Request.When = []types.Condition{{Field: "external.current.status", Equals: "404"}}
 		r.Request.Finalize.URL = "https://buckets.internal/buckets/{{ .external.current.json.id }}"
 		r.Request.Finalize.Or = []types.Condition{{Field: "external.current.status", Equals: "200"}}
 	}))
 
 	err := mappedRemote(t, func(r *types.RemoteReconcilerDeclaration) {
-		r.Request.Finalize.Conditions = []types.Condition{{Field: "x", Min: "1", Max: "2"}}
+		r.Request.Finalize.When = []types.Condition{{Field: "x", Min: "1", Max: "2"}}
 	})
 	assert.ErrorContains(t, err, "request.finalize condition on x declares min and max")
 }
@@ -90,7 +90,7 @@ func TestValidateRemoteMapping_RequestWhenNeedsResponse(t *testing.T) {
 		r.Response = nil
 		r.Request.Finalize = nil
 		r.Request.ExpectedStatus = nil
-		r.Request.Conditions = []types.Condition{{Field: "spec.enabled", Equals: "true"}}
+		r.Request.When = []types.Condition{{Field: "spec.enabled", Equals: "true"}}
 	})
 	assert.ErrorContains(t, err, "request.when/or needs reconcile.remote.response")
 }

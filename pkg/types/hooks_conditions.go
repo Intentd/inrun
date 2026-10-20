@@ -17,146 +17,146 @@ func (h HookTemplates) FilterResources(fn func(conditions, or []Condition) (keep
 	var out HookTemplates
 
 	for _, s := range h.Deployments {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Deployments = append(out.Deployments, s)
 		}
 	}
 	for _, s := range h.ReplicaSets {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.ReplicaSets = append(out.ReplicaSets, s)
 		}
 	}
 	for _, s := range h.StatefulSets {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.StatefulSets = append(out.StatefulSets, s)
 		}
 	}
 	for _, s := range h.Services {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Services = append(out.Services, s)
 		}
 	}
 	for _, s := range h.Pods {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Pods = append(out.Pods, s)
 		}
 	}
 	for _, s := range h.Jobs {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Jobs = append(out.Jobs, s)
 		}
 	}
 	for _, s := range h.CronJobs {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.CronJobs = append(out.CronJobs, s)
 		}
 	}
 	for _, s := range h.Secrets {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Secrets = append(out.Secrets, s)
 		}
 	}
 	for _, s := range h.ConfigMaps {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.ConfigMaps = append(out.ConfigMaps, s)
 		}
 	}
 	for _, s := range h.ServiceAccounts {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.ServiceAccounts = append(out.ServiceAccounts, s)
 		}
 	}
 	for _, s := range h.Ingresses {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Ingresses = append(out.Ingresses, s)
 		}
 	}
 	for _, s := range h.PersistentVolumes {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.PersistentVolumes = append(out.PersistentVolumes, s)
 		}
 	}
 	for _, s := range h.PersistentVolumeClaims {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.PersistentVolumeClaims = append(out.PersistentVolumeClaims, s)
 		}
 	}
 	for _, s := range h.HorizontalPodAutoscalers {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.HorizontalPodAutoscalers = append(out.HorizontalPodAutoscalers, s)
 		}
 	}
 	for _, s := range h.PodDisruptionBudgets {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.PodDisruptionBudgets = append(out.PodDisruptionBudgets, s)
 		}
 	}
 	for _, s := range h.Namespaces {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Namespaces = append(out.Namespaces, s)
 		}
 	}
 	for _, s := range h.Roles {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.Roles = append(out.Roles, s)
 		}
 	}
 	for _, s := range h.RoleBindings {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.RoleBindings = append(out.RoleBindings, s)
 		}
 	}
 	for _, s := range h.ClusterRoles {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.ClusterRoles = append(out.ClusterRoles, s)
 		}
 	}
 	for _, s := range h.ClusterRoleBindings {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.ClusterRoleBindings = append(out.ClusterRoleBindings, s)
 		}
 	}
 	for _, s := range h.NetworkPolicies {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.NetworkPolicies = append(out.NetworkPolicies, s)
 		}
 	}
 	for _, s := range h.ResourceQuotas {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.ResourceQuotas = append(out.ResourceQuotas, s)
 		}
 	}
 	for _, s := range h.LimitRanges {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.LimitRanges = append(out.LimitRanges, s)
 		}
 	}
 	for _, s := range h.CustomResource {
-		if keep, c, a := fn(s.Conditions, s.Or); keep {
-			s.Conditions, s.Or = c, a
+		if keep, c, a := fn(s.When, s.Or); keep {
+			s.When, s.Or = c, a
 			out.CustomResource = append(out.CustomResource, s)
 		}
 	}

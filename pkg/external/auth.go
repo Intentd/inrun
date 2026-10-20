@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/intentd/inrun/pkg/secrets"
 	"github.com/intentd/inrun/pkg/types"
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -27,7 +27,7 @@ func ResolveAuth(ctx context.Context, auth *types.ExternalAuth, cs kubernetes.In
 
 	switch {
 	case auth.SecretRef != nil:
-		credential, err = secrets.ReadSecretKey(ctx, cs, auth.SecretRef.Namespace, auth.SecretRef.Name, auth.SecretRef.Key)
+		credential, err = kubeutil.ReadSecretKey(ctx, cs, auth.SecretRef.Namespace, auth.SecretRef.Name, auth.SecretRef.Key)
 		if err != nil {
 			return "", "", fmt.Errorf("auth.secretRef: %w", err)
 		}

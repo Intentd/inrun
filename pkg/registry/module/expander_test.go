@@ -153,8 +153,8 @@ func TestExpand_StaticConditionKeepsResource(t *testing.T) {
 	for _, d := range expanded.OnReconcile.Deployments {
 		if d.Name == "{{ .metadata.name }}-ui" {
 			found = true
-			if len(d.Conditions) != 0 {
-				t.Errorf("static conditions should be stripped from kept resource, got %d", len(d.Conditions))
+			if len(d.When) != 0 {
+				t.Errorf("static conditions should be stripped from kept resource, got %d", len(d.When))
 			}
 		}
 	}
@@ -180,11 +180,11 @@ func TestExpand_RuntimeConditionPreserved(t *testing.T) {
 	for _, d := range expanded.OnReconcile.Deployments {
 		if d.Name == "{{ .metadata.name }}" {
 			found = true
-			if len(d.Conditions) == 0 {
+			if len(d.When) == 0 {
 				t.Error("runtime condition should be preserved on the resource")
 			}
-			if d.Conditions[0].Field != "{{ .spec.tier }}" {
-				t.Errorf("runtime condition field = %q, want %q", d.Conditions[0].Field, "{{ .spec.tier }}")
+			if d.When[0].Field != "{{ .spec.tier }}" {
+				t.Errorf("runtime condition field = %q, want %q", d.When[0].Field, "{{ .spec.tier }}")
 			}
 		}
 	}

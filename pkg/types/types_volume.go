@@ -1,6 +1,6 @@
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
 // ── Volume / VolumeMount ──────────────────────────────────────────────────────
 //
@@ -39,23 +39,23 @@ import restypes "github.com/intentd/kubewright/core/types"
 //	    subPath: app.json
 //	    readOnly: true
 
-// VolumeSource is restypes.VolumeSource.
-type VolumeSource = restypes.VolumeSource
+// VolumeSource is kwtypes.VolumeSource.
+type VolumeSource = kwtypes.VolumeSource
 
-// ConfigMapVolumeSource is restypes.ConfigMapVolumeSource.
-type ConfigMapVolumeSource = restypes.ConfigMapVolumeSource
+// ConfigMapVolumeSource is kwtypes.ConfigMapVolumeSource.
+type ConfigMapVolumeSource = kwtypes.ConfigMapVolumeSource
 
-// SecretVolumeSource is restypes.SecretVolumeSource.
-type SecretVolumeSource = restypes.SecretVolumeSource
+// SecretVolumeSource is kwtypes.SecretVolumeSource.
+type SecretVolumeSource = kwtypes.SecretVolumeSource
 
-// EmptyDirVolumeSource is restypes.EmptyDirVolumeSource.
-type EmptyDirVolumeSource = restypes.EmptyDirVolumeSource
+// EmptyDirVolumeSource is kwtypes.EmptyDirVolumeSource.
+type EmptyDirVolumeSource = kwtypes.EmptyDirVolumeSource
 
-// PVCVolumeSource is restypes.PVCVolumeSource.
-type PVCVolumeSource = restypes.PVCVolumeSource
+// PVCVolumeSource is kwtypes.PVCVolumeSource.
+type PVCVolumeSource = kwtypes.PVCVolumeSource
 
-// HostPathVolumeSource is restypes.HostPathVolumeSource.
-type HostPathVolumeSource = restypes.HostPathVolumeSource
+// HostPathVolumeSource is kwtypes.HostPathVolumeSource.
+type HostPathVolumeSource = kwtypes.HostPathVolumeSource
 
-// VolumeMount is restypes.VolumeMount.
-type VolumeMount = restypes.VolumeMount
+// VolumeMount is kwtypes.VolumeMount.
+type VolumeMount = kwtypes.VolumeMount

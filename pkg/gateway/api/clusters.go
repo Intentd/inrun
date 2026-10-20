@@ -11,9 +11,9 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/secrets"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
 )
 
 // ClusterRegistry maps gateway.clusters names to their ready kubeclient.Interface.
@@ -105,7 +105,7 @@ func buildKubeconfigRestConfig(
 	if ns == "" {
 		ns = ownNS
 	}
-	kubeYAML, err := secrets.ReadSecretKey(ctx, kube.Clientset(), ns, ref.SecretName(), ref.SecretKey())
+	kubeYAML, err := kubeutil.ReadSecretKey(ctx, kube.Clientset(), ns, ref.SecretName(), ref.SecretKey())
 	if err != nil {
 		return nil, fmt.Errorf("kubeconfig %s/%s[%s]: %w", ns, ref.SecretName(), ref.SecretKey(), err)
 	}
@@ -128,7 +128,7 @@ func buildTokenRestConfig(
 	if tokenNS == "" {
 		tokenNS = ownNS
 	}
-	token, err := secrets.ReadSecretKey(ctx, kube.Clientset(), tokenNS, tokenRef.SecretName(), tokenRef.SecretKey())
+	token, err := kubeutil.ReadSecretKey(ctx, kube.Clientset(), tokenNS, tokenRef.SecretName(), tokenRef.SecretKey())
 	if err != nil {
 		return nil, fmt.Errorf("token %s/%s[%s]: %w", tokenNS, tokenRef.SecretName(), tokenRef.SecretKey(), err)
 	}
@@ -148,7 +148,7 @@ func buildTokenRestConfig(
 	if caNS == "" {
 		caNS = ownNS
 	}
-	caData, err := secrets.ReadSecretKey(ctx, kube.Clientset(), caNS, caRef.SecretName(), caRef.SecretKey())
+	caData, err := kubeutil.ReadSecretKey(ctx, kube.Clientset(), caNS, caRef.SecretName(), caRef.SecretKey())
 	if err != nil {
 		return nil, fmt.Errorf("CA cert %s/%s[%s]: %w", caNS, caRef.SecretName(), caRef.SecretKey(), err)
 	}

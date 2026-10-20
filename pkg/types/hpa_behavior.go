@@ -1,12 +1,12 @@
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
-// HPABehavior is restypes.HPABehavior.
-type HPABehavior = restypes.HPABehavior
+// HPABehavior is kwtypes.HPABehavior.
+type HPABehavior = kwtypes.HPABehavior
 
-// HPAScalingRules is restypes.HPAScalingRules.
-type HPAScalingRules = restypes.HPAScalingRules
+// HPAScalingRules is kwtypes.HPAScalingRules.
+type HPAScalingRules = kwtypes.HPAScalingRules
 
-// HPAScalingPolicy is restypes.HPAScalingPolicy.
-type HPAScalingPolicy = restypes.HPAScalingPolicy
+// HPAScalingPolicy is kwtypes.HPAScalingPolicy.
+type HPAScalingPolicy = kwtypes.HPAScalingPolicy

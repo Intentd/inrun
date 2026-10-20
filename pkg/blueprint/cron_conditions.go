@@ -28,31 +28,31 @@ func collectHookConditions(ht *types.HookTemplates) []types.Condition {
 		out = append(out, or...)
 	}
 	for _, r := range ht.Deployments {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.StatefulSets {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.ReplicaSets {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.Services {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.Jobs {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.CronJobs {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.ConfigMaps {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.Secrets {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	for _, r := range ht.HorizontalPodAutoscalers {
-		add(r.Conditions, r.Or)
+		add(r.When, r.Or)
 	}
 	return out
 }

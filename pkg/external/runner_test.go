@@ -179,7 +179,7 @@ func TestRun_WhenConditionSkipsCall(t *testing.T) {
 	})
 	calls := []types.ExternalCallSpec{
 		{CallSpec: types.CallSpec{URL: "http://prod.internal/v1",
-			Conditions: []types.Condition{
+			When: []types.Condition{
 				{Field: "spec.env", Equals: "production"},
 			}}, Name: "prod-only",
 		},
@@ -345,7 +345,7 @@ func TestCall_OneCall(t *testing.T) {
 	}
 
 	skipped, err := external.Call(context.Background(), "test", "remote", r, types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x",
-		Conditions: []types.Condition{{Field: "spec.ready", Equals: "yes"}}}, Name: "gated",
+		When: []types.Condition{{Field: "spec.ready", Equals: "yes"}}}, Name: "gated",
 	}, nil)
 	if err != nil || skipped["called"] != "false" {
 		t.Errorf("a call whose conditions fail is skipped: %v, %v", skipped, err)

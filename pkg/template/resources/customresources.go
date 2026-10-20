@@ -35,7 +35,7 @@ func ResolveCustomResource(r *template.Resolver, src types.CustomResourceTemplat
 		HasStatus:  src.HasStatus,
 		Reconcile:  src.Reconcile,
 		ForEach:    src.ForEach,
-		Conditions: src.Conditions,
+		When:       src.When,
 		Or:         src.Or,
 	}
 

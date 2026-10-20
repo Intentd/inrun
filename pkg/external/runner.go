@@ -66,7 +66,7 @@ func Call(
 ) (map[string]interface{}, error) {
 	log := logger.FromContext(ctx)
 
-	if !types.EvaluateConditions(resolver.Data(), call.Conditions, call.Or, resolver.TemplateEvaluator()) {
+	if !types.EvaluateConditions(resolver.Data(), call.When, call.Or, resolver.TemplateEvaluator()) {
 		log.Debug().
 			Str("call", call.Name).
 			Str("where", where).

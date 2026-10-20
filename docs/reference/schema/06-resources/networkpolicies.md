@@ -146,7 +146,7 @@ Labels — applied to NetworkPolicy metadata.
 
 Type: list
 
-Conditions (when:) — all must pass for this resource to be applied.
+When lists conditions that must all pass for this entry to be written; see Condition. When an entry kept in sync (onReconcile, or reconcile: true) stops passing, the object it wrote is removed.
 
 ---
 
@@ -154,7 +154,7 @@ Conditions (when:) — all must pass for this resource to be applied.
 
 Type: list
 
-Or — at least one must pass.
+Or lists conditions of which at least one must pass, alongside When.
 
 ---
 

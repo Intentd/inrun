@@ -132,8 +132,8 @@ func (r *Reconciler) mappedCall(finalizing bool) (mappedPass, bool) {
 		call.Timeout = r.timeout.String()
 	}
 	// when/or are evaluated by reconcileMapped, not by external.Call.
-	when, or := call.Conditions, call.Or
-	call.Conditions, call.Or = nil, nil
+	when, or := call.When, call.Or
+	call.When, call.Or = nil, nil
 	return mappedPass{spec: types.ExternalCallSpec{Name: "response", CallSpec: call}, when: when, or: or}, true
 }
 

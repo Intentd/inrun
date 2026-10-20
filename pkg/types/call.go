@@ -37,9 +37,9 @@ type CallSpec struct {
 	// Default: any status below 400.
 	ExpectedStatus []int `yaml:"expectedStatus,omitempty" json:"expectedStatus,omitempty"`
 
-	// Conditions (when) and Or decide whether the call is made this pass.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
-	Or         []Condition `yaml:"or,omitempty" json:"or,omitempty"`
+	// When and Or decide whether the call is made this pass.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	Or   []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// Timeout is the maximum duration for this call. Format: "5s", "1m",
 	// "500ms". Default: 10s for external calls, remote.timeout for the

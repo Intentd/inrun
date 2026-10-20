@@ -1,7 +1,7 @@
 // pkg/types/types_limitrange.go
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
 // LimitRangeTemplateSource declares one LimitRange to be managed by Inrun.
 //
@@ -82,10 +82,12 @@ type LimitRangeTemplateSource struct {
 	// Labels — applied to LimitRange metadata.
 	Labels Labels `yaml:"labels,omitempty" json:"labels,omitempty"`
 
-	// Conditions (when:) — all must pass for this resource to be applied.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
-	// Or — at least one must pass.
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// Reconcile: true — sync on every reconcile (drift correction).
@@ -100,5 +102,5 @@ type LimitRangeTemplateSource struct {
 	ForceConflict *bool `yaml:"forceConflict,omitempty" json:"forceConflict,omitempty"`
 }
 
-// LimitRangeItem is restypes.LimitRangeItem.
-type LimitRangeItem = restypes.LimitRangeItem
+// LimitRangeItem is kwtypes.LimitRangeItem.
+type LimitRangeItem = kwtypes.LimitRangeItem

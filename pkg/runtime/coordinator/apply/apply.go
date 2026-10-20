@@ -17,7 +17,7 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
 	resapply "github.com/intentd/kubewright/core/apply"
-	restypes "github.com/intentd/kubewright/core/types"
+	kwtypes "github.com/intentd/kubewright/core/types"
 )
 
 // FieldManager is the server-side apply field manager for resources a
@@ -91,7 +91,7 @@ func apply(
 		return nil, targetErr
 	}
 
-	ownerRefs := restypes.OwnerReferences(owner)
+	ownerRefs := kwtypes.OwnerReferences(owner)
 	blueprintName := owner.GetAnnotations()[labels.AnnotationManagedBy]
 	since := managedSince(owner)
 
@@ -206,7 +206,7 @@ func applyOne(
 		u.SetOwnerReferences(ownerRefs)
 	}
 
-	_, err := resapply.Object(ctx, kube.DynamicClient(), kube.RESTMapper(), u, restypes.Options{
+	_, err := resapply.Object(ctx, kube.DynamicClient(), kube.RESTMapper(), u, kwtypes.Options{
 		FieldManager: FieldManager,
 		Force:        kubeclient.ApplyOptions(kube, rr.forceConflict).Force,
 	})

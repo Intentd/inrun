@@ -1,18 +1,18 @@
 // pkg/types/types_rbac.go
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
 // ── Role / RoleBinding ────────────────────────────────────────────────────────
 
-// PolicyRuleSpec is restypes.PolicyRuleSpec.
-type PolicyRuleSpec = restypes.PolicyRuleSpec
+// PolicyRuleSpec is kwtypes.PolicyRuleSpec.
+type PolicyRuleSpec = kwtypes.PolicyRuleSpec
 
-// SubjectSpec is restypes.SubjectSpec.
-type SubjectSpec = restypes.SubjectSpec
+// SubjectSpec is kwtypes.SubjectSpec.
+type SubjectSpec = kwtypes.SubjectSpec
 
-// RoleRefSpec is restypes.RoleRefSpec.
-type RoleRefSpec = restypes.RoleRefSpec
+// RoleRefSpec is kwtypes.RoleRefSpec.
+type RoleRefSpec = kwtypes.RoleRefSpec
 
 // RoleTemplateSource declares one namespaced Role to be managed by Inrun.
 //
@@ -48,27 +48,10 @@ type RoleTemplateSource struct {
 	//	    resourceNames: ["{{ .metadata.name }}"]
 	Rules []PolicyRuleSpec `yaml:"rules,omitempty" json:"rules,omitempty"`
 
-	// Conditions declares the set of runtime predicates that must all evaluate to
-	// true for this resource template to be applied during reconciliation.
-	//
-	// Each condition inspects a field on the live Custom Resource using dot-notation
-	// (e.g. "spec.enabled", "metadata.labels.tier") and compares it against a value
-	// using the chosen operator. All conditions in the list are AND‑ed together.
-	//
-	// If any condition fails, the resource is skipped for that reconcile cycle.
-	// This is not an error — it simply means "do not create/update this resource
-	// right now". This enables expressive, data‑driven orchestration such as:
-	//
-	//   when:
-	//     - field: spec.exposePublicly
-	//       equals: "true"
-	//     - field: spec.environment
-	//       prefix: "prod"
-	//
-	// Conditions allow templates to be selectively activated based on the CR's
-	// state, enabling dynamic topologies, feature flags, environment‑specific
-	// behavior, and conditional provisioning without writing Go code.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// Reconcile: true — also apply this declaration as drift correction on every
 	// reconcile. Equivalent to declaring the same entry under both onCreate and
@@ -84,14 +67,7 @@ type RoleTemplateSource struct {
 	//	  as: region
 	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource to be created.
-	// Works alongside the existing Conditions (when:) field which uses AND semantics.
-	//
-	//	or:
-	//	  - field: spec.tier
-	//	    equals: pro
-	//	  - field: spec.tier
-	//	    equals: enterprise
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// ForceConflict, when true, sets Force: true when applying this resource,
@@ -144,27 +120,10 @@ type RoleBindingTemplateSource struct {
 	//	    namespace: "{{ .metadata.namespace }}"
 	Subjects []SubjectSpec `yaml:"subjects,omitempty" json:"subjects,omitempty"`
 
-	// Conditions declares the set of runtime predicates that must all evaluate to
-	// true for this resource template to be applied during reconciliation.
-	//
-	// Each condition inspects a field on the live Custom Resource using dot-notation
-	// (e.g. "spec.enabled", "metadata.labels.tier") and compares it against a value
-	// using the chosen operator. All conditions in the list are AND‑ed together.
-	//
-	// If any condition fails, the resource is skipped for that reconcile cycle.
-	// This is not an error — it simply means "do not create/update this resource
-	// right now". This enables expressive, data‑driven orchestration such as:
-	//
-	//   when:
-	//     - field: spec.exposePublicly
-	//       equals: "true"
-	//     - field: spec.environment
-	//       prefix: "prod"
-	//
-	// Conditions allow templates to be selectively activated based on the CR's
-	// state, enabling dynamic topologies, feature flags, environment‑specific
-	// behavior, and conditional provisioning without writing Go code.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// Reconcile: true — also apply this declaration as drift correction on every
 	// reconcile. Equivalent to declaring the same entry under both onCreate and
@@ -180,14 +139,7 @@ type RoleBindingTemplateSource struct {
 	//	  as: region
 	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource to be created.
-	// Works alongside the existing Conditions (when:) field which uses AND semantics.
-	//
-	//	or:
-	//	  - field: spec.tier
-	//	    equals: pro
-	//	  - field: spec.tier
-	//	    equals: enterprise
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// ForceConflict, when true, sets Force: true when applying this resource,
@@ -229,41 +181,17 @@ type ClusterRoleTemplateSource struct {
 	//	    verbs: ["get", "list", "watch"]
 	Rules []PolicyRuleSpec `yaml:"rules,omitempty" json:"rules,omitempty"`
 
-	// Conditions declares the set of runtime predicates that must all evaluate to
-	// true for this resource template to be applied during reconciliation.
-	//
-	// Each condition inspects a field on the live Custom Resource using dot-notation
-	// (e.g. "spec.enabled", "metadata.labels.tier") and compares it against a value
-	// using the chosen operator. All conditions in the list are AND‑ed together.
-	//
-	// If any condition fails, the resource is skipped for that reconcile cycle.
-	// This is not an error — it simply means "do not create/update this resource
-	// right now". This enables expressive, data‑driven orchestration such as:
-	//
-	//   when:
-	//     - field: spec.exposePublicly
-	//       equals: "true"
-	//     - field: spec.environment
-	//       prefix: "prod"
-	//
-	// Conditions allow templates to be selectively activated based on the CR's
-	// state, enabling dynamic topologies, feature flags, environment‑specific
-	// behavior, and conditional provisioning without writing Go code.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// Reconcile: true — also apply this declaration as drift correction on every
 	// reconcile. Equivalent to declaring the same entry under both onCreate and
 	// onReconcile. When false (default), only runs on onCreate (idempotent create).
 	Reconcile bool `yaml:"reconcile,omitempty" json:"reconcile,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource to be created.
-	// Works alongside the existing Conditions (when:) field which uses AND semantics.
-	//
-	//	or:
-	//	  - field: spec.tier
-	//	    equals: pro
-	//	  - field: spec.tier
-	//	    equals: enterprise
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// ForEach declares dynamic expansion over a list field.
@@ -323,41 +251,17 @@ type ClusterRoleBindingTemplateSource struct {
 	//	    namespace: "{{ .metadata.namespace }}"
 	Subjects []SubjectSpec `yaml:"subjects,omitempty" json:"subjects,omitempty"`
 
-	// Conditions declares the set of runtime predicates that must all evaluate to
-	// true for this resource template to be applied during reconciliation.
-	//
-	// Each condition inspects a field on the live Custom Resource using dot-notation
-	// (e.g. "spec.enabled", "metadata.labels.tier") and compares it against a value
-	// using the chosen operator. All conditions in the list are AND‑ed together.
-	//
-	// If any condition fails, the resource is skipped for that reconcile cycle.
-	// This is not an error — it simply means "do not create/update this resource
-	// right now". This enables expressive, data‑driven orchestration such as:
-	//
-	//   when:
-	//     - field: spec.exposePublicly
-	//       equals: "true"
-	//     - field: spec.environment
-	//       prefix: "prod"
-	//
-	// Conditions allow templates to be selectively activated based on the CR's
-	// state, enabling dynamic topologies, feature flags, environment‑specific
-	// behavior, and conditional provisioning without writing Go code.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
 	// Reconcile: true — also apply this declaration as drift correction on every
 	// reconcile. Equivalent to declaring the same entry under both onCreate and
 	// onReconcile. When false (default), only runs on onCreate (idempotent create).
 	Reconcile bool `yaml:"reconcile,omitempty" json:"reconcile,omitempty"`
 
-	// Or holds OR conditions — at least one must pass for this resource to be created.
-	// Works alongside the existing Conditions (when:) field which uses AND semantics.
-	//
-	//	or:
-	//	  - field: spec.tier
-	//	    equals: pro
-	//	  - field: spec.tier
-	//	    equals: enterprise
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// ForEach declares dynamic expansion over a list field.

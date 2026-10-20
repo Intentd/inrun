@@ -32,7 +32,7 @@ func RunCustomResources(
 	// Track active names for conditional cleanup when resources are no longer desired.
 	activeNames := make(map[string]bool, len(srcs))
 	for _, s := range srcs {
-		if !types.EvaluateConditions(resolver.Data(), s.Conditions, s.Or, resolver.TemplateEvaluator()) {
+		if !types.EvaluateConditions(resolver.Data(), s.When, s.Or, resolver.TemplateEvaluator()) {
 			continue
 		}
 		n, _ := resolver.Resolve(s.Metadata.Name)
@@ -44,7 +44,7 @@ func RunCustomResources(
 	}
 
 	for i, src := range srcs {
-		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
+		conditionPassed := types.EvaluateConditions(resolver.Data(), src.When, src.Or, resolver.TemplateEvaluator())
 
 		// Resolve name/namespace for guard/cleanup decisions
 		name, _ := resolver.Resolve(src.Metadata.Name)

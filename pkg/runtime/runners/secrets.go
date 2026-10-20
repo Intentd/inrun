@@ -1,28 +1,11 @@
-// pkg/runners/secrets.go
-//
-// Adds to the previous version:
-//   - types.EvaluateConditions instead of evaluateConditions (fixes or: being ignored)
-//   - rotateAfter: <duration> support — time-based credential rotation
-//   - tls: {...} support — self-signed CA + signed certificate generation
-//
-// Execution order per secret declaration:
-//
-//  1. EvaluateConditions(when:, or:)          — skip if conditions fail
-//  2. Once/rotation check
-//     a. once: true, rotateAfter set       — check annotation, delete if expired
-//     b. once: true, no rotateAfter        — skip if exists
-//     c. once: false                       — standard create/update
-//  3. Resolve template expressions         — randomAlphanumeric evaluated here
-//  4. TLS generation (if tls: is set)      — generate CA + cert, skip data resolution
-//  5. Create/Apply/CopyToNamespaces
-//  6. Annotate with generated-at           — only when rotateAfter is set
 package runners
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/template/resources"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
@@ -31,10 +14,44 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
 	"github.com/intentd/kubewright/core/secrets"
+	kwtypes "github.com/intentd/kubewright/core/types"
 )
 
+// RunSecrets resolves and writes Secret template entries. For each entry:
+//
+//  1. Its when: and or: conditions are evaluated; one that fails is skipped.
+//
+//  2. once: true, and the Secret already exists: it is left alone, unless
+//     rotateAfter is set and its age has passed it (see labels.NeedsRotation),
+//     in which case it is deleted and generated again.
+//
+//  3. The templates are resolved; random values such as
+//     {{ randomAlphanumeric 32 }} are resolved here, so once: true keeps them.
+//
+//  4. With tls:, a self-signed CA and a certificate signed by it make the
+//     data instead, as a kubernetes.io/tls Secret: tls.crt, tls.key and ca.crt.
+//
+//  5. The Secret is created, applied, or copied into toNamespaces.
+//
+//  6. With rotateAfter, it is annotated with when it was generated.
+//
+// A password generated once and replaced every 90 days:
+//
+//	secrets:
+//	  - name: "{{ .metadata.name }}-credentials"
+//	    once: true
+//	    rotateAfter: 90d
+//	    data:
+//	      password: "{{ randomAlphanumeric 32 }}"
+//
+// once: true is ignored with reconcile: true, which asks for continuous
+// reconciliation, and a warning is logged: an entry kept in sync should use
+// static or deterministic values. The CA is unique per Secret, which suits a
+// self-signed operator webhook.
 func RunSecrets(
 	ctx context.Context,
 	kube kubeclient.Interface,
@@ -46,7 +63,7 @@ func RunSecrets(
 ) error {
 	activeNames := make(map[string]bool, len(srcs))
 	for _, s := range srcs {
-		if !types.EvaluateConditions(resolver.Data(), s.Conditions, s.Or, resolver.TemplateEvaluator()) {
+		if !types.EvaluateConditions(resolver.Data(), s.When, s.Or, resolver.TemplateEvaluator()) {
 			continue
 		}
 		n, _ := resolver.Resolve(s.Name)
@@ -66,7 +83,7 @@ func RunSecrets(
 		// IMPORTANT: must use resolver.Data() not the owner object directly.
 		// resolver.Data() includes .children.*, .external.*, .cross.* — the owner
 		// object alone does not have these injected fields.
-		conditionPassed := types.EvaluateConditions(resolver.Data(), src.Conditions, src.Or, resolver.TemplateEvaluator())
+		conditionPassed := types.EvaluateConditions(resolver.Data(), src.When, src.Or, resolver.TemplateEvaluator())
 
 		// Resolve name and namespace early — needed for guard check, once: checks,
 		// and DeleteIfOwned cleanup. resources.ResolveSecret resolves these again
@@ -107,7 +124,7 @@ func RunSecrets(
 		if src.Once && !update && !src.Reconcile {
 			if src.RotateAfter != "" {
 				// Rotation mode: check if the Secret has exceeded its threshold
-				needsRotation, err := SecretNeedsRotation(ctx, kube, ns, name, src.RotateAfter)
+				needsRotation, err := kubeutil.SecretNeedsRotation(ctx, kube.Clientset(), ns, name, src.RotateAfter)
 				if err != nil {
 					return fmt.Errorf("secrets[%d]: rotation check: %w", i, err)
 				}
@@ -116,13 +133,13 @@ func RunSecrets(
 						Str("secret", name).
 						Str("rotateAfter", src.RotateAfter).
 						Msg("secret rotation threshold exceeded — regenerating")
-					if err := DeleteSecretForRotation(ctx, kube, ns, name); err != nil {
+					if err := kubeutil.DeleteSecret(ctx, kube.Clientset(), ns, name); err != nil {
 						return fmt.Errorf("secrets[%d]: rotation delete: %w", i, err)
 					}
 					// Fall through to create with fresh values
 				} else {
 					// Check plain existence (Secret may not exist yet)
-					exists, err := SecretExists(ctx, kube, ns, name)
+					exists, err := kubeutil.SecretExists(ctx, kube.Clientset(), ns, name)
 					if err != nil {
 						return fmt.Errorf("secrets[%d]: existence check: %w", i, err)
 					}
@@ -139,7 +156,7 @@ func RunSecrets(
 				if src.Reconcile {
 					logOnceReconcileConflict(ctx, name)
 				} else {
-					exists, err := SecretExists(ctx, kube, ns, name)
+					exists, err := kubeutil.SecretExists(ctx, kube.Clientset(), ns, name)
 					if err != nil {
 						return fmt.Errorf("secrets[%d]: once: existence check: %w", i, err)
 					}
@@ -183,9 +200,9 @@ func RunSecrets(
 
 		// Attach rotation annotation when rotateAfter is declared
 		if src.RotateAfter != "" && spec.Annotations == nil {
-			spec.Annotations = GenerationAnnotations(src.RotateAfter)
+			spec.Annotations = labels.GenerationAnnotations(src.RotateAfter)
 		} else if src.RotateAfter != "" {
-			for k, v := range GenerationAnnotations(src.RotateAfter) {
+			for k, v := range labels.GenerationAnnotations(src.RotateAfter) {
 				spec.Annotations[k] = v
 			}
 		}
@@ -286,4 +303,63 @@ func RunTLSSecret(
 	}
 
 	return createTLSSecret(ctx, kube, owner, name, namespace, src.RotateAfter, bundle)
+}
+
+// logOnceReconcileConflict warns when once: true and reconcile: true are
+// both set on the same secret. These are contradictory: once means
+// "never re-evaluate", reconcile means "always re-evaluate".
+func logOnceReconcileConflict(ctx context.Context, name string) {
+	logger.FromContext(ctx).Warn().
+		Str("secret", name).
+		Msg("secret has both once: true and reconcile: true — " +
+			"once: is ignored. Remove reconcile: true to enable once: semantics, " +
+			"or remove once: true if you want continuous reconciliation.")
+}
+
+// createTLSSecret creates a kubernetes.io/tls Secret from a TLSBundle.
+// The Secret name defaults to "owner.GetName()-inrun-tls" when src.Name resolves to "".
+func createTLSSecret(
+	ctx context.Context,
+	kube kubeclient.Interface,
+	owner domain.Object,
+	name, namespace, rotateAfter string,
+	bundle *certmanager.TLSBundle,
+) error {
+	if name == "" {
+		name = owner.GetName() + "-inrun-tls"
+	}
+
+	annotations := labels.GenerationAnnotations(rotateAfter)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   namespace,
+			Annotations: annotations,
+			Labels: map[string]string{
+				"inrun-owner":                  owner.GetName(),
+				"app.kubernetes.io/managed-by": "inrun",
+			},
+			OwnerReferences: kwtypes.OwnerReferences(owner),
+		},
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"tls.crt": bundle.CertPEM,
+			"tls.key": bundle.KeyPEM,
+			"ca.crt":  bundle.CACertPEM,
+		},
+	}
+
+	_, err := kube.Clientset().CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("creating TLS secret %s/%s: %w", namespace, name, err)
+	}
+
+	logger.FromContext(ctx).Info().
+		Str("secret", name).
+		Str("namespace", namespace).
+		Str("commonName", "").
+		Msg("TLS secret created")
+
+	return nil
 }

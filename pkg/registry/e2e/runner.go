@@ -1041,9 +1041,9 @@ func (r *Runner) runImports(ctx context.Context) []ImportResult {
 		var sub *Runner
 		var err error
 		if imp.FreshCluster {
-			sub, err = New(absPath, Options{KeepCluster: r.keepCluster, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, InrunChart: r.inrunChart, ValueFiles: r.valueFiles})
+			sub, err = New(absPath, Options{KeepCluster: r.keepCluster, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, InrunChart: r.inrunChart, ValueFiles: r.valueFiles, HelmArgs: r.helmArgs})
 		} else {
-			sub, err = New(absPath, Options{UseCurrentCtx: true, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, InrunChart: r.inrunChart, ValueFiles: r.valueFiles})
+			sub, err = New(absPath, Options{UseCurrentCtx: true, Workers: r.workers, KindVersion: r.kindVersion, DevServer: r.devServer, InrunVersion: r.inrunVersion, InrunChart: r.inrunChart, ValueFiles: r.valueFiles, HelmArgs: r.helmArgs})
 			if err == nil {
 				sub.sharedInrun = true
 			}

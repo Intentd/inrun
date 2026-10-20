@@ -190,7 +190,7 @@ func observed(finalizing bool, status string, id string) domain.Request {
 func TestMapped_RequestSkippedWhenItsConditionFails(t *testing.T) {
 	srv, seen := bucketAPI(t, "ready", 0)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.Conditions = []types.Condition{{Field: "external.current.status", Equals: "404"}}
+	r.decl.Request.When = []types.Condition{{Field: "external.current.status", Equals: "404"}}
 	r.decl.Response.Requeue = &types.RequeueConfig{After: "30s"}
 
 	result, err := r.reconcileMapped(context.Background(), observed(false, "200", "b-1"))
@@ -208,7 +208,7 @@ func TestMapped_RequestSkippedWhenItsConditionFails(t *testing.T) {
 func TestMapped_FinalizeSkippedReleases(t *testing.T) {
 	srv, seen := bucketAPI(t, "", http.StatusAccepted)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.Finalize.Conditions = []types.Condition{{Field: "external.current.status", Equals: "200"}}
+	r.decl.Request.Finalize.When = []types.Condition{{Field: "external.current.status", Equals: "200"}}
 
 	result, err := r.reconcileMapped(context.Background(), observed(true, "404", ""))
 	require.NoError(t, err)

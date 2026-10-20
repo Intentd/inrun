@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/intentd/inrun/pkg/secrets"
 	"github.com/intentd/inrun/pkg/types"
+	kubeutil "github.com/intentd/inrun/pkg/util/kube"
 	"github.com/intentd/inrun/pkg/util/structured"
 	"k8s.io/client-go/kubernetes"
 )
@@ -23,7 +23,7 @@ func ResolveCrossToken(ctx context.Context, cs kubernetes.Interface, s *types.Cr
 	}
 	if s.HasSecretRef() {
 		ref := s.Auth.SecretRef
-		return secrets.ReadSecretKey(ctx, cs, ref.SecretNamespace(), ref.SecretName(), ref.SecretKey())
+		return kubeutil.ReadSecretKey(ctx, cs, ref.SecretNamespace(), ref.SecretName(), ref.SecretKey())
 	}
 	return structured.ResolveEnvVar(s.Auth.Token)
 

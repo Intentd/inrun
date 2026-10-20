@@ -1,7 +1,7 @@
 // pkg/types/types_networkpolicy.go
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
 // NetworkPolicyTemplateSource declares one NetworkPolicy to be managed by Inrun.
 //
@@ -82,10 +82,12 @@ type NetworkPolicyTemplateSource struct {
 	// Labels — applied to NetworkPolicy metadata.
 	Labels Labels `yaml:"labels,omitempty" json:"labels,omitempty"`
 
-	// Conditions (when:) — all must pass for this resource to be applied.
-	Conditions []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
 
-	// Or — at least one must pass.
+	// Or lists conditions of which at least one must pass, alongside When.
 	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
 
 	// Preset — named NetworkPolicy preset. Expands into ingress/egress rules and policy types.
@@ -105,17 +107,17 @@ type NetworkPolicyTemplateSource struct {
 	ForceConflict *bool `yaml:"forceConflict,omitempty" json:"forceConflict,omitempty"`
 }
 
-// NetworkPolicyIngressRule is restypes.NetworkPolicyIngressRule.
-type NetworkPolicyIngressRule = restypes.NetworkPolicyIngressRule
+// NetworkPolicyIngressRule is kwtypes.NetworkPolicyIngressRule.
+type NetworkPolicyIngressRule = kwtypes.NetworkPolicyIngressRule
 
-// NetworkPolicyEgressRule is restypes.NetworkPolicyEgressRule.
-type NetworkPolicyEgressRule = restypes.NetworkPolicyEgressRule
+// NetworkPolicyEgressRule is kwtypes.NetworkPolicyEgressRule.
+type NetworkPolicyEgressRule = kwtypes.NetworkPolicyEgressRule
 
-// NetworkPolicyPeer is restypes.NetworkPolicyPeer.
-type NetworkPolicyPeer = restypes.NetworkPolicyPeer
+// NetworkPolicyPeer is kwtypes.NetworkPolicyPeer.
+type NetworkPolicyPeer = kwtypes.NetworkPolicyPeer
 
-// NetworkPolicyIPBlock is restypes.NetworkPolicyIPBlock.
-type NetworkPolicyIPBlock = restypes.NetworkPolicyIPBlock
+// NetworkPolicyIPBlock is kwtypes.NetworkPolicyIPBlock.
+type NetworkPolicyIPBlock = kwtypes.NetworkPolicyIPBlock
 
-// NetworkPolicyPort is restypes.NetworkPolicyPort.
-type NetworkPolicyPort = restypes.NetworkPolicyPort
+// NetworkPolicyPort is kwtypes.NetworkPolicyPort.
+type NetworkPolicyPort = kwtypes.NetworkPolicyPort

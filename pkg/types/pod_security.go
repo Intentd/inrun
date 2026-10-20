@@ -1,12 +1,12 @@
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
-// PodSecurityContext is restypes.PodSecurityContext.
-type PodSecurityContext = restypes.PodSecurityContext
+// PodSecurityContext is kwtypes.PodSecurityContext.
+type PodSecurityContext = kwtypes.PodSecurityContext
 
-// ContainerSecurityContext is restypes.ContainerSecurityContext.
-type ContainerSecurityContext = restypes.ContainerSecurityContext
+// ContainerSecurityContext is kwtypes.ContainerSecurityContext.
+type ContainerSecurityContext = kwtypes.ContainerSecurityContext
 
-// CapabilitiesConfig is restypes.CapabilitiesConfig.
-type CapabilitiesConfig = restypes.CapabilitiesConfig
+// CapabilitiesConfig is kwtypes.CapabilitiesConfig.
+type CapabilitiesConfig = kwtypes.CapabilitiesConfig

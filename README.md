@@ -4,7 +4,7 @@
   <p><strong>Run intents on Kubernetes.</strong></p>
 
   <p>
-    <a href="https://github.com/intentd/inrun/actions/workflows/ci.yml"><img src="https://github.com/intentd/inrun/actions/workflows/validate-pr.yml/badge.svg" alt="CI" /></a>
+    <a href="https://github.com/intentd/inrun/actions/workflows/ci.yml"><img src="https://github.com/intentd/inrun/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
     <a href="https://github.com/intentd/inrun/releases"><img src="https://img.shields.io/github/v/release/intentd/inrun" alt="Release" /></a>
     <a href="https://artifacthub.io/packages/search?repo=inrun"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/inrun" alt="Artifact Hub" /></a>
     <img src="https://img.shields.io/badge/Go-1.27+-00ADD8.svg" alt="Go 1.27+" />
@@ -16,6 +16,8 @@
 Kubernetes reconciliation is battle-tested and free. Using it is expensive: a purpose-built operator, Kubernetes expertise, and maintenance for as long as it runs. So developers leave it to platform engineers.
 
 Inrun opens it to anyone who has written a service that takes a request and returns a response.
+
+You bring the decision. Inrun brings the machinery.
 
 ## How it works
 
@@ -57,8 +59,7 @@ inrun init     # a hello-website operator in the current directory
 inrun          # run it on your current cluster; the console opens on :8081
 ```
 
-No cluster? Add `--dev` to create a temporary kind cluster (needs Docker). Or
-check it without one, in memory:
+No cluster? Add `--dev` to create a temporary kind cluster (needs Docker). Or check it without one, in memory:
 
 ```bash
 inrun simulate
@@ -71,9 +72,7 @@ inrun inspect postgres:v0.1.0                   # version, description, test res
 inrun postgres:v0.1.0  --apply-cr --dev         # run it - all batteries included
 ```
 
-`postgres:v0.1.0` is short for `ghcr.io/intentd/registry/patterns/blueprints/postgres:v0.1.0`.
-Patterns can live in any OCI registry: set `INRUN_REGISTRY` to use your own. The
-published ones are built from [inrun-registry](https://github.com/intentd/inrun-registry).
+`postgres:v0.1.0` is short for `ghcr.io/intentd/registry/patterns/blueprints/postgres:v0.1.0`. Patterns can live in any OCI registry: set `INRUN_REGISTRY` to use your own. The published ones are built from [inrun-registry](https://github.com/intentd/inrun-registry).
 
 ## Examples
 
@@ -86,8 +85,7 @@ inrun init --pack typed         # Go: hooks, a constructor, and a controller-run
 inrun init --pack intent        # Intent in through the gateway, view out
 ```
 
-`inrun init --list` shows them all. Each pack is a folder of examples; for any
-of them:
+`inrun init --list` shows them all. Each pack is a folder of examples; for any of them:
 
 ```bash
 cd declarative/01-hello-website
@@ -108,11 +106,9 @@ Two libraries that came out of Inrun and stand on their own:
 
 ## Status
 
-`v0.1.0` is the first release. The API may still change before `v1.0`;
-breaking changes are listed in [CHANGELOG.md](CHANGELOG.md).
+`v0.1.0` is the first release. The API may still change before `v1.0`; breaking changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
-Inrun began as Orkestra. Its history is on the `archive` branch and the
-`orkestra-v0.7.18` tag.
+Inrun began as Orkestra. Its history is on the `archive` branch and the `orkestra-v0.7.18` tag.
 
 ## Development
 
@@ -120,8 +116,7 @@ Inrun began as Orkestra. Its history is on the `archive` branch and the
 make test
 ```
 
-See [tests/README.md](tests/README.md) for the test tiers and
-[docs/contributing](docs/contributing/) for how the code is laid out.
+See [tests/README.md](tests/README.md) for the test tiers and [docs/contributing](docs/contributing/) for how the code is laid out.
 
 ## License
 

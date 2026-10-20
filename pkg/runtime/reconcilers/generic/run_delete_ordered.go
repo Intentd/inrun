@@ -14,12 +14,12 @@ package generic
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/runtime/runners"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,7 +138,7 @@ func (r *Reconciler[PTR]) submitGroupDeletion(
 				// Cluster-scoped
 				err = dc.Resource(rd.gvr).Delete(ctx, item.name, delOpts)
 			}
-			if err != nil && !runners.IsNotFoundErr(err) {
+			if err != nil && !apierrors.IsNotFound(err) {
 				return nil, fmt.Errorf("delete %s/%s: %w", rd.gvr.Resource, item.name, err)
 			}
 			pending = append(pending, orderedDeleteEntry{
@@ -244,7 +244,7 @@ func waitForDeletionUntil(ctx context.Context, kube kubeclient.Interface, pendin
 			}
 			if err == nil {
 				remaining = append(remaining, e) // still exists
-			} else if !runners.IsNotFoundErr(err) {
+			} else if !apierrors.IsNotFound(err) {
 				return fmt.Errorf("polling %s/%s: %w", e.gvr.Resource, e.name, err)
 			}
 		}

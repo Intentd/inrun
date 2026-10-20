@@ -86,19 +86,14 @@ type StatusFieldSpec struct {
 	//   "auto" — infer type from the resolved value
 	Type string `yaml:"type,omitempty" json:"type,omitempty"`
 
-	// When is an optional list of conditions that must all pass before
-	// this field is written. If absent or empty, the field is always written.
-	//
-	// All conditions are AND-ed together.
-	// To express OR logic, declare multiple StatusField entries for the same path.
-	//
-	// Conditions are evaluated against the full CR object map — the same
-	// map available to template expressions. This means .status.phase,
-	// .spec.image, .children.job.status.succeeded are all accessible.
+	// When lists conditions that must all pass for this field to be written;
+	// see Condition. They are evaluated against the full CR, so .status.phase,
+	// .spec.image and .children.job.status.succeeded are all available.
 	When []Condition `yaml:"when,omitempty"`
 
-	// Or — optional OR-conditions. If any condition passes, the field is written.
-	// Useful for multi-branch declarative state machines.
+	// Or lists conditions of which at least one must pass, alongside When.
+	// Several entries for the same path, each with its own conditions, make a
+	// small declarative state machine.
 	Or []Condition `yaml:"or,omitempty"`
 
 	// ClearOnFalse — when true and the when:/or: condition evaluates to false,
@@ -143,9 +138,6 @@ type StatusFieldSpec struct {
 //          - field: children.job.status.succeeded
 //            greaterThan: "0"
 //
-// With the new Type field, these state transitions can now write strongly-typed
-// values into status, enabling CRDs that expose the Kubernetes /scale subresource
-// or other typed fields to be updated correctly.
 
 // StatusConfig declares the declarative status behavior for a CRD.
 // Declared under spec.crds[].reconciler.status in the Blueprint.
@@ -171,7 +163,7 @@ type StatusConfig struct {
 	//
 	// Setting false is rarely needed. Do it only when your CRD's status
 	// schema explicitly forbids a conditions field, or when you manage
-	// conditions entirely via Go hooks.
+	// conditions entirely via hooks.
 	Conditions *bool `yaml:"conditions,omitempty" json:"conditions,omitempty"`
 }
 

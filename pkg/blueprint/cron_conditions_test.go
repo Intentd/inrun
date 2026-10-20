@@ -17,7 +17,7 @@ func blueprintWithCronCondition(cron string, duration types.Duration) *blueprint
 						Deployments: []types.DeploymentTemplateSource{
 							{
 								Name: "my-app",
-								Conditions: []types.Condition{
+								When: []types.Condition{
 									{Cron: cron, Duration: duration},
 								},
 							},

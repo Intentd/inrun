@@ -8,7 +8,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/logger"
-	restypes "github.com/intentd/kubewright/core/types"
+	kwtypes "github.com/intentd/kubewright/core/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,7 +82,7 @@ func (k *Kubeclient) Create(ctx context.Context, obj domain.Object, opts metav1.
 // ApplyOptions returns how the runtime writes a child resource with
 // server-side apply: as Inrun's field manager, forcing conflicts as the
 // resource says (resourceForce), else as the CRD says, else true.
-func ApplyOptions(c Interface, resourceForce *bool) restypes.Options {
+func ApplyOptions(c Interface, resourceForce *bool) kwtypes.Options {
 	force := true
 	switch {
 	case resourceForce != nil:
@@ -90,7 +90,7 @@ func ApplyOptions(c Interface, resourceForce *bool) restypes.Options {
 	case c != nil && c.ForceConflict() != nil:
 		force = *c.ForceConflict()
 	}
-	return restypes.Options{FieldManager: config.FieldManagerRuntime, Force: force}
+	return kwtypes.Options{FieldManager: config.FieldManagerRuntime, Force: force}
 }
 
 // Update updates obj in the cluster.

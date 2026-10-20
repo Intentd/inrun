@@ -35,21 +35,21 @@ package types
 import (
 	"fmt"
 
-	restypes "github.com/intentd/kubewright/core/types"
+	kwtypes "github.com/intentd/kubewright/core/types"
 
 	"gopkg.in/yaml.v3"
 )
 
 // ── Shared resource value types ───────────────────────────────────────────────
 
-// Labels is restypes.Labels.
-type Labels = restypes.Labels
+// Labels is kwtypes.Labels.
+type Labels = kwtypes.Labels
 
-// ResourceRequirements is restypes.ResourceRequirements.
-type ResourceRequirements = restypes.ResourceRequirements
+// ResourceRequirements is kwtypes.ResourceRequirements.
+type ResourceRequirements = kwtypes.ResourceRequirements
 
-// EnvVar is restypes.EnvVar.
-type EnvVar = restypes.EnvVar
+// EnvVar is kwtypes.EnvVar.
+type EnvVar = kwtypes.EnvVar
 
 // EnvVarList is a []EnvVar with a custom YAML unmarshaller that detects the
 // legacy map format (KEY:\n  value: VAL) and returns a clear migration error.
@@ -63,17 +63,17 @@ func (l *EnvVarList) UnmarshalYAML(value *yaml.Node) error {
 	return value.Decode((*plain)(l))
 }
 
-// ValueFrom is restypes.ValueFrom.
-type ValueFrom = restypes.ValueFrom
+// ValueFrom is kwtypes.ValueFrom.
+type ValueFrom = kwtypes.ValueFrom
 
-// EnvFromRef is restypes.EnvFromRef.
-type EnvFromRef = restypes.EnvFromRef
+// EnvFromRef is kwtypes.EnvFromRef.
+type EnvFromRef = kwtypes.EnvFromRef
 
-// EnvFrom is restypes.EnvFrom.
-type EnvFrom = restypes.EnvFrom
+// EnvFrom is kwtypes.EnvFrom.
+type EnvFrom = kwtypes.EnvFrom
 
-// SecretKeyRef is restypes.SecretKeyRef.
-type SecretKeyRef = restypes.SecretKeyRef
+// SecretKeyRef is kwtypes.SecretKeyRef.
+type SecretKeyRef = kwtypes.SecretKeyRef
 
-// ConfigMapKeyRef is restypes.ConfigMapKeyRef.
-type ConfigMapKeyRef = restypes.ConfigMapKeyRef
+// ConfigMapKeyRef is kwtypes.ConfigMapKeyRef.
+type ConfigMapKeyRef = kwtypes.ConfigMapKeyRef

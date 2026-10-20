@@ -1,12 +1,12 @@
 // pkg/types/types_probes.go
 package types
 
-import restypes "github.com/intentd/kubewright/core/types"
+import kwtypes "github.com/intentd/kubewright/core/types"
 
 // ── Probes ────────────────────────────────────────────────────────────────────
 
-// ProbeConfig is restypes.ProbeConfig.
-type ProbeConfig = restypes.ProbeConfig
+// ProbeConfig is kwtypes.ProbeConfig.
+type ProbeConfig = kwtypes.ProbeConfig
 
-// ProbesConfig is restypes.ProbesConfig.
-type ProbesConfig = restypes.ProbesConfig
+// ProbesConfig is kwtypes.ProbesConfig.
+type ProbesConfig = kwtypes.ProbesConfig

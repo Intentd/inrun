@@ -196,7 +196,7 @@ Reconcile: true — also apply this declaration as drift correction on every rec
 
 Type: list
 
-Conditions (when) — AND semantics.
+When lists conditions that must all pass for this entry to be written; see Condition. When an entry kept in sync (onReconcile, or reconcile: true) stops passing, the object it wrote is removed.
 
 ---
 
@@ -220,7 +220,7 @@ Autoscale declares workload autoscaling behaviour for this ReplicaSet.
 
 Type: list
 
-Or holds OR conditions — at least one must pass for this resource.
+Or lists conditions of which at least one must pass, alongside When.
 
 ---
 

@@ -31,7 +31,7 @@ func (c *checker) validateRemoteMapping(name string, crd *types.CRDEntry, remote
 				return fmt.Errorf("%s %s needs reconcile.remote.response: %s", failureMark(), at("request."+field), why)
 			}
 			switch {
-			case len(rq.Conditions) > 0 || len(rq.Or) > 0:
+			case len(rq.When) > 0 || len(rq.Or) > 0:
 				return needsResponse("when/or", "a remote that answers in Inrun's Result is called on every reconcile")
 			case len(rq.ExpectedStatus) > 0:
 				return needsResponse("expectedStatus", "a remote that answers in Inrun's Result always replies 200")
@@ -114,7 +114,7 @@ func (c *checker) checkCall(crd *types.CRDEntry, at func(string) string, field s
 				at(field+".idempotencyKey"), m))
 		}
 	}
-	return checkCallConditions(at(field), call.Conditions, call.Or)
+	return checkCallConditions(at(field), call.When, call.Or)
 }
 
 // checkCallConditions checks a call's when/or: each condition compares one way.
