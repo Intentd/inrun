@@ -27,7 +27,7 @@ jobs:
           mkdir -p dist/examples
           TAG="${{ github.ref_name }}"
 
-          for pack in reconcilers/declarative reconcilers/remote reconcilers/typed intent; do
+          for pack in reconcilers/declarative reconcilers/remote reconcilers/typed intent migration; do
             tar -czf "dist/examples_$(basename $pack)_${TAG}.tar.gz" -C "examples/$pack" .
           done
 

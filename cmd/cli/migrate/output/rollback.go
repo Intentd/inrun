@@ -60,11 +60,7 @@ func PrintRollback(opts Opts) {
 		}
 
 		total := len(r.CRs)
-		countStr := fmt.Sprintf("%d CR", total)
-		if total != 1 {
-			countStr += "s"
-		}
-		fmt.Printf("%s  %s  %s\n", cmdutil.Cyan("◆"), cmdutil.Bold(r.Kind), cmdutil.Gray(countStr))
+		printKindHeader(r, total, opts)
 
 		verboseShown := 0
 		for _, cr := range r.CRs {
@@ -74,13 +70,22 @@ func PrintRollback(opts Opts) {
 				fmt.Printf("  %s %s  %s\n", cmdutil.FailureMark(), cmdutil.Red(ref), cmdutil.Red(cr.Err.Error()))
 			case cr.Skipped:
 				fmt.Printf("  %s %s\n", cmdutil.Dim("–"), cmdutil.Gray(ref+"  (no snapshot)"))
+			case cr.AllDrifted && r.To != "":
+				fmt.Printf("  %s %s  %s\n", cmdutil.Dim("~"), cmdutil.Gray(ref), cmdutil.Yellow("destination modified after migration — left in place"))
 			default:
 				if len(cr.Fields) > 0 {
 					verb := "rolled back"
 					if opts.DryRun {
 						verb = "would roll back"
 					}
-					fmt.Printf("  %s %s  %s\n", cmdutil.SuccessMark(), cmdutil.Cyan(ref), cmdutil.Gray(verb+": "+strings.Join(cr.Fields, ", ")))
+					line := verb + ": " + strings.Join(cr.Fields, ", ")
+					if r.To != "" {
+						line = verb + " to " + r.Kind + "; " + r.To + " deleted"
+						if opts.DryRun {
+							line = verb + " to " + r.Kind + "; would delete " + r.To
+						}
+					}
+					fmt.Printf("  %s %s  %s\n", cmdutil.SuccessMark(), cmdutil.Cyan(ref), cmdutil.Gray(line))
 					if opts.Verbose && cr.AfterSpec != nil {
 						if opts.Limit == 0 || verboseShown < opts.Limit {
 							printSpec(cr.AfterSpec)

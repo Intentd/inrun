@@ -1,0 +1,7 @@
+fields:
+  image:
+    description: The container image to deploy
+  replicas:
+    path: scaling.min
+  logLevel:
+    path: observability.logging.level

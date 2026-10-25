@@ -32,8 +32,18 @@ type MigrateReport struct {
 
 // KindReport is the per-kind section of the report.
 type KindReport struct {
-	Kind string     `json:"kind"`
-	CRs  []CRReport `json:"crs"`
+	Kind  string     `json:"kind"`
+	To    string     `json:"to,omitempty"`
+	Scope *Scope     `json:"scope,omitempty"`
+	CRs   []CRReport `json:"crs"`
+}
+
+// Scope is the selection a kind ran with: the blueprint's migrate.selection
+// merged with the CLI flags.
+type Scope struct {
+	Namespaces []string `json:"namespaces,omitempty"`
+	Name       string   `json:"name,omitempty"`
+	Selector   string   `json:"selector,omitempty"`
 }
 
 // CRReport is one CR's outcome. Ref is "namespace/name" — the same form the
@@ -44,8 +54,11 @@ type CRReport struct {
 	Fields        []string               `json:"fields,omitempty"`
 	DriftedFields []string               `json:"driftedFields,omitempty"`
 	AllDrifted    bool                   `json:"allDrifted,omitempty"`
+	Drifted       bool                   `json:"drifted,omitempty"`
+	Pruned        bool                   `json:"pruned,omitempty"`
 	AfterSpec     map[string]interface{} `json:"afterSpec,omitempty"`
 	Skipped       bool                   `json:"skipped,omitempty"`
+	Excluded      bool                   `json:"excluded,omitempty"`
 	Error         string                 `json:"error,omitempty"`
 }
 
@@ -58,6 +71,8 @@ type ReportTotals struct {
 	Drifted    int `json:"drifted"`
 	AllDrifted int `json:"allDrifted"`
 	Skipped    int `json:"skipped"`
+	Excluded   int `json:"excluded"`
+	Pruned     int `json:"pruned"`
 	Failed     int `json:"failed"`
 }
 
@@ -101,17 +116,24 @@ func buildReport(mode string, opts Opts) MigrateReport {
 		if r == nil {
 			continue
 		}
-		kind := KindReport{Kind: r.Kind}
+		kind := KindReport{Kind: r.Kind, To: r.To}
+		if !r.Selection.IsEmpty() {
+			kind.Scope = &Scope{Namespaces: r.Selection.Namespaces, Name: r.Selection.Name, Selector: r.Selection.Selector}
+		}
 		for _, cr := range r.CRs {
 			kind.CRs = append(kind.CRs, crReport(cr))
 			report.Totals.CRs++
 			switch {
 			case cr.Err != nil:
 				report.Totals.Failed++
+			case cr.Excluded:
+				report.Totals.Excluded++
 			case cr.Skipped:
 				report.Totals.Skipped++
 			case cr.AllDrifted:
 				report.Totals.AllDrifted++
+			case cr.Drifted:
+				report.Totals.Drifted++
 			default:
 				if len(cr.Fields) > 0 {
 					report.Totals.Migrated++
@@ -119,6 +141,9 @@ func buildReport(mode string, opts Opts) MigrateReport {
 				if len(cr.DriftedFields) > 0 {
 					report.Totals.Drifted++
 				}
+			}
+			if cr.Err == nil && cr.Pruned {
+				report.Totals.Pruned++
 			}
 		}
 		report.Kinds = append(report.Kinds, kind)
@@ -133,8 +158,11 @@ func crReport(cr migrate.CRMigrateResult) CRReport {
 		Fields:        cr.Fields,
 		DriftedFields: cr.DriftedFields,
 		AllDrifted:    cr.AllDrifted,
+		Drifted:       cr.Drifted,
+		Pruned:        cr.Pruned,
 		AfterSpec:     cr.AfterSpec,
 		Skipped:       cr.Skipped,
+		Excluded:      cr.Excluded,
 	}
 	if cr.Err != nil {
 		out.Error = cr.Err.Error()

@@ -1,0 +1,17 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: migrate-invalid-label-key
+  version: 0.1.0
+  description: Invalid — migrate.to.metadata.labels has an invalid key.
+spec:
+  crds:
+    appconfig:
+      crdFile: ../crd.yaml
+      migrate:
+        to:
+          apiVersion: example.inrun.dev/v2
+          kind: Config
+          metadata:
+            labels:
+              "invalid key with spaces": "value"

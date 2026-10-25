@@ -28,7 +28,7 @@ func Execute(k *config.Config, c context.Context) {
 	Cfg = k
 	Ctx = c
 
-	if err := RootCmd.Execute(); err != nil {
+	if err := RootCmd.ExecuteContext(c); err != nil {
 		term.Exit(err)
 	}
 }

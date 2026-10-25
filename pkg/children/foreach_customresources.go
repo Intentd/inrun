@@ -1,10 +1,6 @@
 package children
 
 import (
-	"reflect"
-
-	"github.com/intentd/inrun/pkg/util/structured"
-
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -84,70 +80,6 @@ func ExpandForEachCustomResources(resolver *template.Resolver, srcs []types.Cust
 	return result
 }
 
-// resolveMapTemplates walks a map[string]any and returns a new map with any string
-// values passed through the item resolver. It recurses into nested maps and slices.
-func resolveMapTemplates(ir *template.Resolver, in map[string]any) map[string]any {
-	out := make(map[string]any, len(in))
-	for k, v := range in {
-		out[k] = resolveValueTemplates(ir, v)
-	}
-	return out
-}
-
-// resolveValueTemplates resolves a single value. If it's a string, run through resolver.
-// If it's a map[string]any, recurse. If it's a slice, resolve each element. Otherwise return as-is.
-func resolveValueTemplates(ir *template.Resolver, v any) any {
-	switch vv := v.(type) {
-	case string:
-		rv, _ := ir.Resolve(vv)
-		if rv == "" {
-			return vv
-		}
-		// Same coercion as the non-forEach custom resource path
-		// (resolve_customresources.go) — without it, a forEach-expanded
-		// custom resource's numeric/boolean/JSON fields would be submitted
-		// as literal strings instead of native types.
-		if types.IsTemplate(vv) {
-			return structured.TryCoerceString(rv)
-		}
-		return rv
-	case map[string]any:
-		return resolveMapTemplates(ir, vv)
-	case []any:
-		out := make([]any, 0, len(vv))
-		for _, e := range vv {
-			out = append(out, resolveValueTemplates(ir, e))
-		}
-		return out
-	default:
-		// preserve numbers, bools, structs, etc.
-		// If it's a typed map (map[string]string) convert to map[string]any and recurse
-		rv := reflect.ValueOf(v)
-		if rv.Kind() == reflect.Map {
-			// attempt to convert map[string]string -> map[string]any
-			if rv.Type().Key().Kind() == reflect.String && rv.Type().Elem().Kind() == reflect.String {
-				out := make(map[string]any, rv.Len())
-				for _, key := range rv.MapKeys() {
-					k := key.String()
-					val := rv.MapIndex(key).String()
-					if resolved, _ := ir.Resolve(val); resolved != "" {
-						out[k] = resolved
-					} else {
-						out[k] = val
-					}
-				}
-				return out
-			}
-		}
-		return v
-	}
-}
-
-// copyStringMap returns a shallow copy of a map[string]string
-func copyStringMap(in map[string]string) map[string]string {
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
-}
+// resolveMapTemplates resolves forEach-expanded fields; a value that fails to
+// resolve is kept as written.
+var resolveMapTemplates = (*template.Resolver).ResolveNestedLenient

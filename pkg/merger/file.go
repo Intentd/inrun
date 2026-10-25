@@ -120,6 +120,11 @@ func (m *Merger) loadBlueprint(path string, doc *types.BlueprintFile) (map[strin
 		if crd.CRDFile != "" && !filepath.IsAbs(crd.CRDFile) && !strings.HasPrefix(crd.CRDFile, "http") {
 			crd.CRDFile = filepath.Join(blueprintDir, crd.CRDFile)
 		}
+		if crd.Migrate != nil {
+			if f := crd.Migrate.To.CRDFile; f != "" && !filepath.IsAbs(f) && !strings.HasPrefix(f, "http") {
+				crd.Migrate.To.CRDFile = filepath.Join(blueprintDir, f)
+			}
+		}
 		for i, cf := range crd.CRFiles {
 			if !filepath.IsAbs(cf) && !strings.HasPrefix(cf, "http") {
 				crd.CRFiles[i] = filepath.Join(blueprintDir, cf)

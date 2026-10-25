@@ -52,6 +52,9 @@ func init() {
 	migrateCmd.PersistentFlags().String("selector", "", "Select CRs by label (Kubernetes label selector syntax)")
 	migrateCmd.PersistentFlags().StringSliceP("namespace", "n", nil, "Restrict migration to these namespaces (comma-separated; default: all)")
 	migrateCmd.PersistentFlags().StringP("output", "o", "text", "Output format: text, json")
+	migrateCmd.PersistentFlags().Bool("force", false, "Take ownership of fields owned by another manager when applying the crd.migrate.to destination (SSA force). Default: fail on conflict.")
+
+	migrateCmd.Flags().BoolP("yes", "y", false, "Do not ask before migrate.prune deletes source CRs")
 
 	// Shadow global flags so they don't appear under `inrun version`
 	cmdutil.ShadowGlobalCommandFlags(migrateCmd)

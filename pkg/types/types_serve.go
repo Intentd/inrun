@@ -331,12 +331,10 @@ type ServeFieldConfig struct {
 	// Path is ignored when Values is present.
 	// Value and Values are mutually exclusive.
 	Values map[string]string `yaml:"values,omitempty" json:"values,omitempty"`
-	// Migrate configures schema migration for this field.
-	// When set, `inrun gateway migrate` reads values from Migrate.From,
-	// applies the field's value/values transform (if any), writes the result
-	// to this field's current Path, then removes Migrate.From.
-	// Idempotent: CRs where Migrate.From is absent are skipped.
-
+	// Migrate configures a field-level migration. `inrun migrate` reads the
+	// value at Migrate.From, applies this field's value/values transform,
+	// writes the result to the field's current path and removes Migrate.From.
+	// CRs without Migrate.From are skipped.
 	Migrate *ServeFieldMigrate `yaml:"migrate,omitempty" json:"migrate,omitempty"`
 }
 

@@ -82,32 +82,12 @@ func expandForEach[T any](
 // Shared field-resolution helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-func resolveEnvVars(ir *template.Resolver, vars types.EnvVarList) types.EnvVarList {
-	if len(vars) == 0 {
-		return vars
-	}
-	out := make(types.EnvVarList, 0, len(vars))
-	for _, v := range vars {
-		rv, _ := ir.Resolve(v.Value)
-		out = append(out, types.EnvVar{Name: v.Name, Value: rv})
-	}
-	return out
-}
+// resolveEnvVars resolves env var values; failures become "".
+var resolveEnvVars = (*template.Resolver).ResolveEnvVarsLenient
 
-// resolveMap resolves template expressions in each value of a map[string]string —
-// used for labels, annotations, and match selectors alike. Keys are never
-// template expressions — only values are resolved.
-func resolveMap(ir *template.Resolver, m map[string]string) map[string]string {
-	if len(m) == 0 {
-		return m
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		rv, _ := ir.Resolve(v)
-		out[k] = rv
-	}
-	return out
-}
+// resolveMap resolves labels, annotations and match selectors; failures
+// become "".
+var resolveMap = (*template.Resolver).ResolveMapLenient
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public ExpandForEach* functions — one per resource type

@@ -3,7 +3,9 @@
 package migrate
 
 import (
+	"context"
 	"fmt"
+	"os"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/cmd/cli/migrate/output"
@@ -12,7 +14,6 @@ import (
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
@@ -27,17 +28,34 @@ func runMigrateCmd(cmd *cobra.Command, mode migrate.MigrateMode) error {
 		return err
 	}
 
-	bp, kube, err := loadBlueprintAndKube(paths)
+	bp, kube, err := pipeline.Bootstrap(cmd.Context(), cmdutil.Cfg, paths)
 	if err != nil {
 		return err
 	}
 
-	migrator, err := newMigrator(cmd, kube, bp.UserFunctions(), mode)
+	migrator, migrateOpts, err := newMigrator(cmd, kube, bp.UserFunctions(), mode)
 	if err != nil {
 		return err
 	}
+	prog := newProgress(cmd, mode)
+	defer prog.stop()
+	migrator.Progress = prog.callback()
+	migrateOpts.Progress = migrator.Progress
 
-	opts := outputOptsFrom(cmd, paths)
+	if mode == migrate.ModeForward && !migrateOpts.DryRun {
+		if yes, _ := cmd.Flags().GetBool("yes"); !yes {
+			ok, err := confirmPrune(cmd.Context(), bp, kube, bp.UserFunctions(), migrateOpts, prog)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Fprintln(os.Stderr, "Aborted.")
+				return nil
+			}
+		}
+	}
+
+	opts := outputOptsFrom(cmd, paths, migrateOpts)
 	opts.Clean = mode == migrate.ModeClean
 
 	printFn, err := resolveMigrateOutputFormat(cmd, mode.String())
@@ -45,54 +63,57 @@ func runMigrateCmd(cmd *cobra.Command, mode migrate.MigrateMode) error {
 		return err
 	}
 
-	return runMigratorForKinds(bp, migrator, opts, printFn)
+	prog.begin()
+	return runMigratorForKinds(cmd.Context(), bp, migrator, opts, printFn, prog)
 }
 
 // newMigrator builds a CLI migrator for the given mode. The CLI renders its
 // own output, so the migrator logs nothing.
-func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, funcs types.KELFunctionRegistry, mode migrate.MigrateMode) (*migrate.Migrator, error) {
+func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, funcs types.KELFunctionRegistry, mode migrate.MigrateMode) (*migrate.Migrator, migrate.MigratorOpts, error) {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	strict, _ := cmd.Flags().GetBool("strict")
 	pageSize, _ := cmd.Flags().GetInt64("page-size")
+	kind, _ := cmd.Flags().GetString("kind")
 	name, _ := cmd.Flags().GetString("name")
 	selector, _ := cmd.Flags().GetString("selector")
 	namespaces, _ := cmd.Flags().GetStringSlice("namespace")
-	if err := validateSelector(selector); err != nil {
-		return nil, err
+	force, _ := cmd.Flags().GetBool("force")
+	if _, err := labels.ValidateLabelSelector(selector); err != nil {
+		return nil, migrate.MigratorOpts{}, err
 	}
-	return migrate.New(cmd.Context(), kube, funcs, mode, migrate.MigratorOpts{
+
+	opts := migrate.MigratorOpts{
 		DryRun:     dryRun,
 		Strict:     strict,
 		PageSize:   pageSize,
+		Kind:       kind,
 		Name:       name,
 		Selector:   selector,
 		Namespaces: namespaces,
+		Force:      force,
 		Log:        logger.Nop(),
-	}), nil
+	}
+	return migrate.New(cmd.Context(), kube, funcs, mode, opts), opts, nil
 }
 
 // outputOptsFrom builds the rendering options for a migrate-family command
 // from its flags and the already-resolved blueprint paths. It reads the same
 // flags the migrator does — dry-run, verbose, limit, kind, name, selector,
 // namespace — plus the paths resolved from --file.
-func outputOptsFrom(cmd *cobra.Command, paths []string) output.Opts {
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
+func outputOptsFrom(cmd *cobra.Command, paths []string, migrator migrate.MigratorOpts) output.Opts {
+	kind, _ := cmd.Flags().GetString("kind")
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	limit, _ := cmd.Flags().GetInt("limit")
-	name, _ := cmd.Flags().GetString("name")
-	selector, _ := cmd.Flags().GetString("selector")
-	kind, _ := cmd.Flags().GetString("kind")
-	namespaces, _ := cmd.Flags().GetStringSlice("namespace")
 
 	return output.Opts{
-		DryRun:     dryRun,
+		Kind:       kind,
+		DryRun:     migrator.DryRun,
+		Namespaces: migrator.Namespaces,
+		Name:       migrator.Name,
+		Selector:   migrator.Selector,
 		Verbose:    verbose,
 		Limit:      limit,
 		Paths:      paths,
-		Namespaces: namespaces,
-		Name:       name,
-		Selector:   selector,
-		Kind:       kind,
 	}
 }
 
@@ -109,49 +130,13 @@ func resolvePaths(cmd *cobra.Command) ([]string, error) {
 	return paths, nil
 }
 
-// loadBlueprintAndKube merges the given blueprint paths, builds a scheme registry,
-// and starts a live kube client. Returns the resolved blueprint and a started client.
-func loadBlueprintAndKube(paths []string) (*blueprint.Blueprint, kubeclient.Interface, error) {
-	m := merger.New(paths...)
-	if err := m.Merge(); err != nil {
-		return nil, nil, fmt.Errorf("merging blueprints: %w", err)
-	}
-	bp, err := pipeline.BuildExpanded(cmdutil.Cfg, m)
-	if err != nil {
-		return nil, nil, fmt.Errorf("parsing blueprint: %w", err)
-	}
-	scheme, err := blueprint.NewSchemeRegistry(bp)
-	if err != nil {
-		return nil, nil, fmt.Errorf("building scheme: %w", err)
-	}
-	kube := kubeclient.New(cmdutil.Cfg, scheme)
-	if err := kube.Start(cmdutil.Ctx); err != nil {
-		return nil, nil, fmt.Errorf("starting kubeclient: %w", err)
-	}
-	return bp, kube, nil
-}
-
-// runMigratorForKinds runs the migrator over every kind in bp, filtered by opts.Kind when set.
-func runMigratorForKinds(bp *blueprint.Blueprint, migrator *migrate.Migrator, opts output.Opts, printFn func(output.Opts)) error {
-	results, err := migrator.Run(cmdutil.Ctx, bp)
-	for _, r := range results {
-		if opts.Kind != "" && r.Kind != opts.Kind {
-			continue
-		}
-		opts.Results = append(opts.Results, r)
-	}
-	if err != nil {
-		printFn(opts)
-		return err
-	}
+// runMigratorForKinds runs the migrator over bp and prints the results, also
+// when the run fails part way.
+func runMigratorForKinds(ctx context.Context, bp *blueprint.Blueprint, migrator *migrate.Migrator, opts output.Opts, printFn func(output.Opts), prog *progress) error {
+	results, err := migrator.Run(ctx, bp)
+	prog.stop()
+	opts.Results = results
 	printFn(opts)
-	return nil
-}
-
-// validateSelector returns the parse error when sel is not a valid label
-// selector, and nil otherwise.
-func validateSelector(sel string) error {
-	_, err := labels.ValidateLabelSelector(sel)
 	return err
 }
 

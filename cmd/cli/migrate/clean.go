@@ -10,8 +10,9 @@ import (
 var cleanCmd = &cobra.Command{
 	Use:   "clean",
 	Short: "Remove migration annotations without touching the spec",
-	Long: `Remove the inrun.dev/migrate-snapshot and inrun.dev/migrate-timestamp
-annotations from CRs that carry them. The spec is left untouched.
+	Long: `Remove the migration snapshot (inrun.dev/migrate-field-snapshot or
+inrun.dev/migrate-kind-snapshot) and inrun.dev/migrate-timestamp annotations
+from CRs that carry them. The spec is left untouched.
 
 Run this after a migration is confirmed stable to discard the rollback
 safety net and release the annotation space. It is a one-way operation:

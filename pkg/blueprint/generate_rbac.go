@@ -571,6 +571,31 @@ func (c *Blueprint) GenerateGatewayRBACRules() []rbacv1.PolicyRule {
 	}
 
 	// ───────────────────────────────────────────────
+	// migrate.to — the gateway runs forward migrations at startup
+	// ───────────────────────────────────────────────
+	// Destination: get to check it, create+patch for server-side apply.
+	// Source: get+list to read it, delete when prune is on.
+	for _, crd := range c.Enabled() {
+		if !crd.HasMigrate() {
+			continue
+		}
+		rules = append(rules, rbacv1.PolicyRule{
+			APIGroups: []string{crd.Migrate.Group()},
+			Resources: []string{crd.Migrate.Plural()},
+			Verbs:     []string{"get", "create", "patch"},
+		})
+		srcVerbs := []string{"get", "list"}
+		if crd.Migrate.Prune {
+			srcVerbs = append(srcVerbs, "delete")
+		}
+		rules = append(rules, rbacv1.PolicyRule{
+			APIGroups: []string{crd.APITypes.Group},
+			Resources: []string{crd.APITypes.Plural},
+			Verbs:     srcVerbs,
+		})
+	}
+
+	// ───────────────────────────────────────────────
 	// CRD CA bundle patching (conversion webhooks)
 	// ───────────────────────────────────────────────
 	for _, crd := range c.Enabled() {

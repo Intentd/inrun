@@ -241,3 +241,12 @@ func (c *Blueprint) Scheme() (*runtime.Scheme, error) {
 func NewEmptyBlueprint() *Blueprint {
 	return &Blueprint{}
 }
+
+// Dir returns the directory containing the blueprint file, used to resolve
+// relative crdFile paths. Returns "." when no directory is recorded.
+func (c *Blueprint) Dir() string {
+	if c.blueprintDir == "" {
+		return "."
+	}
+	return c.blueprintDir
+}

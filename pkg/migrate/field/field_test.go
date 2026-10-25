@@ -1,4 +1,4 @@
-package migrate
+package field
 
 import (
 	"encoding/json"
@@ -15,6 +15,7 @@ import (
 func makeCRDWithMigrate(from string) *types.CRDEntry {
 	return &types.CRDEntry{
 		Serve: &types.ServeConfig{
+			Enabled: true,
 			Fields: map[string]types.ServeFieldConfig{
 				"schedule": {
 					Migrate: &types.ServeFieldMigrate{From: from},
@@ -491,8 +492,8 @@ func makeUnstructured(apiVersion, kind, namespace, name string, annotations map[
 func TestBuildRollbackPatch_FullRollback(t *testing.T) {
 	// All fields restored; remainingSnapshot is empty → both annotations nil'd.
 	cr := makeUnstructured("example.io/v1", "WebApp", "default", "my-app", map[string]string{
-		labels.AnnotationMigrateSnapshot:  `{"schedule":{"before":{"schedule":"0 2 * * 1-5"},"after":{"schedule":"0 2 * * 1-5"}}}`,
-		labels.AnnotationMigrateTimestamp: "2026-10-15T00:00:00Z",
+		labels.AnnotationMigrateFieldSnapshot: `{"schedule":{"before":{"schedule":"0 2 * * 1-5"},"after":{"schedule":"0 2 * * 1-5"}}}`,
+		labels.AnnotationMigrateTimestamp:     "2026-10-15T00:00:00Z",
 	})
 
 	restoredFrags := []map[string]interface{}{
@@ -507,7 +508,7 @@ func TestBuildRollbackPatch_FullRollback(t *testing.T) {
 	meta, _ := patch["metadata"].(map[string]interface{})
 	ann, _ := meta["annotations"].(map[string]interface{})
 
-	if v, ok := ann[labels.AnnotationMigrateSnapshot]; !ok || v != nil {
+	if v, ok := ann[labels.AnnotationMigrateFieldSnapshot]; !ok || v != nil {
 		t.Errorf("snapshot annotation must be nil after full rollback, got %v", v)
 	}
 	if v, ok := ann[labels.AnnotationMigrateTimestamp]; !ok || v != nil {
@@ -542,7 +543,7 @@ func TestBuildRollbackPatch_PartialRollback(t *testing.T) {
 	meta, _ := patch["metadata"].(map[string]interface{})
 	ann, _ := meta["annotations"].(map[string]interface{})
 
-	snapshotVal, ok := ann[labels.AnnotationMigrateSnapshot]
+	snapshotVal, ok := ann[labels.AnnotationMigrateFieldSnapshot]
 	if !ok {
 		t.Fatal("snapshot annotation must be present in partial rollback")
 	}
@@ -603,9 +604,9 @@ func TestBuildRollbackPatch_RelocatedField(t *testing.T) {
 	}
 }
 
-// ── buildMigrationPatch tests ───────────────────────────────────────────────
+// ── buildFieldMigrationPatch tests ───────────────────────────────────────────────
 
-func TestBuildMigrationPatch_SnapshotAndTimestampSet(t *testing.T) {
+func TestBuildFieldMigrationPatch_SnapshotAndTimestampSet(t *testing.T) {
 	// After a migration the patch must carry both migration annotations.
 	cr := makeUnstructured("example.io/v1", "WebApp", "default", "my-app", nil)
 	spec := map[string]interface{}{"schedule": "0 2 * * 1-5"}
@@ -618,20 +619,20 @@ func TestBuildMigrationPatch_SnapshotAndTimestampSet(t *testing.T) {
 	})
 	ts := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
 
-	patch := buildMigrationPatch(cr, spec, fields, []string{"schedule"}, snapshot, ts)
+	patch := buildFieldMigrationPatch(cr, spec, fields, []string{"schedule"}, snapshot, ts)
 
 	meta, _ := patch["metadata"].(map[string]interface{})
 	ann, _ := meta["annotations"].(map[string]interface{})
 
-	if ann[labels.AnnotationMigrateSnapshot] != string(snapshot) {
-		t.Errorf("snapshot annotation = %v, want %s", ann[labels.AnnotationMigrateSnapshot], snapshot)
+	if ann[labels.AnnotationMigrateFieldSnapshot] != string(snapshot) {
+		t.Errorf("snapshot annotation = %v, want %s", ann[labels.AnnotationMigrateFieldSnapshot], snapshot)
 	}
 	if ann[labels.AnnotationMigrateTimestamp] != "2026-10-15T12:00:00Z" {
 		t.Errorf("timestamp annotation = %v, want 2026-10-15T12:00:00Z", ann[labels.AnnotationMigrateTimestamp])
 	}
 }
 
-func TestBuildMigrationPatch_SpecContainsMigratedFieldsOnly(t *testing.T) {
+func TestBuildFieldMigrationPatch_SpecContainsMigratedFieldsOnly(t *testing.T) {
 	// spec has 3 fields; only "schedule" was migrated — "image" and "replicas" must
 	// be absent from the sparse patch so concurrent writes are not overwritten.
 	cr := makeUnstructured("example.io/v1", "WebApp", "", "svc", nil)
@@ -646,7 +647,7 @@ func TestBuildMigrationPatch_SpecContainsMigratedFieldsOnly(t *testing.T) {
 		fieldOf("replicas", "replicas"),
 	}
 
-	patch := buildMigrationPatch(cr, spec, fields, []string{"schedule"}, []byte(`{}`), time.Now())
+	patch := buildFieldMigrationPatch(cr, spec, fields, []string{"schedule"}, []byte(`{}`), time.Now())
 
 	patchSpec, _ := patch["spec"].(map[string]interface{})
 	if _, ok := patchSpec["image"]; ok {
@@ -665,8 +666,8 @@ func TestBuildMigrationPatch_SpecContainsMigratedFieldsOnly(t *testing.T) {
 func TestBuildCleanPatch_BothAnnotationsNilld(t *testing.T) {
 	// Patch must nil both migration annotations and carry no spec.
 	cr := makeUnstructured("example.io/v1", "WebApp", "default", "my-app", map[string]string{
-		labels.AnnotationMigrateSnapshot:  `{"schedule":{}}`,
-		labels.AnnotationMigrateTimestamp: "2026-10-15T00:00:00Z",
+		labels.AnnotationMigrateFieldSnapshot: `{"schedule":{}}`,
+		labels.AnnotationMigrateTimestamp:     "2026-10-15T00:00:00Z",
 	})
 
 	patch := buildCleanPatch(cr)
@@ -674,7 +675,7 @@ func TestBuildCleanPatch_BothAnnotationsNilld(t *testing.T) {
 	meta, _ := patch["metadata"].(map[string]interface{})
 	ann, _ := meta["annotations"].(map[string]interface{})
 
-	if v, ok := ann[labels.AnnotationMigrateSnapshot]; !ok || v != nil {
+	if v, ok := ann[labels.AnnotationMigrateFieldSnapshot]; !ok || v != nil {
 		t.Errorf("snapshot annotation must be nil, got %v", v)
 	}
 	if v, ok := ann[labels.AnnotationMigrateTimestamp]; !ok || v != nil {
@@ -721,5 +722,123 @@ func TestPrepareField_AbortedAfterDelete(t *testing.T) {
 	_, ok := prepareField(spec, f) // re-run
 	if ok {
 		t.Error("expected re-run to skip when migrate.from is absent")
+	}
+}
+
+func TestBuildCleanPatch_KeepsKindSnapshotAndTimestamp(t *testing.T) {
+	// A CR that is also a kind-level destination keeps the kind snapshot and
+	// the shared timestamp.
+	cr := makeUnstructured("example.io/v1", "WebApp", "default", "my-app", map[string]string{
+		labels.AnnotationMigrateFieldSnapshot: `{"schedule":{}}`,
+		labels.AnnotationMigrateKindSnapshot:  `{}`,
+		labels.AnnotationMigrateTimestamp:     "2026-10-15T00:00:00Z",
+	})
+
+	patch := buildCleanPatch(cr)
+	meta, _ := patch["metadata"].(map[string]interface{})
+	ann, _ := meta["annotations"].(map[string]interface{})
+
+	if v, ok := ann[labels.AnnotationMigrateFieldSnapshot]; !ok || v != nil {
+		t.Errorf("field snapshot must be nil, got %v", v)
+	}
+	if _, ok := ann[labels.AnnotationMigrateKindSnapshot]; ok {
+		t.Error("kind snapshot must not be in the patch")
+	}
+	if _, ok := ann[labels.AnnotationMigrateTimestamp]; ok {
+		t.Error("timestamp must not be in the patch while a kind snapshot exists")
+	}
+}
+
+func TestBuildFieldMigrationPatch_ResourceVersionGuardsConcurrentWrites(t *testing.T) {
+	cr := makeUnstructured("example.io/v1", "WebApp", "default", "my-app", nil)
+	fields := []migratableField{fieldOf("schedule", "schedule")}
+	spec := map[string]interface{}{"schedule": "x"}
+
+	meta := buildFieldMigrationPatch(cr, spec, fields, []string{"schedule"}, []byte(`{}`), time.Now())["metadata"].(map[string]interface{})
+	if _, ok := meta["resourceVersion"]; ok {
+		t.Error("no resourceVersion on the CR: patch must not send one")
+	}
+
+	cr.SetResourceVersion("42")
+	meta = buildFieldMigrationPatch(cr, spec, fields, []string{"schedule"}, []byte(`{}`), time.Now())["metadata"].(map[string]interface{})
+	if meta["resourceVersion"] != "42" {
+		t.Errorf("resourceVersion = %v, want 42", meta["resourceVersion"])
+	}
+}
+
+func TestMergeSnapshot_KeepsEntriesThisRunDidNotMigrate(t *testing.T) {
+	// A rollback left replicas' entry (drifted); migrating again adds logLevel's
+	// and must not drop replicas'.
+	kept := `{"replicas":{"before":{"replicas":4,"scaling.min":null},"after":{"replicas":null,"scaling.min":4}}}`
+	cr := makeUnstructured("demo.inrun.dev/v1", "AppConfig", "platform-06", "api-server",
+		map[string]string{labels.AnnotationMigrateFieldSnapshot: kept})
+	entries := map[string]interface{}{
+		"logLevel": map[string]interface{}{
+			"before": map[string]interface{}{"logLevel": "info", "observability.logging.level": nil},
+			"after":  map[string]interface{}{"logLevel": nil, "observability.logging.level": "info"},
+		},
+	}
+
+	b, err := mergeSnapshot(cr, entries)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var got map[string]interface{}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if _, ok := got["logLevel"]; !ok {
+		t.Error("this run's entry (logLevel) missing")
+	}
+	replicas, ok := got["replicas"].(map[string]interface{})
+	if !ok {
+		t.Fatal("kept entry (replicas) dropped")
+	}
+	before, _ := replicas["before"].(map[string]interface{})
+	if before["replicas"] != float64(4) {
+		t.Errorf("kept entry changed: before.replicas = %v, want 4", before["replicas"])
+	}
+}
+
+func TestMergeSnapshot_ThisRunReplacesSameField(t *testing.T) {
+	old := `{"replicas":{"before":{"replicas":1},"after":{"scaling.min":1}}}`
+	cr := makeUnstructured("demo.inrun.dev/v1", "AppConfig", "ns", "cr",
+		map[string]string{labels.AnnotationMigrateFieldSnapshot: old})
+	entries := map[string]interface{}{
+		"replicas": map[string]interface{}{
+			"before": map[string]interface{}{"replicas": 9},
+			"after":  map[string]interface{}{"scaling.min": 9},
+		},
+	}
+
+	b, err := mergeSnapshot(cr, entries)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var got map[string]map[string]map[string]interface{}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if v := got["replicas"]["before"]["replicas"]; v != float64(9) {
+		t.Errorf("before.replicas = %v, want 9 (this run's entry wins)", v)
+	}
+}
+
+func TestMergeSnapshot_NoExistingSnapshot(t *testing.T) {
+	cr := makeUnstructured("demo.inrun.dev/v1", "AppConfig", "ns", "cr", nil)
+	b, err := mergeSnapshot(cr, map[string]interface{}{"replicas": map[string]interface{}{}})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(b) != `{"replicas":{}}` {
+		t.Errorf("got %s", b)
+	}
+}
+
+func TestMergeSnapshot_CorruptExistingSnapshotFails(t *testing.T) {
+	cr := makeUnstructured("demo.inrun.dev/v1", "AppConfig", "ns", "cr",
+		map[string]string{labels.AnnotationMigrateFieldSnapshot: "{not json"})
+	if _, err := mergeSnapshot(cr, map[string]interface{}{"replicas": map[string]interface{}{}}); err == nil {
+		t.Fatal("want an error: a snapshot that can't be decoded must not be overwritten")
 	}
 }

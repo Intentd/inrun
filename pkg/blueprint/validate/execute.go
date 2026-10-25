@@ -9,6 +9,7 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint/validate/gateway"
 	"github.com/intentd/inrun/pkg/blueprint/validate/internal/check"
 	"github.com/intentd/inrun/pkg/blueprint/validate/metadata"
+	"github.com/intentd/inrun/pkg/blueprint/validate/migrate"
 	"github.com/intentd/inrun/pkg/blueprint/validate/observe"
 	"github.com/intentd/inrun/pkg/blueprint/validate/presets"
 	"github.com/intentd/inrun/pkg/blueprint/validate/publish"
@@ -34,6 +35,7 @@ var blocks = []func(*blueprint.Blueprint, *config.Config) error{
 	function.Check,
 	presets.Check,
 	serve.Check,
+	migrate.Check,
 	gateway.Check,
 	publish.Check,
 }

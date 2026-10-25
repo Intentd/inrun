@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/structured"
-
 	"github.com/intentd/inrun/pkg/template"
-	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
 )
 
@@ -49,7 +46,7 @@ func applyConversion(
 	}
 
 	resolver := template.NewResolverFromMap(obj)
-	convertedSpec, err := resolveMap(resolver, path.Spec)
+	convertedSpec, err := resolver.ResolveNested(path.Spec, template.DropEmpty())
 	if err != nil {
 		return nil, fmt.Errorf("converting spec from %s to %s: %w", sourceVersion, targetVersion, err)
 	}
@@ -59,61 +56,6 @@ func applyConversion(
 	out["spec"] = convertedSpec
 
 	return out, nil
-}
-
-func resolveMap(r *template.Resolver, src map[string]interface{}) (map[string]interface{}, error) {
-	dst := make(map[string]interface{}, len(src))
-	for k, v := range src {
-		resolved, err := resolveValue(r, v)
-		if err != nil {
-			return nil, fmt.Errorf("field %q: %w", k, err)
-		}
-		dst[k] = resolved
-	}
-	return dst, nil
-}
-
-func resolveValue(r *template.Resolver, v interface{}) (interface{}, error) {
-	switch tv := v.(type) {
-	case string:
-		resolved, err := r.Resolve(tv)
-		if err != nil {
-			return nil, err
-		}
-		// A template function that produces a structured value returns the sentinel
-		// followed by JSON, since the resolver path only yields strings. Detect the
-		// prefix and decode the payload back to map[string]interface{} so it lands as
-		// a nested object rather than a JSON string. cronToMap is the current
-		// producer; the mechanism is available to any function that needs it.
-		if funcs.HasJSONValueSentinel(resolved) {
-			var v interface{}
-			if err := funcs.DecodeJSONValueSentinel(resolved, &v); err != nil {
-				return nil, fmt.Errorf("invalid JSON payload: %w", err)
-			}
-			return v, nil
-		}
-		if types.IsTemplate(tv) {
-			if resolved == "" {
-				return nil, nil
-			}
-			return structured.TryCoerceString(resolved), nil
-		}
-		return resolved, nil
-	case map[string]interface{}:
-		return resolveMap(r, tv)
-	case []interface{}:
-		arr := make([]interface{}, len(tv))
-		for i, item := range tv {
-			resolved, err := resolveValue(r, item)
-			if err != nil {
-				return nil, fmt.Errorf("[%d]: %w", i, err)
-			}
-			arr[i] = resolved
-		}
-		return arr, nil
-	default:
-		return v, nil
-	}
 }
 
 func copyMap(src map[string]interface{}) map[string]interface{} {

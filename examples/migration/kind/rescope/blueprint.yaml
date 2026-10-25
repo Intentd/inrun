@@ -1,0 +1,21 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: appconfig-rescope
+  version: 0.1.0
+  description: >
+    AppConfig moves from a namespaced CRD to a cluster-scoped one. Names that
+    were unique per namespace must now be unique cluster-wide; collisions fail
+    instead of overwriting.
+
+spec:
+  crds:
+    appconfig:
+      crdFile: ./manifests/crd-appconfig.yaml
+      migrate:
+        to:
+          crdFile: ./manifests/crd-appconfig-cluster.yaml
+          carryStatus: true
+        # prune: true
+    platform-appconfig:
+      crdFile: ./manifests/crd-appconfig-cluster.yaml

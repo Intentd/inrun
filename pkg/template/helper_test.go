@@ -2,9 +2,12 @@ package template
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,5 +66,25 @@ func TestNewResolver_LeavesTheObjectUnchanged(t *testing.T) {
 		if _, ok := obj.Object[key]; ok {
 			t.Errorf("NewResolver added %q to the object it was given", key)
 		}
+	}
+}
+
+func TestResolveEnvVarsLenient(t *testing.T) {
+	r := NewResolverFromMap(map[string]interface{}{"metadata": map[string]interface{}{"name": "app"}})
+	got := r.ResolveEnvVarsLenient(types.EnvVarList{
+		{Name: "{{ .metadata.name }}", Value: "{{ .metadata.name }}"},
+		{Name: "PLAIN", Value: "x"},
+		{Name: "BAD", Value: "{{ .metadata.name }"},
+	})
+	want := types.EnvVarList{
+		{Name: "{{ .metadata.name }}", Value: "app"},
+		{Name: "PLAIN", Value: "x"},
+		{Name: "BAD", Value: ""},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if out := r.ResolveEnvVarsLenient(nil); out != nil {
+		t.Errorf("nil in, got %+v", out)
 	}
 }

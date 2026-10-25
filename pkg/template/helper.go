@@ -32,6 +32,20 @@ func (r *Resolver) ResolveMap(m map[string]string) (map[string]string, error) {
 	return resolved, nil
 }
 
+// ResolveMapLenient is ResolveMap that never fails: a value that fails to
+// resolve, or resolves to nothing, becomes "". Used for labels and
+// annotations, where "" is valid and a raw template is not.
+func (r *Resolver) ResolveMapLenient(m map[string]string) map[string]string {
+	if len(m) == 0 {
+		return m
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k], _ = r.Resolve(v)
+	}
+	return out
+}
+
 // ResolveStringSlice resolves template expressions in each element of a string slice.
 // Each element is resolved independently — one failing element does not affect others.
 // Used for toNamespaces where each namespace may be a template expression.
@@ -58,6 +72,20 @@ func (r *Resolver) ResolveStringSlice(values []string) ([]string, error) {
 		}
 	}
 	return resolved, nil
+}
+
+// ResolveEnvVarsLenient resolves each env var's Value; Name is copied as-is.
+// A value that fails to resolve becomes "".
+func (r *Resolver) ResolveEnvVarsLenient(vars types.EnvVarList) types.EnvVarList {
+	if len(vars) == 0 {
+		return vars
+	}
+	out := make(types.EnvVarList, 0, len(vars))
+	for _, v := range vars {
+		rv, _ := r.Resolve(v.Value)
+		out = append(out, types.EnvVar{Name: v.Name, Value: rv})
+	}
+	return out
 }
 
 // ResolveEnvFromRefs resolves Name/Prefix/Suffix template expressions in each

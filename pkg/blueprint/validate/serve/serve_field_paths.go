@@ -3,6 +3,8 @@ package serve
 import (
 	"fmt"
 	"strings"
+
+	"github.com/intentd/inrun/pkg/blueprint"
 )
 
 // validateServeFieldPaths validates serve.fields path configurations:
@@ -44,15 +46,23 @@ func (c *checker) validateServeFieldPaths() error {
 			}
 			seenPaths[specPath] = true
 
-			// 4. If path is nested, warn that validation against the CRD
-			//    schema is not yet implemented (to be added later)
+			// 4. If the path is nested, validate it against the CRD schema when a
+			//    crdFile is declared; otherwise warn that the check cannot run.
 			if isNestedPath(specPath) {
-				crd.Warnings.AddWarning(fmt.Sprintf(
-					"CRD %q: serve.fields %q has nested path %q — "+
-						"schema validation is not yet available. Verify the path exists "+
-						"in the CRD spec (e.g., 'spec.%s') and that it is a leaf field.",
-					crdName, name, specPath, specPath,
-				))
+				if crd.HasResolvedCRDFile() {
+					if err := blueprint.ValidateSchemaPath(crd.ResolvedCRDFile, specPath); err != nil {
+						return fmt.Errorf(
+							"%s CRD %q: serve.fields %q has path %q: %w",
+							failureMark(), crdName, name, specPath, err,
+						)
+					}
+				} else {
+					crd.Warnings.AddWarning(fmt.Sprintf(
+						"CRD %q: serve.fields %q has nested path %q — no crdFile declared; "+
+							"verify the path exists in the CRD spec (e.g., 'spec.%s') and that it is a leaf field.",
+						crdName, name, specPath, specPath,
+					))
+				}
 			}
 		}
 

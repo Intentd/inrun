@@ -48,7 +48,7 @@ import (
 type TemplateEvaluator func(tmpl string) (string, bool)
 
 // IsTemplate reports whether s contains a Go template expression.
-func IsTemplate(s string) bool { return strings.Contains(s, "{{") }
+func IsTemplate(s string) bool { return structured.IsTemplate(s) }
 
 // EvaluateConditions evaluates when: (allOf, AND) and or: (OR) conditions.
 // data is resolver.Data() — full CR map including children, external, cross.

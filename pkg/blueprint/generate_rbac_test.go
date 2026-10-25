@@ -1,6 +1,7 @@
 package blueprint_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/intentd/inrun/domain"
@@ -598,5 +599,46 @@ func TestGenerateGatewayClusterRBACRules_MultiCRD(t *testing.T) {
 		if hasResource(rules, "gizmos") {
 			t.Errorf("local-routed 'gizmos' should not appear in cluster %q rules", cluster)
 		}
+	}
+}
+
+// ── migrate.to ───────────────────────────────────────────────────────────────
+
+func migrateRules(t *testing.T, prune bool) []rbacv1.PolicyRule {
+	t.Helper()
+	crd := newWidgetCRD("")
+	crd.Serve = nil
+	crd.Migrate = &types.CRMigrate{
+		To:    types.CRMigrateTarget{APIVersion: "next.io/v2", Kind: "Gadget", Plural: "gadgets"},
+		Prune: prune,
+	}
+	bp := blueprint.NewBlueprintForTest(map[string]types.CRDEntry{"widget": crd})
+	bp.Gateway = gatewayWithClusters()
+	var out []rbacv1.PolicyRule
+	for _, r := range bp.GenerateGatewayRBACRules() {
+		if contains(r.Resources, "gadgets") || contains(r.Resources, "widgets") {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+func TestGenerateGatewayRBACRules_MigrateTo(t *testing.T) {
+	want := []rbacv1.PolicyRule{
+		{APIGroups: []string{"next.io"}, Resources: []string{"gadgets"}, Verbs: []string{"get", "create", "patch"}},
+		{APIGroups: []string{"example.io"}, Resources: []string{"widgets"}, Verbs: []string{"get", "list"}},
+	}
+	if got := migrateRules(t, false); !reflect.DeepEqual(got, want) {
+		t.Errorf("rules = %+v\nwant %+v", got, want)
+	}
+}
+
+func TestGenerateGatewayRBACRules_MigrateToPruneDeletesSource(t *testing.T) {
+	got := migrateRules(t, true)
+	if len(got) != 2 || !contains(got[1].Verbs, "delete") {
+		t.Errorf("source rule must allow delete with prune: %+v", got)
+	}
+	if contains(got[0].Verbs, "delete") {
+		t.Errorf("destination rule must not allow delete: %+v", got[0])
 	}
 }

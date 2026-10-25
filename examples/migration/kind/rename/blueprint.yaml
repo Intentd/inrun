@@ -1,0 +1,56 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: appconfig-operator
+  version: 0.1.0
+  description: >
+    AppConfig moves to a new CRD, NewConfig. Callers keep sending the same
+    intents through the gateway; migrate.to moves the stored CRs, scoped by
+    migrate.selection, with a snapshot on each destination for rollback.
+
+gateway:
+  api:
+    enabled: true
+    auth:
+      tokens:
+        - name: dev
+          token: "${DEV_TOKEN}"
+
+spec:
+  crds:
+    appconfig:
+      crdFile: ./manifests/crd-appconfig.yaml
+      migrate:
+        to:
+          crdFile: ./manifests/crd-newconfig.yaml
+          metadata:
+            labels:
+              migrated-from: appconfig
+        selection:
+          selector: tier=web
+          when:
+            - field: status.phase
+              equals: Ready
+        # prune: true
+      serve:
+        enabled: true
+        target: my-api-server
+        name: api-server
+        namespace: platform-09
+        include: ./serve/appconfig.yaml
+        tokens:
+          dev:
+            permissions:
+              global: ["*"]
+    newconfig:
+      crdFile: ./manifests/crd-newconfig.yaml
+      serve:
+        enabled: true
+        target: my-new-api-server
+        name: api-server
+        namespace: platform-09
+        include: ./serve/appconfig.yaml
+        tokens:
+          dev:
+            permissions:
+              global: ["*"]

@@ -10,6 +10,7 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/util/structured"
 )
 
 // applyLabels applies the three system label invariants plus any user-defined
@@ -30,7 +31,7 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 		DeletionProtectionEnabled: in.Blueprint.IsDeletionProtectionEnabled(),
 	})
 
-	serverLabels := copyStringMap(obj.GetLabels()) // snapshot before mutation
+	serverLabels := structured.CopyStringMap(obj.GetLabels()) // snapshot before mutation
 
 	mgr.EnsureManagedLabel(obj)
 
@@ -98,15 +99,4 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 	}
 
 	return nil
-}
-
-func copyStringMap(m map[string]string) map[string]string {
-	if m == nil {
-		return nil
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k] = v
-	}
-	return out
 }

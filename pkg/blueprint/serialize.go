@@ -52,6 +52,11 @@ func withoutLocalPaths(crds map[string]types.CRDEntry) map[string]types.CRDEntry
 		crd.CRDFile = ""
 		crd.CRFiles = nil
 		crd.Setup = nil
+		if crd.Migrate != nil {
+			m := *crd.Migrate // Migrate is shared with the caller's entry
+			m.To.CRDFile = ""
+			crd.Migrate = &m
+		}
 		out[name] = crd
 	}
 	return out

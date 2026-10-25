@@ -101,6 +101,12 @@ func (c *Blueprint) BuildRuntimeBlueprint(
 			}
 			entry.CRDFile = ""
 		}
+		if entry.Migrate != nil && entry.Migrate.To.CRDFile != "" {
+			if err := PopulateMigrateTargetFromCRDFile(&entry, c.blueprintDir); err != nil {
+				return nil, fmt.Errorf("CRD %q: %w", name, err)
+			}
+			entry.Migrate.To.CRDFile = ""
+		}
 
 		// Enrich enabled CRDs
 		outcome, err := EnrichCRDEntry(&entry)

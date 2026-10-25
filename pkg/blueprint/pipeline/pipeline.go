@@ -4,9 +4,12 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/util/term"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/blueprint/validate"
@@ -74,4 +77,38 @@ func BuildExpanded(cfg *config.Config, m *merger.Merger) (*blueprint.Blueprint, 
 		return nil, fmt.Errorf("blueprint validate: %w", err)
 	}
 	return bp, nil
+}
+
+// LoadBlueprint merges the given paths and builds the scheme registry,
+// resolving the blueprint without connecting to a cluster.
+func LoadBlueprint(cfg *config.Config, paths []string) (*blueprint.Blueprint, *runtime.Scheme, error) {
+	m := merger.New(paths...)
+	if err := m.Merge(); err != nil {
+		return nil, nil, fmt.Errorf("merging blueprints: %w", err)
+	}
+	bp, err := BuildExpanded(cfg, m)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing blueprint: %w", err)
+	}
+	scheme, err := blueprint.NewSchemeRegistry(bp)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building scheme: %w", err)
+	}
+	return bp, scheme, nil
+}
+
+// Bootstrap merges the given blueprint paths, builds a scheme registry, and
+// starts a live kube client. Returns the resolved blueprint and a started
+// client, ready for a command to run against.
+func Bootstrap(ctx context.Context, cfg *config.Config, paths []string) (*blueprint.Blueprint, kubeclient.Interface, error) {
+	bp, scheme, err := LoadBlueprint(cfg, paths)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	kube, err := kubeclient.Connect(ctx, cfg, scheme)
+	if err != nil {
+		return nil, nil, err
+	}
+	return bp, kube, nil
 }

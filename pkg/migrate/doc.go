@@ -1,6 +1,5 @@
-// migrate.Migrator handles live CR schema migration: it reads migrate.from
-// declarations from the Blueprint's serve fields and brings existing CRs to the
-// current schema, reusing the same value/values transform logic as the
-// gateway intent apply path. It supports forward migration, rollback from
-// the snapshot annotation, and annotation cleanup.
+// Package migrate runs the migrations a blueprint declares on live CRs:
+// field-level (serve.fields[*].migrate.from, see package field) and
+// kind-level (migrate.to, see package kind). Each supports forward,
+// rollback from its snapshot annotation, and clean.
 package migrate

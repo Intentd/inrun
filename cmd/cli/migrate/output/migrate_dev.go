@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/pkg/migrate"
 	sigsyaml "sigs.k8s.io/yaml"
 )
 
@@ -45,24 +46,13 @@ func PrintMigrate(opts Opts) {
 			continue
 		}
 
-		migrated, skipped, failed := 0, 0, 0
+		var c migrateCounts
 		for _, cr := range r.CRs {
-			switch {
-			case cr.Err != nil:
-				failed++
-			case cr.Skipped:
-				skipped++
-			default:
-				migrated++
-			}
+			c.add(cr)
 		}
 
 		total := len(r.CRs)
-		countStr := fmt.Sprintf("%d CR", total)
-		if total != 1 {
-			countStr += "s"
-		}
-		fmt.Printf("%s  %s  %s\n", cmdutil.Cyan("◆"), cmdutil.Bold(r.Kind), cmdutil.Gray(countStr))
+		printKindHeader(r, total, opts)
 
 		verboseShown := 0
 		for _, cr := range r.CRs {
@@ -70,12 +60,18 @@ func PrintMigrate(opts Opts) {
 			switch {
 			case cr.Err != nil:
 				fmt.Printf("  %s %s  %s\n", cmdutil.FailureMark(), cmdutil.Red(ref), cmdutil.Red(cr.Err.Error()))
+			case cr.Drifted:
+				fmt.Printf("  %s %s  %s\n", cmdutil.Dim("~"), cmdutil.Gray(ref), cmdutil.Yellow("destination exists and differs — skipped"))
+			case cr.Excluded:
+				fmt.Printf("  %s %s\n", cmdutil.Dim("–"), cmdutil.Gray(ref+"  (not selected: migrate.selection when/or)"))
 			case cr.Skipped:
 				skippedMsg := "(already migrated)"
 				if opts.Clean {
 					skippedMsg = "(no annotations)"
 				}
 				fmt.Printf("  %s %s\n", cmdutil.Dim("–"), cmdutil.Gray(ref+"  "+skippedMsg))
+			case len(cr.Fields) == 0 && cr.Pruned:
+				fmt.Printf("  %s %s  %s\n", cmdutil.SuccessMark(), cmdutil.Cyan(ref), cmdutil.Gray("already migrated; "+pruneVerb(opts.DryRun)))
 			default:
 				var verb string
 				switch {
@@ -88,7 +84,14 @@ func PrintMigrate(opts Opts) {
 				default:
 					verb = "migrated"
 				}
-				fmt.Printf("  %s %s  %s\n", cmdutil.SuccessMark(), cmdutil.Cyan(ref), cmdutil.Gray(verb+": "+strings.Join(cr.Fields, ", ")))
+				line := verb + ": " + strings.Join(cr.Fields, ", ")
+				if r.To != "" && !opts.Clean {
+					line = verb + " to " + r.To
+				}
+				if cr.Pruned {
+					line += "; " + pruneVerb(opts.DryRun)
+				}
+				fmt.Printf("  %s %s  %s\n", cmdutil.SuccessMark(), cmdutil.Cyan(ref), cmdutil.Gray(line))
 				if opts.Verbose && cr.AfterSpec != nil {
 					if opts.Limit == 0 || verboseShown < opts.Limit {
 						printSpec(cr.AfterSpec)
@@ -98,15 +101,76 @@ func PrintMigrate(opts Opts) {
 			}
 		}
 
-		if opts.Verbose && opts.Limit > 0 && verboseShown >= opts.Limit && migrated > opts.Limit {
-			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("… %d more (use --limit 0 to show all)", migrated-opts.Limit)))
+		if opts.Verbose && opts.Limit > 0 && verboseShown >= opts.Limit && c.migrated > opts.Limit {
+			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("… %d more (use --limit 0 to show all)", c.migrated-opts.Limit)))
 		}
 
-		fmt.Printf("\n  %s\n\n", buildMigrateSummary(migrated, skipped, failed, total, opts.DryRun, opts.Clean))
+		fmt.Printf("\n  %s\n\n", buildMigrateSummary(c, total, opts.DryRun, opts.Clean))
 	}
 }
 
-func buildMigrateSummary(migrated, skipped, failed, total int, dryRun, clean bool) string {
+// migrateCounts buckets the CRs of one kind for the summary line.
+type migrateCounts struct {
+	migrated, skipped, excluded, drifted, pruned, failed int
+}
+
+func (c *migrateCounts) add(cr migrate.CRMigrateResult) {
+	switch {
+	case cr.Err != nil:
+		c.failed++
+		return
+	case cr.Drifted:
+		c.drifted++
+	case cr.Excluded:
+		c.excluded++
+	case cr.Skipped:
+		c.skipped++
+	case len(cr.Fields) > 0:
+		c.migrated++
+	}
+	if cr.Pruned {
+		c.pruned++
+	}
+}
+
+func pruneVerb(dryRun bool) string {
+	if dryRun {
+		return "would prune source"
+	}
+	return "source pruned"
+}
+
+// printKindHeader prints the kind line, and the scope the run used when it
+// differs from the CLI flags (the blueprint's migrate.selection applied).
+func printKindHeader(r *migrate.KindMigrateResult, total int, opts Opts) {
+	countStr := fmt.Sprintf("%d CR", total)
+	if total != 1 {
+		countStr += "s"
+	}
+	name := cmdutil.Bold(r.Kind)
+	if r.To != "" {
+		name += cmdutil.Gray(" → ") + cmdutil.Bold(r.To)
+	}
+	fmt.Printf("%s  %s  %s\n", cmdutil.Cyan("◆"), name, cmdutil.Gray(countStr))
+
+	flags := migrate.Selection{Namespaces: opts.Namespaces, Name: opts.Name, Selector: opts.Selector}
+	if r.Selection.IsEmpty() || r.Selection.Equal(flags) {
+		return
+	}
+	var parts []string
+	if len(r.Selection.Namespaces) > 0 {
+		parts = append(parts, "namespaces "+strings.Join(r.Selection.Namespaces, ","))
+	}
+	if r.Selection.Name != "" {
+		parts = append(parts, "name "+r.Selection.Name)
+	}
+	if r.Selection.Selector != "" {
+		parts = append(parts, "selector "+r.Selection.Selector)
+	}
+	fmt.Printf("   %s %s\n", cmdutil.Gray("scope:"), cmdutil.Cyan(strings.Join(parts, " · ")))
+}
+
+func buildMigrateSummary(c migrateCounts, total int, dryRun, clean bool) string {
 	var verb string
 	switch {
 	case clean && dryRun:
@@ -118,15 +182,28 @@ func buildMigrateSummary(migrated, skipped, failed, total int, dryRun, clean boo
 	default:
 		verb = "migrated"
 	}
-	parts := []string{fmt.Sprintf("%d/%d %s", migrated, total, verb)}
-	if skipped > 0 {
-		parts = append(parts, cmdutil.Gray(fmt.Sprintf("%d already done", skipped)))
+	parts := []string{fmt.Sprintf("%d/%d %s", c.migrated, total, verb)}
+	if c.pruned > 0 {
+		pruned := "sources pruned"
+		if dryRun {
+			pruned = "sources would be pruned"
+		}
+		parts = append(parts, cmdutil.Yellow(fmt.Sprintf("%d %s", c.pruned, pruned)))
 	}
-	if failed > 0 {
-		parts = append(parts, cmdutil.Red(fmt.Sprintf("%d failed", failed)))
+	if c.drifted > 0 {
+		parts = append(parts, cmdutil.Yellow(fmt.Sprintf("%d drifted", c.drifted)))
+	}
+	if c.skipped > 0 {
+		parts = append(parts, cmdutil.Gray(fmt.Sprintf("%d already done", c.skipped)))
+	}
+	if c.excluded > 0 {
+		parts = append(parts, cmdutil.Gray(fmt.Sprintf("%d not selected", c.excluded)))
+	}
+	if c.failed > 0 {
+		parts = append(parts, cmdutil.Red(fmt.Sprintf("%d failed", c.failed)))
 	}
 	mark := cmdutil.SuccessMark()
-	if failed > 0 {
+	if c.failed > 0 {
 		mark = cmdutil.FailureMark()
 	}
 	return mark + " " + strings.Join(parts, " · ")

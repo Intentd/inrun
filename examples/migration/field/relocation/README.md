@@ -75,6 +75,9 @@ Three-step pattern for any field relocation: `old CRD → transitional CRD → m
   output shows `migrated: replicas` only.
 - **Idempotency** — re-running after migration shows all 10 CRs as
   `already migrated`.
+- **Drift** — platform-06's `scaling.min` is edited after the migration. Its
+  rollback restores `logLevel` and skips `replicas`, keeping the edit and the
+  snapshot entry; migrating it again keeps that entry too.
 
 ---
 
@@ -231,7 +234,7 @@ kubectl get appconfig api-server -n platform-09 -o jsonpath='{.spec}' | jq
 }
 ```
 
-### 11. Idempotency — run again
+### 9. Idempotency — run again
 
 ```bash
 inrun migrate
@@ -253,7 +256,7 @@ inrun migrate
   ✓ 0/10 migrated · 10 already done
 ```
 
-### 11. Rollback
+### 10. Rollback
 Assuming an error occured during the migration and you want to rollback, you can rollback a particular CR by name/namespace/selector
 
 #### Dry run the rollback
@@ -287,7 +290,7 @@ Snapshots are injected by the migrator as `before` and `after` annotations durin
 #### View a snapshot
 
 ```bash
-kubectl get appconfig api-server -n platform-07 -o jsonpath='{.metadata.annotations.inrun\.dev/migrate-snapshot}' | jq
+kubectl get appconfig api-server -n platform-07 -o jsonpath='{.metadata.annotations.inrun\.dev/migrate-field-snapshot}' | jq
 ```
 
 ```json
@@ -309,6 +312,114 @@ kubectl get appconfig api-server -n platform-07 -o jsonpath='{.metadata.annotati
     },
     "before": {
       "replicas": 7,
+      "scaling.min": null
+    }
+  }
+}
+```
+
+#### Drift: a later edit is never overwritten
+
+Rollback restores a field only while it still holds exactly what the migration wrote. Someone scales platform-06
+after the migration, `scaling.min` from 4 to 6, and leaves its log level alone:
+
+```bash
+kubectl patch appconfig api-server -n platform-06 --type merge -p '{"spec":{"scaling":{"min":6}}}'
+```
+
+Dry run its rollback:
+
+```bash
+inrun migrate rollback --name api-server --namespace platform-06 --dry-run
+```
+
+```
+⟳  inrun migrate rollback  [dry-run]
+  blueprint: blueprint.yaml
+  namespace: platform-06
+  name: api-server
+
+◆  AppConfig  1 CR
+  ✓ platform-06/api-server  would roll back: logLevel
+  ~ platform-06/api-server  replicas: drifted — modified after migration, skipped
+
+  ✓ 1/1 would be rolled back · 1 drifted
+```
+
+One CR, two outcomes: `logLevel` still holds what the migration wrote, so it rolls back; `replicas` was changed
+since, so it is skipped and the edit survives. Roll back for real:
+
+```bash
+inrun migrate rollback --name api-server --namespace platform-06
+```
+
+```bash
+kubectl get appconfig api-server -n platform-06 -o jsonpath='{.spec}' | jq
+```
+
+```json
+{
+  "image": "myapp/api:2.1.0",
+  "logLevel": "info",
+  "observability": {
+    "logging": {}
+  },
+  "scaling": {
+    "min": 6
+  }
+}
+```
+
+`logLevel` is back at its old path; `scaling.min` keeps the edit. The snapshot keeps the entry for the skipped field,
+so nothing about the original value is lost:
+
+```bash
+kubectl get appconfig api-server -n platform-06 -o jsonpath='{.metadata.annotations.inrun\.dev/migrate-field-snapshot}' | jq
+```
+
+```json
+{
+  "replicas": {
+    "after": {
+      "replicas": null,
+      "scaling.min": 4
+    },
+    "before": {
+      "replicas": 4,
+      "scaling.min": null
+    }
+  }
+}
+```
+
+Migrate platform-06 again so every CR is in the new form before the final CRD:
+
+```bash
+inrun migrate --name api-server --namespace platform-06
+```
+
+`logLevel` moves again; `scaling.min` stays at 6. The snapshot now holds both entries: the new one for `logLevel`
+and the one rollback kept for `replicas`, so the original value is still recoverable:
+
+```json
+{
+  "logLevel": {
+    "after": {
+      "logLevel": null,
+      "observability.logging.level": "info"
+    },
+    "before": {
+      "logLevel": "info",
+      "observability.logging.level": null
+    }
+  },
+  "replicas": {
+    "after": {
+      "replicas": null,
+      "scaling.min": 4
+    },
+    "before": {
+      "replicas": 4,
       "scaling.min": null
     }
   }
@@ -389,7 +500,7 @@ Re-apply the migration
 inrun migrate --name api-server --namespace platform-07
 ```
 
-### 10. Apply the final CRD
+### 11. Apply the final CRD
 
 All CRs are in the new form. Pruning is safe.
 

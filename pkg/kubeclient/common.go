@@ -170,11 +170,31 @@ func GroupVersionKindFor(c Interface, obj runtime.Object) (schema.GroupVersionKi
 	}
 	if len(gvks) == 0 {
 		return schema.GroupVersionKind{}, fmt.Errorf(
-			"ctrlclient: no GVK registered for %T",
+			"kubeclient: no GVK registered for %T",
 			obj,
 		)
 	}
 	return gvks[0], nil
+}
+
+// GVRForGVK resolves a GroupVersionKind to its GroupVersionResource via the
+// client's RESTMapper. Returns an error when the GVK cannot be mapped
+func GVRForGVK(c Interface, gvk schema.GroupVersionKind) (schema.GroupVersionResource, error) {
+	mapping, err := c.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return schema.GroupVersionResource{}, fmt.Errorf("kubeclient: no REST mapping for %s: %w", gvk, err)
+	}
+	return mapping.Resource, nil
+}
+
+// GVKForGVR resolves a GroupVersionResource to its GroupVersionKind via the
+// client's RESTMapper. Returns an error when the GVR cannot be mapped.
+func GVKForGVR(c Interface, gvr schema.GroupVersionResource) (schema.GroupVersionKind, error) {
+	gvk, err := c.RESTMapper().KindFor(gvr)
+	if err != nil {
+		return schema.GroupVersionKind{}, fmt.Errorf("kubeclient: no kind for %s: %w", gvr, err)
+	}
+	return gvk, nil
 }
 
 // IsObjectNamespaced reports whether the object's resource is namespace-scoped.

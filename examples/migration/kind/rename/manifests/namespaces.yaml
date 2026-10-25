@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-01
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-02
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-03
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-04
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-05
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-06
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-07
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-08
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-09
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-10

@@ -46,6 +46,13 @@ var Packs = map[string]Pack{
 		Path:        "intent",
 		Order:       4,
 	},
+	"migration": {
+		Name:        "migration",
+		Description: "Change the CRD under live CRs: move fields, or move CRs to another CRD.",
+		Path:        "migration",
+		First:       "field/relocation",
+		Order:       5,
+	},
 }
 
 func GetPack(name string) (Pack, bool) {

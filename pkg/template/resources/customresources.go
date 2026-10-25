@@ -11,7 +11,6 @@ import (
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/structured"
 )
 
 // ResolveCustomResource resolves all template expressions in a
@@ -94,77 +93,9 @@ func ResolveCustomResource(r *template.Resolver, src types.CustomResourceTemplat
 	return resolved, nil
 }
 
-// resolveMapTemplates walks a map[string]any and resolves any string values
-// using the Resolver. It recurses into nested maps and slices. Returns a new
-// map[string]any with resolved values.
-func resolveMapTemplates(r *template.Resolver, in map[string]any) (map[string]any, error) {
-	out := make(map[string]any, len(in))
-	for k, v := range in {
-		rv, err := resolveValueTemplates(r, v)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", k, err)
-		}
-		out[k] = rv
-	}
-	return out, nil
-}
-
-// resolveValueTemplates resolves a single value. If it's a string, run through
-// r.Resolve. If it's a map[string]any, recurse. If it's a slice, resolve each
-// element. Otherwise return as-is.
-func resolveValueTemplates(r *template.Resolver, v any) (any, error) {
-	switch vv := v.(type) {
-	case string:
-		res, err := r.Resolve(vv)
-		if err != nil {
-			return nil, err
-		}
-		if res == "" {
-			return vv, nil
-		}
-		// When a template expression was resolved, try to coerce the result to a
-		// native type so integer/boolean/JSON CRD fields pass API server validation.
-		if types.IsTemplate(vv) {
-			return structured.TryCoerceString(res), nil
-		}
-		return res, nil
-
-	case map[string]any:
-		return resolveMapTemplates(r, vv)
-
-	case []any:
-		out := make([]any, 0, len(vv))
-		for _, e := range vv {
-			re, err := resolveValueTemplates(r, e)
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, re)
-		}
-		return out, nil
-
-	// Preserve typed maps like map[string]string by converting and resolving strings
-	default:
-		// attempt to detect map[string]string and convert
-		// keep simple: if it's map[string]string, convert to map[string]any and resolve
-		if m, ok := vv.(map[string]string); ok {
-			out := make(map[string]any, len(m))
-			for kk, vv2 := range m {
-				res, err := r.Resolve(vv2)
-				if err != nil {
-					return nil, err
-				}
-				if res == "" {
-					out[kk] = vv2
-				} else {
-					out[kk] = res
-				}
-			}
-			return out, nil
-		}
-		return v, nil
-	}
-}
+// resolveMapTemplates resolves a custom resource's fields; the first failure
+// is returned.
+var resolveMapTemplates = (*template.Resolver).ResolveNested
 
 // CustomResourceSpec builds a customresources.Spec from a CustomResource.
 // Template expressions must already be evaluated by template.Resolver before calling.

@@ -196,13 +196,15 @@ func (k *Kubeclient) DynamicClientFor(apiPath, group, version string) (dynamic.I
 	return k.dynamic, nil
 }
 
-// Notes
-// Why merge patch and not strategic merge patch or Update? Three reasons:
-// 1. First, you only touch metadata.finalizers — the rest of the object is untouched,
-// which avoids resourceVersion conflicts if the object was updated between your cache read and this call.
-// 2. Second, strategic merge patch requires the object type to be registered and understood by the API server's
-// strategy engine — dynamic clients should use merge patch.
-// 3. Third, Update sends the full object and requires a current resourceVersion — more fragile, more data over the wire.
+// Connect starts a kube client for the blueprint's scheme.
+func Connect(ctx context.Context, cfg *config.Config, scheme *runtime.Scheme) (Interface, error) {
+	kube := New(cfg, scheme)
+	if err := kube.Start(ctx); err != nil {
+		kube.Shutdown(ctx)
+		return nil, fmt.Errorf("starting kubeclient: %w", err)
+	}
+	return kube, nil
+}
 
 // Started is called by inrun for healthcheck
 func (k *Kubeclient) Started() bool { return k.started.Load() }

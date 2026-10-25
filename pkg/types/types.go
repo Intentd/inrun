@@ -3,6 +3,8 @@ package types
 import (
 	"strings"
 
+	"github.com/intentd/inrun/pkg/util/kube"
+
 	"github.com/intentd/inrun/pkg/util/fileio"
 	"github.com/intentd/inrun/pkg/util/structured"
 
@@ -527,4 +529,16 @@ func (s *QueueBehaviourSetting) ThresholdValue() int {
 // IsValidValue reports whether value declared is between 1 and 100.
 func (s *QueueBehaviourSetting) IsValidValue() bool {
 	return s != nil && (s.Value >= 1 && s.Value < 100)
+}
+
+// APITypesFromCRDHeader returns the group, version, kind and plural a CRD
+// file declares. Typed-mode fields (Object, List, Alias, Location, APIPath)
+// are left for the caller to keep from its own declaration.
+func APITypesFromCRDHeader(h *kube.CRDFileHeader) APITypes {
+	return APITypes{
+		Group:   h.Spec.Group,
+		Version: h.Version(),
+		Kind:    h.Spec.Names.Kind,
+		Plural:  h.Spec.Names.Plural,
+	}
 }

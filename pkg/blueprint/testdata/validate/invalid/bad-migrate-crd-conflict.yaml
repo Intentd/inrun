@@ -1,0 +1,27 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: migrate-invalid-conflict-with-field
+  version: 0.1.0
+  description: >
+    Invalid — declares both a CR-level migration (migrate.to) and a
+    field-level migration (serve.fields.timeout.migrate.from). These are
+    incompatible: field migrations evolve the CRD in place, CR migration
+    replaces it.
+spec:
+  crds:
+    appconfig:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        target: appconfig
+        fields:
+          timeout:
+            path: timeoutSeconds
+            migrate:
+              from: timeout
+      migrate:
+        to:
+          apiVersion: example.inrun.dev/v2
+          kind: Config

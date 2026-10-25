@@ -103,17 +103,23 @@ func GenerateBlueprint(cmd *cobra.Command) (*MergerOut, error) {
 	}, nil
 }
 
-// resolveCRDFiles fills each entry's apiTypes from its crdFile and clears
-// crdFile, so nothing downstream depends on a local path.
+// resolveCRDFiles fills each entry's apiTypes from its crdFile, and migrate.to
+// from migrate.to.crdFile, then clears both so nothing downstream depends on
+// a local path.
 func resolveCRDFiles(crds map[string]types.CRDEntry) error {
 	for name, crd := range crds {
-		if crd.CRDFile == "" {
-			continue
+		if crd.CRDFile != "" {
+			if err := blueprint.PopulateAPITypesFromCRDFile(&crd, ""); err != nil {
+				return fmt.Errorf("CRD %q: %w", name, err)
+			}
+			crd.CRDFile = ""
 		}
-		if err := blueprint.PopulateAPITypesFromCRDFile(&crd, ""); err != nil {
-			return fmt.Errorf("CRD %q: %w", name, err)
+		if crd.Migrate != nil && crd.Migrate.To.CRDFile != "" {
+			if err := blueprint.PopulateMigrateTargetFromCRDFile(&crd, ""); err != nil {
+				return fmt.Errorf("CRD %q: %w", name, err)
+			}
+			crd.Migrate.To.CRDFile = ""
 		}
-		crd.CRDFile = ""
 		crds[name] = crd
 	}
 	return nil

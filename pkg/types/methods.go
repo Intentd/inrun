@@ -681,10 +681,22 @@ func (c *CRDEntry) AutoscaleEnabled() bool {
 	return c.Box().EffectiveAutoscale() != nil
 }
 
-// HasCRDFile reports whether this CRDEntry declares a CRD file
-// to be auto-applied before the operator starts.
+// HasCRDFile reports whether this CRDEntry declares a CRD file to be
+// auto-applied before the operator starts. The path is user-declared and is
+// cleared after the file is read, so this reports "was a file declared" only
+// during the load phase. Use HasResolvedCRDFile to check whether a file was
+// actually read.
 func (c *CRDEntry) HasCRDFile() bool {
 	return c != nil && c.CRDFile != ""
+}
+
+// HasResolvedCRDFile reports whether a CRD file was read and resolved to a
+// local path. Unlike CRDFile, this survives the load phase: the runtime clears
+// CRDFile so the serialized bundle does not reference files that won't exist
+// in a container, but the resolved path is kept for validation and
+// diagnostics.
+func (c *CRDEntry) HasResolvedCRDFile() bool {
+	return c != nil && c.ResolvedCRDFile != ""
 }
 
 // HasCRFiles reports whether this CRDEntry declares CR YAML files
@@ -905,12 +917,6 @@ func (c *CRDEntry) IsNamespaceAuthorized(namespace string) bool {
 	return true
 }
 
-// IsValidServiceType reports whether the provided service type is valid.
-// Accepted values (case‑insensitive):
-//   - ClusterIP
-//   - NodePort
-//   - LoadBalancer
-//
 // SetWorkers resolves the worker count for this CRD.
 func (c *CRDEntry) SetWorkers(def int) int {
 	if c.Box().Reconcile != nil && c.Box().Reconcile.Workers != 0 {
@@ -962,6 +968,11 @@ func (c *CRDEntry) SharedQueue() bool {
 	return *c.Box().Reconcile.Queue.Shared
 }
 
+// IsValidServiceType reports whether the provided service type is valid.
+// Accepted values (case‑insensitive):
+//   - ClusterIP
+//   - NodePort
+//   - LoadBalancer
 func IsValidServiceType(t string) bool {
 	switch strings.ToLower(t) {
 	case "", "clusterip", "nodeport", "loadbalancer":

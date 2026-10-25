@@ -198,10 +198,18 @@ const (
 	// Example: '{"spec.mealPlan":"dinner","spec.kitchenConfig":"standard"}'
 	AnnotationServeSelector = "inrun.dev/serve-selector"
 
-	// AnnotationMigrateSnapshot stores a JSON map of {migrateFromPath: oldValue}
-	// captured immediately before a schema migration patch. Used by
-	// `inrun migrate --rollback` to restore the previous field layout.
-	AnnotationMigrateSnapshot = "inrun.dev/migrate-snapshot"
+	// AnnotationMigrateFieldSnapshot stores a JSON map of {migrateFromPath: oldValue}
+	// captured immediately before a field-level migration patch. Used by
+	// `inrun migrate rollback` to restore the previous field layout.
+	AnnotationMigrateFieldSnapshot = "inrun.dev/migrate-field-snapshot"
+
+	// AnnotationMigrateKindSnapshot stores a JSON record of a CR-level migration:
+	// the source CR's identity and spec, the destination CR's identity, and whether
+	// the source was pruned after the destination was applied. Used by
+	// `inrun migrate rollback` to delete the destination and, if the source was
+	// pruned, recreate it. Distinct from AnnotationMigrateFieldSnapshot, which records
+	// a field-level migration within a single CRD.
+	AnnotationMigrateKindSnapshot = "inrun.dev/migrate-kind-snapshot"
 
 	// AnnotationMigrateTimestamp records when the most recent schema migration
 	// patch was applied to this CR, as an RFC3339 timestamp.

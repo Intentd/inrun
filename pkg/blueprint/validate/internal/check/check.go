@@ -10,6 +10,7 @@ import (
 
 	"github.com/intentd/kel/core"
 
+	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/util/kube"
 	"github.com/intentd/inrun/pkg/util/structured"
 	"github.com/intentd/inrun/pkg/util/term"
@@ -55,6 +56,11 @@ var (
 	IsValidLabelValue   = content.IsLabelValue
 	IsValidResolverName = template.ValidResolverName
 	IsValidK8sName      = kube.ValidKubernetesName
+
+	CheckReserved          = labels.CheckReserved
+	ValidateAnnotationKeys = labels.ValidateAnnotationKeys
+	ValidateLabelMap       = labels.ValidateLabelMap
+	ValidateLabelSelector  = labels.ValidateLabelSelector
 )
 
 func FuncMap(registry types.KELFunctionRegistry) texttemplate.FuncMap {

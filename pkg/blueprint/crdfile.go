@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/kube"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,10 +30,21 @@ func PopulateAPITypesFromCRDFile(entry *types.CRDEntry, blueprintDir string) err
 		path = filepath.Join(blueprintDir, path)
 	}
 
-	apiTypes, err := readAPITypesFromCRDFile(path)
+	h, err := kube.ReadCRDFileHeader(path)
 	if err != nil {
 		return fmt.Errorf("reading crdFile %q: %w", entry.CRDFile, err)
 	}
+	apiTypes := types.APITypesFromCRDHeader(h)
+
+	// The file's scope wins; a declared namespaced: must agree with it.
+	namespaced, _ := h.Namespaced() // checked by ReadCRDFileHeader
+	if entry.Namespaced != nil && *entry.Namespaced != namespaced {
+		return fmt.Errorf("namespaced: %t does not match crdFile scope %q", *entry.Namespaced, h.Spec.Scope)
+	}
+	entry.Namespaced = &namespaced
+
+	// Keep the path for the validator; CRDFile is cleared after load.
+	entry.ResolvedCRDFile = path
 
 	// Preserve typed-mode fields (Object, List, Alias, Location) — those come
 	// from the user's apiTypes declaration and are not present in the CRD YAML.
@@ -42,66 +54,59 @@ func PopulateAPITypesFromCRDFile(entry *types.CRDEntry, blueprintDir string) err
 	apiTypes.Location = entry.APITypes.Location
 	apiTypes.APIPath = entry.APITypes.APIPath
 
-	entry.APITypes = *apiTypes
+	entry.APITypes = apiTypes
 	return nil
 }
 
-// crdFileHeader is the minimal structure needed to extract apiTypes from a CRD YAML.
-type crdFileHeader struct {
-	Kind string `yaml:"kind"`
-	Spec struct {
-		Group string `yaml:"group"`
-		Names struct {
-			Kind   string `yaml:"kind"`
-			Plural string `yaml:"plural"`
-		} `yaml:"names"`
-		Versions []struct {
-			Name    string `yaml:"name"`
-			Served  bool   `yaml:"served"`
-			Storage bool   `yaml:"storage"`
-		} `yaml:"versions"`
-	} `yaml:"spec"`
+// PopulateMigrateTargetFromCRDFile fills migrate.to's apiVersion, kind and
+// plural from migrate.to.crdFile, the same way crdFile fills apiTypes.
+// Declared values must match the file. Remote URLs are left untouched.
+func PopulateMigrateTargetFromCRDFile(entry *types.CRDEntry, blueprintDir string) error {
+	if entry.Migrate == nil || entry.Migrate.To.CRDFile == "" {
+		return nil
+	}
+	to := &entry.Migrate.To
+	path := to.CRDFile
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return nil
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(blueprintDir, path)
+	}
+
+	file, err := readAPITypesFromCRDFile(path)
+	if err != nil {
+		return fmt.Errorf("reading migrate.to.crdFile %q: %w", to.CRDFile, err)
+	}
+	apiVersion := file.Group + "/" + file.Version
+	for _, c := range []struct{ field, declared, file string }{
+		{"apiVersion", to.APIVersion, apiVersion},
+		{"kind", to.Kind, file.Kind},
+		{"plural", to.Plural, file.Plural},
+	} {
+		if c.declared != "" && c.declared != c.file {
+			return fmt.Errorf("migrate.to.%s %q does not match migrate.to.crdFile (%q)", c.field, c.declared, c.file)
+		}
+	}
+	to.APIVersion, to.Kind, to.Plural = apiVersion, file.Kind, file.Plural
+	to.ResolvedCRDFile = path
+	return nil
+}
+
+// ValidateSchemaPath reads the CRD YAML at crdPath and confirms that
+// specPath resolves to a leaf field in the CRD's OpenAPI schema.
+func ValidateSchemaPath(crdPath, specPath string) error {
+	return kube.ValidateSchemaPath(crdPath, specPath)
 }
 
 // readAPITypesFromCRDFile reads a CRD YAML file and extracts APITypes.
 func readAPITypesFromCRDFile(path string) (*types.APITypes, error) {
-	data, err := readLocal(path)
+	h, err := kube.ReadCRDFileHeader(path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read file: %w", err)
+		return nil, err
 	}
-
-	var doc crdFileHeader
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		return nil, fmt.Errorf("invalid YAML: %w", err)
-	}
-
-	if doc.Kind != "CustomResourceDefinition" {
-		return nil, fmt.Errorf("expected kind: CustomResourceDefinition, got %q", doc.Kind)
-	}
-	if doc.Spec.Group == "" {
-		return nil, fmt.Errorf("spec.group is missing")
-	}
-	if doc.Spec.Names.Kind == "" {
-		return nil, fmt.Errorf("spec.names.kind is missing")
-	}
-	if doc.Spec.Names.Plural == "" {
-		return nil, fmt.Errorf("spec.names.plural is missing")
-	}
-	if len(doc.Spec.Versions) == 0 {
-		return nil, fmt.Errorf("spec.versions is empty")
-	}
-
-	version := selectCRDVersion(doc.Spec.Versions)
-	if version == "" {
-		return nil, fmt.Errorf("no served or storage version found")
-	}
-
-	return &types.APITypes{
-		Group:   doc.Spec.Group,
-		Version: version,
-		Kind:    doc.Spec.Names.Kind,
-		Plural:  doc.Spec.Names.Plural,
-	}, nil
+	a := types.APITypesFromCRDHeader(h)
+	return &a, nil
 }
 
 // ResolveCRDFiles reads the blueprint YAML at path, resolves every crdFile
@@ -134,6 +139,11 @@ func ResolveCRDFiles(path string) ([]byte, error) {
 		if !ok {
 			continue
 		}
+		if err := resolveMigrateCRDFile(entry, dir); err != nil {
+			return nil, fmt.Errorf("CRD %q: %w", name, err)
+		}
+		crds[name] = entry
+
 		crdFile, _ := entry["crdFile"].(string)
 		if crdFile == "" {
 			continue
@@ -144,10 +154,13 @@ func ResolveCRDFiles(path string) ([]byte, error) {
 			absPath = filepath.Join(dir, crdFile)
 		}
 
-		apiTypes, err := readAPITypesFromCRDFile(absPath)
+		h, err := kube.ReadCRDFileHeader(absPath)
 		if err != nil {
 			return nil, fmt.Errorf("CRD %q: %w", name, err)
 		}
+		apiTypes := types.APITypesFromCRDHeader(h)
+		namespaced, _ := h.Namespaced()
+		entry["namespaced"] = namespaced
 
 		// Merge: start from whatever apiTypes the user already declared so that
 		// typed-mode fields (location, object, objectList, alias, apiPath) are
@@ -176,25 +189,26 @@ func ResolveCRDFiles(path string) ([]byte, error) {
 	return out, nil
 }
 
-// selectCRDVersion picks the version name from the CRD's version list.
-// Priority: storage: true → served: true → first in list.
-func selectCRDVersion(versions []struct {
-	Name    string `yaml:"name"`
-	Served  bool   `yaml:"served"`
-	Storage bool   `yaml:"storage"`
-}) string {
-	for _, v := range versions {
-		if v.Storage {
-			return v.Name
-		}
+// resolveMigrateCRDFile inlines migrate.to.crdFile in a raw blueprint entry
+// as apiVersion, kind and plural, and removes the crdFile key.
+func resolveMigrateCRDFile(entry map[string]interface{}, dir string) error {
+	mig, _ := entry["migrate"].(map[string]interface{})
+	to, _ := mig["to"].(map[string]interface{})
+	crdFile, _ := to["crdFile"].(string)
+	if crdFile == "" || strings.HasPrefix(crdFile, "http") {
+		return nil
 	}
-	for _, v := range versions {
-		if v.Served {
-			return v.Name
-		}
+	path := crdFile
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(dir, path)
 	}
-	if len(versions) > 0 {
-		return versions[0].Name
+	file, err := readAPITypesFromCRDFile(path)
+	if err != nil {
+		return fmt.Errorf("reading migrate.to.crdFile %q: %w", crdFile, err)
 	}
-	return ""
+	to["apiVersion"] = file.Group + "/" + file.Version
+	to["kind"] = file.Kind
+	to["plural"] = file.Plural
+	delete(to, "crdFile")
+	return nil
 }

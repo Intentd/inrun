@@ -1,6 +1,9 @@
 package structured
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // ToStringSet converts a slice of strings to a map[string]bool for O(1) lookups.
 //
@@ -71,3 +74,6 @@ func DedupStrings(ss []string) []string {
 	}
 	return out
 }
+
+// IsTemplate reports whether s contains a Go template expression.
+func IsTemplate(s string) bool { return strings.Contains(s, "{{") }

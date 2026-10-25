@@ -11,7 +11,9 @@ var rollbackCmd = &cobra.Command{
 	Use:   "rollback",
 	Short: "Roll back CRs to their pre-migration state using the stored snapshot",
 	Long: `Reverse a schema migration by restoring the field values captured in the
-inrun.dev/migrate-snapshot annotation.
+inrun.dev/migrate-field-snapshot annotation. For a migrate.to migration, the
+destination's inrun.dev/migrate-kind-snapshot is used: the source is recreated
+if it was pruned, then the destination is deleted.
 
 For each CR with a snapshot annotation, the rollback:
   1. reads the recorded {before, after} entry for each field from the snapshot

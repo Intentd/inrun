@@ -80,6 +80,9 @@ type CRDEntry struct {
 	// against apiTypes to catch mismatches before deployment.
 	CRDFile string `yaml:"crdFile,omitempty" json:"crdFile,omitempty"`
 
+	// Absolute path of the CRD file that was read, if any
+	ResolvedCRDFile string `yaml:"-" json:"-"`
+
 	// CRFiles is an ordered list of CR YAML files to apply before the runtime
 	// starts. Applied in declaration order after the CRD is registered.
 	// Same path resolution as CRDFile. Dev mode only.
@@ -190,6 +193,9 @@ type CRDEntry struct {
 	// When enabled, the Console renders a [+ Create] button for this CRD
 	// and serves its schema via GET /api/v1/schema/{kind}.
 	Serve *ServeConfig `yaml:"serve,omitempty" json:"serve,omitempty"`
+
+	// Migrate Declares that CRs of this kind migrate to another CRD
+	Migrate *CRMigrate `yaml:"migrate,omitempty" json:"migrate,omitempty"`
 
 	// ForceConflict, when true, sets Force: true on every server-side apply
 	// for the resources created on onCreate/onReconcile CRD, taking
@@ -338,7 +344,58 @@ type EndpointsConfig struct {
 
 // ServeEnabled reports whether serve is configured and enabled for this CRD.
 func (c *CRDEntry) ServeEnabled() bool {
-	return c.Serve != nil && c.Serve.Enabled
+	return c != nil && c.Serve != nil && c.Serve.Enabled
+}
+
+// HasMigrate reports whether this CRD declares a kind-level migration
+// (migrate.to).
+func (c *CRDEntry) HasMigrate() bool {
+	return c != nil && c.Migrate != nil && c.Migrate.To.Declared()
+}
+
+// HasMigrateSelection reports whether migrate.selection is declared. It
+// scopes the CRD's migration at either level.
+func (c *CRDEntry) HasMigrateSelection() bool {
+	return c != nil && c.Migrate != nil && !c.Migrate.Selection.IsEmpty()
+}
+
+// HasAnyMigrate reports whether the CRD declares a migration of either kind:
+// a field-level migration (any serve.fields entry with migrate.from) or a
+// CR-level migration (migrate.to). Used to gate commands that should run when
+// there is anything to migrate, regardless of which level declares it.
+func (c *CRDEntry) HasAnyMigrate() bool {
+	return c.HasServeFieldMigrate() || c.HasMigrate()
+}
+
+// ShouldPreserveMeta reports whether the source CR's labels and annotations
+// should be copied to the destination. True when PreserveSource is unset
+// (nil) or explicitly true; false only when PreserveSource is explicitly
+// false.
+func (c *CRDEntry) ShouldPreserveMeta() bool {
+	if !c.HasMigrate() {
+		return false
+	}
+	return c.Migrate.ShouldPreserveMeta()
+}
+
+// HasConflictingMigrate reports whether a CRD declares both a CR-level
+// migration (migrate.to) and any field-level migration
+// (serve.fields[*].migrate.from). The two are incompatible: field
+// migrations evolve the CRD in place, CR migration replaces it. Returns the
+// conflicting field's name so the caller can name it in the error.
+func (c *CRDEntry) HasConflictingMigrate() (bool, string) {
+	// No conflict is possible unless the CRD declares
+	// a CR-level migration and at least one serve field.
+	if !c.HasMigrate() || !c.HasServeFields() {
+		return false, ""
+	}
+
+	for name, config := range c.Serve.Fields {
+		if config.HasMigrate() {
+			return true, name
+		}
+	}
+	return false, ""
 }
 
 // HasServeName reports whether serve.name is declared — the Gateway API only
@@ -485,6 +542,20 @@ func (c *CRDEntry) ServeTargetOverrideEnabledFor(target string) bool {
 // HasServeFields reports whether this CRD declares any serve.fields.
 func (c *CRDEntry) HasServeFields() bool {
 	return c.ServeEnabled() && c.Serve.Fields != nil && len(c.Serve.Fields) > 0
+}
+
+// HasServeFieldMigrate reports whether any serve.fields entry declares a
+// migrate.from source path.
+func (c *CRDEntry) HasServeFieldMigrate() bool {
+	if !c.HasServeFields() {
+		return false
+	}
+	for _, field := range c.Serve.Fields {
+		if field.HasMigrate() {
+			return true
+		}
+	}
+	return false
 }
 
 // HasServeTokenRestrictions reports whether this CRD declares any token restrictions.
