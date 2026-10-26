@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  - name: create dev-server-token Secret
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ../secret.yaml
+
+  - name: WebApp reaches Ready
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          assert:
+            equals: "Ready"
+
+  - name: healthStatus is 200
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.healthStatus
+          assert:
+            equals: "200"
+
+  - name: configStatus is 200 — protected endpoint reached with valid token
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.configStatus
+          assert:
+            equals: "200"
+
+  - name: tokenValid is true — secretRef credential was accepted
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.tokenValid
+          assert:
+            equals: "true"

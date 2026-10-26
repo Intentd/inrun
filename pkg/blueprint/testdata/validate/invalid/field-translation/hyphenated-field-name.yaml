@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: hyphenated-field-name
+  version: 0.1.0
+  description: Invalid — serve field name contains a hyphen.
+spec:
+  crds:
+    widget:
+      crdFile: ../../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        target: widget
+        fields:
+          my-field:
+            label: "My Field"
+            value: '{{ .value }}'

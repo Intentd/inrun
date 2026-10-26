@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create {{ .Kind }} – Inrun Console</title>
+  <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
+  <link rel="stylesheet" href="/console/assets/static/css/style.css">
+  <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .serve-form-wrap { max-width: 640px; }
+    .serve-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 20px;
+    }
+    .serve-field label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .serve-field input[type="text"],
+    .serve-field input[type="number"],
+    .serve-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .serve-field input:focus,
+    .serve-field select:focus { border-color: var(--accent); }
+    .serve-field .serve-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .serve-field.serve-field-disabled input,
+    .serve-field.serve-field-disabled select,
+    .serve-field.serve-field-disabled label {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .serve-violation {
+      font-size: 12px;
+      color: var(--text-degraded, #f87171);
+      margin-top: 2px;
+    }
+    .serve-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .serve-checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+    .serve-section {
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      margin-bottom: 20px;
+    }
+    .serve-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .serve-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .serve-error {
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: var(--bg-degraded, rgba(239,68,68,0.1));
+      border: 1px solid var(--badge-degraded-border, rgba(239,68,68,0.3));
+      color: var(--text-degraded, #f87171);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .serve-success {
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: var(--bg-healthy, rgba(34,197,94,0.1));
+      border: 1px solid var(--badge-healthy-border, rgba(34,197,94,0.3));
+      color: var(--text-healthy, #4ade80);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .serve-warning {
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: rgba(234,179,8,0.1);
+      border: 1px solid rgba(234,179,8,0.3);
+      color: var(--text-warning, #facc15);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .serve-warning ul { margin: 6px 0 0 16px; padding: 0; }
+    .serve-warning li { margin-bottom: 2px; }
+    .serve-preview-banner {
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: var(--text-primary);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .serve-preview-banner strong { color: #818cf8; }
+    #serve-status { display: none; }
+    .console-btn-loading { opacity: 0.7; pointer-events: none; }
+    .serve-surface-selector {
+      margin-bottom: 28px;
+    }
+    .serve-surface-selector label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .serve-surface-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .serve-surface-tab {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .serve-surface-tab:hover { border-color: var(--accent); color: var(--text-primary); }
+    .serve-surface-tab.active {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.12);
+      color: var(--accent);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body class="console-root">
+
+  <!-- Sidebar -->
+  <aside class="console-sidebar" id="console-sidebar">
+    <div class="console-sidebar-logo">
+      <div class="console-sidebar-logo-row">
+        <a href="/console">
+          <img src="/console/assets/static/inrun-mark.svg" alt="Inrun" width="32" height="32">
+          <span>Inrun Console</span>
+        </a>
+        <button class="console-sidebar-toggle" id="console-sidebar-toggle" title="Collapse sidebar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+            <path d="M9 18l-6-6 6-6" opacity="0.4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <nav class="console-sidebar-nav">
+      <a href="/console" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        All Blueprints
+      </a>
+      <div class="console-nav-section">Context</div>
+      <a href="/console/blueprint/{{ .BlueprintName }}" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        {{ .BlueprintName }}
+      </a>
+      <a href="{{ .BackURL }}" class="console-nav-item active">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        {{ .CRDName }}
+      </a>
+    </nav>
+    <div class="console-sidebar-footer">
+      <span class="console-refresh-dot" title="Live connection"></span>
+      <span class="console-refresh-label">Live</span>
+    </div>
+  </aside>
+  <div class="console-sidebar-overlay" id="console-overlay"></div>
+
+  <main class="console-main">
+    <div class="console-navbar">
+      <button class="console-mobile-toggle" id="console-mobile-toggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <nav class="console-breadcrumb">
+        <a href="/console">Console</a>
+        <span class="sep">›</span>
+        <a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }}</a>
+        <span class="sep">›</span>
+        <a href="{{ .BackURL }}">{{ .CRDName }}</a>
+        <span class="sep">›</span>
+        <span class="current">Create</span>
+      </nav>
+      <div class="console-navbar-right">
+        <button class="console-theme-toggle" id="console-theme-toggle" title="Toggle theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="console-page">
+      <div class="console-header-actions">
+        <div>
+          <h1 class="console-page-title">Create {{ .Kind }}</h1>
+          <div class="console-header-meta">
+            <span class="console-td-mono">{{ .APIVersion }}, Kind={{ .Kind }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="serve-form-wrap">
+
+        {{ if .Error }}
+        <div class="serve-error">{{ .Error }}</div>
+        {{ end }}
+
+        <div id="serve-status"></div>
+
+        {{ if .Aliases }}
+        <div class="serve-surface-selector">
+          <label>Surface</label>
+          <div class="serve-surface-tabs">
+            <button type="button" class="serve-surface-tab active" data-surface="{{ .Target }}">{{ .Target }}</button>
+            {{ range .Aliases }}
+            <button type="button" class="serve-surface-tab" data-surface="{{ . }}">{{ . }}</button>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+
+        <form id="serve-form" autocomplete="off">
+
+          <!-- Identity fields — omitted entirely when serve.name is declared;
+               the name is derived server-side and never shown or submitted. -->
+          {{ if .RequireServeName }}
+          <div class="serve-section">
+            <div class="serve-section-title">Identity</div>
+
+            <div class="serve-field">
+              <label for="cr-name">Name <span style="color:var(--text-muted)">*</span></label>
+              <input type="text" id="cr-name" name="__name" required placeholder="my-resource" pattern="[a-z0-9][a-z0-9\-]*[a-z0-9]?" title="Lowercase letters, numbers, and hyphens">
+            </div>
+          </div>
+          {{ end }}
+
+          <!-- Spec fields — one section per Group -->
+          {{ range .Sections }}
+          <div class="serve-section">
+            <div class="serve-section-title">{{ .Title }}</div>
+
+            {{ range .Fields }}
+            <div class="serve-field{{ if .Disabled }} serve-field-disabled{{ end }}"
+                 id="field-wrap-{{ .Name }}"
+                 {{ if .WhenJSON  }}data-when='{{ .WhenJSON }}'{{ end }}
+                 {{ if .OrJSON }}data-or='{{ .OrJSON }}'{{ end }}>
+
+              {{ if eq .InputType "checkbox" }}
+              <div class="serve-checkbox-row">
+                <input type="checkbox" id="field-{{ .Name }}" name="{{ .Name }}" data-type="boolean"
+                  {{ if .Disabled }}disabled{{ end }}>
+                <label for="field-{{ .Name }}">{{ .Label }}{{ if .Required }} <span style="color:var(--text-muted)">*</span>{{ end }}</label>
+              </div>
+              {{ else if eq .InputType "select" }}
+              <label for="field-{{ .Name }}">{{ .Label }}{{ if .Required }} <span style="color:var(--text-muted)">*</span>{{ end }}</label>
+              <select id="field-{{ .Name }}" name="{{ .Name }}" data-type="string"
+                {{ if and .Required (not .Disabled) }}required{{ end }}
+                {{ if .Disabled }}disabled{{ end }}>
+                <option value="">— select —</option>
+                {{ range .Enum }}
+                <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+              </select>
+              {{ else if eq .InputType "number" }}
+              <label for="field-{{ .Name }}">{{ .Label }}{{ if .Required }} <span style="color:var(--text-muted)">*</span>{{ end }}</label>
+              <input type="number" id="field-{{ .Name }}" name="{{ .Name }}" data-type="number"
+                {{ if .Placeholder }}placeholder="{{ .Placeholder }}"{{ end }}
+                {{ if and .Required (not .Disabled) }}required{{ end }}
+                {{ if .Disabled }}disabled{{ end }}>
+              {{ else }}
+              <label for="field-{{ .Name }}">{{ .Label }}{{ if .Required }} <span style="color:var(--text-muted)">*</span>{{ end }}</label>
+              <input type="text" id="field-{{ .Name }}" name="{{ .Name }}" data-type="string"
+                {{ if .Placeholder }}placeholder="{{ .Placeholder }}"{{ end }}
+                {{ if and .Required (not .Disabled) }}required{{ end }}
+                {{ if .Disabled }}disabled{{ end }}>
+              {{ end }}
+
+              {{ if .Disabled }}
+              <span class="serve-hint" style="color:var(--text-degraded,#f87171)">{{ .Disabled }}</span>
+              {{ else if .Hint }}
+              <span class="serve-hint">{{ .Hint }}</span>
+              {{ end }}
+              <span class="serve-violation" id="violation-{{ .Name }}" style="display:none"></span>
+            </div>
+            {{ end }}
+
+          </div>
+          {{ end }}
+
+          <div class="serve-actions">
+            <button type="submit" id="serve-submit" class="console-btn console-btn-primary">Create</button>
+            <button type="button" id="serve-preview" class="console-btn console-btn-ghost">Preview</button>
+            <a href="{{ .BackURL }}" class="console-btn console-btn-ghost">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="/console/assets/static/js/console.js"></script>
+  <script>
+  (function () {
+    var form       = document.getElementById('serve-form');
+    var btnSubmit  = document.getElementById('serve-submit');
+    var btnPreview = document.getElementById('serve-preview');
+    var status     = document.getElementById('serve-status');
+    var backURL    = {{ .BackURL | js }};
+    var target     = {{ .Target | js }};
+
+    // ── Surface tabs ────────────────────────────────────────────────────────
+    document.querySelectorAll('.serve-surface-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.serve-surface-tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        target = tab.dataset.surface;
+      });
+    });
+
+    // ── Condition evaluation ────────────────────────────────────────────────
+    function evalCond(cond) {
+      if (cond.time) {
+        var now = new Date();
+        var hm  = now.getHours() * 60 + now.getMinutes();
+        if (cond.time.after) {
+          var p = cond.time.after.split(':');
+          if (hm < parseInt(p[0]) * 60 + parseInt(p[1])) return false;
+        }
+        if (cond.time.before) {
+          var p = cond.time.before.split(':');
+          if (hm >= parseInt(p[0]) * 60 + parseInt(p[1])) return false;
+        }
+      }
+      if (cond.dayOfWeek) {
+        var day = new Date().getDay();
+        var dow = cond.dayOfWeek;
+        var weekdays = [false,true,true,true,true,true,false];
+        if (dow.weekday === true  && !weekdays[day]) return false;
+        if (dow.weekend === true  &&  weekdays[day]) return false;
+        if (dow['in'] && dow['in'].length) {
+          var names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+          if (dow['in'].indexOf(names[day]) === -1) return false;
+        }
+        if (dow.notIn && dow.notIn.length) {
+          var names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+          if (dow.notIn.indexOf(names[day]) !== -1) return false;
+        }
+      }
+      if (cond.field) {
+        var fieldName = cond.field.replace(/^spec\./, '');
+        var el = document.getElementById('field-' + fieldName);
+        var val = el ? (el.type === 'checkbox' ? String(el.checked) : el.value) : '';
+        if (cond.equals    !== undefined && val !== cond.equals)                   return false;
+        if (cond.notEquals !== undefined && val === cond.notEquals)                return false;
+        if (cond.contains  !== undefined && val.indexOf(cond.contains) === -1)     return false;
+        if (cond.prefix    !== undefined && val.indexOf(cond.prefix)   !== 0)      return false;
+        if (cond.suffix    !== undefined && !val.endsWith(cond.suffix))            return false;
+      }
+      return cond.negate ? false : true;
+    }
+
+    function fieldVisible(wrap) {
+      var when  = wrap.dataset.when  ? JSON.parse(wrap.dataset.when)  : null;
+      var or = wrap.dataset.or ? JSON.parse(wrap.dataset.or) : null;
+      if (when  && when.length  && !when.every(evalCond))  return false;
+      if (or && or.length && !or.some(evalCond))  return false;
+      return true;
+    }
+
+    function applyVisibility() {
+      document.querySelectorAll('.serve-field[data-when], .serve-field[data-or]').forEach(function (wrap) {
+        wrap.style.display = fieldVisible(wrap) ? '' : 'none';
+      });
+      // A category heading with no currently-visible fields underneath is just
+      // dead space — hide the whole section, not only its (already-hidden) fields.
+      document.querySelectorAll('.serve-section').forEach(function (section) {
+        var fields = section.querySelectorAll('.serve-field');
+        var anyVisible = Array.prototype.some.call(fields, function (f) {
+          return f.style.display !== 'none';
+        });
+        section.style.display = anyVisible ? '' : 'none';
+      });
+    }
+
+    form.addEventListener('input',  applyVisibility);
+    form.addEventListener('change', applyVisibility);
+    applyVisibility();
+
+    // ── Violation display ───────────────────────────────────────────────────
+    function clearViolations() {
+      document.querySelectorAll('.serve-violation').forEach(function (el) {
+        el.style.display = 'none';
+        el.textContent = '';
+      });
+      document.querySelectorAll('.serve-field').forEach(function (el) {
+        el.style.outline = '';
+      });
+    }
+
+    function showViolations(violations) {
+      (violations || []).forEach(function (v) {
+        var name = v.field ? v.field.replace(/^spec\./, '') : '';
+        var el = name ? document.getElementById('violation-' + name) : null;
+        if (el) {
+          el.textContent = v.message;
+          el.style.display = '';
+          var wrap = document.getElementById('field-wrap-' + name);
+          if (wrap) wrap.style.outline = '1px solid var(--text-degraded, #f87171)';
+        }
+      });
+    }
+
+    function showStatus(ok, msg, preview) {
+      status.style.display = 'block';
+      status.className = ok ? 'serve-success' : 'serve-error';
+      var icon = ok ? '✓' : '✗';
+      var label = preview ? icon + ' Preview: ' : icon + ' ';
+      status.innerHTML = '<strong>' + label + '</strong>' + msg;
+      window.scrollTo(0, 0);
+    }
+
+    // A rejection with structured violations gets a short banner — the
+    // per-field detail lives next to each field via showViolations(), so the
+    // banner doesn't need to repeat the raw "field \"spec.foo\": ... (got: ...)"
+    // string. Only fall back to the full server message when there's nothing
+    // structured to point at (e.g. malformed JSON, unknown resource).
+    function showRejection(body, preview) {
+      var violations = body && body.violations;
+      if (violations && violations.length > 0) {
+        showStatus(false, 'Please fix the highlighted field' + (violations.length > 1 ? 's' : '') + ' below.', preview);
+        showViolations(violations);
+        return;
+      }
+      var msg = (body && (body.message || body.error)) || (preview ? 'Would be rejected.' : 'Request failed.');
+      showStatus(false, msg, preview);
+    }
+
+    function showWarnings(warnings) {
+      if (!warnings || warnings.length === 0) return;
+      status.style.display = 'block';
+      status.className = 'serve-warning';
+      var items = warnings.map(function (w) { return '<li>' + w + '</li>'; }).join('');
+      status.innerHTML = '<strong>⚠ Warning' + (warnings.length > 1 ? 's' : '') + '</strong><ul>' + items + '</ul>';
+      window.scrollTo(0, 0);
+    }
+
+    // ── Payload collection ──────────────────────────────────────────────────
+    // Flat target-mode payload — the gateway resolves which field goes where
+    // (spec, label, annotation) from the Blueprint's serve.fields declaration;
+    // the form just submits the field names and values it was given.
+    function collectPayload() {
+      var payload = { target: target }, name = '';
+      form.querySelectorAll('input, select').forEach(function (el) {
+        var n = el.name;
+        if (!n) return;
+        if (n === '__name') { name = el.value.trim(); return; }
+        var wrap = document.getElementById('field-wrap-' + n);
+        if (wrap && wrap.style.display === 'none') return;
+        if (el.disabled) return;
+        var t = el.getAttribute('data-type');
+        var v = (t === 'boolean') ? el.checked
+              : (t === 'number')  ? (el.value !== '' ? Number(el.value) : undefined)
+              : el.value;
+        if (v === undefined || v === '') return;
+        payload[n] = v;
+      });
+      if (name) payload.name = name;
+      return payload;
+    }
+
+    // ── Submit / Preview ────────────────────────────────────────────────────
+    function doSubmit(dryRun) {
+      var loading = dryRun ? btnPreview : btnSubmit;
+      loading.classList.add('console-btn-loading');
+      loading.textContent = dryRun ? 'Checking…' : 'Creating…';
+      status.style.display = 'none';
+      clearViolations();
+
+      var url = window.location.pathname + (dryRun ? '?dryRun=true' : '');
+      fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(collectPayload()),
+      })
+      .then(function (r) {
+        return r.json().then(function (body) { return { ok: r.ok, status: r.status, body: body }; });
+      })
+      .then(function (res) {
+        loading.classList.remove('console-btn-loading');
+        loading.textContent = dryRun ? 'Preview' : 'Create';
+
+        if (dryRun) {
+          if (res.ok || (res.body && res.body.accepted)) {
+            var warns = res.body && res.body.warnings;
+            if (warns && warns.length > 0) {
+              status.style.display = 'block';
+              status.className = 'serve-warning';
+              var items = warns.map(function (w) { return '<li>' + w + '</li>'; }).join('');
+              status.innerHTML = '<strong>⚠ Preview — accepted with warning' + (warns.length > 1 ? 's' : '') + '</strong><ul>' + items + '</ul>';
+              window.scrollTo(0, 0);
+            } else {
+              showStatus(true, 'Looks good — no admission errors detected.', true);
+            }
+          } else {
+            showRejection(res.body, true);
+          }
+          return;
+        }
+
+        if (res.ok || res.status === 200 || res.status === 201) {
+          var warns = res.body && res.body.warnings;
+          if (warns && warns.length > 0) {
+            showWarnings(warns);
+          } else {
+            window.location.href = backURL;
+          }
+        } else {
+          showRejection(res.body, false);
+        }
+      })
+      .catch(function (err) {
+        loading.classList.remove('console-btn-loading');
+        loading.textContent = dryRun ? 'Preview' : 'Create';
+        showStatus(false, 'Network error: ' + err.message, dryRun);
+      });
+    }
+
+    form.addEventListener('submit', function (e) { e.preventDefault(); doSubmit(false); });
+    btnPreview.addEventListener('click', function () { doSubmit(true); });
+  })();
+  </script>
+</body>
+</html>

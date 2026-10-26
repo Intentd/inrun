@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Prune: remove the migrated sources only. Pruning is switched on for these
+# runs with --set; blueprint.yaml is left as it is.
+expect:
+  - name: Prune the three migrated sources only
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true -n team-a,team-b,team-d --yes
+        contains: "3 sources pruned"
+
+  - name: Pruned sources are gone and their destinations remain
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-a
+          notExists: true
+        - kind: appconfigs.demo.inrun.dev
+          name: search
+          namespace: team-b
+          notExists: true
+        - kind: appconfigs.demo.inrun.dev
+          name: ledger
+          namespace: team-d
+          notExists: true
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          field: .metadata.labels.team
+          equals: team-a
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: search
+          field: .metadata.labels.team
+          equals: team-b
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: ledger
+          field: .metadata.labels.team
+          equals: team-d
+
+  - name: Collision source remains after selective pruning
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-c
+          json:
+            - path: .spec.scaling.min
+              equals: 2
+            - path: .spec.observability.logging.level
+              equals: debug
+            - path: .status.phase
+              equals: Pending
+
+  # With pruning still on: the sources are gone, so nothing is found and
+  # nothing more is deleted.
+  - name: Repeating the prune command is idempotent
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true -n team-a,team-b,team-d --yes -ojson
+        json:
+          - path: .totals.crs
+            equals: 0
+          - path: .totals.pruned
+            equals: 0
+          - path: .totals.failed
+            equals: 0
+
+  # --- rollback: restore the original namespaced resources ---

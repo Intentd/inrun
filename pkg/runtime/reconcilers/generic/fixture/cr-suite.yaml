@@ -1,0 +1,5 @@
+apiVersion: reconciler.inrun.dev/v1alpha1
+kind: ReconcilerSuite
+metadata:
+  name: probe-suite
+  namespace: default

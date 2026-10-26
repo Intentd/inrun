@@ -1,0 +1,7 @@
+{
+  "target": "website",
+  "name": "hello-intent",
+  "image": "nginx:1.25",
+  "replicas": 1,
+  "port": 80
+}

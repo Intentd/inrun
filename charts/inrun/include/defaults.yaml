@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Defaults: what the chart leaves out unless enabled, and what the gateway registers
+expect:
+  - name: Ingress not created (console.ingress.enabled defaults to false)
+    after: setup-complete
+    timeout: 30s
+    resources:
+      - kind: Ingress
+        namespace: inrun-system
+        count: 0
+
+  - name: NetworkPolicies not created (networkPolicy.enabled defaults to false)
+    timeout: 30s
+    resources:
+      - kind: NetworkPolicy
+        namespace: inrun-system
+        count: 0
+
+  - name: Namespace protection webhook registered by gateway
+    timeout: 60s
+    resources:
+      - kind: ValidatingWebhookConfiguration
+        name: inrun-namespace-protection

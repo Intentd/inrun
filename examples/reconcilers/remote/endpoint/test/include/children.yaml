@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Children: what the reconciler returns is applied, and drift is corrected
+expect:
+  - name: Deployment created and ready
+    after: cr-applied
+    timeout: 120s
+    resources:
+      - kind: Deployment
+        name: my-webapp
+        namespace: default
+        ready: true
+    kubectl:
+      get:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          field: .spec.replicas
+          equals: "4"
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          field: .spec.template.spec.containers[0].image
+          equals: nginx:1.25
+
+  - name: Service created
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: Service
+        name: my-webapp-svc
+        namespace: default
+    kubectl:
+      get:
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+          field: .spec.ports[0].targetPort
+          equals: "8080"
+
+  - name: Drift correction — Deployment restored after manual edit
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      patch:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          patch: '{"spec":{"replicas":1}}'
+      get:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          field: .spec.replicas
+          equals: "4"

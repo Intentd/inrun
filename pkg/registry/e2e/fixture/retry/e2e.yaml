@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: retry-e2e
+  description: >
+    Exercises the retry loop with provider: none. Commands only; no cluster.
+    A 1s timeout makes each attempt exactly two polls (at the start and at the
+    deadline), so a counter file next to the suite fixes which attempt passes;
+    finally deletes it so the next run starts clean.
+
+spec:
+  custom:
+    target: kubernetes
+  cluster:
+    provider: none
+
+  env:
+    SPEC_TOKEN: from-spec
+
+  expect:
+    - name: passes first attempt
+      timeout: 5s
+      commands:
+        - run: 'test 1 -eq 1'
+
+    - name: passes on second attempt
+      timeout: 1s
+      retry: 2
+      commands:
+        - run: |
+            f="$(pwd)/.retry-2"
+            n=$(cat "$f" 2>/dev/null || echo 0)
+            n=$((n+1))
+            echo "$n" > "$f"
+            test "$n" -ge 3
+      finally:
+        commands:
+          - run: rm -f .retry-2
+
+    - name: passes on third attempt
+      timeout: 1s
+      retry: 2
+      commands:
+        - run: |
+            f="$(pwd)/.retry-3"
+            n=$(cat "$f" 2>/dev/null || echo 0)
+            n=$((n+1))
+            echo "$n" > "$f"
+            test "$n" -ge 5
+      finally:
+        commands:
+          - run: rm -f .retry-3
+
+    - name: skipped by when
+      timeout: 5s
+      when:
+        - field: x
+          equals: y
+      commands:
+        - run: 'exit 1'
+
+    - name: passes with expect env
+      timeout: 5s
+      env:
+        EXPECT_TOKEN: from-expect
+      commands:
+        - run: 'test "$EXPECT_TOKEN" = "from-expect"'
+
+    - name: passes with spec env
+      timeout: 5s
+      commands:
+        - run: 'test "$SPEC_TOKEN" = "from-spec"'

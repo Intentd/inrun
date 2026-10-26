@@ -1,0 +1,11 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: BlockchainApp
+metadata:
+  name: 01-hooks-my-chain
+  namespace: default
+spec:
+  image: ethereum/client-go:v1.14.0
+  network: testnet
+  nodeType: full-node
+  replicas: 5
+  serviceUrl: "http://localhost:9999"

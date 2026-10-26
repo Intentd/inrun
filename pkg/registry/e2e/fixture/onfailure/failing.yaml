@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+#
+# The suite e2e.yaml runs, and expects to fail. Named so discovery (./...)
+# skips it: only e2e.yaml files are leaves. Each post block appends a line to
+# .marks, so e2e.yaml can check which ran, in what order, with which env.
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: onfailure-failing
+  description: >
+    One failing step and two passing ones, each with post blocks, under a
+    spec-level onFailure. Run by e2e.yaml; not meant to be run on its own.
+
+spec:
+  custom:
+    target: kubernetes
+  cluster:
+    provider: none
+
+  env:
+    SPEC_TOKEN: from-spec
+
+  # Runs once, after the results, because a step failed.
+  onFailure:
+    commands:
+      - run: echo "spec onFailure $SPEC_TOKEN" >> .marks
+
+  # Runs once, at the very end, whatever happened.
+  finally:
+    commands:
+      - run: echo "spec finally $SPEC_TOKEN" >> .marks
+
+  expect:
+    - name: fails, then its onFailure and finally run
+      timeout: 1s
+      env:
+        WHO: from-expect
+      commands:
+        - run: exit 1
+      onFailure:
+        commands:
+          - run: echo "expect onFailure $WHO $SPEC_TOKEN" >> .marks
+      finally:
+        commands:
+          - run: echo "finally after a failure" >> .marks
+
+    - name: passes, so only its finally runs
+      timeout: 1s
+      commands:
+        - run: "true"
+      onFailure:
+        commands:
+          - run: echo "onFailure of a pass" >> .marks
+      finally:
+        commands:
+          - run: echo "finally after a pass" >> .marks
+
+    # A post block never changes the result: a failed command and a missed
+    # assertion are warnings, and the block carries on after each.
+    - name: passes despite a broken finally
+      timeout: 1s
+      commands:
+        - run: "true"
+      finally:
+        commands:
+          - run: exit 3
+          - run: echo "finally keeps going" >> .marks
+          - run: echo hello
+            assert: 
+              equals: goodbye

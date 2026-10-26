@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: webapp-constructor-sim
+  description: Verify Deployment and Service created by the constructor in cycle 1
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: create
+        resource: deployments
+      - cycle: 1
+        verb: create
+        resource: services

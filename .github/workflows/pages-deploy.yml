@@ -1,0 +1,77 @@
+name: Deploy (inrun.dev)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+env:
+  HUGO_VERSION: 0.160.0
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Hugo extended
+        run: |
+          curl -sLJO "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"
+          mkdir -p "${HOME}/.local/hugo"
+          tar -C "${HOME}/.local/hugo" -xf "hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"
+          rm "hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"
+          echo "${HOME}/.local/hugo" >> "${GITHUB_PATH}"
+
+      - name: Sync docs → website content
+        run: bash website/scripts/sync-docs.sh
+
+      - name: Build site
+        run: |
+          hugo --source ./website \
+               --gc \
+               --minify \
+               --baseURL "https://inrun.dev/" \
+               --cacheDir "${{ runner.temp }}/hugo_cache"
+
+      - name: Create Pages project (no-op if already exists)
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create ${{ secrets.CLOUDFLARE_PAGES_PROJECT }} --production-branch=main
+        continue-on-error: true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy website/public --project-name=${{ secrets.CLOUDFLARE_PAGES_PROJECT }} --commit-dirty=true
+
+      # - name: Crawl Algolia search index
+      #   if: success()
+      #   env:
+      #     ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
+      #     ALGOLIA_WRITE_KEY: ${{ secrets.ALGOLIA_WRITE_KEY }}
+      #   run: |
+      #     CONFIG=$(cat website/docsearch-config.json)
+      #     docker run --rm \
+      #       -e APPLICATION_ID="${ALGOLIA_APP_ID}" \
+      #       -e API_KEY="${ALGOLIA_WRITE_KEY}" \
+      #       -e CONFIG="${CONFIG}" \
+      #       algolia/docsearch-scraper
+      #   continue-on-error: true

@@ -1,0 +1,137 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: apps.security.inrun.dev
+spec:
+  group: security.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Image
+          type: string
+          jsonPath: .spec.image
+        - name: Replicas
+          type: integer
+          jsonPath: .spec.replicas
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                replicas:
+                  type: integer
+                  default: 1
+                port:
+                  type: integer
+                  default: 8080
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  names:
+    kind: App
+    plural: apps
+    singular: app
+  scope: Namespaced
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: databases.security.inrun.dev
+spec:
+  group: security.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Engine
+          type: string
+          jsonPath: .spec.engine
+        - name: Storage
+          type: string
+          jsonPath: .spec.storageSize
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                engine:
+                  type: string
+                  default: postgres
+                  enum: [postgres, mysql, sqlite]
+                storageSize:
+                  type: string
+                  default: "1Gi"
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  names:
+    kind: Database
+    plural: databases
+    singular: database
+  scope: Namespaced
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: caches.security.inrun.dev
+spec:
+  group: security.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: MaxMemory
+          type: string
+          jsonPath: .spec.maxMemory
+        - name: Policy
+          type: string
+          jsonPath: .spec.evictionPolicy
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                maxMemory:
+                  type: string
+                  default: "256Mi"
+                evictionPolicy:
+                  type: string
+                  default: allkeys-lru
+                  enum: [allkeys-lru, allkeys-lfu, volatile-lru, noeviction]
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  names:
+    kind: Cache
+    plural: caches
+    singular: cache
+  scope: Namespaced

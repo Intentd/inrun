@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: webapp-ctrlruntime-sim
+  description: >
+    Run with: inrun simulate
+
+    The reconciler is written in controller-runtime style: it receives a
+    reconcile.Request, fetches the WebApp via client.Get, and creates a
+    Deployment via client.Create / client.Patch. adapter.ToClient and
+    domain.ReconcilerFrom bridge the two APIs at the constructor boundary —
+    the reconciler body never changes.
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr-webapp.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: create
+        resource: deployments
+        name: 04-ctrlruntime-demo
+      - cycle: 1
+        verb: create
+        resource: configmaps
+        name: 04-ctrlruntime-demo-config

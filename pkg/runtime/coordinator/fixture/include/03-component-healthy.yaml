@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  # Component depends on Worker (started). Worker workers started in Phase 2
+  # so the gate is already open. Component reconciles immediately on CR apply.
+  # Worker has no CR yet — stays pending. Platform has no CR yet — stays pending.
+  - name: Component CR applied — gate satisfied, component healthy
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      apply:
+        - file: ../cr-component.yaml
+      get:
+        - kind: Component
+          name: core-component
+          namespace: default
+          field: .status.phase
+          assert:
+            equals: Running
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jsonPath: .state
+          assert:
+            equals: healthy
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jsonPath: .state
+          assert:
+            equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jsonPath: .hasUnhealthyDependencies
+          assert:
+            equals: "false"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .state
+          assert:
+            equals: pending

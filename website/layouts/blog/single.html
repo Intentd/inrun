@@ -1,0 +1,58 @@
+{{ define "main" }}
+<div class="blog-single-layout">
+  <article class="blog-single">
+    <header class="blog-single-header">
+      <a href="/blog/" class="blog-back-link">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All posts
+      </a>
+
+      {{ if .Params.tags }}
+      <div class="blog-tags" style="margin-top:1.5rem">
+        {{ range .Params.tags }}
+        <span class="blog-tag">{{ . }}</span>
+        {{ end }}
+      </div>
+      {{ end }}
+
+      <h1 class="blog-single-title">{{ .Title }}</h1>
+
+      {{ with .Description }}
+      <p class="blog-single-desc">{{ . }}</p>
+      {{ end }}
+
+      <div class="blog-single-meta">
+        {{ with .Params.author }}<span class="blog-author">{{ . }}</span>{{ end }}
+        <time class="blog-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 2, 2006" }}</time>
+        {{ if .ReadingTime }}<span class="blog-reading-time">{{ .ReadingTime }} min read</span>{{ end }}
+      </div>
+    </header>
+
+    <div class="blog-single-body prose">
+      {{ .Content }}
+    </div>
+
+    <footer class="blog-single-footer">
+      <a href="/blog/" class="blog-back-link">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Blog
+      </a>
+      {{ if .Site.Params.github }}
+      <a href="{{ .Site.Params.github }}/discussions" target="_blank" rel="noopener noreferrer" class="blog-discuss-link">
+        Discuss on GitHub
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+      </a>
+      {{ end }}
+    </footer>
+  </article>
+
+  <aside class="blog-single-toc">
+    {{ if .TableOfContents }}
+    <div class="toc-inner">
+      <p class="toc-title">On this page</p>
+      {{ .TableOfContents }}
+    </div>
+    {{ end }}
+  </aside>
+</div>
+{{ end }}

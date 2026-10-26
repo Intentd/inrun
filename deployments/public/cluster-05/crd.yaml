@@ -1,0 +1,219 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: pipelines.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Pipeline
+    plural: pipelines
+    singular: pipeline
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: datasets.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Dataset
+    plural: datasets
+    singular: dataset
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: schemas.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Schema
+    plural: schemas
+    singular: schema
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: transforms.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Transform
+    plural: transforms
+    singular: transform
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sinks.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Sink
+    plural: sinks
+    singular: sink
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sources.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Source
+    plural: sources
+    singular: source
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: datajobs.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: DataJob
+    plural: datajobs
+    singular: datajob
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: schedules.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Schedule
+    plural: schedules
+    singular: schedule
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: alerts.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Alert
+    plural: alerts
+    singular: alert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: dashboards.data.demo.inrun.dev
+spec:
+  group: data.demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    kind: Dashboard
+    plural: dashboards
+    singular: dashboard

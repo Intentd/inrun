@@ -1,0 +1,1939 @@
+{
+  "$defs": {
+    "Assertions": {
+      "additionalProperties": false,
+      "description": "Assertions checks a step's output: one comparison inline, a list under text, path-scoped ones under json.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "json": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JSONAssertions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "JSON — comparisons on values in JSON output, by dot path."
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextAssertions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text — comparisons on the output, in order."
+        }
+      },
+      "type": "object"
+    },
+    "Auth": {
+      "additionalProperties": false,
+      "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
+      "properties": {
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SecretRef locates a Kubernetes Secret whose data key holds a bearer token\nMutually exclusive with Token. inrun validate enforces this"
+        },
+        "token": {
+          "description": "Token is a bearer token for the endpoint. $ENV_VAR syntax supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "description": "Condition is one test against the CR or runtime state.",
+      "properties": {
+        "between": {
+          "description": "Between passes when the field's number is inside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains passes when the field's value contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cron": {
+          "description": "Cron — a standard cron expression (5-field) that defines when the\nwindow opens. Duration defines how long the window stays open.\nWithout Duration, the window stays open until the next fire. Add Duration to close it sooner.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dayOfWeek": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DayOfWeekCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "DayOfWeek — active on the specified days of the week.\n  or:\n    - dayOfWeek:\n        in: [Monday, Tuesday, Wednesday, Thursday, Friday]"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Duration — how long a cron-opened window remains active."
+        },
+        "equals": {
+          "description": "Equals passes when the field's value is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "field": {
+          "description": "Field — dot-notation path to a field in the CR object or a runtime metric.\ne.g. \"spec.environment\", \"metrics.queueDepth\", \"cross.managed-database.metrics.queueDepth\"",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan passes when the field's number is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In passes when the field's value is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan passes when the field's number is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max is an inclusive upper bound: the field's number is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min is an inclusive lower bound: the field's number is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "negate": {
+          "description": "Negate — when true, the result of this condition is inverted.\nApplies to all condition types: field comparisons, time windows, dayOfWeek, cron.\n\n  when:\n    - dayOfWeek:\n        weekday: true\n      negate: true   # passes on weekends",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween passes when the field's number is outside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains passes when the field's value does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals passes when the field's value is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn passes when the field's value is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix passes when the field's value does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix passes when the field's value does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix passes when the field's value starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex passes when the field's value matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CrossSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source is the HTTP fallback for cross-binary metric observation.\nOnly used when field is a cross.\u003ccrd\u003e.metrics.* field and the CRD\nis not registered in GlobalCrossMetricsRegistry (different binary).\nThe endpoint must be the remote operator's /blueprint/{crd} URL.\n\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        host: \"http://inrun-database-operator:8080\"\n\t\t   crd: managed-database\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        endpoint: \"http://non-inrun-database-operator:8080/api/managed-database/metrics\""
+        },
+        "suffix": {
+          "description": "Suffix passes when the field's value ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Time — active when the current time is within the declared window.\nAfter and Before are both optional; omit one for a half-open range.\n  or:\n    - time:\n        after: \"08:00\"\n        before: \"20:00\""
+        },
+        "typeOf": {
+          "description": "TypeOf passes when the field's value has this type: map, slice,\nstring, number, bool or null (the names the typeOf function returns).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "unique": {
+          "description": "Unique, when true, passes when no other instance of the CRD has the same\nvalue at Field. Always passes where no uniqueness checker is available\n(e2e, simulate without a seeded fixture).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Conditions": {
+      "items": {
+        "$ref": "#/$defs/Condition"
+      },
+      "type": "array"
+    },
+    "CrossSource": {
+      "additionalProperties": false,
+      "description": "CrossSource declares how to fetch cross-binary/cluster data for a CRD.",
+      "properties": {
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Auth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Auth handles both ENV-based token and secret reads for cross: authentication\n\tauth:\n\t  secretRef:\n\t\tname: cross-secret\n\t\tnamespace: cross-namespace\n\t\tkey: password"
+        },
+        "cacheFor": {
+          "description": "CacheFor controls how long to cache the result before calling again.\nDefault: 30s — prevents hammering the endpoint on every evaluation.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint is a fully-qualified URL. If set, Inrun uses it directly\nand ignores Host/Protocol/Namespace. Template expressions supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "description": "Host is the base URL of a remote Inrun runtime, e.g.:\n  http://inrun-runtime.loader-system:8080\nCombined with Type to build the final URL.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace overrides the CR namespace when building info/events URLs.\nOptional — defaults to the CR's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "protocol": {
+          "description": "Protocol selects which Inrun-native endpoint to call.\nOne of: \"info\", \"metrics\", \"health\", \"events\".\nDefault: \"info\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "DayOfWeekCondition": {
+      "additionalProperties": false,
+      "description": "DayOfWeekCondition declares which days the condition is active.",
+      "properties": {
+        "in": {
+          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — active on all days except these.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "weekday": {
+          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "weekend": {
+          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Duration": {
+      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "JSONAssertion": {
+      "additionalProperties": false,
+      "description": "JSONAssertion asserts on one value in a JSON document.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "JSONAssertions": {
+      "items": {
+        "$ref": "#/$defs/JSONAssertion"
+      },
+      "type": "array"
+    },
+    "KELFunctionRegistry": {
+      "additionalProperties": false,
+      "description": "KELFunctionRegistry holds user-defined functions merged from a Blueprint and its spec.imports Modules.",
+      "properties": {
+        "definitions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserDefinedFunctions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Definitions — the functions, each a named template expression."
+        },
+        "include": {
+          "description": "Include — a YAML file, relative to this one, whose definitions: list is\nadded before the definitions here.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "KubernetesSecretRef": {
+      "additionalProperties": false,
+      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "properties": {
+        "key": {
+          "description": "Key is the data key within the Secret whose value is the token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Kubernetes Secret name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "rotateAfter": {
+          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SetupApplyEntry": {
+      "anyOf": [
+        {
+          "description": "Path to a manifest",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "SetupApplyEntry is a single manifest to kubectl-apply during setup.",
+          "properties": {
+            "path": {
+              "description": "Path is the YAML file path to kubectl-apply.",
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "wait": {
+              "description": "Wait blocks after this apply until all listed resources satisfy their conditions.",
+              "items": {
+                "$ref": "#/$defs/SetupWait"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "SetupApplyEntry is a single manifest to kubectl-apply during setup."
+    },
+    "SetupConfig": {
+      "anyOf": [
+        {
+          "description": "Shorthand for apply",
+          "items": {
+            "description": "Path to a manifest",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": false,
+          "description": "SetupConfig declares prerequisite resources to apply before Inrun starts.",
+          "properties": {
+            "apply": {
+              "description": "Apply is an ordered list of manifests to kubectl-apply.\nEach entry is either a plain path string or a {path, wait} struct.\nApplied first, before helm installs, after the CRD is installed.",
+              "items": {
+                "$ref": "#/$defs/SetupApplyEntry"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "helm": {
+              "description": "Helm is an ordered list of Helm charts to install before Inrun starts.\nExecuted as helm upgrade --install — not rendered for Blueprint extraction.",
+              "items": {
+                "$ref": "#/$defs/SetupHelmInstall"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "wait": {
+              "description": "Wait blocks until all listed resources exist and satisfy conditions.\nRuns after all apply and helm steps. Use per-entry wait for ordered checks.",
+              "items": {
+                "$ref": "#/$defs/SetupWait"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "SetupConfig declares prerequisite resources to apply before Inrun starts."
+    },
+    "SetupHelmInstall": {
+      "additionalProperties": false,
+      "description": "SetupHelmInstall installs a Helm chart as a real release into the cluster.",
+      "properties": {
+        "chart": {
+          "description": "Chart is the chart name within the repository, or a local path (e.g. ./).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "createNamespace": {
+          "description": "CreateNamespace passes --create-namespace to helm.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the release. Defaults to \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "release": {
+          "description": "Release is the Helm release name. Defaults to the chart name when empty.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "repo": {
+          "description": "Repo is the Helm repository URL. Omit for local chart paths.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "valueFiles": {
+          "description": "ValueFiles is an ordered list of values files (local paths or URLs).",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "values": {
+          "description": "Values are inline key-value overrides, equivalent to helm --set.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version pins the chart version. Leave empty for latest or local charts.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "wait": {
+          "description": "Wait blocks after this helm install until all listed resources satisfy conditions.",
+          "items": {
+            "$ref": "#/$defs/SetupWait"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SetupWait": {
+      "additionalProperties": false,
+      "description": "SetupWait describes a single resource to wait for before the operator starts.",
+      "properties": {
+        "kind": {
+          "description": "Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the exact resource name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace to look in. Omit for cluster-scoped resources.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ready": {
+          "description": "Ready waits for an available/ready condition, not just existence.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "Timeout is a Go duration string. Default: \"30s\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Simulate": {
+      "additionalProperties": false,
+      "description": "Simulate is the schema for simulate.yaml.",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion — inrun.dev/v1.",
+          "enum": [
+            "inrun.dev/v1"
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "imports": {
+          "description": "Imports — other simulate files to run, each as its own test. A file\nwith imports and no spec only runs those.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "kind": {
+          "const": "Simulate",
+          "description": "Kind — Simulate.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Metadata — the simulation's name and description."
+        },
+        "spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Spec — the Blueprint, the CR and what the reconcile must produce."
+        }
+      },
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "SimulateExpect": {
+      "additionalProperties": false,
+      "description": "SimulateExpect declares what the reconciler must produce.",
+      "properties": {
+        "absent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateOpRules"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ops that must NOT appear"
+        },
+        "crds": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SimulateExpect"
+          },
+          "description": "CRDs — expectations for one CRD of a multi-CRD Blueprint, by name.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "noErrors": {
+          "description": "NoErrors — no reconcile may return an error.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ops": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateOpRules"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Ops — writes that must appear."
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Or — at least one condition must pass, alongside When if declared..\nFunctions declared in spec.functions are available as\ntemplate expressions: field: '{{ inBusinessHours }}'."
+        },
+        "steady": {
+          "description": "Steady — true: the reconcile must settle, a cycle after the first making\nno writes or repeating the previous cycle's.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "steadyAt": {
+          "description": "result.SteadyAt must be ≤ this",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When — all conditions must pass for this expectation to run (AND).\nEmpty means unconditional. Functions declared in spec.functions are available as\ntemplate expressions: field: '{{ inBusinessHours }}'."
+        }
+      },
+      "type": "object"
+    },
+    "SimulateMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Description — what the simulation checks.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — shown in the results.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SimulateOpRule": {
+      "additionalProperties": false,
+      "description": "SimulateOpRule asserts that at least one recorded op in the given cycle matches all non-empty fields.",
+      "properties": {
+        "assert": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Assertions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Assert checks the output with the full block: json and jsonPath are not supported\nsince the result is almost always a text"
+        },
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "count": {
+          "description": "0 = at least 1",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cycle": {
+          "description": "Cycle — the reconcile cycle the op must appear in, from 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "include": {
+          "description": "path to a file with an ops: list",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "optional: match a specific resource name",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace — optional: match the namespace the op wrote in, e.g. each\nnamespace a cross-namespace copy writes to.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Or — at least one condition must pass, alongside When if declared. if declared.\nFunctions declared in spec.functions are available as\ntemplate expressions: field: '{{ inBusinessHours }}'."
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "resource": {
+          "description": "deployments | statefulsets | etc.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "verb": {
+          "description": "apply | create | update | patch | delete",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When — all conditions must pass for this rule to run (AND).\nEmpty means unconditional. Functions declared in spec.functions are available as\ntemplate expressions: field: '{{ inBusinessHours }}'."
+        }
+      },
+      "type": "object"
+    },
+    "SimulateOpRules": {
+      "items": {
+        "$ref": "#/$defs/SimulateOpRule"
+      },
+      "type": "array"
+    },
+    "SimulateSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "blueprint": {
+          "description": "Blueprint — the Blueprint (or Stack) file, relative to this one.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cr": {
+          "description": "CR — the CR to reconcile, a file relative to this one.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "crFiles": {
+          "description": "CRFiles — several CR files, reconciled together.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "crd": {
+          "description": "CRD — a CRD manifest for --envtest to install. Default: the Blueprint's\ncrdFile entries.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "crdFiles": {
+          "description": "CRDFiles — several CRD manifests for --envtest.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cycles": {
+          "description": "default 10 when unset",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "expect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateExpect"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "nil = op-print only"
+        },
+        "functions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KELFunctionRegistry"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Functions declares user-defined functions available in when:/or: expressions.\nSame syntax as a Blueprint functions block — same FuncMap registration, same functions."
+        },
+        "intent": {
+          "description": "Intent is a serve intent file (JSON or YAML) to build the CR from, the\nway the gateway and inrun serve play do. Used instead of cr/crFiles.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "setup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SetupConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Setup — manifests applied before the CR, after the Blueprint's own\nsetup: what the test needs in the cluster, such as the CR's\nNamespace. Paths relative to this file, as a list or setup.apply;\nsimulate applies them only, so helm and wait are rejected."
+        },
+        "skipExternal": {
+          "description": "SkipExternal — answer external calls with an empty 200 instead of\nmaking them.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "serve target to use for reconciliation",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "token": {
+          "description": "Token is the gateway token the intent is sent with; required with Intent.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "TextAssertion": {
+      "additionalProperties": false,
+      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "TextAssertions": {
+      "description": "TextAssertions is a list of comparisons on one output.",
+      "items": {
+        "$ref": "#/$defs/TextAssertion"
+      },
+      "type": "array"
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "description": "TimeWindow declares a clock-based active window.",
+      "properties": {
+        "after": {
+          "description": "After — active after this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "before": {
+          "description": "Before — active before this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UserDefinedFunction": {
+      "additionalProperties": false,
+      "description": "UserDefinedFunction is a named template expression declared in a Blueprint or Module.",
+      "properties": {
+        "description": {
+          "description": "Description — shown by inrun validate and in the function list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "expression": {
+          "description": "Expression is a Go template string evaluated by the Resolver.\nBuilt-in functions and other user-defined functions (same Blueprint or imported) are\navailable inside the expression. The result is always a string.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — how templates call the function.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "shadow": {
+          "description": "Shadow: true acknowledges that this function intentionally overrides a built-in.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UserDefinedFunctions": {
+      "items": {
+        "$ref": "#/$defs/UserDefinedFunction"
+      },
+      "type": "array"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/simulate.json",
+  "$ref": "#/$defs/Simulate",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun Simulate"
+}

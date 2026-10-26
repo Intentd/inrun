@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: args-demo-simulate
+  description: >
+    Runs both args simulations in sequence — hooks first, then constructor.
+
+imports:
+  - 01-hooks/simulate.yaml
+  - 02-constructor/simulate.yaml
+  - 03-hooks-targets/simulate-v2-enabled.yaml
+  - 03-hooks-targets/simulate-v2-disabled.yaml
+  - 04-ctrlruntime/simulate.yaml

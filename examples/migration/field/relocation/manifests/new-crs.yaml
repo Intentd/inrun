@@ -1,0 +1,16 @@
+# platform-10: created directly with kubectl using the new schema.
+# Contrast with platform-09, which is created via the gateway in the walkthrough.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-10
+  labels:
+    app: demo
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"

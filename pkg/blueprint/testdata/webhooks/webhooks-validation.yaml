@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: test
+spec:
+  crds:
+    platform:
+      apiTypes:
+        group: platform.inrun.dev
+        version: v1alpha1
+        kind: Platform
+        plural: platforms
+      admission:
+        validation:
+          rules:
+            - field: spec.name
+              exists: true
+              message: "spec.name is required"
+              action: deny
+
+security:
+  webhooks:
+    admission:
+      enabled: true

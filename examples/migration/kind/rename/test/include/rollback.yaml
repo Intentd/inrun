@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Rollback: restore a source from its snapshot
+expect:
+  - name: Rollback dry-run reports the snapshotted destinations
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml rollback --dry-run -ojson
+        json:
+          - path: .totals.crs
+            equals: 3
+          - path: .totals.migrated
+            equals: 3
+
+  - name: Rollback one destination recreates the source and deletes NewConfig
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml rollback --name api-server -n platform-01 -ojson
+        json:
+          - path: .totals.migrated
+            equals: 1
+  - name: Post-rollback platform-01 — AppConfig back, NewConfig gone
+    timeout: 30s
+    resources:
+      - kind: newconfigs.demo.inrun.dev
+        name: api-server
+        namespace: platform-01
+        count: 0
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.scaling.min
+          equals: 7   # the snapshot holds the value the forward run read
+
+  - name: Intent still works after rollback — gateway never restarted
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${DEV_TOKEN}"
+            Content-Type: "application/json"
+          body: >-
+            {"target":"my-api-server","image":"myapp/api:3.1.0","replicas":6,"logLevel":"warn"}
+          statusCode: 200
+  - name: Post-rollback intent wrote to the destination CRD
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+          field: .spec.scaling.min
+          equals: "6"
+
+  # --- clean: drop snapshots; rollback has nothing left ---

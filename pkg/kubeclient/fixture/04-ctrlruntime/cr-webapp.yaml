@@ -1,0 +1,9 @@
+apiVersion: migration.demo.inrun.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: 04-ctrlruntime-demo
+  namespace: default
+spec:
+  image: nginx:latest
+  replicas: 2
+  port: 80

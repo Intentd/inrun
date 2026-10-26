@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-storage
+  description: >
+    Fixture module — PV and PVC, all forEach.
+    PVs (cluster-scoped) expand over spec.apps. PVCs expand over spec.namespaces.
+
+resources:
+  persistentVolumes:
+    - name: "{{ .metadata.name }}-{{ .app }}-pv"
+      capacity: "1Gi"
+      accessModes: ["ReadWriteOnce"]
+      hostPath: "/tmp/inrun-{{ .metadata.name }}-{{ .app }}"
+      forEach:
+        field: spec.apps
+        as: app
+
+  persistentVolumeClaims:
+    - name: "{{ .metadata.name }}-{{ .ns }}-pvc"
+      namespace: "{{ .ns }}"
+      storage: "1Gi"
+      accessModes: ["ReadWriteOnce"]
+      forEach:
+        field: spec.namespaces
+        as: ns

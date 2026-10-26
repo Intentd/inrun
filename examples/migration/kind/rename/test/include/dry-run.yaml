@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Dry run: what a forward migration would select
+expect:
+  - name: Dry-run reports the selected sources
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --dry-run -ojson
+        json:
+          # Migration kind and destination
+          - path: .kinds[0].kind
+            equals: AppConfig
+          - path: .kinds[0].to
+            equals: NewConfig
+          - path: .kinds[0].scope.selector
+            equals: tier=web
+
+          # Exactly the three selected resources
+          - path: .kinds[0].crs[0].ref
+            equals: platform-01/api-server
+          - path: .kinds[0].crs[1].ref
+            equals: platform-02/api-server
+          - path: .kinds[0].crs[2].ref
+            equals: platform-03/api-server
+
+          # Planned migration fields and pruning
+          - path: .kinds[0].crs[0].fields[0]
+            equals: spec
+          - path: .kinds[0].crs[1].fields[0]
+            equals: spec
+          - path: .kinds[0].crs[2].fields[0]
+            equals: spec
+          - path: .kinds[0].crs[0].pruned
+            equals: ""
+          - path: .kinds[0].crs[1].pruned
+            equals: ""
+          - path: .kinds[0].crs[2].pruned
+            equals: ""
+
+          # Migration totals
+          - path: .totals.crs
+            equals: 3
+          - path: .totals.migrated
+            equals: 3
+          - path: .totals.pruned
+            equals: 0
+          - path: .totals.failed
+            equals: 0

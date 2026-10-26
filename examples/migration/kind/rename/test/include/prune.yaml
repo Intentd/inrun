@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Prune: a forward run with prune removes the migrated sources
+expect:
+  # --- prune: forward with --set prune=true --yes ---
+  - name: Patch Platform-03 status back to Ready
+    kubectl: 
+      patch:
+        - kind: AppConfig
+          name: api-server
+          namespace: platform-03
+          patch: '{"status":{"phase":"Ready"}}'
+
+  # Pruning is switched on for this run with --set; blueprint.yaml is left as it is.
+  - name: Forward with --yes prunes the three selected sources
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true --yes
+        contains: "3 sources pruned"
+
+  - name: Pruned sources are gone; destinations and the gateway CR remain and labelled
+    timeout: 30s
+    kubectl:
+      get:
+        # pruned sources
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          contains: "not found"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          contains: "not found"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          contains: "not found"
+
+        # migrated destinations 
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.labels.migrated-from
+          equals: appconfig
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .metadata.labels.migrated-from
+          equals: appconfig
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          field: .metadata.labels.migrated-from
+          equals: appconfig
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+          field: .metadata.labels.migrated-from
+          notExists: true
+
+  # --- rollback: one, then the rest ---

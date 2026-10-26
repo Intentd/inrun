@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: gateway-serve-fixture-sim
+  description: >
+    Gateway Serve fixture — aggregates all three workload type simulates.
+    Run individually via simulate/<workload>.yaml for focused iteration.
+
+imports:
+  - ./simulate/app.yaml
+  - ./simulate/cert.yaml
+  - ./simulate/monitoring.yaml
+  - ./serve/simulate/appgroup.yaml
+  - ./serve/simulate/clusterpolicy.yaml

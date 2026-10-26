@@ -1,0 +1,12 @@
+# Exercises: AppGroup minimal serve — ApplicationSet created on reconcile.
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: AppGroup
+metadata:
+  name: infra-group
+  namespace: team-platform
+spec:
+  apps:
+    - name: frontend
+      repoURL: https://github.com/myorg/frontend
+    - name: backend
+      repoURL: https://github.com/myorg/backend

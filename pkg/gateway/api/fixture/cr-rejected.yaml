@@ -1,0 +1,13 @@
+# Rejection CR — exercises dryRun violation response.
+# Tests: missing required field (team), invalid enum (workloadType).
+# Apply with: POST /api/v1/apply?dryRun=true
+# Expected: Accepted=false, Violations with field-level messages.
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: bad-request
+  namespace: default
+spec:
+  workloadType: unknown-type
+  environment: staging
+  # team: intentionally omitted — triggers "spec.team is required" violation

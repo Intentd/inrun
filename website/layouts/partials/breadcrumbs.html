@@ -1,0 +1,20 @@
+{{ if not .IsHome }}
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="breadcrumb-item">
+    <a href="/">Home</a>
+  </div>
+  {{ $ancestors := .Ancestors.Reverse }}
+  {{ range $ancestors }}
+    {{ if not .IsHome }}
+    <div class="breadcrumb-item">
+      <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+    </div>
+    {{ end }}
+  {{ end }}
+  <div class="breadcrumb-item active">
+    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    {{ .Title }}
+  </div>
+</nav>
+{{ end }}

@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: website-intent-sim
+  description: >
+    Reconcile the CR the gateway builds from intent.json. There is no cr.yaml:
+    the CR is built from the intent, sent with the dev token.
+
+spec:
+  blueprint: ../blueprint.yaml
+  intent: ../intent.yaml
+  token: dev
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+      - cycle: 1
+        verb: apply
+        resource: services

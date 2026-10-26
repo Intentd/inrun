@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: blockchainapp-hooks-sim
+  description: >
+    Run with: inrun simulate --dev-server
+
+    The dev server returns "true" for all flag requests, so featureEnabled="true"
+    and the Deployment is created at spec.replicas (5).
+    The hook reads req.Args.String("featureEnabled") — no HTTP client in hook code.
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+        name: 01-hooks-my-chain

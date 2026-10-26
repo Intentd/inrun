@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Resolve the collision: team-c/payments could not become the cluster-scoped
+# payments, which team-a's source already is. Rename it (Kubernetes can't, so
+# re-create it under a new name, status included, and delete the old one), then
+# migrate it alone.
+expect:
+  - name: Rename the colliding source to payments-team-c
+    timeout: 60s
+    commands:
+      # Safe to repeat: a retry after a partial run finishes the rename.
+      - run: |
+          if kubectl get appconfigs.demo.inrun.dev payments -n team-c >/dev/null 2>&1; then
+            kubectl get appconfigs.demo.inrun.dev payments -n team-c -o json |
+              jq '.metadata.name = "payments-team-c"
+                  | del(.metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp,
+                        .metadata.generation, .metadata.managedFields)' |
+              kubectl apply -f -
+            kubectl delete appconfigs.demo.inrun.dev payments -n team-c
+          fi
+          kubectl get appconfigs.demo.inrun.dev payments-team-c -n team-c
+
+  - name: Migrate the renamed source on its own
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -n team-c -ojson
+        json:
+          - path: .totals.migrated
+            equals: 1
+          - path: .totals.failed
+            equals: 0
+
+  - name: payments-team-c is cluster-scoped with team-c's spec, status and labels
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments-team-c
+          json:
+            - path: .spec.scaling.min
+              equals: 2
+            - path: .spec.observability.logging.level
+              equals: debug
+            - path: .status.phase
+              equals: Pending
+            - path: .metadata.labels.team
+              equals: team-c
+        # team-a's destination is untouched
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          field: .metadata.labels.team
+          equals: team-a

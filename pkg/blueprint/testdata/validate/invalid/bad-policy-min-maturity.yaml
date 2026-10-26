@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-policy-min-maturity
+  version: 1.0.0
+  description: Tests that policy.minMaturity deprecated is rejected (deprecated is not a valid floor).
+policy:
+  lifecycle:
+    minMaturity: deprecated
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

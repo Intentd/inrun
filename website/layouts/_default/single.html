@@ -1,0 +1,77 @@
+{{ define "main" }}
+<div class="docs-layout">
+  {{ partial "sidebar.html" . }}
+
+  <article class="docs-content" id="docs-content">
+    <div class="docs-content-inner">
+      {{ partial "breadcrumbs.html" . }}
+
+      <header class="docs-header">
+        <h1 class="docs-title">{{ .Title }}</h1>
+        {{ with .Description }}
+        <p class="docs-description">{{ . }}</p>
+        {{ end }}
+        <div class="docs-meta">
+          {{ with .Lastmod }}
+          <time datetime="{{ .Format "2006-01-02" }}" class="docs-date">
+            Updated {{ .Format "Jan 2, 2006" }}
+          </time>
+          {{ end }}
+
+          {{ with .ReadingTime }}
+          <span class="docs-reading-time">{{ . }} min read</span>
+          {{ end }}
+        </div>
+      </header>
+
+      <div class="docs-body prose">
+        {{ .Content }}
+      </div>
+      {{- if .Page.Store.Get "hasMermaid" }}
+      <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+          startOnLoad: true,
+          theme: 'dark',
+          themeVariables: {
+            background: '#1a1b26',
+            primaryColor: '#6366F1',
+            primaryTextColor: '#E2E8F0',
+            primaryBorderColor: 'rgba(99,102,241,0.4)',
+            lineColor: 'rgba(255,255,255,0.2)',
+            secondaryColor: '#1e1f2e',
+            tertiaryColor: '#0f1117',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSize: '14px'
+          }
+        });
+      </script>
+      {{- end }}
+
+      <!-- Pagination -->
+      <nav class="docs-pagination" aria-label="Page navigation">
+        {{ with .NextInSection }}
+        <a href="{{ .RelPermalink }}" class="pagination-link pagination-prev">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <div>
+            <span class="pagination-label">Previous</span>
+            <span class="pagination-title">{{ .LinkTitle }}</span>
+          </div>
+        </a>
+        {{ end }}
+        {{ with .PrevInSection }}
+        <a href="{{ .RelPermalink }}" class="pagination-link pagination-next">
+          <div>
+            <span class="pagination-label">Next</span>
+            <span class="pagination-title">{{ .LinkTitle }}</span>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        {{ end }}
+      </nav>
+    </div>
+  </article>
+
+  {{ partial "toc.html" . }}
+</div>
+{{ end }}

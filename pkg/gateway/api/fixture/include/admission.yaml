@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  - include: ./admission/unconditional-deny.yaml
+  - include: ./admission/warn-when.yaml
+  - include: ./admission/deny-when.yaml
+  - include: ./admission/deny-or.yaml
+  - include: ./admission/direct-apply.yaml

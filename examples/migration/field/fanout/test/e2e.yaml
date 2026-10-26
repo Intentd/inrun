@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: schema-evolution-e2e
+  description: >
+    CronJob operator with serve field translation and schema migration.
+    Verifies that a flat cron string submitted via the gateway is fanned out
+    to the five structured schedule fields, and that inrun migrate
+    backfills existing flat-schedule CRs to the structured form.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/old-crd.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+  setup: 
+    - ../manifests/namespaces.yaml
+    - ../manifests/old-crs.yaml     # apply old CRs before new CRD
+    - ../manifests/crd.yaml         # new CRD
+
+  runtime:
+    enabled: false
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  env:
+    DEV_TOKEN: dev-token
+  expect:
+    - include: ./include/startup.yaml
+    - include: ./include/migrate-crs.yaml
+    - include: ./include/intent.yaml
+    - include: ./include/cleanup.yaml

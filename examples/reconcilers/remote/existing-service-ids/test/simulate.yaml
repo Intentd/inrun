@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: volume-existing-service-ids-sim
+  description: >
+    Reconcile a Volume against the dev server's volume API
+    (inrun simulate --dev-server): create by POST, then read by the id the
+    API assigned until ready. Only the CR changes: finalizer and status.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+  # Create, read (provisioning), read (ready), one pass to settle.
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    absent:
+      - cycle: 1
+        verb: apply
+        resource: configmaps

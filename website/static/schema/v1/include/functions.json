@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "FunctionsInclude": {
+      "additionalProperties": false,
+      "description": "FunctionsInclude is the file functions.include names: definitions added before the inline ones.",
+      "properties": {
+        "definitions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserDefinedFunctions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UserDefinedFunction": {
+      "additionalProperties": false,
+      "description": "UserDefinedFunction is a named template expression declared in a Blueprint or Module.",
+      "properties": {
+        "description": {
+          "description": "Description — shown by inrun validate and in the function list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "expression": {
+          "description": "Expression is a Go template string evaluated by the Resolver.\nBuilt-in functions and other user-defined functions (same Blueprint or imported) are\navailable inside the expression. The result is always a string.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — how templates call the function.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "shadow": {
+          "description": "Shadow: true acknowledges that this function intentionally overrides a built-in.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UserDefinedFunctions": {
+      "items": {
+        "$ref": "#/$defs/UserDefinedFunction"
+      },
+      "type": "array"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/functions.json",
+  "$ref": "#/$defs/FunctionsInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: functions"
+}

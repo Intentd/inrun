@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  # Worker reconciles → healthy. Platform gate (healthy) opens → Platform healthy.
+  - name: Worker CR applied — Worker healthy, Platform gate opens and reaches healthy
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      apply:
+        - file: ../cr-worker.yaml
+      get:
+        - kind: Worker
+          name: core-worker
+          namespace: default
+          field: .status.phase
+          assert:
+            equals: Running
+        - kind: Platform
+          name: main-platform
+          namespace: default
+          field: .status.phase
+          assert:
+            equals: Running
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jsonPath: .state
+          assert:
+            equals: healthy
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .state
+          assert:
+            equals: healthy
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .hasUnhealthyDependencies
+          assert:
+            equals: "false"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .totalReconciles
+          assert:
+            greaterThan: 0

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: rescope-e2e
+  description: >
+    AppConfig moves from a namespaced CRD to a cluster-scoped CRD under a
+    different API group. Verifies that migration preserves source metadata
+    and status, prevents same-name sources from overwriting each other,
+    supports idempotent migration and selective pruning, and restores
+    namespaced sources and their original status on rollback.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd-appconfig.yaml
+  setup:
+    - ../manifests/crd-appconfig-cluster.yaml
+    - ../manifests/namespaces.yaml
+    - ../manifests/crs.yaml
+
+  runtime:
+    enabled: false
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  env:
+    DEV_TOKEN: dev-token
+  expect:
+    - include: ./include/sources.yaml
+    - include: ./include/dry-run.yaml
+    - include: ./include/forward.yaml
+    - include: ./include/prune.yaml
+    - include: ./include/resolve-collision.yaml
+    - include: ./include/rollback.yaml

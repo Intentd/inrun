@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# After forward: the gateway keeps writing to the new kind
+expect:
+  - name: Same intent still lands in NewConfig after migration
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${DEV_TOKEN}"
+            Content-Type: "application/json"
+          body: >-
+            {
+              "target":"my-api-server",
+              "image":"myapp/api:3.0.0",
+              "replicas":5,"logLevel":"info"
+            }
+          statusCode: 200
+  - name: Gateway wrote the updated replicas to scaling.min
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+          field: .spec.scaling.min
+          equals: "5"
+
+  - name: Old full-CR request is still rejected
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${DEV_TOKEN}"
+            Content-Type: "application/yaml"
+          bodyFile: ../../manifests/cr-for-gateway.yaml
+          contains: '"error":"source CRD under migration"'

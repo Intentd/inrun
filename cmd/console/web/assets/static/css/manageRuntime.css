@@ -1,0 +1,466 @@
+/* ── Runtime Management Drawer ────────────────────────────────────────────── */
+
+/* Backdrop + drawer wrapper */
+.rt-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+}
+.rt-drawer[hidden] { display: none !important; }
+
+.rt-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.rt-drawer.open .rt-drawer-backdrop { opacity: 1; }
+
+/* Sliding panel */
+.rt-drawer-panel {
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  max-width: 96vw;
+  height: 100%;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+.rt-drawer.open .rt-drawer-panel { transform: translateX(0); }
+
+/* Header */
+.rt-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rt-drawer-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rt-close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.rt-close-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+/* Add section */
+.rt-add-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+}
+.rt-add-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.rt-add-row {
+  display: flex;
+  gap: 8px;
+}
+.rt-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input, var(--bg-base));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color .15s;
+  min-width: 0;
+}
+.rt-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.rt-add-submit {
+  padding: 8px 14px;
+  font-size: 13px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rt-add-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.rt-add-hint code {
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+
+/* Messages */
+.rt-msg {
+  margin-top: 8px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 5px;
+}
+.rt-msg-success { background: #10b98115; color: #10b981; border: 1px solid #10b98130; }
+.rt-msg-error   { background: #ef444415; color: #ef4444; border: 1px solid #ef444430; }
+
+/* List header */
+.rt-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 8px;
+  flex-shrink: 0;
+}
+.rt-list-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+}
+.rt-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* Scrollable list */
+.rt-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+
+/* Loading spinner */
+.rt-list-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  justify-content: center;
+}
+@keyframes rt-spin { to { transform: rotate(360deg); } }
+.rt-spinner { animation: rt-spin 1s linear infinite; }
+
+/* Empty / error states */
+.rt-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.rt-list-error { color: #ef4444; }
+
+/* Runtime item */
+.rt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  margin-bottom: 6px;
+  transition: background .15s, opacity .2s, transform .2s;
+}
+.rt-item:hover { background: var(--bg-elevated); }
+.rt-item.editing { background: var(--bg-elevated); }
+.rt-item.deleting { opacity: .5; pointer-events: none; }
+
+.rt-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Status dot */
+.rt-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-muted);
+  transition: background .3s;
+}
+.rt-item-dot.online  { background: #10b981; box-shadow: 0 0 6px #10b98166; }
+.rt-item-dot.offline { background: #ef4444; }
+
+.rt-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rt-item-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rt-item-status {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.rt-item-status.rt-status-online  { color: #10b981; }
+.rt-item-status.rt-status-offline { color: #ef4444; }
+
+/* Action buttons */
+.rt-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.rt-action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.rt-action-btn:hover { background: var(--bg-base); border-color: var(--border); color: var(--text-primary); }
+.rt-delete-btn:hover { color: #ef4444; border-color: #ef444440; background: #ef444410; }
+
+/* Inline confirm */
+.rt-confirm-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+.rt-confirm-yes {
+  padding: 3px 8px;
+  font-size: 11px;
+  background: #ef444420;
+  color: #ef4444;
+  border: 1px solid #ef444440;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.rt-confirm-yes:hover { background: #ef444440; }
+.rt-confirm-no {
+  padding: 3px 8px;
+  font-size: 11px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.rt-item-err {
+  font-size: 11px;
+  color: #ef4444;
+  padding: 2px 6px;
+}
+
+/* Inline edit row */
+.rt-inline-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.rt-inline-input {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  min-width: 0;
+}
+.rt-inline-save,
+.rt-inline-cancel {
+  padding: 5px 10px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.rt-inline-msg {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* Loading state on buttons */
+.loading { opacity: .6; pointer-events: none; }
+
+/* Form helpers (keep from old file) */
+.console-form-group { margin-bottom: 16px; }
+.console-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+.console-form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.console-btn-danger { background: var(--error, #ef4444); color: #fff; }
+.console-btn-danger:hover { background: #b91c1c; }
+.console-btn-sm { padding: 4px 8px; font-size: 12px; }
+
+
+/* ─────────────────────────────────────────────────────────────
+   Mobile responsiveness + UX polish
+   Drop-in
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Hide navbar runtimes button (use sidebar instead) */
+  #manageRuntimesBtn {
+    display: none !important;
+  }
+
+  /* Drawer becomes full-screen modal */
+  .rt-drawer {
+    justify-content: stretch;
+  }
+
+  .rt-drawer-panel {
+    width: 100%;
+    max-width: 100%;
+    border-left: none;
+    border-radius: 0;
+    transform: translateY(100%);
+  }
+
+  .rt-drawer.open .rt-drawer-panel {
+    transform: translateY(0);
+  }
+
+  /* Stack add form */
+  .rt-add-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .rt-add-submit {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Stack inline edit */
+  .rt-inline-edit {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rt-inline-save,
+  .rt-inline-cancel {
+    width: 100%;
+  }
+
+  /* Runtime items spacing */
+  .rt-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .rt-item-actions {
+    justify-content: flex-end;
+  }
+
+  .rt-item-url {
+    white-space: normal;
+    word-break: break-all;
+  }
+
+  /* Bigger tap targets */
+  .rt-action-btn,
+  .rt-close-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Make "Runtimes" button feel alive
+   ───────────────────────────────────────────────────────────── */
+
+#manageRuntimesBtn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* subtle lift */
+#manageRuntimesBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* press feedback */
+#manageRuntimesBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* soft pulse indicator (alive feeling) */
+#manageRuntimesBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.25), transparent 70%);
+  animation: rt-pulse 2.5s infinite;
+}
+
+@keyframes rt-pulse {
+  0%   { opacity: 0; transform: scale(0.95); }
+  50%  { opacity: 0.25; }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+
+/* smoother drawer animation */
+.rt-drawer-panel {
+  will-change: transform;
+}

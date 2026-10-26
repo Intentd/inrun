@@ -1,0 +1,74 @@
+{{ define "main" }}
+<div class="docs-layout">
+  {{ partial "sidebar.html" . }}
+
+  <article class="docs-content" id="docs-content">
+    <div class="docs-content-inner">
+      {{ partial "breadcrumbs.html" . }}
+
+      <header class="docs-header">
+        <h1 class="docs-title">{{ .Title }}</h1>
+        {{ with .Description }}
+        <p class="docs-description">{{ . }}</p>
+        {{ end }}
+        <div class="docs-meta">
+          {{ with .Lastmod }}
+          <time datetime="{{ .Format "2006-01-02" }}" class="docs-date">
+            Updated {{ .Format "Jan 2, 2006" }}
+          </time>
+          {{ end }}
+
+          {{ with .ReadingTime }}
+          <span class="docs-reading-time">{{ . }} min read</span>
+          {{ end }}
+        </div>
+      </header>
+
+      {{ with .Content }}
+      <div class="docs-body prose">
+        {{ . }}
+      </div>
+      {{ end }}
+
+      {{ $hasChildren := or .Pages .Sections }}
+      {{ if and $hasChildren (not .Content) }}
+      <nav class="docs-index-nav" aria-label="Section pages">
+        {{/* Render sections (subdirectories) and pages together, ordered by the sidebar data if available */}}
+        {{ range .Sections.ByWeight }}
+        <a href="{{ .RelPermalink }}" class="docs-index-item">
+          <div class="docs-index-item-main">
+            <span class="docs-index-item-title">{{ .Title }}</span>
+            {{ with .Description }}
+            <span class="docs-index-item-desc">{{ . }}</span>
+            {{ else }}{{ with .Summary }}
+            <span class="docs-index-item-desc">{{ . | plainify | truncate 120 }}</span>
+            {{ end }}{{ end }}
+          </div>
+          <svg class="docs-index-item-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        {{ end }}
+        {{ range .Pages.ByWeight }}
+        <a href="{{ .RelPermalink }}" class="docs-index-item">
+          <div class="docs-index-item-main">
+            <span class="docs-index-item-title">{{ .Title }}</span>
+            {{ with .Description }}
+            <span class="docs-index-item-desc">{{ . }}</span>
+            {{ else }}{{ with .Summary }}
+            <span class="docs-index-item-desc">{{ . | plainify | truncate 120 }}</span>
+            {{ end }}{{ end }}
+          </div>
+          <svg class="docs-index-item-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        {{ end }}
+      </nav>
+      {{ end }}
+    </div>
+  </article>
+
+  {{ partial "toc.html" . }}
+</div>
+{{ end }}

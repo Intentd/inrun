@@ -1,0 +1,163 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: platformresources.gateway.fixture.inrun.dev
+spec:
+  group: gateway.fixture.inrun.dev
+  names:
+    kind: PlatformResource
+    plural: platformresources
+    singular: platformresource
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [workloadType, team, environment]
+              properties:
+                workloadType:
+                  type: string
+                  description: "One of: app, cert, monitoring"
+                  enum: [app, cert, monitoring]
+
+                team:
+                  type: string
+                  description: "Slug of the owning team. Sets namespace binding."
+
+                environment:
+                  type: string
+                  description: "Target environment."
+                  enum: [staging, production]
+                  default: staging
+
+                # app fields
+                repoURL:
+                  type: string
+                  description: "Git repository URL for the application."
+                targetRevision:
+                  type: string
+                  description: "Branch or tag to deploy."
+                  default: main
+                targetNamespace:
+                  type: string
+                  description: "Kubernetes namespace to deploy into."
+
+                # cert fields
+                domain:
+                  type: string
+                  description: "FQDN for the TLS certificate."
+                issuer:
+                  type: string
+                  description: "cert-manager ClusterIssuer name."
+                  default: letsencrypt-prod
+
+                # monitoring fields
+                scrapeInterval:
+                  type: string
+                  description: "Prometheus scrape interval."
+                  default: 30s
+                serviceSelector:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                alertThresholds:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+
+                # production guard
+                productionApproval:
+                  type: string
+                  description: "Change request ticket for production deploys."
+
+                # system-managed fields (hidden by ignoreFields)
+                legacyMigration:
+                  type: string
+                  description: "Legacy migration target. Platform-managed."
+                maintenanceWindow:
+                  type: string
+                  description: "Maintenance window expression. Platform-managed."
+
+                # infra fields (hidden by ignoreFields)
+                provider:
+                  type: string
+                region:
+                  type: string
+                class:
+                  type: string
+
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: appgroups.gateway.fixture.inrun.dev
+spec:
+  group: gateway.fixture.inrun.dev
+  names:
+    kind: AppGroup
+    plural: appgroups
+    singular: appgroup
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                apps:
+                  type: array
+                  description: "List of applications to deploy as a group."
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      repoURL:
+                        type: string
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterpolicies.gateway.fixture.inrun.dev
+spec:
+  group: gateway.fixture.inrun.dev
+  names:
+    kind: ClusterPolicy
+    plural: clusterpolicies
+    singular: clusterpolicy
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                targetNamespace:
+                  type: string
+                  description: "Namespace to apply the NetworkPolicy to."

@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: <operator-name>-sim
+  description: <what this simulation verifies>
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr.yaml
+  cycles: 5            # number of reconcile cycles to run
+
+  expect:
+    steady: true       # no ops after cycle 1 = idempotent
+    noErrors: true     # fail if any reconcile produces an error
+
+    ops:
+      # Verify resources are created on the first cycle.
+      # verb: create | update | delete | patch
+      # resource: plural lowercase Kubernetes resource name (e.g. deployments, services)
+      - cycle: 1
+        verb: create
+        resource: deployments
+        name: <resource-name>
+
+      - cycle: 1
+        verb: create
+        resource: services
+        name: <resource-name>-svc
+
+      # Subsequent cycles should be no-ops (steady: true enforces this).
+      # Add more op assertions as your operator grows.

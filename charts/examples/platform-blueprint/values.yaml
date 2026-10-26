@@ -1,0 +1,33 @@
+# Default values for platform-blueprint.
+# Override these in your own values file or via --set.
+
+# apiGroup — the Kubernetes API group for all CRDs in this chart.
+apiGroup: demo.inrun.dev
+
+# apiVersion — the API version for all CRDs in this chart.
+apiVersion: v1alpha1
+
+# crds — map of CRD definitions to include in the rendered Blueprint.
+# Each key is the CRD name and produces one CRDEntry in the output.
+crds:
+  database:
+    enabled: true
+    kind: Database
+    plural: databases
+    namespaced: false
+    reconcile:
+      workers: 3
+      resync: 1m
+    description: >-
+      Manages a database instance. Provisioned by the platform team Helm chart.
+
+  cache:
+    enabled: true
+    kind: Cache
+    plural: caches
+    namespaced: true
+    reconcile:
+      workers: 3
+      resync: 2m
+    description: >-
+      Manages a cache instance. Provisioned by the platform team Helm chart.

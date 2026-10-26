@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: deployment-request-operator
+  description: >
+    Validates and mutates DeploymentRequest CRs using user-defined notes.
+    - inBusinessHours: gates whether deployments are allowed right now
+    - allowedRegistry: the image prefix that all images must come from
+    - defaultReplicas: the fallback replica count injected by mutation
+
+functions:
+  definitions:
+    - name: inBusinessHours
+      description: True during Mon–Fri 09:00–18:00 UTC
+      expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+
+    - name: allowedRegistry
+      description: The only image registry permitted in this operator
+      expression: "myorg/"
+
+    - name: defaultReplicas
+      description: Default replica count when not specified
+      expression: "2"
+
+spec:
+  crds:
+    deploymentrequest:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      # ── Mutation ─────────────────────────────────────────────────────────
+      # ── Admission ────────────────────────────────────────────────────────
+      admission:
+        # Runs before validation. Sets replicas default from the note so the
+        # value is present when validation evaluates min/max rules.
+        mutation:
+          mutateFirst: true
+          rules:
+            - field: spec.replicas
+              default: "{{ defaultReplicas }}"
+              valueType: int
+
+        # Uses notes in both comparison values and messages.
+        validation:
+          rules:
+            # Gate: deployments are only allowed during business hours.
+            # inBusinessHours resolves to "true" or "false" at reconcile time.
+            - field: "{{ inBusinessHours }}"
+              equals: "true"
+              action: deny
+              message: "deployments are only allowed during business hours (Mon–Fri 09:00–18:00 UTC)"
+
+            # Image must come from the approved registry declared in the note.
+            - field: spec.image
+              prefix: "{{ allowedRegistry }}"
+              action: deny
+              message: "image must be from {{ allowedRegistry }} (got {{ .spec.image }})"
+
+            # Replicas must be at least 1 (already defaulted by mutation above).
+            - field: spec.replicas
+              min: "1"
+              action: deny
+              message: "spec.replicas must be at least 1"
+      operatorBox:
+        reconcile:
+          workers: 2
+          resync: 30s
+          onReconcile:
+            deployments:
+              - name: "{{ .metadata.name }}"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+              - path: phase
+                value: "Active"
+                when:
+                  - field: "{{ inBusinessHours }}"
+                    equals: "true"
+              - path: message
+                value: "outside business hours — reconcile will resume when window opens"
+              - path: message
+                value: "running"
+                when:
+                  - field: "{{ inBusinessHours }}"
+                    equals: "true"
+

@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: migration-suite
+  description: >
+    End-to-end coverage for schema evolution at both the field and kind levels.
+    The suite imports all four migration examples to verify that existing custom
+    resources can be safely migrated while callers continue submitting the same
+    flat intents through the gateway. Covers field fanout and relocation,
+    including transitional CRDs and backfilling values from legacy paths, as
+    well as kind rename and rescope, including selection, validation, collision
+    detection, status preservation, pruning, rollback, and cleanup.
+
+spec:
+  env:
+    DEV_TOKEN: dev-token
+
+imports:
+  - field/fanout/test/e2e.yaml
+  - field/relocation/test/e2e.yaml
+  - kind/rename/test/e2e.yaml
+  - kind/rescope/test/e2e.yaml

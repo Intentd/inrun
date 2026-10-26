@@ -1,0 +1,85 @@
+# .github/workflows/e2e.yml
+# Every e2e suite that runs in a cluster, against this commit: the runtime and
+# gateway images are built from the checkout and loaded into kind, the chart
+# is installed from charts/inrun, and --set points every suite at the built
+# images. --set reaches every imported suite and wins over each suite's
+# values.yaml, so no file is edited. Too slow for each push: nightly and on
+# demand. The cluster-less suites run in checks.yml.
+name: E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: 'Suites to run: ./... for all, or one e2e.yaml'
+        required: false
+        type: string
+        default: './...'
+      skip:
+        description: 'Path components to skip (comma-separated)'
+        required: false
+        type: string
+        default: 'kubeclient,resources,typed,templates,env'
+  schedule:
+    - cron: '0 2 * * 0'
+
+env:
+  CLUSTER: inrun-e2e
+  RUNTIME_IMAGE: inrun-e2e/runtime
+  GATEWAY_IMAGE: inrun-e2e/gateway
+  TAG: ${{ github.sha }}
+
+jobs:
+  e2e:
+    name: E2E in kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build inrun
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          go build -o "$RUNNER_TEMP/bin/inrun" ./cmd/inrun
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Build the runtime and gateway images
+        run: |
+          make docker INRUN_IMAGE="$RUNTIME_IMAGE:$TAG"
+          make docker-gateway INRUN_GATEWAY_IMAGE="$GATEWAY_IMAGE:$TAG"
+
+      # The cluster is created first so the images can be loaded into it; the
+      # suites then run in it with --use-current.
+      - name: Create the kind cluster and load the images
+        run: |
+          kind create cluster --name "$CLUSTER" --wait 120s
+          kind load docker-image "$RUNTIME_IMAGE:$TAG" "$GATEWAY_IMAGE:$TAG" --name "$CLUSTER"
+
+      # The typed fixtures and examples (kubeclient, resources, typed) run a
+      # runtime built with their own type registry, so they are skipped here.
+      # templates holds the starter files, not suites; the env fixture's leaves
+      # need their aggregator, which checks.yml runs with the cluster-less suites.
+      - name: Run the suites
+        run: |
+          inrun e2e -f "${{ inputs.path || './...' }}" \
+            --skip "${{ inputs.skip || 'kubeclient,resources,typed,templates,env' }}" \
+            --use-current \
+            --dev-server \
+            --chart ./charts/inrun \
+            --set runtime.image.repository="$RUNTIME_IMAGE" \
+            --set runtime.image.tag="$TAG" \
+            --set gateway.image.repository="$GATEWAY_IMAGE" \
+            --set gateway.image.tag="$TAG" \
+            --report="$RUNNER_TEMP/report.md"
+
+      - name: Report
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/report.md" ] && cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY" || true

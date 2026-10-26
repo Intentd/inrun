@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-rbac
+  description: >
+    Fixture module — RBAC, all forEach.
+    ClusterRole and ClusterRoleBinding expand over spec.roles.
+    ServiceAccount, Role, and RoleBinding expand over spec.namespaces.
+
+resources:
+  clusterRoles:
+    - name: "{{ .metadata.name }}-{{ .ns }}"
+      forEach:
+        field: spec.roles
+        as: ns
+      rules:
+        - apiGroups: [""]
+          resources: ["pods", "services"]
+          verbs: ["get", "list", "watch"]
+
+  clusterRoleBindings:
+    - name: "{{ .metadata.name }}-{{ .ns }}-binding"
+      forEach:
+        field: spec.roles
+        as: ns
+      roleRef:
+        name: "{{ .metadata.name }}-{{ .ns }}"
+        kind: ClusterRole
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ .metadata.name }}-{{ .ns }}-sa"
+          namespace: default
+
+  serviceAccounts:
+    - name: "{{ .metadata.name }}-{{ .ns }}-sa"
+      namespace: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns
+
+  roles:
+    - name: "{{ .metadata.name }}-{{ .ns }}-role"
+      namespace: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns
+      rules:
+        - apiGroups: [""]
+          resources: ["configmaps"]
+          verbs: ["get", "list"]
+
+  roleBindings:
+    - name: "{{ .metadata.name }}-{{ .ns }}-rolebinding"
+      namespace: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns
+      roleRef:
+        name: "{{ .metadata.name }}-{{ .ns }}-role"
+        kind: Role
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ .metadata.name }}-{{ .ns }}-sa"
+          namespace: "{{ .ns }}"

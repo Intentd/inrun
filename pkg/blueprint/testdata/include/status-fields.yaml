@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/status.json
+fields:
+  - path: phase
+    value: Pending
+    when:
+      - field: status.phase
+        notExists: true
+  - path: team
+    value: "{{ .spec.team }}"

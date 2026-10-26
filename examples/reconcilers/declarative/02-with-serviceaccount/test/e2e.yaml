@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: with-serviceaccount-e2e
+  description: Deploy a website operator with a ServiceAccount and verify the Deployment, Service, and ServiceAccount come up and are cleaned up on delete
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: CR created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Website
+          name: my-site
+          namespace: default
+
+    - name: Resources created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Deployment
+          namespace: default
+          ready: true
+        - kind: Service
+          namespace: default
+        - kind: ServiceAccount
+          name: my-site-sa
+          namespace: default
+
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          name: my-site
+          namespace: default
+          count: 0
+        - kind: Service
+          name: my-site-svc
+          namespace: default
+          count: 0
+        - kind: ServiceAccount
+          name: my-site-sa
+          namespace: default
+          count: 0
+        - kind: Website
+          name: my-site
+          namespace: default
+          count: 0

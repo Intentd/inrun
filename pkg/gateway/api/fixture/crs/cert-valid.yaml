@@ -1,0 +1,14 @@
+# Exercises: cert workload with domain — when: deny rule does NOT fire.
+# The or deny (repoURL required for app/monitoring) also skips — workloadType is cert.
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: api-tls-cert
+  namespace: team-platform
+spec:
+  workloadType: cert
+  team: team-platform
+  environment: production
+  domain: api.payments.example.com
+  issuer: letsencrypt-prod
+  productionApproval: CHG-20240721-0099

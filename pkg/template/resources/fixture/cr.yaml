@@ -1,0 +1,10 @@
+apiVersion: resources.inrun.dev/v1alpha1
+kind: ResourceProbe
+metadata:
+  name: probe
+spec:
+  image: nginx:stable
+  replicas: "1"
+  port: "8080"
+  storage: 1Gi
+  schedule: "*/5 * * * *"

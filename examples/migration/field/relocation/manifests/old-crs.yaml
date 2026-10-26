@@ -1,0 +1,80 @@
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-01
+spec:
+  image: "myapp/api:2.1.0"
+  replicas: 3
+  logLevel: "info"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-02
+spec:
+  image: "myapp/api:2.1.0"
+  replicas: 5
+  logLevel: "warn"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-03
+spec:
+  image: "myapp/api:1.9.0"
+  replicas: 2
+  logLevel: "debug"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-04
+spec:
+  image: "myapp/api:2.1.0"
+  replicas: 10
+  logLevel: "error"
+---
+# platform-05: only replicas is set — logLevel was never configured.
+# Tests partial migration: replicas migrates, logLevel is skipped without error.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-05
+spec:
+  image: "myapp/api:2.0.0"
+  replicas: 1
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-06
+spec:
+  image: "myapp/api:2.1.0"
+  replicas: 4
+  logLevel: "info"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-07
+spec:
+  image: "myapp/api:2.1.0"
+  replicas: 7
+  logLevel: "warn"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-08
+spec:
+  image: "myapp/api:2.1.0"
+  replicas: 3
+  logLevel: "info"

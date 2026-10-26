@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Clean: drop the snapshots
+expect:
+  - name: Clean dry-run reports the remaining snapshots
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml clean --dry-run -ojson
+        json:
+          - path: .totals.crs
+            equals: 2
+          - path: .totals.migrated
+            equals: 2
+  - name: Clean drops the snapshots
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml clean -ojson
+        json:
+          - path: .totals.migrated
+            equals: 2
+  - name: Clean is idempotent
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml clean -ojson
+        json:
+          - path: .totals.migrated
+            equals: 0
+
+  - name: Snapshot annotation is gone from a surviving destination
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          notExists: true
+
+  - name: Rollback after clean finds nothing to restore
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml rollback -ojson
+        json:
+          - path: .totals.migrated
+            equals: 0

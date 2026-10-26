@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: serviceaccount-sim
+  description: Verify the ServiceAccount, Deployment, and Service are created in cycle 1
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: create
+        resource: serviceaccounts
+        name: my-site-sa
+      - cycle: 1
+        verb: apply
+        resource: deployments
+        name: my-site
+      - cycle: 1
+        verb: apply
+        resource: services
+        name: my-site-svc

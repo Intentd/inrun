@@ -1,0 +1,53 @@
+{
+  "name": "retry-e2e",
+  "specPath": "e2e.yaml",
+  "cluster": "inrun-e2e",
+  "command": "inrun e2e --report=report.json",
+  "result": {
+    "total": 6,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 1
+  },
+  "elapsed": "3s",
+  "cases": [
+    {
+      "name": "passes first attempt",
+      "passed": true,
+      "elapsed": "5ms",
+      "attempts": 1
+    },
+    {
+      "name": "passes on second attempt",
+      "passed": true,
+      "elapsed": "1.011s",
+      "attempts": 2,
+      "retries": 2
+    },
+    {
+      "name": "passes on third attempt",
+      "passed": true,
+      "elapsed": "2.02s",
+      "attempts": 3,
+      "retries": 2
+    },
+    {
+      "name": "skipped by when",
+      "passed": false,
+      "skipped": true,
+      "elapsed": "0s"
+    },
+    {
+      "name": "passes with expect env",
+      "passed": true,
+      "elapsed": "3ms",
+      "attempts": 1
+    },
+    {
+      "name": "passes with spec env",
+      "passed": true,
+      "elapsed": "4ms",
+      "attempts": 1
+    }
+  ]
+}

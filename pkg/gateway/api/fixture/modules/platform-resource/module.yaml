@@ -1,0 +1,105 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: platform-resource
+  version: v0.1.0
+  description: >
+    Multi-type reconciler for PlatformResource CRs.
+    Routes to ArgoCD Application (app), cert-manager Certificate (cert),
+    or Prometheus ServiceMonitor (monitoring) based on spec.workloadType.
+    The preview alias creates a lightweight ephemeral Application variant
+    instead of the full production one.
+  author: intentd
+  tags:
+    - argocd
+    - cert-manager
+    - prometheus
+    - platform
+    - gateway-fixture
+
+resources:
+  custom:
+    # Full ArgoCD Application — primary and internal alias.
+    # Not created when the request arrived via the preview alias.
+    - apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "{{ .metadata.name }}"
+        namespace: argocd
+      spec:
+        project: default
+        source:
+          repoURL: "{{ .spec.repoURL }}"
+          targetRevision: "{{ .spec.targetRevision }}"
+          path: "."
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: "{{ .spec.targetNamespace }}"
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+      observe: true
+      when:
+        - field: spec.workloadType
+          equals: app
+        - field: '{{ ne (getServeAlias .) "preview" }}'
+          equals: "true"
+
+    # Lightweight preview Application — single namespace, no auto-sync.
+    # Created only when the request arrived via the preview alias.
+    - apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "{{ .metadata.name }}-preview"
+        namespace: argocd
+      spec:
+        project: default
+        source:
+          repoURL: "{{ .spec.repoURL }}"
+          targetRevision: "{{ .spec.targetRevision }}"
+          path: "."
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: "{{ .spec.targetNamespace }}-preview"
+      when:
+        - field: spec.workloadType
+          equals: app
+        - field: '{{ eq (getServeAlias .) "preview" }}'
+          equals: "true"
+
+    # cert-manager Certificate — created for the cert workload type.
+    - apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: "{{ .metadata.name }}"
+        namespace: "{{ .metadata.namespace }}"
+      spec:
+        secretName: "{{ .metadata.name }}-tls"
+        issuerRef:
+          name: "{{ .spec.issuer }}"
+          kind: ClusterIssuer
+        dnsNames:
+          - "{{ .spec.domain }}"
+      observe: true
+      when:
+        - field: spec.workloadType
+          equals: cert
+
+    # Prometheus ServiceMonitor — created for the monitoring workload type.
+    - apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: "{{ .metadata.name }}"
+        namespace: "{{ .metadata.namespace }}"
+      spec:
+        selector:
+          matchLabels:
+            app: "{{ .metadata.name }}"
+        endpoints:
+          - port: metrics
+            interval: "{{ .spec.scrapeInterval }}"
+      when:
+        - field: spec.workloadType
+          equals: monitoring

@@ -1,0 +1,1781 @@
+{
+  "$defs": {
+    "Auth": {
+      "additionalProperties": false,
+      "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
+      "properties": {
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SecretRef locates a Kubernetes Secret whose data key holds a bearer token\nMutually exclusive with Token. inrun validate enforces this"
+        },
+        "token": {
+          "description": "Token is a bearer token for the endpoint. $ENV_VAR syntax supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "description": "Condition is one test against the CR or runtime state.",
+      "properties": {
+        "between": {
+          "description": "Between passes when the field's number is inside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains passes when the field's value contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cron": {
+          "description": "Cron — a standard cron expression (5-field) that defines when the\nwindow opens. Duration defines how long the window stays open.\nWithout Duration, the window stays open until the next fire. Add Duration to close it sooner.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dayOfWeek": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DayOfWeekCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "DayOfWeek — active on the specified days of the week.\n  or:\n    - dayOfWeek:\n        in: [Monday, Tuesday, Wednesday, Thursday, Friday]"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Duration — how long a cron-opened window remains active."
+        },
+        "equals": {
+          "description": "Equals passes when the field's value is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "field": {
+          "description": "Field — dot-notation path to a field in the CR object or a runtime metric.\ne.g. \"spec.environment\", \"metrics.queueDepth\", \"cross.managed-database.metrics.queueDepth\"",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan passes when the field's number is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In passes when the field's value is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan passes when the field's number is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max is an inclusive upper bound: the field's number is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min is an inclusive lower bound: the field's number is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "negate": {
+          "description": "Negate — when true, the result of this condition is inverted.\nApplies to all condition types: field comparisons, time windows, dayOfWeek, cron.\n\n  when:\n    - dayOfWeek:\n        weekday: true\n      negate: true   # passes on weekends",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween passes when the field's number is outside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains passes when the field's value does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals passes when the field's value is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn passes when the field's value is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix passes when the field's value does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix passes when the field's value does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix passes when the field's value starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex passes when the field's value matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CrossSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source is the HTTP fallback for cross-binary metric observation.\nOnly used when field is a cross.\u003ccrd\u003e.metrics.* field and the CRD\nis not registered in GlobalCrossMetricsRegistry (different binary).\nThe endpoint must be the remote operator's /blueprint/{crd} URL.\n\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        host: \"http://inrun-database-operator:8080\"\n\t\t   crd: managed-database\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        endpoint: \"http://non-inrun-database-operator:8080/api/managed-database/metrics\""
+        },
+        "suffix": {
+          "description": "Suffix passes when the field's value ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Time — active when the current time is within the declared window.\nAfter and Before are both optional; omit one for a half-open range.\n  or:\n    - time:\n        after: \"08:00\"\n        before: \"20:00\""
+        },
+        "typeOf": {
+          "description": "TypeOf passes when the field's value has this type: map, slice,\nstring, number, bool or null (the names the typeOf function returns).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "unique": {
+          "description": "Unique, when true, passes when no other instance of the CRD has the same\nvalue at Field. Always passes where no uniqueness checker is available\n(e2e, simulate without a seeded fixture).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Conditions": {
+      "items": {
+        "$ref": "#/$defs/Condition"
+      },
+      "type": "array"
+    },
+    "CrossSource": {
+      "additionalProperties": false,
+      "description": "CrossSource declares how to fetch cross-binary/cluster data for a CRD.",
+      "properties": {
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Auth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Auth handles both ENV-based token and secret reads for cross: authentication\n\tauth:\n\t  secretRef:\n\t\tname: cross-secret\n\t\tnamespace: cross-namespace\n\t\tkey: password"
+        },
+        "cacheFor": {
+          "description": "CacheFor controls how long to cache the result before calling again.\nDefault: 30s — prevents hammering the endpoint on every evaluation.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint is a fully-qualified URL. If set, Inrun uses it directly\nand ignores Host/Protocol/Namespace. Template expressions supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "description": "Host is the base URL of a remote Inrun runtime, e.g.:\n  http://inrun-runtime.loader-system:8080\nCombined with Type to build the final URL.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace overrides the CR namespace when building info/events URLs.\nOptional — defaults to the CR's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "protocol": {
+          "description": "Protocol selects which Inrun-native endpoint to call.\nOne of: \"info\", \"metrics\", \"health\", \"events\".\nDefault: \"info\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "DayOfWeekCondition": {
+      "additionalProperties": false,
+      "description": "DayOfWeekCondition declares which days the condition is active.",
+      "properties": {
+        "in": {
+          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — active on all days except these.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "weekday": {
+          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "weekend": {
+          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Duration": {
+      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "KubernetesSecretRef": {
+      "additionalProperties": false,
+      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "properties": {
+        "key": {
+          "description": "Key is the data key within the Secret whose value is the token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Kubernetes Secret name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "rotateAfter": {
+          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "PresetRegistry": {
+      "additionalProperties": false,
+      "description": "PresetRegistry holds all user-defined presets declared in a Blueprint or Module.",
+      "properties": {
+        "containerSecurity": {
+          "description": "ContainerSecurities — named container security settings, for\nsecurityContext.preset.",
+          "items": {
+            "$ref": "#/$defs/presets.ContainerSecurity"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "hpa": {
+          "description": "HPAs — named autoscaling behaviour, for a HorizontalPodAutoscaler's preset.",
+          "items": {
+            "$ref": "#/$defs/presets.HPA"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "include": {
+          "description": "Include — a YAML file, relative to this one, whose presets: block is\nadded before the presets declared here.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "limitRanges": {
+          "description": "LimitRanges — named default limits, for a LimitRange's preset.",
+          "items": {
+            "$ref": "#/$defs/presets.LimitRange"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "networkPolicies": {
+          "description": "NetworkPolicies — named policy rules, for a NetworkPolicy's preset.",
+          "items": {
+            "$ref": "#/$defs/presets.NetworkPolicy"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "pdb": {
+          "description": "PDBs — named disruption budgets, for a PodDisruptionBudget's preset.",
+          "items": {
+            "$ref": "#/$defs/presets.PDB"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "podSecurity": {
+          "description": "PodSecurities — named pod security settings, for podSecurity.preset.",
+          "items": {
+            "$ref": "#/$defs/presets.PodSecurity"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "probes": {
+          "description": "Probes — named probe timings, for a probe's preset.",
+          "items": {
+            "$ref": "#/$defs/presets.Probe"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reconciler": {
+          "description": "Reconciler presets tune a CRD's own reconciler, so they stay Inrun's.",
+          "items": {
+            "$ref": "#/$defs/ReconcilerPresetDef"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "resourceQuotas": {
+          "description": "ResourceQuotas — named quota limits, for a ResourceQuota's preset.",
+          "items": {
+            "$ref": "#/$defs/presets.ResourceQuota"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "resources": {
+          "description": "Resources — named requests and limits, for a container's resources.preset.",
+          "items": {
+            "$ref": "#/$defs/presets.Resource"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "rollingUpdate": {
+          "description": "RollingUpdates — named rollout strategies, for rollingUpdate.preset.",
+          "items": {
+            "$ref": "#/$defs/presets.RollingUpdate"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "PresetsInclude": {
+      "additionalProperties": false,
+      "description": "PresetsInclude is the file presets.include names: each list added before the inline entries.",
+      "properties": {
+        "presets": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetRegistry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Queue": {
+      "additionalProperties": false,
+      "properties": {
+        "behaviour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueBehaviour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Behaviour — per-CRD queue behaviour. Configures what happens when the queue\nreaches its capacity limit or a declared depth threshold.\n\nWithout conditions (always drop on limit):\n\n\tqueue:\n\t  behaviour:\n\t    onLimit:\n\t      drop: true\n\nWith conditions (delegate drop decision to the evaluator):\n\n\tqueue:\n\t  behaviour:\n\t    onLimit:\n\t      when:\n\t        - field: \"{{ inBusinessHours }}\"\n\t          equals: false"
+        },
+        "failureThreshold": {
+          "description": "FailureThreshold — consecutive failures before CRD health degrades.\n0 → uses FAILURE_THRESHOLD env var.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maxDepth": {
+          "description": "MaxDepth — depth reference for behaviour:. 0 means unlimited — no items are dropped based\non depth alone. A positive value sets the limit at which behaviour.onLimit fires and the\n100% reference for behaviour.onThreshold. Has no effect without a behaviour declaration.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retryBackoff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryBackoffConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "RetryBackoff — per-CRD backoff applied inside the reconcile loop when\nthe reconciler returns an error before re-enqueuing. Shorthand (\"5s\")\nsets initial only; full form controls initial/max/multiplier/maxAttempts."
+        },
+        "shared": {
+          "description": "Shared — use the shared default workqueue instead of a per-CRD queue.\nDefault: false (each CRD gets its own isolated queue).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "QType — chooses the type of workqueue to be used.\nValid values are \"delayed\", \"ratelimited\"\n\n\tqueue:\n\t  type: \"delayed\"\n\nDefault is ratelimited",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "QueueBehaviour": {
+      "additionalProperties": false,
+      "description": "QueueBehaviour is declared under queue.behaviour It contains what happens to the queue on limit (currently supported)",
+      "properties": {
+        "onLimit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueBehaviourSetting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declares what happens to an item when the queue capacity has reached its limit"
+        },
+        "onThreshold": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueBehaviourSetting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "OnThreshold declares what happens when a depth-percent threshold is reached.\nvalue: is required and must be between 1 and 100 — it is the queue fullness\npercentage at which the behaviour fires. drop: is always true when onThreshold\nis declared; setting it to false is accepted but warned.\n\n\tqueue:\n\t  behaviour:\n\t    onThreshold:\n\t      value: 70\n\nWith conditions (delegate drop decision to the evaluator):\n\n\tqueue:\n\t  behaviour:\n\t    onThreshold:\n\t      value: 70\n\t      when:\n\t        - field: \"{{ inBusinessHours }}\"\n\t          equals: false"
+        }
+      },
+      "type": "object"
+    },
+    "QueueBehaviourSetting": {
+      "additionalProperties": false,
+      "description": "QueueBehaviourSetting defines the action taken when the queue reaches its limit or threshold.",
+      "properties": {
+        "drop": {
+          "description": "Drop controls whether the item is dropped when the limit/threshold fires.\nDefault: false (unlimited queue). onThreshold always sets drop to true.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Or is a list of conditions where at least ONE must be true for the\nfield to be visible. OR counterpart to When (AND)."
+        },
+        "value": {
+          "description": "Value is the queue-fullness percentage at which onThreshold fires.\nRequired under onThreshold; ignored under onLimit. Must be 1–100.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When is a list of conditions that must ALL be true for this field to be\nvisible. Evaluated client-side as the user fills the form. An empty When\nmeans the field is always visible.\nSupports: equals, notEquals, time, dayOfWeek, cron, negate — same as\ntemplate source when: blocks."
+        }
+      },
+      "type": "object"
+    },
+    "ReconcilerPresetDef": {
+      "additionalProperties": false,
+      "description": "ReconcilerPresetDef defines a named reconciler tuning preset.",
+      "properties": {
+        "description": {
+          "description": "Description — shown by inrun validate and in the reference.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a CRD's reconcile.preset refers to.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "queue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Queue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Queue — work queue settings, as in reconcile.queue."
+        },
+        "resync": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resync — how often the informer re-lists every CR."
+        },
+        "workers": {
+          "description": "Workers — concurrent reconciles.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RetryBackoffConfig": {
+      "anyOf": [
+        {
+          "description": "Initial delay, e.g. 500ms",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff.",
+          "properties": {
+            "initial": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Initial is the first backoff delay. Default: 500ms."
+            },
+            "max": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max caps the delay so it does not grow unboundedly. Default: 30s."
+            },
+            "maxAttempts": {
+              "description": "MaxAttempts is the total number of calls including the first. Default: 3.",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "multiplier": {
+              "description": "Multiplier scales the delay after each attempt. Default: 2.0.",
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff."
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "description": "TimeWindow declares a clock-based active window.",
+      "properties": {
+        "after": {
+          "description": "After — active after this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "before": {
+          "description": "Before — active before this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.CapabilitiesConfig": {
+      "additionalProperties": false,
+      "description": "CapabilitiesConfig is the Linux capabilities to add and drop.",
+      "properties": {
+        "add": {
+          "description": "Add — capabilities to add to the default set.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "drop": {
+          "description": "Drop — capabilities to remove; [\"ALL\"] removes every one.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.HPABehavior": {
+      "additionalProperties": false,
+      "description": "HPABehavior is how fast a HorizontalPodAutoscaler scales up and down: a preset, or ScaleUp and ScaleDown.",
+      "properties": {
+        "preset": {
+          "description": "Preset — web, api, latency-sensitive, batch, cost-optimized, or one\nfrom the registry. presets.ExpandHPA expands it.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "scaleDown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/kubewright.HPAScalingRules"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ScaleDown — how fast replicas are removed."
+        },
+        "scaleUp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/kubewright.HPAScalingRules"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ScaleUp — how fast replicas are added."
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.HPAScalingPolicy": {
+      "additionalProperties": false,
+      "description": "HPAScalingPolicy limits one scaling step per period.",
+      "properties": {
+        "periodSeconds": {
+          "description": "PeriodSeconds — the period, 1 to 1800.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Type — Pods (a count) or Percent (of current replicas).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "Value — the pods or percent allowed per period.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.HPAScalingRules": {
+      "additionalProperties": false,
+      "description": "HPAScalingRules is one scaling direction, up or down.",
+      "properties": {
+        "policies": {
+          "description": "Policies — the limits on each step; SelectPolicy picks among them.",
+          "items": {
+            "$ref": "#/$defs/kubewright.HPAScalingPolicy"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "selectPolicy": {
+          "description": "SelectPolicy — Max, Min or Disabled. Default: Max.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "stabilizationWindowSeconds": {
+          "description": "StabilizationWindowSeconds — how far back to look before acting.\nKubernetes defaults: 300 down, 0 up.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.LimitRangeItem": {
+      "additionalProperties": false,
+      "description": "LimitRangeItem is the defaults and bounds for one type of object in a namespace.",
+      "properties": {
+        "default": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Default — the limits given to a container that sets none.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "defaultRequest": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "DefaultRequest — the requests given to a container that sets none.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "max": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Max — the most each resource may be, e.g. {\"cpu\": \"2\", \"memory\": \"4Gi\"}.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "maxLimitRequestRatio": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "MaxLimitRequestRatio — the most a limit may be, as a multiple of its request.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "min": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Min — the least each resource may be.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Type — Container, Pod or PersistentVolumeClaim.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.NetworkPolicyEgressRule": {
+      "additionalProperties": false,
+      "description": "NetworkPolicyEgressRule describes one egress rule.",
+      "properties": {
+        "ports": {
+          "description": "Ports — the ports allowed. Empty allows every port.",
+          "items": {
+            "$ref": "#/$defs/kubewright.NetworkPolicyPort"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "to": {
+          "description": "To — the destinations allowed out. Empty allows every destination.",
+          "items": {
+            "$ref": "#/$defs/kubewright.NetworkPolicyPeer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.NetworkPolicyIPBlock": {
+      "additionalProperties": false,
+      "description": "NetworkPolicyIPBlock describes an IP CIDR range.",
+      "properties": {
+        "cidr": {
+          "description": "CIDR — the range allowed, e.g. \"10.0.0.0/16\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "except": {
+          "description": "Except — ranges inside CIDR to leave out.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.NetworkPolicyIngressRule": {
+      "additionalProperties": false,
+      "description": "NetworkPolicyIngressRule describes one ingress rule.",
+      "properties": {
+        "from": {
+          "description": "From — the sources allowed in. Empty allows every source.",
+          "items": {
+            "$ref": "#/$defs/kubewright.NetworkPolicyPeer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ports": {
+          "description": "Ports — the ports allowed. Empty allows every port.",
+          "items": {
+            "$ref": "#/$defs/kubewright.NetworkPolicyPort"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.NetworkPolicyPeer": {
+      "additionalProperties": false,
+      "description": "NetworkPolicyPeer selects a set of pods or namespaces.",
+      "properties": {
+        "ipBlock": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/kubewright.NetworkPolicyIPBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "IPBlock — a range of IP addresses."
+        },
+        "namespaceSelector": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "NamespaceSelector — namespaces, by label. Empty selects every namespace.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "podSelector": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "PodSelector — pods in the policy's namespace, by label. Empty selects\nevery pod.",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "kubewright.NetworkPolicyPort": {
+      "additionalProperties": false,
+      "description": "NetworkPolicyPort describes a port allowed by a rule.",
+      "properties": {
+        "port": {
+          "description": "Port — a port number or name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "protocol": {
+          "description": "Protocol — TCP (default), UDP, or SCTP.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.ContainerSecurity": {
+      "additionalProperties": false,
+      "description": "ContainerSecurity is a named container security context.",
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "description": "AllowPrivilegeEscalation — false stops a process gaining more privileges\nthan its parent.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "capabilities": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/kubewright.CapabilitiesConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Capabilities — Linux capabilities to add and drop."
+        },
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a securityContext.preset names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "readOnlyRootFilesystem": {
+          "description": "ReadOnlyRootFilesystem — true mounts the container's root filesystem read-only.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "runAsGroup": {
+          "description": "RunAsGroup — the group ID the container runs as.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "runAsNonRoot": {
+          "description": "RunAsNonRoot — true refuses to start the container as root.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "runAsUser": {
+          "description": "RunAsUser — the user ID the container runs as.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.HPA": {
+      "additionalProperties": false,
+      "description": "HPA is a named HorizontalPodAutoscaler setup: replica bounds, a CPU target and scaling behavior.",
+      "properties": {
+        "behavior": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/kubewright.HPABehavior"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Behavior — how fast to scale up and down. Replaces the HPA's behavior."
+        },
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "maxReplicas": {
+          "description": "MaxReplicas — the most pods, used when the HPA sets none.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "minReplicas": {
+          "description": "MinReplicas — the fewest pods, used when the HPA sets none.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a HorizontalPodAutoscaler's behavior.preset names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "targetCPUUtilizationPercentage": {
+          "description": "TargetCPUUtilizationPercentage — the average CPU use to scale toward,\nused when the HPA sets none.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.LimitRange": {
+      "additionalProperties": false,
+      "description": "LimitRange is a named set of LimitRange items.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "limits": {
+          "description": "Limits — per-container and per-pod defaults and bounds, used when the\nLimitRange sets none.",
+          "items": {
+            "$ref": "#/$defs/kubewright.LimitRangeItem"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a LimitRange names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.NetworkPolicy": {
+      "additionalProperties": false,
+      "description": "NetworkPolicy is a named set of NetworkPolicy rules.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "egress": {
+          "description": "Egress — the rules for traffic out. Replaces the policy's.",
+          "items": {
+            "$ref": "#/$defs/kubewright.NetworkPolicyEgressRule"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ingress": {
+          "description": "Ingress — the rules for traffic in. Replaces the policy's.",
+          "items": {
+            "$ref": "#/$defs/kubewright.NetworkPolicyIngressRule"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a NetworkPolicy names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "podSelector": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "PodSelector — the labels of the pods the policy applies to, used when the\npolicy sets none. An empty map selects every pod.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "policyTypes": {
+          "description": "PolicyTypes — Ingress, Egress or both. Replaces the policy's.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.PDB": {
+      "additionalProperties": false,
+      "description": "PDB is a named PodDisruptionBudget limit: MinAvailable or MaxUnavailable, each a count or a percentage.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "maxUnavailable": {
+          "description": "MaxUnavailable — pods that may be down, used when the budget doesn't set it.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "minAvailable": {
+          "description": "MinAvailable — pods that must stay up, used when the budget doesn't set it.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a PodDisruptionBudget names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.PodSecurity": {
+      "additionalProperties": false,
+      "description": "PodSecurity is a named pod security context.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "fsGroup": {
+          "description": "FSGroup — the group that owns mounted volumes.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a podSecurity.preset names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "runAsGroup": {
+          "description": "RunAsGroup — the group ID every container runs as.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "runAsNonRoot": {
+          "description": "RunAsNonRoot — true refuses to start any container as root.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "runAsUser": {
+          "description": "RunAsUser — the user ID every container runs as.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.Probe": {
+      "additionalProperties": false,
+      "description": "Probe is a named set of probe timings.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "failureThreshold": {
+          "description": "FailureThreshold — consecutive failures before the probe counts as failed.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "initialDelaySeconds": {
+          "description": "InitialDelaySeconds — wait this long after start before the first probe.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a probe's preset names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "periodSeconds": {
+          "description": "PeriodSeconds — how often to probe.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "successThreshold": {
+          "description": "SuccessThreshold — consecutive successes before it counts as passed again.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "timeoutSeconds": {
+          "description": "TimeoutSeconds — how long one probe may take.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.Resource": {
+      "additionalProperties": false,
+      "description": "Resource is a named set of CPU and memory requests and limits.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "limits": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Limits — the most the container may use.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a resources.preset names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "requests": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Requests — the resources guaranteed, e.g. {\"cpu\": \"100m\", \"memory\": \"128Mi\"}.",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.ResourceQuota": {
+      "additionalProperties": false,
+      "description": "ResourceQuota is a named set of a namespace's hard limits.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "hard": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Hard — the namespace's limits, e.g. {\"pods\": \"10\", \"requests.cpu\": \"4\"}.\nReplaces the quota's.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a ResourceQuota names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "presets.RollingUpdate": {
+      "additionalProperties": false,
+      "description": "RollingUpdate is a named Deployment rolling update strategy.",
+      "properties": {
+        "description": {
+          "description": "Description — what the preset is for.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "maxSurge": {
+          "description": "MaxSurge — pods allowed above the desired count during a rollout.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "maxUnavailable": {
+          "description": "MaxUnavailable — pods allowed to be unavailable during a rollout.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — what a rollingUpdate.preset names to use this preset; names ignore case.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/presets.json",
+  "$ref": "#/$defs/PresetsInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: presets"
+}

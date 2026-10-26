@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: children-foreach-sim
+  description: Verify forEach expansion — all resource types created from the acme Tenant CR on cycle 1
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    crds:
+      tenant:
+        ops:
+          - include: ./ops/01-namespaced.yaml
+          - include: ./ops/02-rbac.yaml
+          - include: ./ops/03-workloads.yaml
+          - include: ./ops/04-network.yaml
+          - include: ./ops/05-config.yaml
+          - include: ./ops/06-storage.yaml
+          - cycle: 1
+            verb: create
+            resource: tenantplans
+            name: acme-plan
+      tenant-plan:
+        ops:
+          - cycle: 1
+            verb: apply
+            resource: configmaps
+            name: acme-plan-config

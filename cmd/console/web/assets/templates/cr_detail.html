@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ .CR.Name }} — {{ .CRDName }} – Inrun Console</title>
+  <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
+  <link rel="stylesheet" href="/console/assets/static/css/style.css">
+  <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body class="console-root">
+
+  <!-- Sidebar -->
+  <aside class="console-sidebar" id="console-sidebar">
+    <div class="console-sidebar-logo">
+      <div class="console-sidebar-logo-row">
+        <a href="/console">
+          <img src="/console/assets/static/inrun-mark.svg" alt="Inrun" width="32" height="32">
+          <span>Inrun Console</span>
+        </a>
+        <button class="console-sidebar-toggle" id="console-sidebar-toggle" title="Collapse sidebar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+            <path d="M9 18l-6-6 6-6" opacity="0.4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <nav class="console-sidebar-nav">
+      <a href="/console" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        All Blueprints
+      </a>
+      <div class="console-nav-section">Context</div>
+      <a href="/console/blueprint/{{ .BlueprintName }}" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        {{ .BlueprintName }}
+      </a>
+      <a href="{{ .BackURL }}" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        {{ .CRDName }}
+      </a>
+      <a href="{{ .BackURL }}/cr" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+        Resources
+      </a>
+      <span class="console-nav-item active" style="cursor:default">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        {{ .CR.Name }}
+      </span>
+    </nav>
+    <div class="console-sidebar-footer">
+      <span class="console-refresh-dot" id="sse-dot" title="Live connection"></span>
+      <span class="console-refresh-label">Live</span>
+    </div>
+  </aside>
+  <div class="console-sidebar-overlay" id="console-overlay"></div>
+
+  <main class="console-main">
+    <div class="console-navbar">
+      <button class="console-mobile-toggle" id="console-mobile-toggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <nav class="console-breadcrumb">
+        <a href="/console">Console</a>
+        <span class="sep">›</span>
+        <a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }}</a>
+        <span class="sep">›</span>
+        <a href="{{ .BackURL }}">{{ .CRDName }}</a>
+        <span class="sep">›</span>
+        <a href="{{ .BackURL }}/cr">Resources</a>
+        <span class="sep">›</span>
+        <span class="current font-mono">{{ .CR.Name }}</span>
+      </nav>
+      <div class="console-navbar-right">
+        <button class="console-theme-toggle" id="console-theme-toggle" title="Toggle theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="console-page">
+
+      <!-- CR Header -->
+      <div style="margin-bottom:24px">
+        <div class="flex items-center gap-3 mb-2" style="flex-wrap:wrap">
+          <h1 class="font-mono" style="font-size:20px;font-weight:700;margin:0">{{ .CR.Name }}</h1>
+          {{ if .Phase }}
+            {{ if eq .Phase "Succeeded" }}
+            <span class="console-badge console-badge-healthy">✓ {{ .Phase }}</span>
+            {{ else if eq .Phase "Failed" }}
+            <span class="console-badge console-badge-degraded">✗ {{ .Phase }}</span>
+            {{ else if hasPrefix .Phase "Running" }}
+            <span class="console-badge console-badge-started">◌ {{ .Phase }}</span>
+            {{ else if eq .Phase "Pending" }}
+            <span class="console-badge console-badge-pending">◷ {{ .Phase }}</span>
+            {{ else }}
+            <span class="console-badge" style="background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted)">{{ .Phase }}</span>
+            {{ end }}
+          {{ end }}
+          </span>
+          {{ if .CR.Ready }}
+          <span class="console-badge console-badge-healthy"><span class="console-status-dot healthy"></span>Ready</span>
+          {{ else }}
+          <span class="console-badge console-badge-pending"><span class="console-status-dot pending anim-pulse"></span>{{ if .CR.ReadyReason }}{{ .CR.ReadyReason }}{{ else }}Not ready{{ end }}</span>
+          {{ end }}
+        </div>
+        <div class="flex gap-4 font-mono" style="font-size:11px;color:var(--text-muted)">
+          {{ if .CR.Namespace }}<span>namespace: {{ .CR.Namespace }}</span>{{ end }}
+          <span>generation: {{ .CR.Generation }}</span>
+          <span>created: {{ formatTime .CR.CreationTimestamp }}</span>
+        </div>
+      </div>
+
+      <!-- Status fields -->
+      {{ if .CR.Status }}
+      <div class="console-section">
+        <h2 class="console-section-title">Status</h2>
+        <div class="console-kv-table">
+          {{ range $key, $val := .CR.Status }}
+          {{ if ne $key "conditions" }}
+          <div class="console-kv-row">
+            <span class="console-kv-key">{{ $key }}</span>
+            <span class="console-kv-val">{{ $val }}</span>
+          </div>
+          {{ end }}
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+
+      <!-- Conditions -->
+      <div class="console-section">
+        <h2 class="console-section-title">Conditions</h2>
+        <div class="console-table-wrap">
+          <table class="console-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Last Transition</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody>
+            {{ if .CR.Status }}
+            {{ $conditions := index .CR.Status "conditions" }}
+            {{ if $conditions }}
+            {{ range $conditions }}
+            {{ $cond := . }}
+            <tr style="cursor:default">
+              <td class="font-mono text-xs">{{ index $cond "type" }}</td>
+              <td>
+                {{ if eq (printf "%v" (index $cond "status")) "True" }}
+                <span class="text-green text-xs font-medium">True</span>
+                {{ else }}
+                <span class="text-red text-xs font-medium">False</span>
+                {{ end }}
+              </td>
+              <td class="font-mono text-xs text-muted">{{ index $cond "reason" }}</td>
+              <td class="font-mono text-xs text-muted">{{ formatTime (printf "%v" (index $cond "lastTransitionTime")) }}</td>
+              <td class="text-xs text-muted">{{ index $cond "message" }}</td>
+            </tr>
+            {{ end }}
+            {{ else }}
+            <tr style="cursor:default"><td colspan="5" style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px">No conditions yet</td></tr>
+            {{ end }}
+            {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Child Resources -->
+      {{ if .ChildGroups }}
+      <div class="console-section">
+        <h2 class="console-section-title">Child Resources
+          <span class="console-badge" style="background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);margin-left:6px">{{ len .ChildGroups }}</span>
+        </h2>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          {{ range .ChildGroups }}
+
+          {{ if .IsMultiple }}
+          <!-- ── Grouped: multiple children of same kind ── -->
+          <details class="console-child-group">
+            <summary style="list-style:none;cursor:pointer">
+              <div class="console-card" style="padding:12px 14px;display:flex;flex-direction:row;align-items:center;gap:10px">
+                <svg class="console-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                <span class="console-badge" style="text-transform:uppercase">{{ .Kind }}</span>
+                <span class="font-mono text-xs" style="font-weight:500;color:var(--text-secondary)">{{ len .Items }} resources</span>
+                <span class="text-xs text-muted" style="margin-left:auto">{{ .ReadyCount }}/{{ len .Items }} ready</span>
+              </div>
+            </summary>
+            <div style="margin-top:4px;display:flex;flex-direction:column;gap:6px;padding-left:16px">
+              {{ range .Items }}
+              {{ template "childCard" . }}
+              {{ end }}
+            </div>
+          </details>
+
+          {{ else }}
+          <!-- ── Single child ── -->
+          {{ range .Items }}
+          {{ template "childCard" . }}
+          {{ end }}
+          {{ end }}
+
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+
+      {{ define "childCard" }}
+      <div class="console-card" style="padding:14px">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="console-badge" style="text-transform:uppercase">{{ .Kind }}</span>
+          <span class="font-mono" style="font-weight:500">{{ .Name }}</span>
+          {{ if .Namespace }}
+            <span class="text-xs text-muted font-mono">({{ .Namespace }})</span>
+          {{ end }}
+          {{ if .Ready }}
+            <span class="console-badge console-badge-healthy" style="margin-left:auto">
+              <span class="console-status-dot healthy"></span>Ready
+            </span>
+          {{ else }}
+            <span class="console-badge console-badge-pending" style="margin-left:auto">
+              <span class="console-status-dot pending anim-pulse"></span>Not Ready
+            </span>
+          {{ end }}
+        </div>
+
+        {{ with .Status }}
+        <div class="console-grid-2" style="margin-bottom:10px">
+          {{ if .replicas }}
+          <div class="console-mini-stat">
+            <span class="text-muted text-xs">Replicas</span>
+            <span class="font-mono">{{ .replicas }}</span>
+          </div>
+          {{ end }}
+          {{ if .readyReplicas }}
+          <div class="console-mini-stat">
+            <span class="text-muted text-xs">Ready</span>
+            <span class="font-mono">{{ .readyReplicas }}</span>
+          </div>
+          {{ end }}
+          {{ if .availableReplicas }}
+          <div class="console-mini-stat">
+            <span class="text-muted text-xs">Available</span>
+            <span class="font-mono">{{ .availableReplicas }}</span>
+          </div>
+          {{ end }}
+          {{ if .phase }}
+          <div class="console-mini-stat">
+            <span class="text-muted text-xs">Phase</span>
+            <span class="font-mono">{{ .phase }}</span>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+
+        {{ $cond := index .Status "conditions" }}
+        {{ if $cond }}
+        <div style="margin-top:8px">
+          <div class="text-xs text-muted mb-2">Conditions</div>
+          {{ range $cond }}
+          <div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div class="font-mono text-xs" style="font-weight:500">{{ .type }}</div>
+              <div class="text-xs text-muted">{{ .reason }}</div>
+            </div>
+            <div style="text-align:right">
+              {{ if eq .status "True" }}
+                <span class="console-badge console-badge-healthy">True</span>
+              {{ else }}
+                <span class="console-badge console-badge-degraded">False</span>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
+
+      <!-- Events -->
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">Events
+            {{ if gt .EventTotal 0 }}
+            <span class="console-badge" style="background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);margin-left:6px">{{ .EventTotal }}</span>
+            {{ end }}
+          </h2>
+        </div>
+
+        {{ if eq .EventTotal 0 }}
+        <div class="console-empty-state" style="padding:24px">
+          <div class="console-empty-state-title">No events yet</div>
+          <p class="console-empty-state-text">Events appear here once the operator reconciles this CR.</p>
+        </div>
+        {{ else }}
+        <div class="console-table-wrap">
+          <table class="console-table">
+            <thead>
+              <tr>
+                <th style="width:80px">Type</th>
+                <th style="width:140px">Reason</th>
+                <th>Message</th>
+                <th style="width:60px">Count</th>
+                <th style="width:80px">Age</th>
+                <th style="width:120px">Source</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+              {{ range .Events }}
+              {{ if eq .Type "Warning" }}
+              <tr class="event-row" style="background:rgba(245,158,11,0.04)">
+              {{ else }}
+              <tr class="event-row">
+              {{ end }}
+                <td data-label="Type">
+                  {{ if eq .Type "Warning" }}
+                  <span class="text-amber text-xs font-medium">Warning</span>
+                  {{ else }}
+                  <span class="text-muted text-xs">Normal</span>
+                  {{ end }}
+                </td>
+                <td class="font-mono text-xs" data-label="Reason">{{ .Reason }}</td>
+                <td class="text-xs text-muted truncate" data-label="Message" style="max-width:300px" title="{{ .Message }}">{{ truncate .Message 120 }}</td>
+                <td class="font-mono text-xs text-muted" data-label="Count">
+                  {{ if gt .Count 1 }}
+                  <span class="console-badge" style="background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);padding:1px 5px">×{{ .Count }}</span>
+                  {{ else }}1{{ end }}
+                </td>
+                <td class="font-mono text-xs text-muted" data-label="Age">{{ .Age }}</td>
+                <td class="text-xs text-muted truncate" data-label="Source">{{ .Source }}</td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+
+          {{ if gt .EventTotal 10 }}
+          <div style="padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border)">
+            <div class="console-pagination">
+              <div class="console-pagination-info">
+                Showing <span id="eventStart">1</span>–<span id="eventEnd">10</span> of <span id="eventTotalCount">{{ .EventTotal }}</span> events
+              </div>
+              <div class="console-pagination-btns">
+                <button id="eventPrevPageBtn" class="console-page-btn" disabled>← Prev</button>
+                <div id="eventPageNumbers" class="console-pagination-btns"></div>
+                <button id="eventNextPageBtn" class="console-page-btn">Next →</button>
+              </div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
+
+      <!-- Labels (collapsible) -->
+      {{ if .CR.Labels }}
+      <div class="console-section">
+        <details>
+          <summary>
+            <div class="console-details-summary">
+              <span>Labels ({{ len .CR.Labels }})</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </summary>
+          <div class="console-kv-table" style="margin-top:4px">
+            {{ range $k, $v := .CR.Labels }}
+            <div class="console-kv-row">
+              <span class="console-kv-key">{{ $k }}</span>
+              <span class="console-kv-val">{{ $v }}</span>
+            </div>
+            {{ end }}
+          </div>
+        </details>
+      </div>
+      {{ end }}
+
+    </div>
+  </main>
+
+  <script src="/console/assets/static/js/console.js"></script>
+</body>
+</html>

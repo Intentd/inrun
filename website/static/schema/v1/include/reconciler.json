@@ -1,0 +1,928 @@
+{
+  "$defs": {
+    "Auth": {
+      "additionalProperties": false,
+      "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
+      "properties": {
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SecretRef locates a Kubernetes Secret whose data key holds a bearer token\nMutually exclusive with Token. inrun validate enforces this"
+        },
+        "token": {
+          "description": "Token is a bearer token for the endpoint. $ENV_VAR syntax supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "description": "Condition is one test against the CR or runtime state.",
+      "properties": {
+        "between": {
+          "description": "Between passes when the field's number is inside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains passes when the field's value contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cron": {
+          "description": "Cron — a standard cron expression (5-field) that defines when the\nwindow opens. Duration defines how long the window stays open.\nWithout Duration, the window stays open until the next fire. Add Duration to close it sooner.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dayOfWeek": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DayOfWeekCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "DayOfWeek — active on the specified days of the week.\n  or:\n    - dayOfWeek:\n        in: [Monday, Tuesday, Wednesday, Thursday, Friday]"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Duration — how long a cron-opened window remains active."
+        },
+        "equals": {
+          "description": "Equals passes when the field's value is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "field": {
+          "description": "Field — dot-notation path to a field in the CR object or a runtime metric.\ne.g. \"spec.environment\", \"metrics.queueDepth\", \"cross.managed-database.metrics.queueDepth\"",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan passes when the field's number is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In passes when the field's value is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan passes when the field's number is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max is an inclusive upper bound: the field's number is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min is an inclusive lower bound: the field's number is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "negate": {
+          "description": "Negate — when true, the result of this condition is inverted.\nApplies to all condition types: field comparisons, time windows, dayOfWeek, cron.\n\n  when:\n    - dayOfWeek:\n        weekday: true\n      negate: true   # passes on weekends",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween passes when the field's number is outside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains passes when the field's value does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals passes when the field's value is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn passes when the field's value is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix passes when the field's value does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix passes when the field's value does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix passes when the field's value starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex passes when the field's value matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CrossSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source is the HTTP fallback for cross-binary metric observation.\nOnly used when field is a cross.\u003ccrd\u003e.metrics.* field and the CRD\nis not registered in GlobalCrossMetricsRegistry (different binary).\nThe endpoint must be the remote operator's /blueprint/{crd} URL.\n\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        host: \"http://inrun-database-operator:8080\"\n\t\t   crd: managed-database\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        endpoint: \"http://non-inrun-database-operator:8080/api/managed-database/metrics\""
+        },
+        "suffix": {
+          "description": "Suffix passes when the field's value ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Time — active when the current time is within the declared window.\nAfter and Before are both optional; omit one for a half-open range.\n  or:\n    - time:\n        after: \"08:00\"\n        before: \"20:00\""
+        },
+        "typeOf": {
+          "description": "TypeOf passes when the field's value has this type: map, slice,\nstring, number, bool or null (the names the typeOf function returns).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "unique": {
+          "description": "Unique, when true, passes when no other instance of the CRD has the same\nvalue at Field. Always passes where no uniqueness checker is available\n(e2e, simulate without a seeded fixture).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Conditions": {
+      "items": {
+        "$ref": "#/$defs/Condition"
+      },
+      "type": "array"
+    },
+    "ConstructorDeclaration": {
+      "additionalProperties": false,
+      "description": "ConstructorDeclaration declares where a custom reconciler constructor lives.",
+      "properties": {
+        "alias": {
+          "description": "Alias — the import alias in generated code. Default: derived from\nlocation.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "fetch": {
+          "description": "Fetch: when true, inrun generate runs go get \u003clocation\u003e@\u003cversion\u003e.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "function": {
+          "description": "Function — the function constructing the reconciler.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "location": {
+          "description": "Location — the Go import path of the package that holds the function.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version — the module version inrun generate fetches when fetch is true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "CrossSource": {
+      "additionalProperties": false,
+      "description": "CrossSource declares how to fetch cross-binary/cluster data for a CRD.",
+      "properties": {
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Auth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Auth handles both ENV-based token and secret reads for cross: authentication\n\tauth:\n\t  secretRef:\n\t\tname: cross-secret\n\t\tnamespace: cross-namespace\n\t\tkey: password"
+        },
+        "cacheFor": {
+          "description": "CacheFor controls how long to cache the result before calling again.\nDefault: 30s — prevents hammering the endpoint on every evaluation.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint is a fully-qualified URL. If set, Inrun uses it directly\nand ignores Host/Protocol/Namespace. Template expressions supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "description": "Host is the base URL of a remote Inrun runtime, e.g.:\n  http://inrun-runtime.loader-system:8080\nCombined with Type to build the final URL.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace overrides the CR namespace when building info/events URLs.\nOptional — defaults to the CR's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "protocol": {
+          "description": "Protocol selects which Inrun-native endpoint to call.\nOne of: \"info\", \"metrics\", \"health\", \"events\".\nDefault: \"info\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "DayOfWeekCondition": {
+      "additionalProperties": false,
+      "description": "DayOfWeekCondition declares which days the condition is active.",
+      "properties": {
+        "in": {
+          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — active on all days except these.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "weekday": {
+          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "weekend": {
+          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Duration": {
+      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "HookDeclaration": {
+      "additionalProperties": false,
+      "description": "HookDeclaration declares where a Go hook function lives.",
+      "properties": {
+        "alias": {
+          "description": "Alias — the import alias in generated code. Default: derived from\nlocation.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "fetch": {
+          "description": "Fetch: when true, inrun generate runs go get \u003clocation\u003e@\u003cversion\u003e.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "function": {
+          "description": "Function — the function returning the hooks, func() domain.AnyReconcileHooks.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "location": {
+          "description": "Location — the Go import path of the package that holds the function.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "runHooksFirst": {
+          "description": "RunHooksFirst: when true, the hook runs before declarative templates (hybrid pattern).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version — the module version inrun generate fetches when fetch is true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "KubernetesSecretRef": {
+      "additionalProperties": false,
+      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "properties": {
+        "key": {
+          "description": "Key is the data key within the Secret whose value is the token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Kubernetes Secret name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "rotateAfter": {
+          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Queue": {
+      "additionalProperties": false,
+      "properties": {
+        "behaviour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueBehaviour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Behaviour — per-CRD queue behaviour. Configures what happens when the queue\nreaches its capacity limit or a declared depth threshold.\n\nWithout conditions (always drop on limit):\n\n\tqueue:\n\t  behaviour:\n\t    onLimit:\n\t      drop: true\n\nWith conditions (delegate drop decision to the evaluator):\n\n\tqueue:\n\t  behaviour:\n\t    onLimit:\n\t      when:\n\t        - field: \"{{ inBusinessHours }}\"\n\t          equals: false"
+        },
+        "failureThreshold": {
+          "description": "FailureThreshold — consecutive failures before CRD health degrades.\n0 → uses FAILURE_THRESHOLD env var.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maxDepth": {
+          "description": "MaxDepth — depth reference for behaviour:. 0 means unlimited — no items are dropped based\non depth alone. A positive value sets the limit at which behaviour.onLimit fires and the\n100% reference for behaviour.onThreshold. Has no effect without a behaviour declaration.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retryBackoff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryBackoffConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "RetryBackoff — per-CRD backoff applied inside the reconcile loop when\nthe reconciler returns an error before re-enqueuing. Shorthand (\"5s\")\nsets initial only; full form controls initial/max/multiplier/maxAttempts."
+        },
+        "shared": {
+          "description": "Shared — use the shared default workqueue instead of a per-CRD queue.\nDefault: false (each CRD gets its own isolated queue).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "QType — chooses the type of workqueue to be used.\nValid values are \"delayed\", \"ratelimited\"\n\n\tqueue:\n\t  type: \"delayed\"\n\nDefault is ratelimited",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "QueueBehaviour": {
+      "additionalProperties": false,
+      "description": "QueueBehaviour is declared under queue.behaviour It contains what happens to the queue on limit (currently supported)",
+      "properties": {
+        "onLimit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueBehaviourSetting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declares what happens to an item when the queue capacity has reached its limit"
+        },
+        "onThreshold": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueBehaviourSetting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "OnThreshold declares what happens when a depth-percent threshold is reached.\nvalue: is required and must be between 1 and 100 — it is the queue fullness\npercentage at which the behaviour fires. drop: is always true when onThreshold\nis declared; setting it to false is accepted but warned.\n\n\tqueue:\n\t  behaviour:\n\t    onThreshold:\n\t      value: 70\n\nWith conditions (delegate drop decision to the evaluator):\n\n\tqueue:\n\t  behaviour:\n\t    onThreshold:\n\t      value: 70\n\t      when:\n\t        - field: \"{{ inBusinessHours }}\"\n\t          equals: false"
+        }
+      },
+      "type": "object"
+    },
+    "QueueBehaviourSetting": {
+      "additionalProperties": false,
+      "description": "QueueBehaviourSetting defines the action taken when the queue reaches its limit or threshold.",
+      "properties": {
+        "drop": {
+          "description": "Drop controls whether the item is dropped when the limit/threshold fires.\nDefault: false (unlimited queue). onThreshold always sets drop to true.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Or is a list of conditions where at least ONE must be true for the\nfield to be visible. OR counterpart to When (AND)."
+        },
+        "value": {
+          "description": "Value is the queue-fullness percentage at which onThreshold fires.\nRequired under onThreshold; ignored under onLimit. Must be 1–100.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When is a list of conditions that must ALL be true for this field to be\nvisible. Evaluated client-side as the user fills the form. An empty When\nmeans the field is always visible.\nSupports: equals, notEquals, time, dayOfWeek, cron, negate — same as\ntemplate source when: blocks."
+        }
+      },
+      "type": "object"
+    },
+    "ReconcilerConfig": {
+      "additionalProperties": false,
+      "description": "ReconcilerConfig declares which reconciler implementation runs and how it is tuned.",
+      "properties": {
+        "constructor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConstructorDeclaration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ConstructorDecl declares a custom reconciler constructor. Required when Default: false.\nSignature: NewReconcilerFunc."
+        },
+        "default": {
+          "description": "Default: true → generic.Reconciler (default when omitted).\nfalse → custom reconciler; Constructor must be declared.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HookDeclaration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Hooks declares a Go hook function. Signature: func() domain.AnyReconcileHooks.\nMutually exclusive with OnCreate/OnReconcile/OnDelete templates."
+        },
+        "include": {
+          "description": "Include is a path to a YAML file whose reconciler: block is merged under this config.\nInline fields take precedence. Cleared after expansion.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "preset": {
+          "description": "Preset is a named tuning preset. Built-ins: high-throughput, conservative, development.\nInline Workers/Resync/Queue override the preset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "queue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Queue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requeue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RequeueConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resync": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resync is the full re-list interval for the informer cache. 0 → DEFAULT_RESYNC."
+        },
+        "workers": {
+          "description": "Workers is the number of concurrent reconcile goroutines. 0 → DEFAULT_WORKERS.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ReconcilerInclude": {
+      "additionalProperties": false,
+      "description": "ReconcilerInclude is the file reconciler.include names: a reconciler block the inline fields override.",
+      "properties": {
+        "reconciler": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReconcilerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RequeueConfig": {
+      "additionalProperties": false,
+      "description": "RequeueConfig declares per-object requeue behavior after a successful reconcile.",
+      "properties": {
+        "after": {
+          "description": "After is a template expression resolving to a Go duration string (e.g. \"{{ .spec.checkInterval }}\").\nEmpty means no requeue — wait for the next informer event.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Or — requeue while at least one condition passes, alongside When."
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When — requeue only while every condition passes. A requeue with\nwhen/or holds a CR being deleted; one with only after does not."
+        }
+      },
+      "type": "object"
+    },
+    "RetryBackoffConfig": {
+      "anyOf": [
+        {
+          "description": "Initial delay, e.g. 500ms",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff.",
+          "properties": {
+            "initial": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Initial is the first backoff delay. Default: 500ms."
+            },
+            "max": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max caps the delay so it does not grow unboundedly. Default: 30s."
+            },
+            "maxAttempts": {
+              "description": "MaxAttempts is the total number of calls including the first. Default: 3.",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "multiplier": {
+              "description": "Multiplier scales the delay after each attempt. Default: 2.0.",
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff."
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "description": "TimeWindow declares a clock-based active window.",
+      "properties": {
+        "after": {
+          "description": "After — active after this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "before": {
+          "description": "Before — active before this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/reconciler.json",
+  "$ref": "#/$defs/ReconcilerInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: reconciler"
+}

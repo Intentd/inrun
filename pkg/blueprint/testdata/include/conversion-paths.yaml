@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/conversion.json
+paths:
+  - from: v1alpha1
+    to: v1
+    spec:
+      image: "{{ .spec.image }}"
+      replicas: "{{ .spec.replicas }}"
+  - from: v1beta1
+    to: v1
+    spec:
+      image: "{{ .spec.image }}"

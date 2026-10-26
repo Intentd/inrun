@@ -1,0 +1,8 @@
+apiVersion: integration.inrun.dev/v1
+kind: Probe
+metadata:
+  name: probe-in-blocked-ns
+  namespace: staging
+spec:
+  image: nginx:1.25
+  replicas: 1

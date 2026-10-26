@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Existing destinations: kubectl (platform-10/api-server, a copy of its source)
+# and the gateway (default/api-server-gateway, a newer intent) wrote the
+# NewConfig before the migration reached its source. The copy counts as
+# migrated: the source is recorded on it before it is pruned, and rollback
+# restores the source and keeps the copy, which the migration didn't create.
+# The newer intent is drift: neither it nor its source is touched. The suite's
+# finally removes what this phase applied.
+expect:
+  - name: Apply older sources whose destinations already exist
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ../../manifests/existing-destinations.yaml
+
+  - name: Migrate them with prune; the copy is migrated, the newer intent is drift
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true -n default,platform-10 --yes -ojson
+        json:
+          - path: .totals.pruned
+            equals: 1
+          - path: .totals.drifted
+            equals: 1
+          - path: .totals.failed
+            equals: 0
+
+  - name: The copy's source is recorded and pruned; the drifted pair is untouched
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-10
+          notExists: true
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-10
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          contains: '"destinationExisted":true'
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+          field: .spec.image
+          equals: "myapp/api:1.0.0"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+          field: .spec.image
+          notEquals: "myapp/api:1.0.0"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          notExists: true
+
+  - name: Rollback dry-run says the copy will be kept
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml rollback -n default,platform-10 --dry-run
+        contains: "would keep NewConfig: not created by the migration"
+
+  - name: Rollback restores the copy's source and keeps the copy
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml rollback -n default,platform-10 -ojson
+        json:
+          - path: .totals.kept
+            equals: 1
+          - path: .totals.failed
+            equals: 0
+
+  - name: Source back; the copy stays without the migration's record
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-10
+          field: .spec.scaling.min
+          equals: "4"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-10
+          field: .spec.scaling.min
+          equals: "4"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-10
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          notExists: true

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: blockchainnode-constructor-sim
+  description: >
+    Run with: inrun simulate --dev-server
+
+    The dev server returns "true" for all flag requests. The constructor reads
+    only its args (template-resolved per CR from the spec), makes the HTTP call
+    itself, and creates the Deployment at the replicas arg (5).
+    This is the difference from hooks: the constructor owns the HTTP call.
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr-node.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+        name: 02-constructor-my-node

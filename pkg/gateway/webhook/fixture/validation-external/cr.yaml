@@ -1,0 +1,9 @@
+apiVersion: demo.inrun.dev/v1
+kind: WebApp
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  image: nginx:1.25
+  healthCheckUrl: "http://inrun-dev-server.inrun-system.svc:9999/health"
+  replicas: 1

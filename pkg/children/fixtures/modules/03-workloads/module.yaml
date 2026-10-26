@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-workloads
+  description: >
+    Fixture module — Workloads, all forEach over spec.apps.
+    Covers Deployment, StatefulSet, ReplicaSet, Pod, Job, CronJob.
+
+resources:
+  deployments:
+    - name: "{{ .metadata.name }}-{{ .app }}"
+      image: nginx:alpine
+      replicas: "1"
+      port: "80"
+      forEach:
+        field: spec.apps
+        as: app
+
+  statefulSets:
+    - name: "{{ .metadata.name }}-{{ .app }}-sts"
+      image: nginx:alpine
+      replicas: "1"
+      port: "80"
+      forEach:
+        field: spec.apps
+        as: app
+
+  replicaSets:
+    - name: "{{ .metadata.name }}-{{ .app }}-rs"
+      image: nginx:alpine
+      replicas: "1"
+      port: "80"
+      forEach:
+        field: spec.apps
+        as: app
+
+  pods:
+    - name: "{{ .metadata.name }}-{{ .app }}-pod"
+      image: nginx:alpine
+      forEach:
+        field: spec.apps
+        as: app
+
+  jobs:
+    - name: "{{ .metadata.name }}-{{ .app }}-job"
+      image: busybox:latest
+      command: ["sh", "-c", "echo done"]
+      forEach:
+        field: spec.apps
+        as: app
+
+  cronJobs:
+    - name: "{{ .metadata.name }}-{{ .app }}-cron"
+      image: busybox:latest
+      command: ["sh", "-c", "echo tick"]
+      schedule: "0 * * * *"
+      forEach:
+        field: spec.apps
+        as: app

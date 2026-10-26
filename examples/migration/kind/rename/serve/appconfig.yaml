@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/serve.json
+fields:
+  image:
+    description: The container image to deploy
+  replicas:
+    path: scaling.min
+  logLevel:
+    path: observability.logging.level

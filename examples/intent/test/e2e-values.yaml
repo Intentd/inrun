@@ -1,0 +1,6 @@
+# Helm values for inrun e2e: the in-cluster gateway reads the dev token from
+# INTENT_TOKEN, like the local `inrun gate run`.
+gateway:
+  extraEnv:
+    - name: INTENT_TOKEN
+      value: dev-token

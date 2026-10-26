@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  - include: ./gateway/schema.yaml
+  - include: ./gateway/apply-primary.yaml
+  - include: ./gateway/apply-aliases.yaml
+  - include: ./gateway/permissions.yaml

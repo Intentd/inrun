@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/mutation.json
+rules:
+  - field: spec.replicas
+    default: 1
+    valueType: int
+  - field: spec.environment
+    default: staging

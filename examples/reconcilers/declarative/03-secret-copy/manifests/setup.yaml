@@ -1,0 +1,31 @@
+# Creates the namespaces and source Secret used by this example.
+# Run this before applying the CR.
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-alpha
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-beta
+---
+# The source Secret that will be copied to team namespaces
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-credentials
+  namespace: platform
+type: Opaque
+stringData:
+  host: "db.platform.svc.cluster.local"
+  port: "5432"
+  username: "appuser"
+  password: "supersecret"

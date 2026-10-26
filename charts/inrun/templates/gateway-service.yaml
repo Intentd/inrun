@@ -1,0 +1,32 @@
+{{- if .Values.gateway.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inrun.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+    inrun.dev/component: gateway
+  {{- with .Values.gateway.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.gateway.service.type }}
+  selector:
+    {{- include "inrun.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+  ports:
+    - name: http
+      port: {{ .Values.gateway.server.httpPort }}
+      targetPort: http
+      protocol: TCP
+
+    - name: https
+      port: {{ .Values.gateway.server.httpsPort }}
+      targetPort: https
+      protocol: TCP
+
+{{- end }}

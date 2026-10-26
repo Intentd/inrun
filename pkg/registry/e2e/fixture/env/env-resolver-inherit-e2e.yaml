@@ -1,0 +1,16 @@
+# env-resolver-inherit-e2e.yaml
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: env-resolver-inherit-e2e
+  description: Proves a leaf with no spec.env inherits the suite's.
+
+spec:
+  cluster:
+    provider: none
+  expect:
+    - name: suite env reaches a leaf with no env of its own
+      timeout: 5s
+      commands:
+        - run: 'test "$DEV_TOKEN" = "from-suite"'
+        - run: 'test "$SHARED" = "suite-value"'

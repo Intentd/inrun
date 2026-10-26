@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/stack.json
+apiVersion: inrun.dev/v1
+kind: Stack
+metadata:
+  name: platform-stack
+  version: 1.0.0
+  description: Tests that policy.minMaturity beta is valid.
+policy:
+  lifecycle:
+    minMaturity: beta

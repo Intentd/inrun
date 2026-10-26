@@ -1,0 +1,79 @@
+name: 'Cleanup GitHub Actions Caches'
+
+on:
+  workflow_call:
+    inputs:
+      older_than_hours:
+        description: 'Delete caches older than this many hours'
+        required: false
+        type: string
+        default: '24'
+      owner:
+        description: 'Repository owner'
+        required: false
+        type: string
+        default: ${{ github.repository_owner }}
+      repo:
+        description: 'Repository name'
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install gh (if missing)
+        shell: bash
+        run: |
+          if ! command -v gh &> /dev/null; then
+            echo "gh not found, installing..."
+            curl -fsSL https://github.com/cli/cli/releases/download/v2.48.0/gh_2.48.0_linux_amd64.tar.gz -o gh.tar.gz
+            sudo tar -xzf gh.tar.gz -C /usr/local --strip-components=1
+            rm gh.tar.gz
+          fi
+
+      - name: Debug inputs
+        shell: bash
+        run: |
+          echo "OWNER=${{ inputs.owner }}"
+          echo "REPO=${{ inputs.repo }}"
+          echo "OLDER_THAN_HOURS=${{ inputs.older_than_hours }}"
+
+      - name: Clean up old caches (hours)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ inputs.owner }}
+          REPO: ${{ inputs.repo }}
+          OLDER_THAN_HOURS: ${{ inputs.older_than_hours }}
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "GH_TOKEN (secrets.GITHUB_TOKEN) is not set. Exiting."
+            exit 1
+          fi
+
+          now=$(date +%s)
+          deleted=0
+
+          echo "Fetching caches for ${OWNER}/${REPO} older than ${OLDER_THAN_HOURS} hours..."
+
+          # Iterate over all cache entries (paginated)
+          gh api "/repos/${OWNER}/${REPO}/actions/caches" --paginate --jq '.actions_caches[]' | while read -r cache; do
+            id=$(echo "$cache" | jq -r '.id')
+            key=$(echo "$cache" | jq -r '.key')
+            created_at=$(echo "$cache" | jq -r '.created_at')
+            # created_at is in ISO 8601, convert to epoch seconds
+            created_ts=$(date -d "$created_at" +%s)
+            age_hours=$(( (now - created_ts) / 3600 ))
+            if [ "$age_hours" -ge "$OLDER_THAN_HOURS" ]; then
+              echo "Deleting cache id=$id key=$key age=${age_hours}h"
+              gh api -X DELETE "/repos/${OWNER}/${REPO}/actions/caches/$id" --silent
+              deleted=$((deleted+1))
+            fi
+          done
+
+          echo "Deleted ${deleted} caches."

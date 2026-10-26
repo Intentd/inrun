@@ -1,0 +1,17 @@
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server-for-gateway
+  namespace: platform-08
+  labels:
+    app: demo
+    tier: internal
+  annotations:
+    inrun.dev/serve-target: appconfig
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 2
+  observability:
+    logging:
+      level: "warn"
