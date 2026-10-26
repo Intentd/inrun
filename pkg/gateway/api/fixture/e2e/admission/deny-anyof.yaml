@@ -1,0 +1,91 @@
+expect:
+  - name: Admission blocks app workload missing repoURL (deny or)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: app-no-repo
+            namespace: team-platform
+          spec:
+            workloadType: app
+            team: team-platform
+            environment: staging
+          EOF
+        exitCode: 1
+        contains: "spec.repoURL is required for app and monitoring workloads"
+
+  - name: Admission blocks monitoring workload missing repoURL (deny or)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: monitoring-no-repo
+            namespace: team-platform
+          spec:
+            workloadType: monitoring
+            team: team-platform
+            environment: staging
+            scrapeInterval: 15s
+          EOF
+        exitCode: 1
+        contains: "spec.repoURL is required for app and monitoring workloads"
+
+  - name: Deny or skipped for monitoring with repoURL present
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: platform-monitor
+              namespace: team-platform
+            spec:
+              workloadType: monitoring
+              team: team-platform
+              environment: staging
+              repoURL: https://github.com/myorg/platform
+              scrapeInterval: 30s
+    resources:
+      - kind: PlatformResource
+        name: platform-monitor
+        namespace: team-platform
+
+  - name: Prometheus ServiceMonitor created for monitoring workload
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: ServiceMonitor
+        name: platform-monitor
+        namespace: team-platform
+
+  - name: Deny or skipped for cert workload (not in or list)
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: cert-no-repo
+              namespace: team-platform
+            spec:
+              workloadType: cert
+              team: team-platform
+              environment: staging
+              domain: infra.example.com
+              issuer: letsencrypt-staging
+    resources:
+      - kind: PlatformResource
+        name: cert-no-repo
+        namespace: team-platform

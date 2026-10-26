@@ -1,0 +1,311 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'domain/**'
+      - 'examples/**'
+      - 'hack/**'
+      - 'tests/**'
+      - 'website/static/schema/**'
+      - 'go.mod'
+      - 'go.sum'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'domain/**'
+      - 'examples/**'
+      - 'hack/**'
+      - 'tests/**'
+      - 'website/static/schema/**'
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  validate-functions:
+    name: Validate generated functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run function generator
+        run: make generate-functions
+
+      - name: Check for uncommitted changes (generated function registries)
+        run: |
+          FUNCS="pkg/template/funcs/funcs_generated.go docs/reference/inrun-functions"
+          if ! git diff --quiet -- $FUNCS; then
+            echo "❌ Generated function files are out of date:"
+            git diff --stat -- $FUNCS
+            echo "Run 'make generate-functions' locally and commit the changes."
+            exit 1
+          else
+            echo "✅ Function list is up-to-date."
+          fi
+
+  validate-resource-docs:
+    name: Validate generated resource docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run resource docs generator
+        run: make generate-resource-docs
+
+      - name: Check for uncommitted changes (docs/reference/schema/resources)
+        run: |
+          if ! git diff --quiet docs/reference/schema/resources/; then
+            echo "❌ docs/reference/schema/resources/ is out of date."
+            echo "Run 'make generate-resource-docs' locally and commit the changes."
+            exit 1
+          else
+            echo "✅ Resource docs are up-to-date."
+          fi
+
+      - name: Run editor schema generator
+        run: make generate-schema
+
+      - name: Check for uncommitted changes (website/static/schema)
+        run: |
+          if ! git diff --quiet website/static/schema/; then
+            echo "❌ website/static/schema/ is out of date."
+            echo "Run 'make generate-schema' locally and commit the changes."
+            exit 1
+          else
+            echo "✅ Editor schemas are up-to-date."
+          fi
+
+  validate-code:
+    name: Run static checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests (no cluster required)
+        run: make test
+
+  # Runs every example's simulate.yaml against the CLI built from this
+  # checkout, the way each example's README tells users to. No cluster.
+  # Typed examples are skipped: each builds its own binary from a nested
+  # module, which needs a published Inrun version.
+  simulate-examples:
+    name: Simulate examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build inrun
+        run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
+
+      - name: Start the remote example's reconciler
+        working-directory: examples/reconcilers/remote/endpoint
+        env:
+          RECONCILER_TOKEN: inrun-demo-token
+        run: |
+          python3 reconciler/main.py > "$RUNNER_TEMP/reconciler.log" 2>&1 &
+          for i in $(seq 30); do
+            curl -s -o /dev/null localhost:8025 && exit 0
+            sleep 1
+          done
+          echo "reconciler did not start"; cat "$RUNNER_TEMP/reconciler.log"; exit 1
+
+      - name: Simulate declarative and remote examples
+        working-directory: examples
+        run: |
+          "$RUNNER_TEMP/inrun" simulate ./... --skip typed,intent --dev-server
+
+      - name: Simulate the intent example
+        working-directory: examples/intent
+        run: |
+          "$RUNNER_TEMP/inrun" serve play -i intent.json --token dev --simulate=test/simulate.yaml
+
+  simulate-fixtures:
+    name: Simulate fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build inrun
+        run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
+
+      # Every Simulate spec, each run on its own so the files an aggregator
+      # imports run too. pkg/ fixtures run with fake clients and under envtest;
+      # tests/simulate-envtest is written for envtest. Left out: the typed
+      # fixtures, which simulate-typed-fixtures builds and runs, and
+      # intent/simulate-reject.yaml, which is meant to fail.
+      - name: Simulate fixtures
+        run: |
+          specs() {
+            grep -rlE '^kind: Simulate' --include='*.yaml' "$1" | xargs grep -l '^spec:' | sort |
+              grep -v -e '^pkg/kubeclient/fixture/' -e '^pkg/template/resources/fixture/' -e '/intent/simulate-reject.yaml$'
+          }
+          failed=""
+          run() {
+            echo "::group::$*"
+            "$RUNNER_TEMP/inrun" simulate --dev-server -f "$@" || failed="$failed
+            $*"
+            echo "::endgroup::"
+          }
+          for f in $(specs pkg); do
+            run "$f"
+            run "$f" --envtest
+          done
+          for f in $(specs tests/simulate-envtest); do
+            run "$f" --envtest
+          done
+          if [ -n "$failed" ]; then
+            echo "failed:$failed"
+            exit 1
+          fi
+
+  # Typed fixtures compile Go reconcilers into their own CLI: each module is
+  # built, then every Simulate spec under it runs with fake clients and under
+  # envtest. The kubeclient root module brings in the four fixtures below it.
+  simulate-typed-fixtures:
+    name: Simulate typed fixtures (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [pkg/kubeclient/fixture, pkg/template/resources/fixture]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build the module's inrun
+        working-directory: ${{ matrix.module }}
+        run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
+
+      - name: Simulate
+        run: |
+          failed=""
+          run() {
+            echo "::group::$*"
+            "$RUNNER_TEMP/inrun" simulate --dev-server -f "$@" || failed="$failed
+            $*"
+            echo "::endgroup::"
+          }
+          for f in $(grep -rlE '^kind: Simulate' --include='*.yaml' "${{ matrix.module }}" | xargs grep -l '^spec:' | sort); do
+            run "$f"
+            run "$f" --envtest
+          done
+          if [ -n "$failed" ]; then
+            echo "failed:$failed"
+            exit 1
+          fi
+
+  # The typed examples are templates users copy: build each the way a user
+  # does, in a copy pointed at this checkout, then simulate its test/.
+  simulate-typed-examples:
+    name: Simulate typed example (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [hooks, constructor, controller-runtime]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build inrun
+        run: go build -o "$RUNNER_TEMP/inrun" ./cmd/inrun
+
+      - name: Build the example's inrun
+        run: |
+          work="$RUNNER_TEMP/example"
+          cp -r "examples/reconcilers/typed/${{ matrix.example }}" "$work"
+          cd "$work"
+          mv go.mod.txt go.mod
+          mv go.sum.txt go.sum
+          sed -i 's/{{ .InrunVersion }}/v0.0.0/' go.mod
+          go mod edit -replace github.com/intentd/inrun="$GITHUB_WORKSPACE"
+          find . -name '*.go' -exec grep -l '^//go:build ignore$' {} + | while read -r f; do
+            tail -n +3 "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          done
+          "$RUNNER_TEMP/inrun" generate registry --file blueprint.yaml
+          go mod tidy
+          go build -o "$RUNNER_TEMP/example-inrun" ./cmd/inrun
+
+      - name: Simulate
+        working-directory: examples/reconcilers/typed/${{ matrix.example }}
+        run: |
+          "$RUNNER_TEMP/example-inrun" simulate --dev-server -f test/simulate.yaml
+          "$RUNNER_TEMP/example-inrun" simulate --dev-server -f test/simulate.yaml --envtest
+
+  vuln-check:
+    name: Vulnerability check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [vuln-console, vuln-runtime, vuln-gateway]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run vulnerability check
+        run: make ${{ matrix.target }}

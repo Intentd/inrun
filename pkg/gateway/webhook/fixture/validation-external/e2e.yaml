@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: validation-external-webhook-e2e
+  description: >
+    Verifies validation.external with two calls at different lifecycle scopes.
+    admissionCheck (fires.reconcile: false) gates the CR at kubectl apply —
+    a /status/503 URL is denied before etcd persistence. configFetch runs at
+    both admission and reconcile. After acceptance, status.admissionOnlyRan
+    stays empty proving the reconciler skipped the admission-only call.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-validation-external-webhook
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-bad-health-denied.yaml
+    - include: ./e2e/02-healthy-passes.yaml
+    - include: ./e2e/03-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

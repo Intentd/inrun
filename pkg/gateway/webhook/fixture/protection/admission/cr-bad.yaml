@@ -1,0 +1,18 @@
+# Invalid CR — will be denied by the image prefix rule.
+#
+# With security.webhooks.admission.enabled: true:
+#   Denied at kubectl apply time. The CR is never stored.
+#
+# Without admission webhooks:
+#   Stored in etcd but reconcile halts immediately with a deny error.
+#   No child resources (Deployment, Service) are ever created.
+apiVersion: admission.inrun.dev/v1alpha1
+kind: Platform
+metadata:
+  name: bad-platform
+  namespace: default
+spec:
+  image: docker.io/nginx:1.25   # ← not from registry.internal/ — denied
+  replicas: 2
+  environment: production
+  rateLimit: 100

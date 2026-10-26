@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: reconciler-probe-policy
+  description: Namespace-scoped policy resources — NetworkPolicy, ResourceQuota, LimitRange.
+
+resources:
+  networkPolicies:
+    - name: "{{ .metadata.name }}-netpol"
+      namespace: "{{ .metadata.name }}-ns"
+      podSelector: {}
+      ingress: []
+
+  resourceQuotas:
+    - name: "{{ .metadata.name }}-quota"
+      namespace: "{{ .metadata.name }}-ns"
+      hard:
+        cpu: "4"
+        memory: 8Gi
+        pods: "20"
+
+  limitRanges:
+    - name: "{{ .metadata.name }}-limits"
+      namespace: "{{ .metadata.name }}-ns"
+      limits:
+        - type: Container
+          default:
+            cpu: 500m
+            memory: 512Mi
+          defaultRequest:
+            cpu: 250m
+            memory: 256Mi

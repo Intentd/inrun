@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: secret-distribution-sim
+  description: >
+    Demonstrates that inrun simulate detects cross-namespace copy operations
+    and skips them gracefully. The Secret copy requires a live API server to
+    read the source Secret — simulate prints a note and exits cleanly.
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 1
+
+  expect:
+    steady: false
+    noErrors: true

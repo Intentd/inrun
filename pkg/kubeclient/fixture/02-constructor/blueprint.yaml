@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: blockchainnode-constructor
+  author: intentd
+  version: 0.1.0
+  description: >
+    BlockchainNode operator — constructor makes the feature-flag HTTP call itself,
+    but only during business hours. The Blueprint declares the business-hours window
+    and the flag URL pattern; the constructor owns the time check and the HTTP call.
+    The binary is identical across environments and schedules.
+
+spec:
+  crds:
+    blockchainnode:
+      crdFile: ./crd-node.yaml
+      crFiles:
+        - ./cr-node.yaml
+
+      apiTypes:
+        group: demo.inrun.dev
+        version: v1alpha1
+        kind: BlockchainNode
+        plural: blockchainnodes
+        object: BlockchainNode
+        objectList: BlockchainNodeList
+        location: github.com/intentd/inrun-args-constructor/api/v1alpha1
+        alias: bcnodev1
+
+      operatorBox:
+        reconcile:
+          default: false
+          managedResources:
+            - kind: Deployment
+          # Everything the reconciler reads comes through args: it never
+          # looks at the CR's spec, as a remote reconciler does not.
+          args:
+            image: '{{ .spec.image }}'
+            replicas: '{{ .spec.replicas }}'
+            network: '{{ .spec.network }}'
+            flagUrl: '{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled'
+            businessHoursStart: "09:00"
+            businessHoursEnd: "18:00"
+          constructor:
+            location: github.com/intentd/inrun-args-constructor/constructor
+            function: NewBlockchainNodeReconciler
+            alias: bnconstructor
+          workers: 2
+          resync: 30s

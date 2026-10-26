@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+# Triggers: unknown resources.preset name
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-resource-preset
+  version: 0.1.0
+  description: Tests that an unknown resources.preset name is rejected.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          onCreate:
+            deployments:
+            - name: "{{ .metadata.name }}-controller"
+              image: example.io/widget-controller:latest
+              resources:
+                preset: mega
+

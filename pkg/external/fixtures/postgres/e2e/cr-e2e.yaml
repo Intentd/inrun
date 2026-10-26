@@ -1,0 +1,8 @@
+apiVersion: demo.inrun.dev/v1
+kind: WebApp
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  image: nginx:1.25
+  postgresURL: "postgres://inrun:inrun@postgres.inrun-system.svc:5432/inrun"

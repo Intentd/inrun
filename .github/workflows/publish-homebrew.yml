@@ -1,0 +1,147 @@
+name: Update Homebrew Formulas
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Container image tag (without v prefix)'
+        required: true
+        type: string
+      repository:
+        description: 'GitHub repository (owner/name) for the main inrun repo'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      tap_repository:
+        description: 'GitHub repository (owner/name) for the Homebrew tap'
+        required: true
+        type: string
+
+jobs:
+  homebrew:
+    name: Update Homebrew Formulas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.tap_repository }}
+          token: ${{ secrets.INRUN_PUBLISH_PAT }}
+          path: homebrew-tap
+
+      - name: Download checksums artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: checksums
+          path: ./
+
+      - name: Extract SHA256 values
+        id: sha
+        run: |
+          echo "INRUN_DARWIN_AMD64=$(grep 'inrun_darwin_amd64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "INRUN_DARWIN_ARM64=$(grep 'inrun_darwin_arm64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "INRUN_LINUX_AMD64=$(grep 'inrun_linux_amd64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "INRUN_LINUX_ARM64=$(grep 'inrun_linux_arm64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "CC_DARWIN_AMD64=$(grep 'inrun-console_darwin_amd64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "CC_DARWIN_ARM64=$(grep 'inrun-console_darwin_arm64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "CC_LINUX_AMD64=$(grep 'inrun-console_linux_amd64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "CC_LINUX_ARM64=$(grep 'inrun-console_linux_arm64' checksums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Update runtime formula
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ inputs.repository }}
+          DARWIN_AMD64: ${{ steps.sha.outputs.INRUN_DARWIN_AMD64 }}
+          DARWIN_ARM64: ${{ steps.sha.outputs.INRUN_DARWIN_ARM64 }}
+          LINUX_AMD64:  ${{ steps.sha.outputs.INRUN_LINUX_AMD64 }}
+          LINUX_ARM64:  ${{ steps.sha.outputs.INRUN_LINUX_ARM64 }}
+        run: |
+          VERSION="${TAG#v}"
+          cat > homebrew-tap/Formula/inrun.rb << EOF
+          class Inrun < Formula
+            desc "Declarative Runtime for Kubernetes Operators"
+            homepage "https://github.com/${REPO}"
+            version "${VERSION}"
+            license "Apache 2.0"
+            on_macos do
+              on_arm do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun_darwin_arm64.tar.gz"
+                sha256 "${DARWIN_ARM64}"
+              end
+              on_intel do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun_darwin_amd64.tar.gz"
+                sha256 "${DARWIN_AMD64}"
+              end
+            end
+            on_linux do
+              on_arm do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun_linux_arm64.tar.gz"
+                sha256 "${LINUX_ARM64}"
+              end
+              on_intel do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun_linux_amd64.tar.gz"
+                sha256 "${LINUX_AMD64}"
+              end
+            end
+            def install
+              bin.install "inrun"
+            end
+            test do
+              system "#{bin}/inrun", "version"
+            end
+          end
+          EOF
+
+      - name: Update console formula
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ inputs.repository }}
+          DARWIN_AMD64: ${{ steps.sha.outputs.CC_DARWIN_AMD64 }}
+          DARWIN_ARM64: ${{ steps.sha.outputs.CC_DARWIN_ARM64 }}
+          LINUX_AMD64:  ${{ steps.sha.outputs.CC_LINUX_AMD64 }}
+          LINUX_ARM64:  ${{ steps.sha.outputs.CC_LINUX_ARM64 }}
+        run: |
+          VERSION="${TAG#v}"
+          cat > homebrew-tap/Formula/inrun-console.rb << EOF
+          class InrunConsole < Formula
+            desc "Web-based Console for Inrun - visualize and manage your operators"
+            homepage "https://github.com/${REPO}"
+            version "${VERSION}"
+            license "Apache 2.0"
+            on_macos do
+              on_arm do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun-console_darwin_arm64.tar.gz"
+                sha256 "${DARWIN_ARM64}"
+              end
+              on_intel do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun-console_darwin_amd64.tar.gz"
+                sha256 "${DARWIN_AMD64}"
+              end
+            end
+            on_linux do
+              on_arm do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun-console_linux_arm64.tar.gz"
+                sha256 "${LINUX_ARM64}"
+              end
+              on_intel do
+                url    "https://github.com/${REPO}/releases/download/${TAG}/inrun-console_linux_amd64.tar.gz"
+                sha256 "${LINUX_AMD64}"
+              end
+            end
+            def install
+              bin.install "inrun-console"
+            end
+            test do
+              system "#{bin}/inrun-console", "--help"
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/inrun.rb Formula/inrun-console.rb
+          git commit -m "inrun and inrun-console ${GITHUB_REF_NAME}"
+          git push

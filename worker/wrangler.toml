@@ -1,0 +1,14 @@
+# Cloudflare Worker — get.inrun.dev
+#
+name            = "inrun-installer"
+main            = "index.js"
+compatibility_date = "2025-01-01"
+
+# ── Environment variables ─────────────────────────────────────────────────────
+[vars]
+CACHE_TTL = 300
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+[[routes]]
+pattern = "get.inrun.dev/*"
+zone_name = "inrun.dev"

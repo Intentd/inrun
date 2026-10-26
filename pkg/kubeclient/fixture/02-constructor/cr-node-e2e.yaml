@@ -1,0 +1,10 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: BlockchainNode
+metadata:
+  name: 02-constructor-my-node
+  namespace: default
+spec:
+  image: nginx:latest
+  network: testnet
+  replicas: 5
+  serviceUrl: "http://inrun-dev-server.inrun-system.svc:9999"

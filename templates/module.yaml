@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: <module-name>
+  version: v0.1.0
+  description: <what this reusable pattern provides>
+  author: <your-name>
+  license: Apache-2.0
+
+# ── Inputs ───────────────────────────────────────────────────────────────────
+# Declared inputs become available as {{ inputs.<name> }} in resource templates.
+
+inputs:
+  - name: image
+    description: Container image (e.g. nginx:1.25)
+    required: true
+
+  - name: replicas
+    description: Number of replicas
+    default: "1"
+
+  - name: port
+    description: Container port
+    default: "80"
+
+# ── Resources ────────────────────────────────────────────────────────────────
+
+resources:
+  deployments:
+    - name: "{{ .metadata.name }}"
+      image: "{{ inputs.image }}"
+      replicas: "{{ inputs.replicas }}"
+      reconcile: true
+
+  services:
+    - name: "{{ .metadata.name }}-svc"
+      port: "{{ inputs.port }}"
+      targetPort: "{{ inputs.port }}"
+      reconcile: true
+
+# ── Status ───────────────────────────────────────────────────────────────────
+# status:
+#   fields:
+#     - path: ready
+#       value: "{{ allReplicasReady .children.deployment }}"

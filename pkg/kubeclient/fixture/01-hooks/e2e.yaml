@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: blockchainapp-hooks-e2e
+  description: >
+    Run with: inrun e2e --dev-server
+
+    Verifies the hooks external: + functions: pattern end-to-end. The runtime
+    evaluates inBusinessHours, conditionally calls the flag service, and
+    passes both results to the hook via args. The hook stamps annotation
+    and status — no HTTP client in hook code.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-e2e.yaml
+
+  valuesFiles:
+    - ./values.yaml
+
+  functions:
+    definitions:
+      - name: inBusinessHours
+        expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+
+  cluster:
+    provider: kind
+    name: inrun-args-hooks
+    reuse: false
+
+  expect:
+    - name: Deployment created and ready
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          namespace: default
+          name: 01-hooks-my-chain
+          ready: true
+
+    - name: Feature flag annotation set (business hours)
+      after: cr-applied
+      timeout: 30s
+      when:
+        - field: '{{ inBusinessHours }}'
+          equals: "true"
+      kubectl:
+        get:
+          - kind: Deployment
+            name: 01-hooks-my-chain
+            namespace: default
+            field: '.metadata.annotations.feature\.demo/v2-enabled'
+            equals: "true"
+
+    - name: Feature flag annotation false (outside hours)
+      after: cr-applied
+      timeout: 30s
+      or:
+        - field: '{{ inBusinessHours }}'
+          equals: "false"
+      kubectl:
+        get:
+          - kind: Deployment
+            name: 01-hooks-my-chain
+            namespace: default
+            field: '.metadata.annotations.feature\.demo/v2-enabled'
+            equals: "false"
+
+    - name: Deployment removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          namespace: default
+          count: 0

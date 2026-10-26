@@ -1,0 +1,15 @@
+# Exercises: production with productionApproval — warn rule does NOT fire.
+# Expected: accepted, no ValidationWarning.
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: payments-api-prod-approved
+  namespace: team-payments
+spec:
+  workloadType: app
+  team: team-payments
+  environment: production
+  repoURL: https://github.com/myorg/payments-api
+  targetRevision: v1.4.2
+  targetNamespace: team-payments
+  productionApproval: CHG-20240721-0042

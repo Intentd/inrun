@@ -1,0 +1,152 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: schema-evolution-e2e
+  description: >
+    CronJob operator with serve field translation and schema migration.
+    Verifies that a flat cron string submitted via the gateway is fanned out
+    to the five structured schedule fields, and that inrun migrate
+    backfills existing flat-schedule CRs to the structured form.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/old-crd.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+  setup: 
+    - ../manifests/namespaces.yaml
+    - ../manifests/old-crs.yaml     # apply old CRs before new CRD
+    - ../manifests/crd.yaml         # new CRD
+
+  runtime:
+    enabled: false
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  env:
+    DEV_TOKEN: dev-token
+  expect:
+    - name: Gateway runs exactl 3 migrations on startup without failure
+      timeout: 30s
+      kubectl:
+        logs:
+          - labelSelector: app.kubernetes.io/component=gateway
+            namespace: inrun-system
+            since: 3m
+            contains: '"migrated":3,"skipped":0,"excluded":0,"drifted":0,"pruned":0,"failed":0,'
+          - labelSelector: app.kubernetes.io/component=gateway
+            namespace: inrun-system
+            since: 3m
+            contains: "schema migration: complete"
+
+    # Assert per resource migration
+    - include: ./migrate-crs.yaml
+
+    - name: Gateway accepts flat cron string and fans out to structured spec
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: |-
+              {
+                "target": "cronjob",
+                "name": "daily-backup",
+                "schedule": "0 2 * * 1-5",
+                "image": "busybox:latest"
+              }
+            statusCode: 200
+
+    - name: Serve translation fans cron string out to structured spec fields
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: cronjobs.demo.inrun.dev
+            name: daily-backup
+            namespace: default
+            field: .spec.schedule.minute
+            equals: "0"
+          - kind: cronjobs.demo.inrun.dev
+            name: daily-backup
+            namespace: default
+            field: .spec.schedule.hour
+            equals: "2"
+          - kind: cronjobs.demo.inrun.dev
+            name: daily-backup
+            namespace: default
+            field: .spec.schedule.dayOfWeek
+            equals: "1-5"
+
+    - name: Invalid cron string is rejected at intent gate
+      timeout: 30s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: |-
+              {
+                "target":"cronjob",
+                "name":"bad-cron",
+                "schedule":"not-a-cron",
+                "image":"busybox:latest"
+              }
+            contains: '"accepted":false'
+    
+    - name: Clean up applied CRs
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        delete:
+          - file: ../manifests/old-crs.yaml
+      resources:
+        - kind: CronJob
+          name: db-backup
+          namespace: team-alpha
+          count: 0
+        - kind: CronJob
+          name: cache-flush
+          namespace: team-beta
+          count: 0
+        - kind: CronJob
+          name: report-gen
+          namespace: team-gamma
+          count: 0
+    
+    # The CR came from the gateway, not a file, so delete it the same way. 
+    - name: Deleted through the gateway
+      after: cr-deleted
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/resources/cronjob/default/daily-backup
+            method: DELETE
+            headers:
+              Authorization: "Bearer dev-token"
+            statusCode: 204
+
+    # The cronjob goes once its finalizing reconcile is done.
+    - name: Garbage collection on CR delete
+      after: cr-deleted
+      resources:
+        - kind: CronJob
+          name: daily-backup
+          namespace: default
+          count: 0

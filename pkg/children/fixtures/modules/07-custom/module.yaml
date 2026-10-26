@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-custom
+  description: >
+    Fixture module — custom child CR. Creates a TenantPlan via onCreate.custom:
+    to cover the custom: child type alongside the forEach children.
+
+resources:
+  onCreate:
+    custom:
+      - apiVersion: test.inrun.dev/v1alpha1
+        kind: TenantPlan
+        metadata:
+          name: "{{ .metadata.name }}-plan"
+          namespaced: false
+        observe: false

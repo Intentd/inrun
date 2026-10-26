@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.LanguageCode }}" data-theme="">
+<head>
+  <script>document.documentElement.classList.add('no-transition');</script>
+  {{ partial "head.html" . }}
+</head>
+<body class="{{ if .IsHome }}page-home{{ else if .IsSection }}page-section{{ else }}page-content{{ end }}{{ if (eq .Section "docs") }} docs-body{{ end }}">
+
+  {{ partial "navbar.html" . }}
+
+  <main id="main-content" tabindex="-1">
+    {{ block "main" . }}{{ end }}
+  </main>
+
+  {{ partial "footer.html" . }}
+
+  <!-- Main JS -->
+  {{ $js := resources.Get "js/main.js" | minify | fingerprint }}
+  <script src="{{ $js.RelPermalink }}" defer></script>
+
+  <!-- Algolia DocSearch init -->
+  {{ if and .Site.Params.algolia.appId .Site.Params.algolia.searchKey }}
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3" crossorigin></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var el = document.getElementById('docsearch');
+      if (!el) return;
+      docsearch({
+        appId: {{ .Site.Params.algolia.appId | jsonify | safeJS }},
+        apiKey: {{ .Site.Params.algolia.searchKey | jsonify | safeJS }},
+        indexName: {{ .Site.Params.algolia.indexName | jsonify | safeJS }},
+        container: '#docsearch',
+        debug: false,
+      });
+    });
+  </script>
+  {{ end }}
+</body>
+</html>

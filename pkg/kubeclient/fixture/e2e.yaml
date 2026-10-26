@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: args-demo-suite
+  description: >
+    Suite for the args demo — hooks (BlockchainApp) then constructor (BlockchainNode).
+
+imports:
+  - 01-hooks/e2e.yaml
+  - 02-constructor/e2e.yaml
+  - 03-hooks-targets/e2e.yaml
+  - 04-ctrlruntime/e2e.yaml

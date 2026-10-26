@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: reconciler-probe-network
+  description: Network resources — Service, Ingress, HPA, PDB.
+
+resources:
+  services:
+    - name: "{{ .metadata.name }}-svc"
+      namespace: "{{ .metadata.name }}-ns"
+      port: "80"
+      targetPort: "{{ .spec.port }}"
+
+  ingresses:
+    - name: "{{ .metadata.name }}-ing"
+      namespace: "{{ .metadata.name }}-ns"
+      host: "{{ .metadata.name }}.probe.local"
+      serviceName: "{{ .metadata.name }}-svc"
+      servicePort: "80"
+
+  hpa:
+    - name: "{{ .metadata.name }}-hpa"
+      namespace: "{{ .metadata.name }}-ns"
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: "{{ .metadata.name }}-app"
+      minReplicas: "1"
+      maxReplicas: "3"
+      targetCPUUtilizationPercentage: "80"
+
+  pdb:
+    - name: "{{ .metadata.name }}-pdb"
+      namespace: "{{ .metadata.name }}-ns"
+      selector:
+        app: "{{ .metadata.name }}-app"
+      minAvailable: "1"

@@ -1,0 +1,34 @@
+package rewrite
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/intentd/inrun/pkg/util/structured"
+
+	"github.com/intentd/inrun/pkg/blueprint"
+)
+
+// The generated Blueprint must decode strictly: an unknown or misplaced key
+// (an old layout) fails here instead of at the user's first inrun validate.
+func TestGenerateBlueprint_DecodesStrictly(t *testing.T) {
+	res := &Result{
+		PkgName: "controllers",
+		Owns:    []DetectedType{{Kind: "Deployment", APIVersion: "apps/v1"}, {Kind: "Service"}},
+		Watches: []DetectedType{{Kind: "ConfigMap", APIVersion: "v1"}},
+		Primary: PrimaryType{Kind: "WebApp", Object: "WebApp", ObjectList: "WebAppList", Version: "v1alpha1"},
+	}
+	opts := Options{ModulePath: "github.com/acme/webapp", OperatorName: "webapp"}
+
+	out := generateBlueprint(res, opts, "webapp", "NewWebAppReconciler")
+
+	var bp blueprint.Blueprint
+	if err := structured.StrictUnmarshal([]byte(out), &bp); err != nil {
+		t.Fatalf("generated blueprint does not decode:\n%v\n\n%s", err, out)
+	}
+	for _, want := range []string{"reconcile:", "managedResources:", "constructor:", "observe:", "allowedNamespaces:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("generated blueprint is missing %q", want)
+		}
+	}
+}

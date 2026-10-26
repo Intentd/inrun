@@ -1,0 +1,24 @@
+ops:
+  # Cluster-level RBAC
+  - cycle: 1
+    verb: apply
+    resource: clusterroles
+    name: probe-cr
+  - cycle: 1
+    verb: apply
+    resource: clusterrolebindings
+    name: probe-crb
+  
+  # Namespace-level RBAC
+  - cycle: 1
+    verb: create
+    resource: serviceaccounts
+    name: probe-sa
+  - cycle: 1
+    verb: apply
+    resource: roles
+    name: probe-role
+  - cycle: 1
+    verb: apply
+    resource: rolebindings
+    name: probe-rb

@@ -1,0 +1,22 @@
+expect:
+  - name: Delete CR
+    timeout: 30s
+    kubectl:
+      delete:
+        - file: ../fixtures/cr.yaml
+
+  - name: Cleanup verified
+    timeout: 30s
+    resources:
+      - kind: Deployment
+        name: hello-website
+        namespace: default
+        count: 0
+      - kind: Service
+        name: hello-website-svc
+        namespace: default
+        count: 0
+      - kind: Website
+        name: hello-website
+        namespace: default
+        count: 0

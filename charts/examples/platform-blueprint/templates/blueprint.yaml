@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: {{ .Release.Name }}-blueprint
+  version: 0.1.0
+  author: intentd
+  description: >
+    blueprint.yaml Helm template — renders an Inrun Blueprint from Helm values.
+    Inrun's merger reads this template's output and extracts CRD definitions.
+    The chart must render at least one template with kind Blueprint.
+  tags:
+    - helm
+    - composition
+    - data
+
+spec:
+  crds:
+    {{- range $name, $crd := .Values.crds }}
+    {{ $name }}:
+      enabled: {{ if hasKey $crd "enabled" }}{{ $crd.enabled }}{{ else }}true{{ end }}
+      namespaced: {{ if hasKey $crd "namespaced" }}{{ $crd.namespaced }}{{ else }}true{{ end }}
+      operatorBox:
+        reconcile:
+          workers: {{ $crd.reconcile.workers | default 2 }}
+          resync: {{ $crd.reconcile.resync | default "30s" }}
+
+      apiTypes:
+        group: {{ $.Values.apiGroup }}
+        version: {{ $.Values.apiVersion | default "v1alpha1" }}
+        kind: {{ $crd.kind }}
+        plural: {{ $crd.plural }}
+      description: {{ $crd.description | default "" | quote }}
+    {{- end }}

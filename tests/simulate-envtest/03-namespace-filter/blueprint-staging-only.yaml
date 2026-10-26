@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: probe-operator-staging
+  version: 0.1.0
+  description: Probe operator configured to allow only "staging" namespace.
+
+spec:
+  crds:
+    probe:
+      crdFile: ../crd.yaml
+      crFiles:
+        - ../cr.yaml
+      operatorBox:
+        runtime:
+          # Only "staging" is allowed — CRs in "default" are dropped by the namespace
+          # filter before the reconciler sees them. The real informer's watch filter
+          # is what we're testing here; the fake simulate path uses the same filter
+          # but does not go through a real watch stream.
+          allowedNamespaces:
+            - staging
+
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+
+        reconcile:
+          onReconcile:
+            deployments:
+            - name: "{{ .metadata.name }}"
+              image: "{{ .spec.image }}"
+              replicas: "{{ .spec.replicas }}"
+              reconcile: true

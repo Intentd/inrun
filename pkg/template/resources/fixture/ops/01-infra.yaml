@@ -1,0 +1,17 @@
+ops:
+  - cycle: 1
+    verb: apply
+    resource: namespaces
+    name: probe-ns
+  - cycle: 1
+    verb: apply
+    resource: configmaps
+    name: probe-config
+  - cycle: 1
+    verb: apply
+    resource: secrets
+    name: probe-creds
+  - cycle: 1
+    verb: create
+    resource: serviceaccounts
+    name: probe-sa

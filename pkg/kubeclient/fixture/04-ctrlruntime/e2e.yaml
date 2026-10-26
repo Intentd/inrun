@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webapp-ctrlruntime-e2e
+  description: >
+    Run with: inrun e2e
+
+    Verifies that a controller-runtime reconciler plugged in via
+    domain.ReconcilerFrom and adapter.ToClient reconciles a WebApp
+    into a live Deployment end-to-end on a real cluster.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd-webapp.yaml
+  cr: ./cr-webapp.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-ctrlruntime
+    reuse: false
+
+  expect:
+    - name: Deployment created and ready
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          namespace: default
+          name: 04-ctrlruntime-demo
+          ready: true
+
+    - name: WebApp status phase Running
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: 04-ctrlruntime-demo
+            namespace: default
+            field: .status.phase
+            equals: Running
+
+    - name: Deployment removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          namespace: default
+          count: 0

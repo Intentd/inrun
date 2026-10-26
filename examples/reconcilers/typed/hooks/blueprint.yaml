@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: database-operator
+  author: intentd
+  version: 0.1.0
+  description: >
+    Typed Go hooks for the Database CRD. Demonstrates apiTypes.location,
+    inrun generate registry, and the pkg/resources packages used from Go.
+
+spec:
+  crds:
+    database:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      apiTypes:
+        object: Database
+        objectList: DatabaseList
+        # location enables typed mode — the informer decodes API server
+        # responses into *apiv1.Database rather than *unstructured.Unstructured.
+        # Required when hooks need type-safe struct access.
+        # After setting this, run: inrun generate registry --file blueprint.yaml
+        location: github.com/intentd/inrun-hooks-demo/api/v1alpha1
+        alias: demov1alpha1
+      operatorBox:
+        reconcile:
+          default: true   # Generic Reconciler is still used — hooks are additive
+          managedResources:            # A list of resources managed by this hook (required for RBAC)
+            - kind: StatefulSet
+            - kind: Service
+            - kind: CronJob
+          hooks:
+            location: github.com/intentd/inrun-hooks-demo/hooks
+            function: DatabaseHooks
+            alias: dbhooks
+          workers: 3
+          resync: 30s
+
+        # The ServiceAccount is declared here — Inrun creates it before hooks run.
+        # The hook references it by the same naming convention: obj.Name + "-sa".
+        # Status Layer 1 (Ready condition) is always automatic.
+        # Layer 2 fields are still written after the hook completes.
+          onCreate:
+            serviceAccounts:
+              - name: "{{ .metadata.name }}-sa"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: engine
+                value: "{{ .spec.engine }}"
+              - path: endpoint
+                value: "{{ .metadata.name }}-svc.{{ .metadata.namespace }}.svc.cluster.local"

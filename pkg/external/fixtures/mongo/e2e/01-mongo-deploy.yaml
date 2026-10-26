@@ -1,0 +1,46 @@
+expect:
+  - name: deploy MongoDB in inrun-system
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: mongo
+              namespace: inrun-system
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: mongo
+              template:
+                metadata:
+                  labels:
+                    app: mongo
+                spec:
+                  containers:
+                    - name: mongo
+                      image: mongo:7
+                      args: ["--noauth"]
+                      ports:
+                        - containerPort: 27017
+        - inline: |
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: mongo
+              namespace: inrun-system
+            spec:
+              selector:
+                app: mongo
+              ports:
+                - port: 27017
+                  targetPort: 27017
+
+  - name: MongoDB pod is ready
+    timeout: 90s
+    resources:
+      - kind: Deployment
+        name: mongo
+        namespace: inrun-system
+        condition: Available

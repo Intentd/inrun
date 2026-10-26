@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: env-resolver-override-e2e
+  description: >
+    A leaf that declares its own spec.env. When imported by a suite that
+    also declares spec.env, the leaf's value wins on collision and the
+    parent's value fills in the keys the leaf doesn't declare.
+
+spec:
+  cluster:
+    provider: none
+  env:
+    DEV_TOKEN: from-leaf          # collides with the suite's value — leaf wins
+    LEAF_ONLY: leaf-value         # suite doesn't declare this
+
+  expect:
+    - name: leaf env wins over the suite env
+      timeout: 5s
+      commands:
+        - run: 'test "$DEV_TOKEN" = "from-leaf"'
+
+    - name: keys the leaf declares are visible
+      timeout: 5s
+      commands:
+        - run: 'test "$LEAF_ONLY" = "leaf-value"'
+
+    - name: keys only the suite declares are inherited
+      timeout: 5s
+      commands:
+        - run: 'test "$SHARED" = "suite-value"'

@@ -1,0 +1,33 @@
+expect:
+  - name: phase is Ready — mongo query succeeded
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Ready"
+
+  - name: docCount is set — collection queried successfully
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.docCount
+          exists: true
+
+  - name: activeCount is set
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.activeCount
+          exists: true

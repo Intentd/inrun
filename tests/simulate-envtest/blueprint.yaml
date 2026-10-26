@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: probe-operator
+  version: 0.1.0
+  description: Probe operator used in envtest simulate tests.
+
+spec:
+  crds:
+    probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - default
+
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: message
+                value: "reconciled"
+
+        reconcile:
+          onReconcile:
+            deployments:
+            - name: "{{ .metadata.name }}"
+              image: "{{ .spec.image }}"
+              replicas: "{{ .spec.replicas }}"
+              reconcile: true

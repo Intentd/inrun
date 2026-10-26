@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: informer-probe-restricted
+  description: CR in restricted namespace (team-b) — namespace guard blocks reconcile, no resources created
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../crd.yaml
+  setup:
+    - ../setup.yaml
+  cr: ../cr-restricted.yaml
+  cycles: 2
+
+  expect:
+    steady: true
+    noErrors: true
+    crds:
+      informer-probe:
+        absent:
+          - cycle: 1
+            resource: configmaps
+            name: probe-restricted-config

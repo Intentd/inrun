@@ -1,0 +1,459 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: rename-e2e
+  description: >
+    AppConfig CRs move to a new CRD, NewConfig, under a running gateway.
+    Verifies that the gateway serves the destination CRD from startup, that
+    flat intents keep working before, during and after forward migration,
+    prune, rollback and clean without a restart, and that a full-CR request
+    using the old GVK is rejected throughout.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd-appconfig.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+  setup:
+    - ../manifests/crd-newconfig.yaml      # destination CRD — both must exist
+    - ../manifests/namespaces.yaml
+    - ../manifests/crs-appconfig.yaml      # 10 AppConfigs: web/batch/internal/none
+
+  runtime: 
+    enabled: false
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  env:
+    DEV_TOKEN: dev-token
+  expect:
+    # --- gateway is up, serving NewConfig, before any migration ---
+
+    - name: Gateway starts without --migrate and is healthy
+      timeout: 60s
+      resources:
+        - kind: deployments
+          name: inrun-gateway
+          namespace: inrun-system
+          ready: true
+
+    - name: Intent lands in NewConfig before any source has migrated
+      timeout: 60s
+      onFailure: 
+        stop: true
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: >-
+              {
+                "target":"my-api-server",
+                "image":"myapp/api:3.0.0",
+                "replicas":4,
+                "logLevel":"info"
+              }
+            statusCode: 200
+
+    - name: Gateway-created NewConfig exists while AppConfig sources still do
+      timeout: 30s
+      onFailure: 
+        stop: true
+      resources:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server-gateway
+          namespace: default
+
+    - name: Full-CR request with the old GVK is rejected
+      timeout: 30s
+      onFailure: 
+        stop: true
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/yaml"
+            bodyFile: ../manifests/cr-for-gateway.yaml
+            contains: '"error":"source CRD under migration"'
+
+    # --- forward migration, gateway stays up ---
+
+    - name: Dry-run reports the selected sources
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml --dry-run -ojson
+          json:
+            # Migration kind and destination
+            - path: .kinds[0].kind
+              equals: AppConfig
+            - path: .kinds[0].to
+              equals: NewConfig
+            - path: .kinds[0].scope.selector
+              equals: tier=web
+
+            # Exactly the three selected resources
+            - path: .kinds[0].crs[0].ref
+              equals: platform-01/api-server
+            - path: .kinds[0].crs[1].ref
+              equals: platform-02/api-server
+            - path: .kinds[0].crs[2].ref
+              equals: platform-03/api-server
+
+            # Planned migration fields and pruning
+            - path: .kinds[0].crs[0].fields[0]
+              equals: spec
+            - path: .kinds[0].crs[1].fields[0]
+              equals: spec
+            - path: .kinds[0].crs[2].fields[0]
+              equals: spec
+            - path: .kinds[0].crs[0].pruned
+              equals: ""
+            - path: .kinds[0].crs[1].pruned
+              equals: ""
+            - path: .kinds[0].crs[2].pruned
+              equals: ""
+
+            # Migration totals
+            - path: .totals.crs
+              equals: 3
+            - path: .totals.migrated
+              equals: 3
+            - path: .totals.pruned
+              equals: 0
+            - path: .totals.failed
+              equals: 0
+
+    - name: Forward migration moves the selected sources
+      timeout: 60s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml -ojson
+          json:
+            - path: .totals.migrated
+              equals: 3
+            - path: .totals.pruned
+              equals: 0
+
+    # - include: ./include/migrate-crs.yaml
+    - name: Platform-01 moved to NewConfig with its spec carried
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .spec.scaling.min
+            equals: "6"
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .spec.observability.logging.level
+            equals: "warn"
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .metadata.labels.migrated-from
+            equals: "appconfig"
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .metadata.labels.tier
+            equals: "web"
+
+    - name: Platform-02 moved to NewConfig with its spec carried
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-02
+            field: .spec.scaling.min
+            equals: "6"
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-02
+            field: .metadata.labels.migrated-from
+            equals: "appconfig"
+      
+    - name: Platform-03 condition satisfies migration
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml -n platform-03 --dry-run
+          contains: "would be migrated"
+
+    - name: Patch Platform-03 status to Pending
+      kubectl: 
+        patch:
+          - kind: AppConfig
+            name: api-server
+            namespace: platform-03
+            patch: '{"status":{"phase":"Pending"}}'
+
+    - name: Platform-03 is now Pending and was not selected
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-03
+            field: .status.phase
+            equals: "Pending"
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml -n platform-03 --dry-run
+          contains: "not selected: migrate.selection when/or"
+
+    - name: Platform-04 is tier=batch and was not selected
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml -n platform-04 --dry-run
+          contains: "0/0 would be migrated"
+
+    - name: Sources remain because prune is off
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .metadata.name
+            equals: api-server
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .metadata.labels.migrated-from
+            equals: appconfig
+
+    - name: Destination snapshot names AppConfig as the source
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+            json:
+              - path: .source.kind
+                equals: AppConfig
+              - path: .destination.kind
+                equals: NewConfig
+              - path: .pruned
+                equals: false
+
+    # --- intent still works after forward migration, no restart ---
+
+    - name: Same intent still lands in NewConfig after migration
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: >-
+              {
+                "target":"my-api-server",
+                "image":"myapp/api:3.0.0",
+                "replicas":5,"logLevel":"info"
+              }
+            statusCode: 200
+    - name: Gateway wrote the updated replicas to scaling.min
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server-gateway
+            namespace: default
+            field: .spec.scaling.min
+            equals: "5"
+
+    - name: Old full-CR request is still rejected
+      timeout: 30s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/yaml"
+            bodyFile: ../manifests/cr-for-gateway.yaml
+            contains: '"error":"source CRD under migration"'
+
+    # --- prune: enable it, forward with --yes ---
+    - name: Patch Platform-03 status back to Ready
+      kubectl: 
+        patch:
+          - kind: AppConfig
+            name: api-server
+            namespace: platform-03
+            patch: '{"status":{"phase":"Ready"}}'
+
+    - name: Forward with --yes prunes the three selected sources
+      timeout: 60s
+      commands:
+        - run: "sed -i 's/# prune: true/prune: true/' ../blueprint.yaml"
+        - run: inrun migrate -f ../blueprint.yaml --yes
+          contains: "3 sources pruned"
+      finally:
+        commands:
+        - "sed -i 's/prune: true/# prune: true/' ../blueprint.yaml"
+
+    - name: Pruned sources are gone; destinations and the gateway CR remain and labelled
+      timeout: 30s
+      kubectl:
+        get:
+          # pruned sources
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            contains: "not found"
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-02
+            contains: "not found"
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-03
+            contains: "not found"
+
+          # migrated destinations 
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .metadata.labels.migrated-from
+            equals: appconfig
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-02
+            field: .metadata.labels.migrated-from
+            equals: appconfig
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-03
+            field: .metadata.labels.migrated-from
+            equals: appconfig
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server-gateway
+            namespace: default
+            field: .metadata.labels.migrated-from
+            notExists: true
+
+    # --- rollback: one, then the rest ---
+
+    - name: Rollback dry-run reports the snapshotted destinations
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml rollback --dry-run -ojson
+          json:
+            - path: .totals.crs
+              equals: 3
+            - path: .totals.migrated
+              equals: 3
+
+    - name: Rollback one destination recreates the source and deletes NewConfig
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml rollback --name api-server -n platform-01 -ojson
+          json:
+            - path: .totals.migrated
+              equals: 1
+    - name: Post-rollback platform-01 — AppConfig back, NewConfig gone
+      timeout: 30s
+      resources:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          count: 0
+      kubectl:
+        get:
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-01
+            field: .spec.scaling.min
+            equals: 6
+
+    - name: Intent still works after rollback — gateway never restarted
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer ${DEV_TOKEN}"
+              Content-Type: "application/json"
+            body: >-
+              {"target":"my-api-server","image":"myapp/api:3.1.0","replicas":6,"logLevel":"warn"}
+            statusCode: 200
+    - name: Post-rollback intent wrote to the destination CRD
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server-gateway
+            namespace: default
+            field: .spec.scaling.min
+            equals: "6"
+
+    # --- clean: drop snapshots; rollback has nothing left ---
+
+    - name: Clean dry-run reports the remaining snapshots
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml clean --dry-run -ojson
+          json:
+            - path: .totals.crs
+              equals: 2
+            - path: .totals.migrated
+              equals: 2
+    - name: Clean drops the snapshots
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml clean -ojson
+          json:
+            - path: .totals.migrated
+              equals: 2
+    - name: Clean is idempotent
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml clean -ojson
+          json:
+            - path: .totals.migrated
+              equals: 0
+
+    - name: Snapshot annotation is gone from a surviving destination
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: newconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-02
+            jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+            notExists: true
+
+    - name: Rollback after clean finds nothing to restore
+      timeout: 30s
+      commands:
+        - run: inrun migrate -f ../blueprint.yaml rollback -ojson
+          json:
+            - path: .totals.migrated
+              equals: 0

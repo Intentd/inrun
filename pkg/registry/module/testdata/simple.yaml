@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: simple
+
+inputs:
+  - name: image
+    required: true
+  - name: tag
+    default: "latest"
+
+resources:
+  deployments:
+    - name: "app"
+      image: "{{ index .inputs \"image\" }}:{{ index .inputs \"tag\" }}"
+      replicas: 1

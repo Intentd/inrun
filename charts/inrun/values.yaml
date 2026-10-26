@@ -1,0 +1,415 @@
+# ── Global ────────────────────────────────────────────────────────────────────
+global:
+  namespace: inrun-system
+  nameOverride: ""
+  fullnameOverride: ""
+
+# ── Runtime ────────────────────────────────────────────────────────────────────
+runtime:
+  enabled: true
+
+  imagePullSecrets: []
+
+  image:
+    repository: ghcr.io/intentd/inrun
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Created by 'inrun generate bundle'
+  serviceAccount: "inrun"
+
+  # Health server (runtime only)
+  server:
+    readTimeout: 30
+    writeTimeout: 60
+    httpPort: 8080
+
+  # Runtime-specific config
+  config:
+    logLevel: info
+    defaultWorkers: 2
+    defaultResync: 30s
+    maxDepth: 500
+    failureThreshold: 10
+    environment: production
+
+  # Probes for runtime
+  startupProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 5
+
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 5
+
+  readinessProbe:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 30
+    timeoutSeconds: 5
+
+  # ── Security ───────────────────────────────────────────────────────────────────
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+  # Leader election (runtime only)
+  leaderElection:
+    enabled: true
+    leaseDuration: 15
+    renewDeadline: 10
+    retryPeriod: 5
+
+  # Blueprint (runtime only)
+  blueprint:
+    existingConfigMap: ""               # ConfigMap from 'inrun generate bundle'; default <release>-blueprint
+    configMapKey: blueprint.yaml
+    mountPath: /etc/inrun/blueprint
+
+  # Gateway endpoint advertised in the runtime /blueprint response.
+  # Set to the HTTP base URL of the companion gateway deployment so the
+  # console can discover and merge gateway stats.
+  # Overrides INRUN_GATEWAY_ENDPOINT env. Empty = no gateway configured.
+  gatewayEndpoint: ""   # e.g. "http://inrun-gateway.inrun-system.svc:8080"
+
+  # Network Policy
+  networkPolicy:
+    enabled: false
+    ingressFrom: []
+    #  - namespaceSelector:
+    #      matchLabels:
+    #        kubernetes.io/metadata.name: monitoring
+    #  - podSelector:
+    #      matchLabels:
+    #        app: prometheus
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  podAnnotations: {}
+  podLabels: {}
+
+  # PDB
+  pdb:
+    enabled: true
+    minAvailable: 1
+    # maxUnavailable: 5
+
+  # Scheduling
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+# ── Gateway ───────────────────────────────────────────────────────────────────
+# The gateway handles TLS/cert management and serves admission/conversion
+# webhooks. It is stateless and supports multiple replicas (no leader election).
+# Set enabled: true alongside runtime: enabled to run the full split topology.
+gateway:
+  enabled: false
+
+  imagePullSecrets: []
+
+  image:
+    repository: ghcr.io/intentd/inrun-gateway
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Created by 'inrun generate bundle'
+  serviceAccount: "inrun-gateway"
+
+  service:
+    type: ClusterIP
+    annotations: {}
+
+  # Exposes the gateway's Gateway API (POST /api/v1/apply, GET /api/v1/resources/...,
+  # GET /api/v1/schema/...) to callers outside the cluster — a CI pipeline, a
+  # Console running elsewhere. Routes to the http port (Gateway API +
+  # health), never https (the admission/conversion webhook port — that's
+  # called by the Kubernetes API server itself, not an external client, and
+  # has no business behind a public ingress).
+  ingress:
+    enabled: false                  # Disabled by default – enable and set hosts
+    className: ""
+    annotations: {}
+    hosts: []
+    # hosts:
+    #   - host: gateway.mycompany.com
+    #     paths:
+    #       - path: /
+    #         pathType: Prefix
+    tls: []
+    # tls:
+    #   - hosts:
+    #       - gateway.mycompany.com
+    #     secretName: gateway-tls
+
+  # PDB
+  pdb:
+    enabled: true
+    minAvailable: 1
+    # maxUnavailable: 5
+
+  # HPA
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  # Health server + HTTPS webhook server
+  server:
+    readTimeout: 30
+    writeTimeout: 60
+    httpPort: 8080
+    httpsPort: 8443
+
+  # Gateway config (minimal — no reconciler knobs)
+  config:
+    logLevel: info
+    environment: production
+  
+  # Migration config
+  migration:
+    enabled: false
+    autoApprove: false    # required when migrating CRs to another CRD with prune
+
+  # Probes
+  startupProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 5
+
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 5
+
+  readinessProbe:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 30
+    timeoutSeconds: 5
+
+  # ── Security ───────────────────────────────────────────────────────────────────
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+  # Webhooks for admission control and CRD conversion
+  webhooks:
+    enabled: false                 # master switch
+    admission: false               # ENABLE_ADMISSION_WEBHOOK
+    conversion: false              # ENABLE_CONVERSION
+    existingSecret: ""             # TLS secret name (required if enabled)
+    certKey: tls.crt              # key in secret for certificate
+    keyKey: tls.key               # key in secret for private key
+
+  # Blueprint (needed to know which CRDs have webhooks)
+  blueprint:
+    existingConfigMap: ""               # default: runtime.blueprint's ConfigMap
+    configMapKey: blueprint.yaml
+    mountPath: /etc/inrun/blueprint
+
+  # Registry
+  registry:
+    url: ""
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  podAnnotations: {}
+  podLabels: {}
+
+  # Scheduling
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+# ── Console ────────────────────────────────────────────────────────────
+console:
+  enabled: true
+
+  imagePullSecrets: []
+
+  image:
+    repository: ghcr.io/intentd/inrun-console
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # No RBAC needed - console only reads from runtime API
+  serviceAccount: "inrun-console"
+
+  # Console config
+  config:
+    # Set this to your runtime service URL(s)
+    inrunURLs: []
+
+    port: 8081
+    refreshInterval: 10s
+    logLevel: info
+
+  service:
+    type: ClusterIP
+    port: 8081
+    annotations: {}
+
+  ingress:
+    enabled: false                  # Disabled by default – enable and set hosts
+    className: ""
+    annotations:
+      # Sticky sessions ensure each browser is consistently routed to the same
+      # console pod. The console cache is in-memory per-pod, so without affinity a user
+      # may see different state on each request when replicaCount > 1.
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/session-cookie-name: "console-session"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+    hosts: []
+    # hosts:
+    #   - host: console.mycompany.com
+    #     paths:
+    #       - path: /
+    #         pathType: Prefix
+    tls: []
+    # tls:
+    #   - hosts:
+    #       - gateway.mycompany.com
+    #     secretName: gateway-tls
+
+  # Security (console doesn't need root)
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1001
+    capabilities:
+      drop:
+        - ALL
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+
+  # Probes for console
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  readinessProbe:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+
+  # HPA
+  hpa:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  # Network Policy
+  networkPolicy:
+    enabled: false
+    ingressFrom: []
+    #  - namespaceSelector:
+    #      matchLabels:
+    #        kubernetes.io/metadata.name: monitoring
+    #  - podSelector:
+    #      matchLabels:
+    #        app: prometheus
+  # Gateway API token the Console uses to serve intents.
+  # Point secretRef at the Secret the gateway auto-creates on first start.
+  # Leave name empty to disable (no GATEWAY_TOKEN env injected).
+  gatewayToken:
+    secretRef:
+      name: ""      # e.g. "inrun-apply-token" (created by the gateway)
+      key: "token"
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  podAnnotations: {}
+  podLabels: {}
+
+  # PDB
+  pdb:
+    enabled: true
+    minAvailable: 1
+    # maxUnavailable: 5
+
+  # Scheduling
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+

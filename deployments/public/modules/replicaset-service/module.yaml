@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: replicaset-service
+  version: v0.1.0
+  description: >
+    ReplicaSet + ClusterIP Service. Shows that Inrun manages ReplicaSets
+    as first-class resources — no Deployment wrapper required.
+  author: intentd
+  tags:
+    - replicaset
+    - service
+    - compute
+
+inputs:
+  - name: image
+    required: true
+    description: Container image
+
+  - name: replicas
+    default: "1"
+    description: Desired replica count
+
+  - name: port
+    required: true
+    description: Container and service port
+
+resources:
+  replicaSets:
+    - name: "{{ .metadata.name }}"
+      image: '{{ index .inputs "image" }}'
+      replicas: '{{ index .inputs "replicas" }}'
+      port: '{{ index .inputs "port" }}'
+
+  services:
+    - name: "{{ .metadata.name }}-svc"
+      port: "80"
+      targetPort: '{{ index .inputs "port" }}'
+
+status:
+  fields:
+    - path: endpoint
+      value: "{{ .metadata.name }}-svc.{{ .metadata.namespace }}.svc.cluster.local"
+    - path: replicas
+      value: '{{ index .inputs "replicas" }}'

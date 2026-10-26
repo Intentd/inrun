@@ -1,0 +1,6 @@
+expect:
+  - include: ./admission/unconditional-deny.yaml
+  - include: ./admission/warn-when.yaml
+  - include: ./admission/deny-when.yaml
+  - include: ./admission/deny-or.yaml
+  - include: ./admission/direct-apply.yaml

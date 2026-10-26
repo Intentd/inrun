@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: blockchainappwithtargets-hooks-e2e
+  description: >
+    Run with: inrun e2e --dev-server
+
+    Verifies per-target args resolution end-to-end. v2-enabled target forces
+    featureEnabled=true via args and gates on business hours. v2-disabled forces
+    featureEnabled=false with no gate. Same hook binary, no HTTP call needed.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-e2e.yaml
+
+  valuesFiles:
+    - ./values.yaml
+
+  functions:
+    definitions:
+      - name: inBusinessHours
+        expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+
+  cluster:
+    provider: kind
+    name: inrun-args-hooks-targets
+    reuse: false
+
+  expect:
+    - name: Deployment created and ready (v2-enabled)
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          namespace: default
+          name: 03-hooks-targets-my-chain
+          ready: true
+
+    - name: Feature flag annotation true (v2-enabled, business hours)
+      after: cr-applied
+      timeout: 30s
+      when:
+        - field: '{{ inBusinessHours }}'
+          equals: "true"
+      kubectl:
+        get:
+          - kind: Deployment
+            name: 03-hooks-targets-my-chain
+            namespace: default
+            field: '.metadata.annotations.feature\.demo/v2-enabled'
+            equals: "true"
+
+    - name: Deployment removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          namespace: default
+          count: 0

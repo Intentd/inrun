@@ -1,0 +1,45 @@
+expect:
+  # Component depends on Worker (started). Worker workers started in Phase 2
+  # so the gate is already open. Component reconciles immediately on CR apply.
+  # Worker has no CR yet — stays pending. Platform has no CR yet — stays pending.
+  - name: Component CR applied — gate satisfied, component healthy
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      apply:
+        - file: ./cr-component.yaml
+      get:
+        - kind: Component
+          name: core-component
+          namespace: default
+          field: .status.phase
+          equals: Running
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jq: .state
+          equals: healthy
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jq: .state
+          equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jq: .hasUnhealthyDependencies
+          equals: "false"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jq: .state
+          equals: pending

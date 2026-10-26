@@ -1,0 +1,4 @@
+runtime:
+  image:
+    repository: ghcr.io/myorg/webapp-constructor
+    tag: 1.0.0

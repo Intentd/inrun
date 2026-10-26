@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: reconciler-probe-workloads
+  description: Workload resources — Secret, Deployment (conditional), ReplicaSet, StatefulSet, Pod, Job, CronJob.
+
+resources:
+  onCreate:
+    secrets:
+      - name: "{{ .metadata.name }}-creds"
+        namespace: "{{ .metadata.name }}-ns"
+        once: true
+        data:
+          token: "{{ randomAlphanumeric 32 }}"
+          api-key: "{{ randomAlphanumeric 16 }}"
+
+  deployments:
+    - name: "{{ .metadata.name }}-app"
+      namespace: "{{ .metadata.name }}-ns"
+      image: "{{ .spec.image }}"
+      replicas: "{{ .spec.replicas }}"
+      port: "{{ .spec.port }}"
+      serviceAccountName: "{{ .metadata.name }}-sa"
+      env:
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: "{{ .metadata.name }}-config"
+              key: PORT
+      envFrom:
+        secretRef:
+          - name: "{{ .metadata.name }}-creds"
+
+    # Only created when tier=premium — tests evaluateConditions path.
+    - name: "{{ .metadata.name }}-premium"
+      namespace: "{{ .metadata.name }}-ns"
+      image: "{{ .spec.image }}"
+      replicas: "{{ .spec.replicas }}"
+      port: "{{ .spec.port }}"
+      when:
+        - field: "{{ .spec.tier }}"
+          equals: premium
+
+  replicaSets:
+    - name: "{{ .metadata.name }}-rs"
+      namespace: "{{ .metadata.name }}-ns"
+      image: nginx:stable
+      replicas: "1"
+      port: "80"
+
+  statefulSets:
+    - name: "{{ .metadata.name }}-sts"
+      namespace: "{{ .metadata.name }}-ns"
+      image: nginx:stable
+      replicas: "1"
+      port: "80"
+
+  pods:
+    - name: "{{ .metadata.name }}-pod"
+      namespace: "{{ .metadata.name }}-ns"
+      image: nginx:stable
+
+  jobs:
+    - name: "{{ .metadata.name }}-init"
+      namespace: "{{ .metadata.name }}-ns"
+      image: alpine:3.19
+      command: ["/bin/sh", "-c", "echo probe-job-ok"]
+
+  cronJobs:
+    - name: "{{ .metadata.name }}-cron"
+      namespace: "{{ .metadata.name }}-ns"
+      schedule: "{{ .spec.schedule }}"
+      image: alpine:3.19
+      command: ["/bin/sh", "-c", "echo probe-cron-ok"]

@@ -1,0 +1,71 @@
+expect:
+  - name: Platform-01 moved to NewConfig with its spec carried
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.scaling.min
+          equals: "6"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.observability.logging.level
+          equals: "warn"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.labels.migrated-from
+          equals: "appconfig"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.labels.tier
+          equals: "web"
+
+  - name: Platform-02 moved to NewConfig with its spec carried
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .spec.scaling.min
+          equals: "6"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .metadata.labels.migrated-from
+          equals: "appconfig"
+    
+  - name: Platform-03 condition satisfies migration
+    commands:
+      - run: inrun migrate -f ../blueprint.yaml -n platform-03 --dry-run
+        contains: "would be migrated"
+
+  - name: Patch Platform-03 status to Pending
+    kubectl: 
+      patch:
+        - kind: AppConfig
+          name: api-server
+          patch: '{"status":{"phase":"Pending"}}'
+
+  - name: Platform-03 is now Pending and was not selected
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          field: .status.phase
+          equals: "Pending"
+    commands:
+      - run: inrun migrate -f ../blueprint.yaml -n platform-03 --dry-run
+        contains: "not selected: migrate.selection when/or"
+
+  - name: Platform-04 is tier=batch and was not selected
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../blueprint.yaml -n platform-04 --dry-run
+        notContains: "would be migrated"

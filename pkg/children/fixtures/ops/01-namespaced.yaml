@@ -1,0 +1,36 @@
+ops:
+  # DEV Environment
+  - cycle: 1
+    verb: create
+    resource: namespaces
+    name: acme-dev
+  - cycle: 1
+    verb: apply
+    resource: networkpolicies
+    name: acme-acme-dev-deny-all
+  - cycle: 1
+    verb: apply
+    resource: resourcequotas
+    name: acme-acme-dev-quota
+  - cycle: 1
+    verb: apply
+    resource: limitranges
+    name: acme-acme-dev-limits
+  
+  # STAGING Environment
+  - cycle: 1
+    verb: create
+    resource: namespaces
+    name: acme-staging
+  - cycle: 1
+    verb: apply
+    resource: networkpolicies
+    name: acme-acme-staging-deny-all
+  - cycle: 1
+    verb: apply
+    resource: resourcequotas
+    name: acme-acme-staging-quota
+  - cycle: 1
+    verb: apply
+    resource: limitranges
+    name: acme-acme-staging-limits

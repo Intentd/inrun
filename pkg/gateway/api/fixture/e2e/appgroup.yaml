@@ -1,0 +1,19 @@
+expect:
+  - name: AppGroup CR accepted and reaches Ready
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      apply:
+        - file: ../crs/appgroup-basic.yaml
+    resources:
+      - kind: AppGroup
+        name: infra-group
+        namespace: team-platform
+
+  - name: ApplicationSet created for AppGroup
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: ApplicationSet
+        name: infra-group
+        namespace: argocd

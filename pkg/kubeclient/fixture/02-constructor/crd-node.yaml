@@ -1,0 +1,56 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: blockchainnodes.demo.inrun.dev
+spec:
+  group: demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Network
+          type: string
+          jsonPath: .spec.network
+        - name: Feature
+          type: string
+          jsonPath: .status.featureEnabled
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [image, network]
+              properties:
+                image:
+                  type: string
+                network:
+                  type: string
+                  enum: [mainnet, testnet, devnet]
+                replicas:
+                  type: integer
+                  minimum: 1
+                  description: Desired replica count when the feature flag is enabled.
+                serviceUrl:
+                  type: string
+                  description: >
+                    Base URL of the feature-flag service.
+                    Local: http://localhost:9999
+                    In-cluster: http://inrun-dev-server.inrun-system.svc:9999
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  names:
+    kind: BlockchainNode
+    plural: blockchainnodes
+    singular: blockchainnode
+  scope: Namespaced

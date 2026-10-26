@@ -1,0 +1,31 @@
+# .github/workflows/vuln-inrun.yml
+name: Vulnerability check (dev-CLI build)
+
+# make vuln-inrun scans the whole module under Go's default build config
+# — cmd/cli/run_dev.go's dev-CLI build (no tags set), not either production
+# binary. Broadest net: also catches issues in dev-only tooling (Helm, ORAS,
+# etc. — see pkg/merger/helm.go and pkg/registry/client.go), which still
+# matters for a compromised dev machine or supply-chain risk in what
+# contributors run locally, even though none of it ships. Manually triggered
+# rather than run on every PR — validate-pr.yml's vuln-check already covers
+# what's actually deployed (runtime, gateway, Console).
+on:
+  workflow_dispatch:
+
+jobs:
+  vuln-inrun:
+    name: Vulnerability check (vuln-inrun)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run vulnerability check
+        run: make vuln-inrun

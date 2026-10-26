@@ -1,0 +1,25 @@
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: # TODO: operator name
+  description: "End-to-end test for <operator>"
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+{{- if .Typed}}
+  valuesFiles:
+    - ./values.yaml
+{{- end}}
+  # timeout: 120s
+  expect:
+    # TODO: add assertions
+    # - name: Deployment ready
+    #   after: cr-applied
+    #   timeout: 60s
+    #   resources:
+    #     - kind: Deployment
+    #       name: "{{ "{{" }} .metadata.name {{ "}}" }}"
+    #       namespace: "{{ "{{" }} .metadata.namespace {{ "}}" }}"
+    #       ready: true

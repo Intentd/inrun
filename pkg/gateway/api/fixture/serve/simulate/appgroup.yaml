@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: gateway-fixture-appgroup
+  description: appGroup (minimal serve) — ApplicationSet created on cycle 1
+
+spec:
+  blueprint: ../../blueprint.yaml
+  crdFiles:
+    - ../../crd.yaml
+    - ../../argocd/crd.yaml
+  setup:
+    - ../../setup.yaml
+    - ../../argocd/setup.yaml
+  cr: ../../crs/appgroup-basic.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    crds:
+      appGroup:
+        ops:
+          - cycle: 1
+            verb: create
+            resource: applicationsets
+            name: infra-group

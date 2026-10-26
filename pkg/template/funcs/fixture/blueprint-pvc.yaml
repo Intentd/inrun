@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: pvc-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    PVCProbe — integration test for PVC notes and enriched PV notes.
+    Creates a PVC with enrich: [pvc] so that _pv is embedded once bound.
+    Apply the CR and inspect: kubectl get pvcprobe <name> -o yaml
+    Reuses the NoteProbe CRD.
+
+spec:
+  crds:
+    pvc-probe:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      enrich:
+        - pvc
+        - storageclass
+      operatorBox:
+        reconcile:
+          workers: 1
+          resync: 30s
+
+          onCreate:
+            persistentVolumeClaims:
+              - name: "{{ .metadata.name }}-data"
+                storageClassName: "{{ .spec.storageClass }}"
+                storage: "{{ .spec.storage }}"
+                accessModes: [ReadWriteOnce]
+        emit:
+          status:
+            fields:
+              # ── Phase state machine ─────────────────────────────────────────
+              - path: phase
+                value: "Pending"
+                when:
+                  - field: status.phase
+                    notExists: true
+
+              - path: phase
+                value: "Bound"
+                when:
+                  - field: "{{ pvcBound .children.pvc }}"
+                    equals: "true"
+
+              - path: phase
+                value: "Waiting"
+                when:
+                  - field: "{{ pvcBound .children.pvc }}"
+                    equals: "false"
+
+              # ── PVC notes (no enrichment required) ──────────────────────────
+              - path: pvcPhase
+                value: "{{ pvcPhase .children.pvc }}"
+
+              - path: pvcBound
+                value: "{{ pvcBound .children.pvc }}"
+
+              - path: pvcCapacity
+                value: "{{ pvcCapacity .children.pvc }}"
+
+              - path: pvcStorageClass
+                value: "{{ pvcStorageClass .children.pvc }}"
+
+              - path: pvcAccessModes
+                value: '{{ join (pvcAccessModes .children.pvc) ", " }}'
+
+              # ── enriched PV notes (require enrich: [pvc]) ───────────────────
+              - path: pvcProvisioner
+                value: "{{ pvProvisioner .children.pvc._pv }}"
+
+              - path: pvcVolumeMode
+                value: "{{ pvVolumeMode .children.pvc._pv }}"
+
+              # ── enriched StorageClass notes (require enrich: [storageclass]) ─
+              - path: storageClassProvisioner
+                value: "{{ storageClassProvisioner .children.pvc._storageClass }}"
+
+              - path: storageClassReclaimPolicy
+                value: "{{ storageClassReclaimPolicy .children.pvc._storageClass }}"
+

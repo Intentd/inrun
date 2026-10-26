@@ -1,0 +1,22 @@
+expect:
+  - name: PlatformResource accepted and reaches Ready
+    after: cr-applied
+    timeout: 120s
+    kubectl:
+      get:
+        - kind: PlatformResource
+          name: payments-api
+          namespace: team-payments
+          field: .status.phase
+          equals: Ready
+
+  - name: ArgoCD Application created for app workload
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      get:
+        - kind: Application
+          name: payments-api
+          namespace: argocd
+          field: .metadata.name
+          equals: payments-api

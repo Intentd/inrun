@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: rotating-api-key
+  version: v0.1.0
+  description: >
+    Auto-generates an API key and signing key on first creation.
+    Rotated automatically after rotateAfter. Never drift-corrected —
+    the secret is stable between rotations.
+  author: intentd
+  tags:
+    - secret
+    - api-key
+    - rotation
+    - once
+
+inputs:
+  - name: rotateAfter
+    default: "90d"
+    description: How long before the secret is rotated (e.g. 30d, 90d, 1y)
+
+resources:
+  onCreate:
+    secrets:
+      - name: "{{ .metadata.name }}-api-key"
+        once: true
+        rotateAfter: '{{ index .inputs "rotateAfter" }}'
+        data:
+          api-key: "{{ randomAlphanumeric 32 }}"
+          signing-key: "{{ randomBase64 32 }}"
+
+status:
+  fields:
+    - path: apiKeySecret
+      value: "{{ .metadata.name }}-api-key"

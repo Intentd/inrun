@@ -1,0 +1,22 @@
+expect:
+  - name: phase is Ready — Kafka topic metadata read succeeded
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Ready"
+
+  - name: partitionCount is set
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.partitionCount
+          exists: true

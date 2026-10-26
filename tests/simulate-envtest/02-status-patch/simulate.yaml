@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: probe-status-patch
+  description: >
+    Verifies that status.phase and status.message are set via a status subresource patch
+    against the real API server (the Probe CRD declares subresources.status).
+    The fake cluster allows status writes through normal PATCH — this test confirms the
+    real API server enforces the subresource boundary and the patch still succeeds.
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../cr.yaml
+  crd: ../crd.yaml
+  cycles: 3
+
+  expect:
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: patch
+        resource: probes

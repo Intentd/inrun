@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: gateway-clusters-include
+  version: 1.0.0
+  description: Valid gateway.clusters loaded via include file, with one inline cluster that overrides the included one.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        clusters:
+          - prod
+gateway:
+  enabled: true
+  api:
+    enabled: true
+  clusters:
+    include: ../../include/gateway-clusters.yaml
+    dev:
+      endpoint: https://dev.internal:6443
+      tokenRef:
+        name: dev-sa-token
+        key: token
+      insecure: true

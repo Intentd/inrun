@@ -1,0 +1,45 @@
+expect:
+  - name: All three deployments are ready
+    after: setup-complete
+    timeout: 120s
+    resources:
+      - kind: Deployment
+        name: inrun-runtime
+        namespace: inrun-system
+        ready: true
+      - kind: Deployment
+        name: inrun-gateway
+        namespace: inrun-system
+        ready: true
+      - kind: Deployment
+        name: inrun-console
+        namespace: inrun-system
+        ready: true
+
+  - name: Services created for runtime, gateway, and console
+    after: setup-complete
+    timeout: 30s
+    resources:
+      - kind: Service
+        name: inrun-runtime
+        namespace: inrun-system
+      - kind: Service
+        name: inrun-gateway
+        namespace: inrun-system
+      - kind: Service
+        name: inrun-console
+        namespace: inrun-system
+
+  - name: PodDisruptionBudgets created (runtime, gateway, and console — enabled by default)
+    after: setup-complete
+    timeout: 30s
+    resources:
+      - kind: PodDisruptionBudget
+        name: inrun-runtime
+        namespace: inrun-system
+      - kind: PodDisruptionBudget
+        name: inrun-gateway
+        namespace: inrun-system
+      - kind: PodDisruptionBudget
+        name: inrun-console
+        namespace: inrun-system

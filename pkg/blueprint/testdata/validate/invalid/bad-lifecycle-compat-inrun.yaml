@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-compat-inrun
+  version: 1.0.0
+  description: Tests that an invalid inrun semver range fails validation.
+lifecycle:
+  compatibility:
+    inrun: "not-a-range"
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

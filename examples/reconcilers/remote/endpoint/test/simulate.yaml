@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: webapp-remote-sim
+  description: >
+    Run the remote reconciler against an in-memory cluster. Start the
+    reconciler first (it listens on :8025); each cycle calls it.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+      - cycle: 1
+        verb: apply
+        resource: services

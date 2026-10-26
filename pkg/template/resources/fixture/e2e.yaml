@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: resource-probe-e2e
+  description: >
+    Living integration fixture for all pkg/resources/* packages.
+    One ResourceProbe CR triggers the hook — every Resolve() + Update()/Create()
+    code path is exercised. When you add a new resource package, add a call in
+    hooks/resource_hooks.go and an assertion to e2e/01-resources.yaml.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  valuesFiles:
+    - ./values.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-resource-probe
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-resources.yaml
+    - include: ./e2e/02-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: ResourceProbe
+          name: probe
+          namespace: default
+      describe:
+        - kind: Deployment
+          name: probe-deploy
+          namespace: probe-ns
+      events:
+        - kind: Deployment
+          name: probe-deploy
+          namespace: probe-ns
+    commands:
+      - kubectl get all -n probe-ns
+      - kubectl get clusterrole probe-cr -o yaml
+      - kubectl get pv probe-pv -o yaml
+      - kubectl get resourceprobe probe -o yaml

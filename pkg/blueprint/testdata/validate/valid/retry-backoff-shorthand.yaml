@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: retry-backoff-shorthand
+  version: 0.1.0
+  description: Valid retryBackoff shorthand on queue and external.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          resync: 10m
+          queue:
+            retryBackoff: 5s

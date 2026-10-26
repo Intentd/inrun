@@ -1,0 +1,106 @@
+// pkg/types/types_limitrange.go
+package types
+
+import kwtypes "github.com/intentd/kubewright/core/types"
+
+// LimitRangeTemplateSource declares one LimitRange to be managed by Inrun.
+//
+// Usage patterns:
+//
+// 1. Container defaults:
+//
+//	onCreate:
+//	  limitRanges:
+//	    - name: "{{ .metadata.name }}-limits"
+//	      limits:
+//	        - type: Container
+//	          default:
+//	            cpu: 500m
+//	            memory: 512Mi
+//	          defaultRequest:
+//	            cpu: 250m
+//	            memory: 256Mi
+//	      reconcile: true
+//
+// 2. Environment-sized limits with template expressions:
+//
+//	onCreate:
+//	  limitRanges:
+//	    - name: "{{ .metadata.name }}-limits"
+//	      limits:
+//	        - type: Container
+//	          default:
+//	            cpu: '{{ if eq .spec.env "production" }}500m{{ else }}200m{{ end }}'
+//	            memory: '{{ if eq .spec.env "production" }}512Mi{{ else }}256Mi{{ end }}'
+//
+// 3. Copy from existing LimitRange:
+//
+//	onCreate:
+//	  limitRanges:
+//	    - name: team-limits
+//	      fromLimitRange: org-default-limits
+//	      fromNamespace: platform
+//
+// 4. Copy to multiple namespaces:
+//
+//	onCreate:
+//	  limitRanges:
+//	    - name: team-limits
+//	      fromLimitRange: org-default-limits
+//	      fromNamespace: platform
+//	      toNamespaces:
+//	        - "{{ .metadata.namespace }}"
+//	        - staging
+type LimitRangeTemplateSource struct {
+	// Name — LimitRange name.
+	Name string `yaml:"name,omitempty" json:"name,omitempty"`
+
+	// Namespace — target namespace.
+	// Default: "{{ .metadata.namespace }}"
+	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
+
+	// ToNamespaces — create one copy in each listed namespace.
+	// Each element supports template expressions.
+	ToNamespaces []string `yaml:"toNamespaces,omitempty" json:"toNamespaces,omitempty"`
+
+	// FromLimitRange — name of an existing LimitRange to copy from.
+	// When set, Inrun reads this LimitRange at reconcile time and copies its limits.
+	FromLimitRange string `yaml:"fromLimitRange,omitempty" json:"fromLimitRange,omitempty"`
+
+	// FromNamespace — namespace where FromLimitRange lives.
+	// Default: same namespace as the CR.
+	FromNamespace string `yaml:"fromNamespace,omitempty" json:"fromNamespace,omitempty"`
+
+	// Preset — named LimitRange preset. Expands into a Limits list at reconcile time.
+	// Mutually exclusive with Limits — set one or the other, not both.
+	Preset string `yaml:"preset,omitempty" json:"preset,omitempty"`
+
+	// Limits — the list of limit range items.
+	// Each item applies to one type: Container, Pod, or PersistentVolumeClaim.
+	Limits []LimitRangeItem `yaml:"limits,omitempty" json:"limits,omitempty"`
+
+	// Labels — applied to LimitRange metadata.
+	Labels Labels `yaml:"labels,omitempty" json:"labels,omitempty"`
+
+	// When lists conditions that must all pass for this entry to be written; see
+	// Condition. When an entry kept in sync (onReconcile, or reconcile: true)
+	// stops passing, the object it wrote is removed.
+	When []Condition `yaml:"when,omitempty" json:"when,omitempty"`
+
+	// Or lists conditions of which at least one must pass, alongside When.
+	Or []Condition `yaml:"or,omitempty" json:"or,omitempty"`
+
+	// Reconcile: true — sync on every reconcile (drift correction).
+	Reconcile bool `yaml:"reconcile,omitempty" json:"reconcile,omitempty"`
+
+	// ForEach — expand this entry once per item in a list or map field.
+	ForEach *ForEachSpec `yaml:"forEach,omitempty" json:"forEach,omitempty"`
+
+	// ForceConflict, when true, sets Force: true when applying this resource,
+	// taking ownership of conflicting fields instead of returning a conflict error.
+	// Overrides the CRD-level ForceConflict setting.
+	ForceConflict *bool `yaml:"forceConflict,omitempty" json:"forceConflict,omitempty"`
+}
+
+// LimitRangeItem is kwtypes.LimitRangeItem.
+type LimitRangeItem = kwtypes.LimitRangeItem

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrics – Inrun Console</title>
+  <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
+  <link rel="stylesheet" href="/console/assets/static/css/style.css">
+  <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body class="console-root">
+
+  <!-- Sidebar -->
+  <aside class="console-sidebar" id="console-sidebar">
+    <div class="console-sidebar-logo">
+      <div class="console-sidebar-logo-row">
+        <a href="/console">
+          <img src="/console/assets/static/inrun-mark.svg" alt="Inrun" width="32" height="32">
+          <span>Inrun Console</span>
+        </a>
+        <button class="console-sidebar-toggle" id="console-sidebar-toggle" title="Collapse sidebar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+            <path d="M9 18l-6-6 6-6" opacity="0.4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <nav class="console-sidebar-nav">
+      <a href="/console" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        All Blueprints
+      </a>
+      <a href="/console/metrics" class="console-nav-item active">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Metrics
+      </a>
+      <a href="https://inrun.dev" target="_blank" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <line x1="10" y1="9" x2="8" y2="9"/>
+        </svg>
+        Documentation
+      </a>
+    </nav>
+    <div class="console-sidebar-footer">
+      <span class="console-refresh-dot" id="sse-dot" title="Live connection"></span>
+      <span class="console-refresh-label">Live</span>
+    </div>
+  </aside>
+  <div class="console-sidebar-overlay" id="console-overlay"></div>
+
+  <main class="console-main">
+    <div class="console-navbar">
+      <button class="console-mobile-toggle" id="console-mobile-toggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <span class="console-navbar-title">Metrics</span>
+      <div class="console-navbar-right">
+        <button class="console-theme-toggle" id="console-theme-toggle" title="Toggle theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="console-page">
+
+      <!-- Coming soon banner -->
+      <div class="console-alert" style="background:var(--color-started-bg);border-color:var(--color-started-border);color:var(--color-started);margin-bottom:24px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <div>
+          <div class="console-alert-title" style="color:var(--color-started)">Metrics Dashboard – Coming in v2.0</div>
+          <div class="console-alert-text" style="color:var(--color-started);opacity:0.85">Real-time metrics aggregation across all Inrun instances is under active development.</div>
+        </div>
+      </div>
+
+      <!-- What's coming -->
+      <h2 class="console-section-title">What to Expect</h2>
+      <div class="console-card-grid mb-8">
+
+        <div class="console-card">
+          <div class="console-card-body">
+            <div class="flex items-center gap-3 mb-3">
+              <span style="font-size:22px">⬡</span>
+              <h3 class="console-card-title" style="margin:0">Per-Blueprint Metrics</h3>
+            </div>
+            <p class="console-card-desc">View reconciliation rates, error rates, and queue depths for each Blueprint independently. Drill down from the Blueprint panel to see instance-specific metrics.</p>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle)">Planned for v2.0</div>
+          </div>
+        </div>
+
+        <div class="console-card">
+          <div class="console-card-body">
+            <div class="flex items-center gap-3 mb-3">
+              <span style="font-size:22px">⚙</span>
+              <h3 class="console-card-title" style="margin:0">System Health</h3>
+            </div>
+            <p class="console-card-desc">Go runtime metrics: goroutines, memory allocation, GC pauses, and thread counts. Available per instance to help debug performance issues.</p>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle)">Planned for v2.0</div>
+          </div>
+        </div>
+
+        <div class="console-card">
+          <div class="console-card-body">
+            <div class="flex items-center gap-3 mb-3">
+              <span style="font-size:22px">⇄</span>
+              <h3 class="console-card-title" style="margin:0">Conversion &amp; Admission</h3>
+            </div>
+            <p class="console-card-desc">Track version conversion latency and success rates. Monitor validation and mutation webhook performance across all CRDs.</p>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle)">Planned for v2.0</div>
+          </div>
+        </div>
+
+        <div class="console-card">
+          <div class="console-card-body">
+            <div class="flex items-center gap-3 mb-3">
+              <span style="font-size:22px">↑</span>
+              <h3 class="console-card-title" style="margin:0">Time Series</h3>
+            </div>
+            <p class="console-card-desc">Historical graphs showing trends over time. Identify patterns in reconciliation latency, queue growth, and error rates.</p>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle)">Planned for v2.0</div>
+          </div>
+        </div>
+
+        <div class="console-card">
+          <div class="console-card-body">
+            <div class="flex items-center gap-3 mb-3">
+              <span style="font-size:22px">◎</span>
+              <h3 class="console-card-title" style="margin:0">Alerting</h3>
+            </div>
+            <p class="console-card-desc">Configure alerts for high error rates, queue backpressure, or degraded CRDs. Integrations with Slack, PagerDuty, and email.</p>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle)">Planned for v2.0</div>
+          </div>
+        </div>
+
+        <div class="console-card">
+          <div class="console-card-body">
+            <div class="flex items-center gap-3 mb-3">
+              <span style="font-size:22px">↗</span>
+              <h3 class="console-card-title" style="margin:0">Export</h3>
+            </div>
+            <p class="console-card-desc">Export metrics to CSV, JSON, or Prometheus format. Integrate with existing monitoring stacks and data lakes.</p>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle)">Planned for v2.0</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Preview Table -->
+      <h2 class="console-section-title">Preview: System Metrics (Mock Data)</h2>
+      <div class="console-table-wrap mb-8">
+        <table class="console-metrics-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Instance 1 (8080)</th>
+              <th>Instance 2 (8082)</th>
+              <th>Aggregate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Goroutines</td><td>211</td><td>187</td><td style="font-weight:600">398</td></tr>
+            <tr><td>Memory (alloc)</td><td>41.9 MB</td><td>38.2 MB</td><td style="font-weight:600">80.1 MB</td></tr>
+            <tr><td>GC P95</td><td>0.19 ms</td><td>0.21 ms</td><td style="font-weight:600">0.20 ms</td></tr>
+            <tr><td>Threads</td><td>11</td><td>11</td><td style="font-weight:600">22</td></tr>
+            <tr><td>Total Reconciles</td><td>12,456</td><td>9,872</td><td style="font-weight:600">22,328</td></tr>
+            <tr><td>Error Rate (avg)</td><td style="color:var(--color-degraded)">0.04%</td><td style="color:var(--color-healthy)">0.00%</td><td style="font-weight:600;color:var(--color-pending)">0.02%</td></tr>
+          </tbody>
+        </table>
+        <div style="padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);text-align:center">
+          Real-time metrics aggregation will be available in Inrun v2.0
+        </div>
+      </div>
+
+      <div style="text-align:center;font-size:13px;color:var(--text-muted)">
+        Have ideas for metrics? <a href="https://github.com/intentd/inrun/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/console/assets/static/js/console.js"></script>
+</body>
+</html>

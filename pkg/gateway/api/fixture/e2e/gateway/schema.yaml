@@ -1,0 +1,51 @@
+expect:
+  - name: Service list shows apifixture target
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/schema
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          contains: "apifixture"
+
+  - name: Schema for apifixture target returns field definitions
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/schema?target=apifixture
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .target
+          equals: "apifixture"
+
+  - name: Schema for unknown target returns error
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/schema?target=does-not-exist
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          contains: "unknown target"
+
+  - name: Schema endpoint rejects unauthenticated request
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/schema?target=apifixture
+          statusCode: 401

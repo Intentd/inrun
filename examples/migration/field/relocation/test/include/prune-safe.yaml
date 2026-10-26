@@ -1,0 +1,56 @@
+expect:
+  - name: All CRs survive the final CRD — old fields pruned, new fields intact
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.scaling.min
+          equals: "3"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .spec.scaling.min
+          equals: "5"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          field: .spec.scaling.min
+          equals: "2"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-04
+          field: .spec.scaling.min
+          equals: "10"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-05
+          field: .spec.scaling.min
+          equals: "1"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.scaling.min
+          equals: "6"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-07
+          field: .spec.scaling.min
+          equals: "7"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-08
+          field: .spec.scaling.min
+          equals: "3"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-09
+          field: .spec.scaling.min
+          equals: "3"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-09
+          field: .spec.observability.logging.level
+          equals: "info"
+

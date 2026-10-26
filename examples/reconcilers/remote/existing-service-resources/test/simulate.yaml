@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: bucket-existing-service-resources-sim
+  description: >
+    Reconcile a Bucket against the bucket API on the dev server
+    (inrun simulate --dev-server). The template after the call applies the
+    ConfigMap from the API's answer.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+  # Provisioning, then ready, then one pass to settle.
+  cycles: 4
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: configmaps
+        name: assets-bucket

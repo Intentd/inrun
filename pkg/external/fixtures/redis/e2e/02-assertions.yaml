@@ -1,0 +1,33 @@
+expect:
+  - name: phase is Ready — Redis PING succeeded
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Ready"
+
+  - name: pingResult is PONG
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.pingResult
+          equals: "PONG"
+
+  - name: dbSize is set
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.dbSize
+          exists: true

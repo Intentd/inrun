@@ -1,0 +1,71 @@
+# Console Horizontal Pod Autoscaler
+{{- if and .Values.console.hpa.enabled .Values.console.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "inrun.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "inrun.fullname" . }}-console
+  minReplicas: {{ .Values.console.hpa.minReplicas }}
+  maxReplicas: {{ .Values.console.hpa.maxReplicas }}
+  metrics:
+    {{- if .Values.console.hpa.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.console.hpa.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.console.hpa.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.console.hpa.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+---
+# Gateway Horizontal Pod Autoscaler
+{{- if and .Values.gateway.hpa.enabled .Values.gateway.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "inrun.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "inrun.fullname" . }}-gateway
+  minReplicas: {{ .Values.gateway.hpa.minReplicas }}
+  maxReplicas: {{ .Values.gateway.hpa.maxReplicas }}
+  metrics:
+    {{- if .Values.gateway.hpa.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.gateway.hpa.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.gateway.hpa.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.gateway.hpa.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

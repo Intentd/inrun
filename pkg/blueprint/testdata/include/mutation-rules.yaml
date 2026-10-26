@@ -1,0 +1,6 @@
+rules:
+  - field: spec.replicas
+    default: 1
+    valueType: int
+  - field: spec.environment
+    default: staging

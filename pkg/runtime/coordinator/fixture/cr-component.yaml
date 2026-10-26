@@ -1,0 +1,7 @@
+apiVersion: coordinator.inrun.dev/v1alpha1
+kind: Component
+metadata:
+  name: core-component
+  namespace: default
+spec:
+  name: core-component

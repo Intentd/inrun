@@ -1,0 +1,61 @@
+package types
+
+import kwtypes "github.com/intentd/kubewright/core/types"
+
+// ── Volume / VolumeMount ──────────────────────────────────────────────────────
+//
+// VolumeSource and VolumeMount declare pod volumes and container mounts in the
+// same way as Kubernetes, but with template expression support in name fields
+// so volume names can be derived from the CR at reconcile time.
+//
+// Supported volume types: configMap, secret, emptyDir, persistentVolumeClaim,
+// hostPath. Fields that accept template expressions are marked with (template).
+//
+// Example:
+//
+//	volumes:
+//	  - name: app-config                          # (template)
+//	    configMap:
+//	      name: "{{ .metadata.name }}-config"     # (template)
+//
+//	  - name: creds
+//	    secret:
+//	      name: "{{ .metadata.name }}-creds"      # (template)
+//
+//	  - name: tmp
+//	    emptyDir: {}
+//
+//	  - name: data
+//	    persistentVolumeClaim:
+//	      claimName: "{{ .metadata.name }}-pvc"   # (template)
+//
+//	  - name: host-logs
+//	    hostPath:
+//	      path: /var/log
+//
+//	volumeMounts:
+//	  - name: app-config
+//	    mountPath: /etc/config
+//	    subPath: app.json
+//	    readOnly: true
+
+// VolumeSource is kwtypes.VolumeSource.
+type VolumeSource = kwtypes.VolumeSource
+
+// ConfigMapVolumeSource is kwtypes.ConfigMapVolumeSource.
+type ConfigMapVolumeSource = kwtypes.ConfigMapVolumeSource
+
+// SecretVolumeSource is kwtypes.SecretVolumeSource.
+type SecretVolumeSource = kwtypes.SecretVolumeSource
+
+// EmptyDirVolumeSource is kwtypes.EmptyDirVolumeSource.
+type EmptyDirVolumeSource = kwtypes.EmptyDirVolumeSource
+
+// PVCVolumeSource is kwtypes.PVCVolumeSource.
+type PVCVolumeSource = kwtypes.PVCVolumeSource
+
+// HostPathVolumeSource is kwtypes.HostPathVolumeSource.
+type HostPathVolumeSource = kwtypes.HostPathVolumeSource
+
+// VolumeMount is kwtypes.VolumeMount.
+type VolumeMount = kwtypes.VolumeMount

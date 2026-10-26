@@ -1,0 +1,69 @@
+expect:
+  - name: Admission warns on production without approval ticket (warn when)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: payments-api-prod
+            namespace: team-payments
+          spec:
+            workloadType: app
+            team: team-payments
+            environment: production
+            repoURL: https://github.com/myorg/payments
+            targetRevision: main
+            targetNamespace: team-payments
+          EOF
+        exitCode: 0
+        contains: "productionApproval"
+
+  - name: Warn rule skipped when approval ticket present
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: payments-api-prod-approved
+              namespace: team-payments
+            spec:
+              workloadType: app
+              team: team-payments
+              environment: production
+              repoURL: https://github.com/myorg/payments
+              targetRevision: v1.4.2
+              targetNamespace: team-payments
+              productionApproval: CHG-20240721-0042
+    resources:
+      - kind: PlatformResource
+        name: payments-api-prod-approved
+        namespace: team-payments
+
+  - name: Warn rule skipped entirely for staging
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: payments-api-staging
+              namespace: team-payments
+            spec:
+              workloadType: app
+              team: team-payments
+              environment: staging
+              repoURL: https://github.com/myorg/payments
+              targetRevision: main
+              targetNamespace: team-payments
+    resources:
+      - kind: PlatformResource
+        name: payments-api-staging
+        namespace: team-payments

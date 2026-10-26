@@ -1,0 +1,80 @@
+expect:
+  - name: All resources created
+    after: cr-applied
+    timeout: 120s
+    resources:
+      - kind: ReconcilerSuite
+        name: probe-suite
+        namespace: default
+      - kind: ReconcilerProbe
+        name: probe
+      - kind: Namespace
+        name: probe-ns
+      - kind: Secret
+        name: probe-creds
+        namespace: probe-ns
+      - kind: ConfigMap
+        name: probe-config
+        namespace: probe-ns
+      - kind: NetworkPolicy
+        name: probe-netpol
+        namespace: probe-ns
+      - kind: ResourceQuota
+        name: probe-quota
+        namespace: probe-ns
+      - kind: LimitRange
+        name: probe-limits
+        namespace: probe-ns
+      - kind: ClusterRole
+        name: probe-cr
+      - kind: ClusterRoleBinding
+        name: probe-crb
+      - kind: ServiceAccount
+        name: probe-sa
+        namespace: probe-ns
+      - kind: Role
+        name: probe-role
+        namespace: probe-ns
+      - kind: RoleBinding
+        name: probe-rb
+        namespace: probe-ns
+      - kind: ReplicaSet
+        name: probe-rs
+        namespace: probe-ns
+      - kind: Deployment
+        name: probe-app
+        namespace: probe-ns
+        ready: true
+      - kind: Deployment
+        name: probe-premium
+        namespace: probe-ns
+        ready: true
+      - kind: Service
+        name: probe-svc
+        namespace: probe-ns
+      - kind: Job
+        name: probe-init
+        namespace: probe-ns
+      - kind: CronJob
+        name: probe-cron
+        namespace: probe-ns
+      - kind: StatefulSet
+        name: probe-sts
+        namespace: probe-ns
+      - kind: PersistentVolume
+        name: probe-pv
+      - kind: PersistentVolumeClaim
+        name: probe-pvc
+        namespace: probe-ns
+      - kind: Ingress
+        name: probe-ing
+        namespace: probe-ns
+      - kind: HorizontalPodAutoscaler
+        name: probe-hpa
+        namespace: probe-ns
+      - kind: PodDisruptionBudget
+        name: probe-pdb
+        namespace: probe-ns
+      - kind: Pod
+        name: probe-pod
+        namespace: probe-ns

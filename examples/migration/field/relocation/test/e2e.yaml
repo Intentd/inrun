@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: relocation-e2e
+  description: >
+    AppConfig operator where two fields move to new nested paths
+    (spec.replicas → spec.scaling.min, spec.logLevel →
+    spec.observability.logging.level). Verifies that the gateway migrates
+    existing flat-schema CRs on startup against the transitional CRD, that a
+    flat caller intent submitted via the gateway lands in the nested shape,
+    and that applying the final CRD afterwards does not prune any CR.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/old-crd.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+  setup:
+    - ../manifests/namespaces.yaml
+    - ../manifests/old-crs.yaml           # 8 old flat-schema CRs
+    - ../manifests/crd-transitional.yaml  # declares old + new fields
+    - ../manifests/new-crs.yaml
+
+  runtime:
+    enabled: false
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  env:
+    DEV_TOKEN: dev-token
+  expect:
+    - name: Gateway runs exactly 8 migrations and skips one on startup without failure
+      timeout: 30s
+      kubectl:
+        logs:
+          - labelSelector: app.kubernetes.io/component=gateway
+            namespace: inrun-system
+            since: 3m
+            contains: '"kind":"AppConfig","migrated":8,"skipped":1,"excluded":0,"drifted":0,"pruned":0,"failed":0,'
+          - labelSelector: app.kubernetes.io/component=gateway
+            namespace: inrun-system
+            since: 3m
+            contains: "schema migration: complete"
+
+    - include: ./include/migrate-crs.yaml
+
+    - name: Gateway accepts flat caller intent and writes nested spec paths
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer dev-token"
+              Content-Type: "application/json"
+            body: >-
+              {
+                "target": "my-api-server",
+                "image": "myapp/api:2.2.0",
+                "replicas": 3,
+                "logLevel": "info",
+              }
+            statusCode: 200
+
+    - name: Serve translation writes replicas to scaling.min
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-09
+            field: .spec.scaling.min
+            equals: "3"
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-09
+            field: .spec.observability.logging.level
+            equals: "info"
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-09
+            field: .spec.replicas
+            exists: false
+          - kind: appconfigs.demo.inrun.dev
+            name: api-server
+            namespace: platform-09
+            field: .spec.logLevel
+            exists: false
+
+    - include: ./include/drift-rollback.yaml
+
+    - name: Apply the final CRD
+      timeout: 30s
+      kubectl:
+        apply:
+          - file: ../manifests/crd-final.yaml
+    
+    - include: ./include/prune-safe.yaml

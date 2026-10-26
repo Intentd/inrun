@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webapp-constructor-e2e
+  description: Full lifecycle — constructor reconciler creates Deployment and Service, cleans up on delete
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+  valuesFiles:
+    - ./values.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Deployment and Service created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          ready: true
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          count: 0
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+          count: 0

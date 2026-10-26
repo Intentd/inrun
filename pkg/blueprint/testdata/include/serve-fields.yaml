@@ -1,0 +1,7 @@
+fields:
+  team:
+    label: "Team"
+    order: 1
+  environment:
+    label: "Environment"
+    order: 2

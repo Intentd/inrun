@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: coordinator-probe-e2e
+  description: >
+    Living fixture for pkg/coordinator. Exercises the dependency health state
+    machine across three CRDs: Worker (no deps), Component (dependsOn Worker
+    started), Platform (dependsOn Worker healthy). CRDs and CRs are applied
+    in phases via kubectl.apply — the seed CRD/CR only satisfies the runtime
+    bootstrap requirement.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-coordinator-probe
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-pending.yaml
+    - include: ./e2e/02-crds-applied.yaml
+    - include: ./e2e/03-component-healthy.yaml
+    - include: ./e2e/04-platform-pending.yaml
+    - include: ./e2e/05-worker-healthy.yaml
+    - include: ./e2e/06-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: Worker
+          name: core-worker
+          namespace: default
+        - kind: Component
+          name: core-component
+          namespace: default
+        - kind: Platform
+          name: main-platform
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m
+    commands:
+      - kubectl get workers,components,platforms -n default -o wide
+      - kubectl get pods -n inrun-system -o wide

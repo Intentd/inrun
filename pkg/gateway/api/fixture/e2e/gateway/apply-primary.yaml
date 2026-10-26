@@ -1,0 +1,79 @@
+expect:
+  - name: Apply via primary target creates CR and returns pollUrl
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+            Content-Type: "application/json"
+          body: >
+            {"target":"apifixture","name":"gw-primary","workloadType":"app",
+            "team":"team-payments","environment":"staging",
+            "repoURL":"https://github.com/myorg/test","targetRevision":"main",
+            "targetNamespace":"team-payments"}
+          jq: .pollUrl
+          exists: true
+
+  - name: Apply response stamps serve-target annotation on CR
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: PlatformResource
+          name: gw-primary
+          namespace: team-payments
+          field: .metadata.annotations["inrun.dev/serve-target"]
+          equals: "apifixture"
+
+  - name: Apply via primary target — serve-alias annotation is absent
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: PlatformResource
+          name: gw-primary
+          namespace: team-payments
+          field: .metadata.annotations["inrun.dev/serve-alias"]
+          notExists: true
+
+  - name: GET via gateway returns provenance in payload — primary target
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-primary
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .payload.target
+          equals: "apifixture"
+
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-primary
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .spec.workloadType
+          equals: "app"
+
+  - name: Poll URL endpoint responds for gw-primary (poll.field = status.phase)
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-primary?field=status.phase
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          exists: true

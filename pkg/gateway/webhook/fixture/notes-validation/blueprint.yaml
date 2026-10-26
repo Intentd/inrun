@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: deployment-request-operator
+  description: >
+    Same notes-validation scenario as the reconciler fixture, but with
+    gateway.enabled and admission webhooks active. The allowedRegistry and
+    inBusinessHours notes drive both validation and mutation — enforced
+    synchronously at kubectl apply time by the webhook, and again at every
+    reconcile cycle by the operator.
+
+gateway:
+  enabled: true
+
+security:
+  webhooks:
+    admission:
+      enabled: true
+    cleanupOnShutdown: true
+    failurePolicy: Ignore
+
+functions:
+  definitions:
+    - name: inBusinessHours
+      description: True during Mon–Fri 09:00–18:00 UTC
+      expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+
+    - name: allowedRegistry
+      description: The only image registry permitted in this operator
+      expression: "myorg/"
+
+    - name: defaultReplicas
+      description: Default replica count when not specified
+      expression: "2"
+
+spec:
+  crds:
+    deploymentrequest:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      admission:
+        mutation:
+          mutateFirst: true
+          rules:
+            - field: spec.replicas
+              default: "{{ defaultReplicas }}"
+              valueType: int
+
+        validation:
+          rules:
+            - field: "{{ inBusinessHours }}"
+              equals: "true"
+              action: deny
+              message: "deployments are only allowed during business hours (Mon–Fri 09:00–18:00 UTC)"
+
+            - field: spec.image
+              prefix: "{{ allowedRegistry }}"
+              action: deny
+              message: "image must be from {{ allowedRegistry }} — got {{ .spec.image }}"
+
+            - field: spec.replicas
+              min: "1"
+              action: deny
+              message: "spec.replicas must be at least 1"
+      operatorBox:
+        reconcile:
+          workers: 2
+          resync: 30s
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Pending"
+              - path: phase
+                value: "Active"
+                when:
+                  - field: "{{ inBusinessHours }}"
+                    equals: "true"
+

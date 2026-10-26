@@ -1,0 +1,24 @@
+expect:
+  - name: patch Secret with wrong token
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: dev-server-token
+              namespace: default
+            type: Opaque
+            stringData:
+              token: wrong-token
+
+  - name: configStatus becomes 401 after wrong token
+    timeout: 60s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.configStatus
+          equals: "401"

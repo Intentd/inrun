@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: legacy-worker
+  version: 1.0.0
+  description: "Tests deprecation with timeline — warning window, no accept needed at Blueprint level."
+lifecycle:
+  deprecation:
+    message: "Replaced by task-runner which uses the Jobs API"
+    migratedTo: task-runner:v1.0.0
+    timeline:
+      from: "2026-01-01"
+      to:   "2027-01-01"
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

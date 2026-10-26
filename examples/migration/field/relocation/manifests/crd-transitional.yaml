@@ -1,0 +1,77 @@
+# Transitional schema — apply this before running inrun migrate.
+#
+# Both the old fields (replicas, logLevel) and the new nested fields
+# (scaling.min, observability.logging.level) are present. This prevents
+# Kubernetes structural schema pruning from removing old values from stored CRs
+# before the migration has had a chance to move them.
+#
+# Once all CRs are migrated, apply crd-final.yaml to drop the old declarations.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: appconfigs.demo.inrun.dev
+spec:
+  group: demo.inrun.dev
+  names:
+    kind: AppConfig
+    plural: appconfigs
+    singular: appconfig
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                image:
+                  type: string
+                replicas:
+                  description: deprecated — will be removed by crd-final.yaml after migration
+                  type: integer
+                logLevel:
+                  description: deprecated — will be removed by crd-final.yaml after migration
+                  type: string
+                  enum: ["debug", "info", "warn", "error"]
+                # new fields
+                scaling:
+                  type: object
+                  properties:
+                    min:
+                      type: integer
+                      minimum: 1
+                observability:
+                  type: object
+                  properties:
+                    logging:
+                      type: object
+                      properties:
+                        level:
+                          type: string
+                          enum: ["debug", "info", "warn", "error"]
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+        - name: Image
+          type: string
+          jsonPath: .spec.image
+        - name: Replicas
+          type: integer
+          jsonPath: .spec.replicas
+        - name: MinReplicas
+          type: integer
+          jsonPath: .spec.scaling.min
+        - name: LogLevel
+          type: string
+          jsonPath: .spec.logLevel
+        - name: NewLogLevel
+          type: string
+          jsonPath: .spec.observability.logging.level
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

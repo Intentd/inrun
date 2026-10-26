@@ -1,0 +1,17 @@
+# Alias config for the "preview" entry point on PlatformResource.
+# Callers using /apifixture/preview get lightweight ephemeral environments.
+# Restricted response — no raw CR, only the fields callers need to act.
+# Provenance fields are included so callers can verify which surface was used.
+tokens:
+  console:
+    permissions:
+      global: [get, list]
+
+view:
+  fullObject: false
+  payload:
+    phase: '{{ .status.phase }}'
+    workloadType: '{{ .spec.workloadType }}'
+    environment: '{{ .spec.environment }}'
+    target: '{{ getServeTarget . }}'
+    alias: '{{ getServeAlias . }}'

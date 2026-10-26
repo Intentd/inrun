@@ -1,0 +1,7 @@
+apiVersion: informer.inrun.dev/v1alpha1
+kind: InformerProbe
+metadata:
+  name: probe-allowed
+  namespace: team-a
+spec:
+  name: probe-allowed

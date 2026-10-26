@@ -1,0 +1,795 @@
+// pkg/types/types_crd_entry.go
+package types
+
+import (
+	"sort"
+
+	"k8s.io/utils/ptr"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+// ── CRDEntry ──────────────────────────────────────────────────────────────────
+// One entry per CRD in the Blueprint.
+//
+// YAML fields are populated by the Blueprint parser.
+//
+// Fields tagged yaml:"-" are populated at runtime during Blueprint validation
+// and wiring — they are never parsed from YAML and never set manually.
+
+type CRDEntry struct {
+	// ── Identity ──────────────────────────────────────────────────────────────
+
+	// Name — unique CRD identifier within the Blueprint. Must be lowercase.
+	// Injected from the map key during loading — never set from YAML.
+	Name string `yaml:"-" json:"name" validate:"required,hostname_rfc1123"`
+
+	// BlueprintName — unique identifier for the blueprint in the runtime.
+	BlueprintName string `yaml:"blueprintName,omitempty" json:"blueprintName,omitempty"`
+
+	// BlueprintNamespace — the namespace this CRD's Blueprint belongs to.
+	// Defaults to "default" when not declared. Used by the Console to
+	// group CRDs by team/tenant within a single runtime.
+	BlueprintNamespace string `yaml:"blueprintNamespace,omitempty" json:"blueprintNamespace,omitempty"`
+
+	// BlueprintDescription — the description from the source Blueprint's metadata.
+	// Falls back to the Stack's description when the sub-Blueprint has none.
+	BlueprintDescription string `yaml:"blueprintDescription,omitempty" json:"blueprintDescription,omitempty"`
+
+	// BlueprintVersion — the version from the source Blueprint's metadata.
+	// Falls back to the Stack's version when the sub-Blueprint has none.
+	BlueprintVersion string `yaml:"blueprintVersion,omitempty" json:"blueprintVersion,omitempty"`
+
+	// CrossAccess controls whether other Blueprints can read this CRD's CR state
+	// via the cross: block. Defaults to true (readable). Set to false to opt
+	// this CRD out of cross reads — the reconciler returns empty for any
+	// cross: reference that targets an opted-out CRD.
+	CrossAccess *bool `yaml:"crossAccess,omitempty" json:"crossAccess,omitempty"`
+
+	// Enabled — include this CRD in the runtime. false = skipped entirely.
+	// WARNING: only set to false after stripping Inrun finalizers from all
+	// live CRs — disabled CRDs with live finalizers will cause stuck objects.
+	Enabled *bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+
+	// Critical — if true, Inrun marks the entire controller as degraded when
+	// this CRD's health state transitions to degraded.
+	// Use for CRDs that are fundamental to the platform's correctness.
+	// Critical *bool `yaml:"critical,omitempty" json:"critical,omitempty"`
+
+	// Description — human-readable description. Shown in /blueprint API responses.
+	Description string `yaml:"description,omitempty" json:"description,omitempty" validate:"omitempty"`
+
+	// Mode — see CRDMode for full documentation.
+	// Auto-detected when omitted based on whether apiTypes.location is set.
+	Mode CRDMode `yaml:"mode,omitempty" json:"mode,omitempty" validate:"omitempty,oneof=typed dynamic"`
+
+	// ── API Types ─────────────────────────────────────────────────────────────
+	// See APITypes for full field documentation.
+	APITypes APITypes `yaml:"apiTypes" json:"apiTypes" validate:"required"`
+
+	// CRDFile is the path to the CRD YAML file to apply before operator start.
+	// Supports relative (resolved from blueprint file location), absolute, or
+	// remote (https://…) paths.
+	//
+	// Only applied when running outside the cluster (dev mode via inrun).
+	// In production, CRDs must be pre-applied by the platform operator.
+	//
+	// During inrun validate, the file is read and its group/kind are checked
+	// against apiTypes to catch mismatches before deployment.
+	CRDFile string `yaml:"crdFile,omitempty" json:"crdFile,omitempty"`
+
+	// Absolute path of the CRD file that was read, if any
+	ResolvedCRDFile string `yaml:"-" json:"-"`
+
+	// CRFiles is an ordered list of CR YAML files to apply before the runtime
+	// starts. Applied in declaration order after the CRD is registered.
+	// Same path resolution as CRDFile. Dev mode only.
+	CRFiles []string `yaml:"crFiles,omitempty" json:"crFiles,omitempty"`
+
+	// Setup declares prerequisite resources to apply before Inrun starts.
+	// Shorthand: a plain list of strings applies each file
+	Setup *SetupConfig `yaml:"setup,omitempty" json:"setup,omitempty"`
+
+	// ── Computed GVK/GVR ─────────────────────────────────────────────────────
+	// Set by setGroupVersionKind() during Blueprint validation.
+	// Derived from APITypes fields. Never set manually.
+	GroupVersion         *schema.GroupVersion        `yaml:"-" json:"-"`
+	GroupVersionKind     schema.GroupVersionKind     `yaml:"-" json:"-"`
+	GroupVersionResource schema.GroupVersionResource `yaml:"-" json:"-"`
+
+	// ── Scope ─────────────────────────────────────────────────────────────────
+
+	// Namespaced — true if this CRD is namespace-scoped, false if cluster-scoped.
+	// Default is true
+	Namespaced *bool `yaml:"namespaced,omitempty" json:"namespaced,omitempty"`
+
+	// Namespace — target namespace for namespace-scoped CRDs.
+	// Informer watches this namespace only. Empty = all namespaces.
+	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty" validate:"omitempty"`
+
+	// ── Runtime behaviour ─────────────────────────────────────────────────────
+
+	// WorkersActive — records number of active concurrent reconcile workers for this CRD.
+	WorkersActive int `yaml:"workersActive,omitempty" json:"workersActive,omitempty" validate:"omitempty,gte=1,lte=50"`
+
+	// DependsOn — names of other CRDs that must reach a condition before this one starts.
+	// Inrun resolves the dependency graph and starts CRDs in topological order.
+	// Cycle detection runs at validation time — cycles fail fast with a clear error.
+	// Supports three YAML formats (list, key-value, full map) — see DependsOnMap.
+	DependsOn DependsOnMap `yaml:"dependsOn,omitempty" json:"dependsOn,omitempty"`
+
+	// ── Enrichment ─────────────────────────────────────────────────────────────
+	// EnrichAll turns on every enrichment: objects related to the children in
+	// .children, such as a Deployment's pods and replica sets, or events. Set
+	// this or enrich, not both.
+	EnrichAll bool `yaml:"enrichAll,omitempty" json:"enrichAll,omitempty"`
+	// Enrich turns on the enrichments named (pods, events, replicasets, …),
+	// each always or only when its when/or conditions pass. Set this or
+	// enrichAll, not both.
+	Enrich []EnrichTarget `yaml:"enrich,omitempty"    json:"enrich,omitempty"`
+
+	// ── OperatorBox ────────────────────────────────────────────────────
+	OperatorBox *OperatorBoxConfig `yaml:"operatorBox,omitempty" json:"operatorBox,omitempty"`
+
+	// Annotations attaches additional metadata annotationa to CRs of this entry.
+	// Not used for reconciliation filtering — see AnnotationSelector for that.
+	Annotations Labels `yaml:"annotations,omitempty" json:"annotations,omitempty" validate:"omitempty"`
+
+	// Labels attaches additional metadata labels to CRs of this entry.
+	// Not used for reconciliation filtering — see LabelSelector for that.
+	Labels Labels `yaml:"labels,omitempty" json:"labels,omitempty" validate:"omitempty"`
+
+	// LabelSelector filters which resources are watched and reconciled.
+	// Required for built-in types (ConfigMap, Pod, etc.) to avoid reconciling
+	// every instance in the cluster. Optional for custom CRDs.
+	LabelSelector Labels `yaml:"labelSelector,omitempty"`
+
+	// FieldSelector filters resources by server-side field expressions.
+	// Supports exact-match on well-known metadata paths only
+	// (e.g. "metadata.name", "metadata.namespace").
+	// Evaluated server-side, before client-side label filtering.
+	FieldSelector Labels `yaml:"fieldSelector,omitempty"`
+
+	// RegistryRef is the OCI or Git reference this CRD entry was loaded from.
+	// Set by the merger after loadRegistrySource resolves the pattern.
+	// Empty for CRDs loaded from local file sources.
+	RegistryRef string `yaml:"-" json:"-"`
+
+	// IsBuiltIn is set to true when this CRD entry was enriched from the
+	// built-in Kubernetes resource registry. Used for inrun validate output
+	// and informational logging only — does not affect runtime behavior.
+	IsBuiltIn bool `yaml:"-" json:"-"` // never serialized — runtime state only
+
+	// IsStatusless reports whether this CRD has no meaningful readiness semantics.
+	// These resources become "Ready" immediately upon creation.
+	IsStatusless bool `yaml:"-" json:"IsStatusless,omitempty"`
+
+	// BuiltInGroup is the display name of the API group for built-in resources.
+	// "core" for resources in the core group (empty string group).
+	// Only set when IsBuiltIn is true.
+	BuiltInGroup string `yaml:"-" json:"-"` // never serialized
+
+	// EnrichmentOutcome records the result of the API type enrichment phase.
+	// Set during validation; never serialized.
+	EnrichmentOutcome EnrichmentOutcome `yaml:"-" json:"-"`
+
+	// Endpoints defines which operator HTTP endpoints are enabled for this CRD.
+	Endpoints EndpointsConfig `yaml:"endpoints,omitempty" json:"endpoints,omitempty"`
+
+	// Admission groups validation, mutation, conversion, and webhook configuration.
+	Admission *AdmissionConfig `yaml:"admission,omitempty" json:"admission,omitempty"`
+
+	// Warnings collects non‑fatal validation messages for this CRD.
+	Warnings Warnings `json:"-"` // not serialized
+
+	// Info collects additional validation information for this CRD
+	Info Info `json:"-"` // not serialized
+
+	// Serve exposes this CRD through the Gateway API as a stable delivery surface.
+	// When enabled, the Console renders a [+ Create] button for this CRD
+	// and serves its schema via GET /api/v1/schema/{kind}.
+	Serve *ServeConfig `yaml:"serve,omitempty" json:"serve,omitempty"`
+
+	// Migrate Declares that CRs of this kind migrate to another CRD
+	Migrate *CRMigrate `yaml:"migrate,omitempty" json:"migrate,omitempty"`
+
+	// ForceConflict, when true, sets Force: true on every server-side apply
+	// for the resources created on onCreate/onReconcile CRD, taking
+	// ownership of conflicting fields instead of returning a conflict error.
+	// Default: true.
+	ForceConflict *bool `yaml:"forceConflict,omitempty" json:"forceConflict,omitempty"`
+}
+
+// Box returns the operatorBox configuration for this CRD.
+// Initialises OperatorBox to an empty config if it is nil, so the pointer is always
+// safe to read from and write to without a separate nil guard.
+// For target-resolved access use EffectiveOperatorBox.
+func (c *CRDEntry) Box() *OperatorBoxConfig {
+	if c.OperatorBox == nil {
+		c.OperatorBox = &OperatorBoxConfig{}
+	}
+	return c.OperatorBox
+}
+
+// EffectiveOperatorBox returns the operatorBox for a given target.
+// When a target entry declares its own operatorBox, non-template fields
+// (preReconcile, status) fall back to the CRD-level values when absent
+// on the target — so a CRD-level gate or status config applies to all
+// surfaces unless a target explicitly overrides it.
+//
+// Reconciler merge: target args override CRD-level args, but identity fields
+// (location, function, alias, resources) and tuning fields (workers, resync,
+// queue) always come from the CRD-level when the target omits them.
+// HookFactory is runtime-registered on the CRD-level box only and is always
+// propagated so the hook binary is reachable from every target surface.
+func (c *CRDEntry) EffectiveOperatorBox(target string) *OperatorBoxConfig {
+	if target == "" {
+		return c.Box()
+	}
+	if c.Serve != nil && c.Serve.Target.Entries != nil {
+		if cfg, ok := c.Serve.Target.Entries[target]; ok && cfg.OperatorBox != nil {
+			base := c.Box()
+			box := *cfg.OperatorBox
+			if box.PreReconcile == nil {
+				box.PreReconcile = base.PreReconcile
+			}
+			// Reconcile, Runtime, and Emit fall through from CRD-level when absent on the target.
+			if box.Reconcile == nil {
+				box.Reconcile = base.Reconcile
+			} else {
+				box.Reconcile = mergeReconcileConfig(base.Reconcile, box.Reconcile)
+			}
+			if box.Runtime == nil {
+				box.Runtime = base.Runtime
+			}
+			if box.Emit == nil {
+				box.Emit = base.Emit
+			}
+			return &box
+		}
+	}
+	return c.Box()
+}
+
+// mergeReconcileConfig merges a per-target reconcile block on top of the CRD-level one.
+// Workers, resync, queue, and preset are always inherited from the CRD-level.
+// Hook identity fields (location, function, alias) come from CRD-level when the
+// target omits them. A target's onCreate, onReconcile and onDelete replace the
+// CRD-level phase they name. Args are merged key-by-key with target winning; the
+// target's managedResources and prune replace the CRD-level ones when set.
+func mergeReconcileConfig(base, target *ReconcileConfig) *ReconcileConfig {
+	if target == nil {
+		return base
+	}
+	if base == nil {
+		return target
+	}
+	// Start from base so workers/resync/queue/preset/default/constructor are inherited.
+	merged := *base
+	if target.Hooks != nil {
+		if merged.Hooks == nil {
+			merged.Hooks = target.Hooks
+		} else {
+			h := *merged.Hooks
+			// Identity fields: target wins only when explicitly set.
+			if target.Hooks.Location != "" {
+				h.Location = target.Hooks.Location
+			}
+			if target.Hooks.Function != "" {
+				h.Function = target.Hooks.Function
+			}
+			if target.Hooks.Alias != "" {
+				h.Alias = target.Hooks.Alias
+			}
+			merged.Hooks = &h
+		}
+	}
+	// Declarative templates: a target's own phase replaces the CRD-level one.
+	if target.OnCreate != nil {
+		merged.OnCreate = target.OnCreate
+	}
+	if target.OnReconcile != nil {
+		merged.OnReconcile = target.OnReconcile
+	}
+	if target.OnDelete != nil {
+		merged.OnDelete = target.OnDelete
+	}
+	if len(target.ManagedResources) > 0 {
+		merged.ManagedResources = target.ManagedResources
+	}
+	if len(target.External) > 0 {
+		merged.External = target.External
+	}
+	if target.Prune != nil {
+		merged.Prune = target.Prune
+	}
+	// Args: merge key-by-key; target overrides CRD-level per key.
+	if len(target.Args) > 0 {
+		args := make(map[string]interface{}, len(merged.Args)+len(target.Args))
+		for k, v := range merged.Args {
+			args[k] = v
+		}
+		for k, v := range target.Args {
+			args[k] = v
+		}
+		merged.Args = args
+	}
+	return &merged
+}
+
+type ConversionVersionSpec struct {
+	Version string                 `json:"version" yaml:"version"`
+	Spec    map[string]interface{} `json:"spec" yaml:"spec"`
+}
+
+// EndpointsConfig controls which HTTP endpoints are exposed by the operator.
+//
+// This allows users to selectively enable/disable endpoints while keeping
+// the configuration minimal and declarative.
+type EndpointsConfig struct {
+	// Enabled if false disables all endpoints for this CRD
+	// Default is true
+	Enabled *bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+
+	// Health controls whether the /health endpoint is served.
+	Health *bool `yaml:"health,omitempty" json:"health,omitempty"`
+
+	// Info controls whether the /info endpoint is served.
+	Info *bool `yaml:"info,omitempty" json:"info,omitempty"`
+}
+
+// ServeEnabled reports whether serve is configured and enabled for this CRD.
+func (c *CRDEntry) ServeEnabled() bool {
+	return c != nil && c.Serve != nil && c.Serve.Enabled
+}
+
+// HasMigrate reports whether this CRD declares a kind-level migration
+// (migrate.to).
+func (c *CRDEntry) HasMigrate() bool {
+	return c != nil && c.Migrate != nil && c.Migrate.To.Declared()
+}
+
+// HasMigrateSelection reports whether migrate.selection is declared. It
+// scopes the CRD's migration at either level.
+func (c *CRDEntry) HasMigrateSelection() bool {
+	return c != nil && c.Migrate != nil && !c.Migrate.Selection.IsEmpty()
+}
+
+// HasAnyMigrate reports whether the CRD declares a migration of either kind:
+// a field-level migration (any serve.fields entry with migrate.from) or a
+// CR-level migration (migrate.to). Used to gate commands that should run when
+// there is anything to migrate, regardless of which level declares it.
+func (c *CRDEntry) HasAnyMigrate() bool {
+	return c.HasServeFieldMigrate() || c.HasMigrate()
+}
+
+// ShouldPreserveMeta reports whether the source CR's labels and annotations
+// should be copied to the destination. True when PreserveSource is unset
+// (nil) or explicitly true; false only when PreserveSource is explicitly
+// false.
+func (c *CRDEntry) ShouldPreserveMeta() bool {
+	if !c.HasMigrate() {
+		return false
+	}
+	return c.Migrate.ShouldPreserveMeta()
+}
+
+// HasConflictingMigrate reports whether a CRD declares both a CR-level
+// migration (migrate.to) and any field-level migration
+// (serve.fields[*].migrate.from). The two are incompatible: field
+// migrations evolve the CRD in place, CR migration replaces it. Returns the
+// conflicting field's name so the caller can name it in the error.
+func (c *CRDEntry) HasConflictingMigrate() (bool, string) {
+	// No conflict is possible unless the CRD declares
+	// a CR-level migration and at least one serve field.
+	if !c.HasMigrate() || !c.HasServeFields() {
+		return false, ""
+	}
+
+	for name, config := range c.Serve.Fields {
+		if config.HasMigrate() {
+			return true, name
+		}
+	}
+	return false, ""
+}
+
+// HasServeName reports whether serve.name is declared — the Gateway API only
+// resolves and applies a name override when this is true.
+func (c *CRDEntry) HasServeName() bool {
+	return c.Serve != nil && c.Serve.Name != ""
+}
+
+// TargetModeEnabled reports whether target mode is enabled for this CRD.
+// Defaults to true when serve.modes is omitted or when serve.modes.target is nil.
+func (c *CRDEntry) TargetModeEnabled() bool {
+	if !c.ServeEnabled() {
+		return false
+	}
+	if c.Serve.Modes == nil || c.Serve.Modes.Target == nil {
+		return true
+	}
+	return *c.Serve.Modes.Target
+}
+
+// FullCRModeEnabled reports whether full CR mode is enabled for this CRD.
+// Defaults to true when serve.modes is omitted or when serve.modes.cr is nil.
+func (c *CRDEntry) FullCRModeEnabled() bool {
+	if !c.ServeEnabled() {
+		return false
+	}
+	if c.Serve.Modes == nil || c.Serve.Modes.CR == nil {
+		return true
+	}
+	return *c.Serve.Modes.CR
+}
+
+// HasServeModes reports whether serve.modes is explicitly configured.
+func (c *CRDEntry) HasServeModes() bool {
+	return c.ServeEnabled() && c.Serve.Modes != nil
+}
+
+// effectiveServeModes returns the effective modes for a target,
+// merging target-level and CRD-level settings.
+// Resolution order:
+//  1. Target-level (serve.targets[<name>].modes)
+//  2. CRD-level (serve.modes)
+//  3. Default (both true)
+func (c *CRDEntry) effectiveServeModes(target string) *ServeModes {
+	result := &ServeModes{
+		Target: ptr.To(true),
+		CR:     ptr.To(true),
+	}
+
+	if !c.ServeEnabled() {
+		return result
+	}
+
+	// 1. Start with CRD-level
+	if c.Serve.Modes != nil {
+		if c.Serve.Modes.Target != nil {
+			result.Target = c.Serve.Modes.Target
+		}
+		if c.Serve.Modes.CR != nil {
+			result.CR = c.Serve.Modes.CR
+		}
+	}
+
+	// 2. Override with target-level (if set)
+	if c.Serve.Target.Entries != nil {
+		if cfg, ok := c.Serve.Target.Entries[target]; ok && cfg.Modes != nil {
+			if cfg.Modes.Target != nil {
+				result.Target = cfg.Modes.Target
+			}
+			if cfg.Modes.CR != nil {
+				result.CR = cfg.Modes.CR
+			}
+		}
+	}
+
+	return result
+}
+
+// TargetModeEnabledFor returns whether target mode is enabled for the given target.
+func (c *CRDEntry) TargetModeEnabledFor(target string) bool {
+	if !c.ServeEnabled() {
+		return false
+	}
+	return *c.effectiveServeModes(target).Target
+}
+
+// FullCRModeEnabledFor returns whether CR mode is enabled for the given target.
+func (c *CRDEntry) FullCRModeEnabledFor(target string) bool {
+	if !c.ServeEnabled() {
+		return false
+	}
+	return *c.effectiveServeModes(target).CR
+}
+
+// effectiveServeApplyOverrides returns the effective override
+// for a target, merging target-level and CRD-level settings.
+func (c *CRDEntry) effectiveServeApplyOverrides(target string) *ServeApplyOverrides {
+	result := &ServeApplyOverrides{
+		TargetConflict:   ptr.To(true), // default: allow
+		ResourceConflict: ptr.To(true), // default: allow
+	}
+
+	// 1. Start with CRD-level
+	if c.Serve.Apply != nil && c.Serve.Apply.Overrides != nil {
+		if c.Serve.Apply.Overrides.TargetConflict != nil {
+			result.TargetConflict = c.Serve.Apply.Overrides.TargetConflict
+		}
+		if c.Serve.Apply.Overrides.ResourceConflict != nil {
+			result.ResourceConflict = c.Serve.Apply.Overrides.ResourceConflict
+		}
+	}
+
+	// 2. Override with target-level (if set)
+	if c.Serve.Target.Entries != nil {
+		if cfg, ok := c.Serve.Target.Entries[target]; ok && cfg.Apply != nil && cfg.Apply.Overrides != nil {
+			if cfg.Apply.Overrides.TargetConflict != nil {
+				result.TargetConflict = cfg.Apply.Overrides.TargetConflict
+			}
+			if cfg.Apply.Overrides.ResourceConflict != nil {
+				result.ResourceConflict = cfg.Apply.Overrides.ResourceConflict
+			}
+		}
+	}
+
+	return result
+}
+
+func (c *CRDEntry) ServeForceConflictEnabledFor(target string) bool {
+	if !c.ServeEnabled() {
+		return false
+	}
+	override := c.effectiveServeApplyOverrides(target)
+	return *override.ResourceConflict
+}
+
+func (c *CRDEntry) ServeTargetOverrideEnabledFor(target string) bool {
+	if !c.ServeEnabled() {
+		return false
+	}
+	override := c.effectiveServeApplyOverrides(target)
+	return *override.TargetConflict
+}
+
+// HasServeFields reports whether this CRD declares any serve.fields.
+func (c *CRDEntry) HasServeFields() bool {
+	return c.ServeEnabled() && c.Serve.Fields != nil && len(c.Serve.Fields) > 0
+}
+
+// HasServeFieldMigrate reports whether any serve.fields entry declares a
+// migrate.from source path.
+func (c *CRDEntry) HasServeFieldMigrate() bool {
+	if !c.HasServeFields() {
+		return false
+	}
+	for _, field := range c.Serve.Fields {
+		if field.HasMigrate() {
+			return true
+		}
+	}
+	return false
+}
+
+// HasServeTokenRestrictions reports whether this CRD declares any token restrictions.
+func (c *CRDEntry) HasServeTokenRestrictions() bool {
+	if c.Serve == nil {
+		return false
+	}
+	return c.ServeEnabled() && c.Serve.HasTokenRestrictions()
+}
+
+// RequireServeName reports whether an Gateway API caller (and the Console
+// form) must supply metadata.name themselves — true unless serve.name is
+// declared, in which case the name is resolved server-side instead.
+func (c *CRDEntry) RequireServeName() bool {
+	return !c.HasServeName()
+}
+
+// IsServeRequiredField reports whether the given field name is declared as a
+// required field in the serve configuration.
+//
+// A field is considered required if:
+//   - It exists in serve.fields with required: true, or
+//   - It exists in serve.labels with required: true, or
+//   - It exists in serve.annotations with required: true
+//
+// Used by the Console to mark form fields as required and by the
+// gateway to validate target-mode requests before building the CR.
+func (c *CRDEntry) IsServeRequiredField(field string) bool {
+	if c.Serve == nil {
+		return false
+	}
+	if _, ok := c.Serve.Fields[field]; ok {
+		return true
+	}
+	if _, ok := c.Serve.Labels[field]; ok {
+		return true
+	}
+	if _, ok := c.Serve.Annotations[field]; ok {
+		return true
+	}
+	return false
+}
+
+// HasServeNamespace reports whether serve.namespace is declared — the Gateway API
+// only resolves and applies a namespace override when this is true.
+func (c *CRDEntry) HasServeNamespace() bool {
+	return c.Serve != nil && c.Serve.Namespace != ""
+}
+
+// ServeFields returns serve.fields. Nil-safe.
+func (c *CRDEntry) ServeFields() map[string]ServeFieldConfig {
+	if c.Serve == nil {
+		return nil
+	}
+	return c.Serve.Fields
+}
+
+// ServeLabels returns serve.labels. Nil-safe.
+func (c *CRDEntry) ServeLabels() map[string]ServeFieldConfig {
+	if c.Serve == nil {
+		return nil
+	}
+	return c.Serve.Labels
+}
+
+// ServeAnnotations returns serve.annotations. Nil-safe.
+func (c *CRDEntry) ServeAnnotations() map[string]ServeFieldConfig {
+	if c.Serve == nil {
+		return nil
+	}
+	return c.Serve.Annotations
+}
+
+// HasServeLabelsOrAnnotations reports whether this CRD declares any serve labels or annotations.
+func (c *CRDEntry) HasServeLabelsOrAnnotations() bool {
+	return len(c.ServeLabels()) > 0 || len(c.ServeAnnotations()) > 0
+}
+
+// ─── Serve Response Config Methods ────────────────────────────────────────────
+
+// ServeAliases returns all enabled non-primary target entries.
+// Disabled entries and the primary entry are excluded.
+// Returns nil when no qualifying entries exist.
+func (c *CRDEntry) ServeAliases() map[string]*ServeTargetConfig {
+	if !c.ServeEnabled() || c.Serve == nil {
+		return nil
+	}
+	result := make(map[string]*ServeTargetConfig)
+	for name, cfg := range c.Serve.Target.Entries {
+		if cfg == nil || cfg.Primary || !cfg.IsEnabled() {
+			continue
+		}
+		result[name] = cfg
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+// HasServeAliases reports whether this CRD has any enabled non-primary target entries.
+func (c *CRDEntry) HasServeAliases() bool {
+	return len(c.ServeAliases()) > 0
+}
+
+// HasServeTargetEntries reports whether any named target entries are declared
+// under serve.target. Used by TargetHookFactories and TargetConstructors to skip
+// CRDs that have no per-target operatorBox declarations.
+func (c *CRDEntry) HasServeTargetEntries() bool {
+	return c.ServeEnabled() && c.Serve.Target.Entries != nil
+}
+
+// AliasNames returns a sorted slice of alias names for this CRD, or nil if none.
+func (c *CRDEntry) AliasNames() []string {
+	aliases := c.ServeAliases()
+	if len(aliases) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(aliases))
+	for name := range aliases {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// HasServeView reports whether the CRD declares serve.view.
+func (c *CRDEntry) HasServeView() bool {
+	return c.Serve != nil && c.Serve.View != nil
+}
+
+// ServeView returns the CRD's serve.view, or nil if not declared.
+func (c *CRDEntry) ServeView() *ServeView {
+	if c.Serve == nil || c.Serve.View == nil {
+		return nil
+	}
+	return c.Serve.View
+}
+
+// ServeResponseUseDefault reports whether the full CR should be the starting point.
+// Returns true when Default is nil (omitted) or explicitly true.
+func (c *CRDEntry) ServeResponseIncludesFullObject() bool {
+	cfg := c.ServeView()
+	if cfg == nil {
+		return true
+	}
+	return cfg.IncludesFullObject()
+}
+
+// ServeResponseHasPayload reports whether any payload expressions are declared.
+func (c *CRDEntry) ServeResponseHasPayload() bool {
+	cfg := c.ServeView()
+	if cfg == nil {
+		return false
+	}
+	return cfg.HasPayload()
+}
+
+// ServeResponseHasExclude reports whether an exclude expression is declared.
+func (c *CRDEntry) ServeResponseHasExclude() bool {
+	cfg := c.ServeView()
+	if cfg == nil {
+		return false
+	}
+	return cfg.HasExclude()
+}
+
+// ServeResponseExclude returns the exclude list, or nil if not set.
+func (c *CRDEntry) ServeResponseExclude() []string {
+	cfg := c.ServeView()
+	if cfg == nil {
+		return nil
+	}
+	return cfg.Exclude
+}
+
+// ServeResponsePayload returns the payload map, or nil if not set.
+func (c *CRDEntry) ServeResponsePayload() map[string]string {
+	cfg := c.ServeView()
+	if cfg == nil {
+		return nil
+	}
+	return cfg.Payload
+}
+
+// ServeViewFor returns the response configuration that applies to a
+// caller using the given alias. Resolution:
+//  1. Alias declares its own response config → alias config.
+//  2. CRD-level serve.view.
+//  3. nil (no config declared — caller receives full CR unchanged).
+func (c *CRDEntry) ServeViewFor(alias string) *ServeView {
+	if alias != "" && c.Serve != nil {
+		if entryCfg, ok := c.Serve.Target.Entries[alias]; ok {
+			if cfg := entryCfg.GetView(); cfg != nil {
+				return cfg
+			}
+		}
+	}
+	return c.ServeView()
+}
+
+// ServeTokensFor returns the token permissions map that applies to a caller
+// using the given alias. Falls back to CRD-level tokens when the entry
+// declares none or when alias is empty.
+func (c *CRDEntry) ServeTokensFor(alias string) map[string]ServeTokenPermissions {
+	if alias != "" && c.Serve != nil {
+		if entryCfg, ok := c.Serve.Target.Entries[alias]; ok && entryCfg.HasTokenRestrictions() {
+			return entryCfg.Tokens
+		}
+	}
+	if c.Serve != nil {
+		return c.Serve.Tokens
+	}
+	return nil
+}
+
+// TokenAllowedFor reports whether tokenName may perform op in namespace on this
+// CRD using the token permissions resolved for the given alias.
+// Alias-specific tokens take precedence over CRD-level tokens when declared.
+// Delegates to ServeConfig.TokenAllowed with the resolved token set.
+func (c *CRDEntry) TokenAllowedFor(
+	alias, tokenName, op, namespace string,
+	class ServeEndpointClass,
+) (bool, ServeDenyReason) {
+	cfg := &ServeConfig{Tokens: c.ServeTokensFor(alias)}
+	return cfg.TokenAllowed(tokenName, op, namespace, class)
+}
+
+func (e EndpointsConfig) IsHealthEnabled() bool {
+	if e.Enabled != nil && !*e.Enabled {
+		return false
+	}
+	return e.Health == nil || *e.Health
+}
+
+func (e EndpointsConfig) IsInfoEnabled() bool {
+	if e.Enabled != nil && !*e.Enabled {
+		return false
+	}
+	return e.Info == nil || *e.Info
+}

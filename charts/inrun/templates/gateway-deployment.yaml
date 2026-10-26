@@ -1,0 +1,188 @@
+{{- if .Values.gateway.enabled }}
+
+{{- $webhooks := .Values.gateway.webhooks }}
+{{- $tlsEnabled := and $webhooks.enabled (or $webhooks.admission $webhooks.conversion) }}
+
+{{- if and $tlsEnabled (not $webhooks.existingSecret) }}
+{{- fail "gateway.webhooks.existingSecret required when webhooks.enabled=true and admission or conversion is true" }}
+{{- end }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inrun.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+    inrun.dev/component: gateway
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        {{- include "inrun.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: gateway
+        {{- with .Values.gateway.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.gateway.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.gateway.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.gateway.serviceAccount | default "inrun" }}
+      securityContext:
+        {{- toYaml .Values.gateway.podSecurityContext | nindent 8 }}
+
+      containers:
+        - name: gateway
+          image: {{ include "inrun.gatewayImage" . }}
+          imagePullPolicy: {{ .Values.gateway.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.gateway.securityContext | nindent 12 }}
+
+          args:
+            - --file
+            - {{ .Values.gateway.blueprint.mountPath }}/{{ .Values.gateway.blueprint.configMapKey }}
+            {{- if .Values.gateway.migration.enabled }}
+            - --migrate
+            {{- end }}
+            {{- if .Values.gateway.migration.autoApprove }}
+            - --yes
+            {{- end }}
+          env:
+            - name: LOG_LEVEL
+              value: {{ .Values.gateway.config.logLevel | quote }}
+            - name: INRUN_PORT
+              value: {{ .Values.gateway.server.httpPort | quote }}
+            - name: SRV_READ_TIMEOUT
+              value: {{ .Values.gateway.server.readTimeout | quote }}
+            - name: SRV_WRITE_TIMEOUT
+              value: {{ .Values.gateway.server.writeTimeout | quote }}
+            - name: INRUN_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: INRUN_ENV
+              value: {{ .Values.gateway.config.environment | quote }}
+            {{- if $webhooks.admission }}
+            - name: ENABLE_ADMISSION_WEBHOOK
+              value: "true"
+            {{- end }}
+            {{- if $webhooks.conversion }}
+            - name: ENABLE_CONVERSION
+              value: "true"
+            {{- end }}
+            {{- if $tlsEnabled }}
+            - name: TLS_CERT_FILE
+              value: /tls/{{ $webhooks.certKey }}
+            - name: TLS_KEY_FILE
+              value: /tls/{{ $webhooks.keyKey }}
+            {{- end }}
+            {{- with .Values.gateway.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- with .Values.gateway.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.server.httpPort }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.gateway.server.httpsPort }}
+              protocol: TCP
+
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: http
+            initialDelaySeconds: {{ .Values.gateway.startupProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.gateway.startupProbe.periodSeconds | default 10 }}
+            failureThreshold: {{ .Values.gateway.startupProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.gateway.startupProbe.timeoutSeconds | default 1 }}
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.gateway.livenessProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.gateway.livenessProbe.periodSeconds | default 10 }}
+            failureThreshold: {{ .Values.gateway.livenessProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.gateway.livenessProbe.timeoutSeconds | default 1 }}
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.gateway.readinessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.gateway.readinessProbe.periodSeconds | default 5 }}
+            failureThreshold: {{ .Values.gateway.readinessProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.gateway.readinessProbe.timeoutSeconds | default 1 }}
+
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+
+          volumeMounts:
+            {{- if $tlsEnabled }}
+            - name: inrun-tls
+              mountPath: /tls
+              readOnly: true
+            {{- end }}
+            - name: blueprint
+              mountPath: {{ .Values.gateway.blueprint.mountPath }}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.gateway.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      volumes:
+        {{- if $tlsEnabled }}
+        - name: inrun-tls
+          secret:
+            secretName: {{ $webhooks.existingSecret }}
+        {{- end }}
+        - name: blueprint
+          configMap:
+            name: {{ include "inrun.gatewayBlueprintConfigMapName" . }}
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.gateway.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.gateway.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.gateway.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.gateway.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.gateway.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+{{- end }}

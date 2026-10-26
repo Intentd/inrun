@@ -1,0 +1,18 @@
+expect:
+  - name: ClusterPolicy CR accepted and reaches Ready
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      apply:
+        - file: ../crs/clusterpolicy-basic.yaml
+    resources:
+      - kind: ClusterPolicy
+        name: platform-egress
+
+  - name: NetworkPolicy created by ClusterPolicy reconciler
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: NetworkPolicy
+        name: platform-egress
+        namespace: team-payments

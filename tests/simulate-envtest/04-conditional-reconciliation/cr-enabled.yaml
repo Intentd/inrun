@@ -1,0 +1,9 @@
+apiVersion: integration.inrun.dev/v1
+kind: Probe
+metadata:
+  name: test-probe
+  namespace: default
+spec:
+  image: nginx:1.25
+  replicas: 1
+  enabled: true

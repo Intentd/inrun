@@ -1,0 +1,70 @@
+# Runtime PodDisruptionBudget
+{{- if .Values.runtime.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "inrun.fullname" . }}-runtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: runtime
+spec:
+  selector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: runtime
+  {{- if .Values.runtime.pdb.minAvailable }}
+  minAvailable: {{ .Values.runtime.pdb.minAvailable }}
+  {{- end }}
+  {{- if .Values.runtime.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.runtime.pdb.maxUnavailable }}
+  {{- end }}
+{{- end }}
+
+---
+# Gateway PodDisruptionBudget
+{{- if and .Values.gateway.pdb.enabled .Values.gateway.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "inrun.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  selector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: gateway
+  {{- if .Values.gateway.pdb.minAvailable }}
+  minAvailable: {{ .Values.gateway.pdb.minAvailable }}
+  {{- end }}
+  {{- if .Values.gateway.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.gateway.pdb.maxUnavailable }}
+  {{- end }}
+{{- end }}
+
+---
+# Console PodDisruptionBudget
+{{- if and .Values.console.pdb.enabled .Values.console.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "inrun.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+spec:
+  selector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: console
+  {{- if .Values.console.pdb.minAvailable }}
+  minAvailable: {{ .Values.console.pdb.minAvailable }}
+  {{- end }}
+  {{- if .Values.console.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.console.pdb.maxUnavailable }}
+  {{- end }}
+{{- end }}

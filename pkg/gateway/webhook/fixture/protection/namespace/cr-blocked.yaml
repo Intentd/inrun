@@ -1,0 +1,23 @@
+---
+# App in "default" namespace — NOT in allowedNamespaces ["production"].
+# This will be rejected at admission time.
+apiVersion: security.inrun.dev/v1alpha1
+kind: App
+metadata:
+  name: blocked-app
+  namespace: default
+spec:
+  image: nginx:1.25
+  replicas: 1
+  port: 8080
+---
+# Cache in "kube-system" — in restrictedNamespaces.
+# This will be rejected at admission time.
+apiVersion: security.inrun.dev/v1alpha1
+kind: Cache
+metadata:
+  name: blocked-cache
+  namespace: kube-system
+spec:
+  maxMemory: "128Mi"
+  evictionPolicy: noeviction

@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: filter-probe-inactive
+  description: spec.active false — filter fires, reconciler never runs, no resources created
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../crd.yaml
+  cr: ../cr-inactive.yaml
+  cycles: 2
+
+  expect:
+    steady: true
+    noErrors: true
+    crds:
+      filter-probe:
+        absent:
+          - resource: configmaps

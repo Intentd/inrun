@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bucket-existing-service-resources
+  author: intentd
+  version: 0.1.0
+  description: >
+    The existing-service example, plus Kubernetes resources the API knows
+    nothing about. After the one call, a ConfigMap template publishes the
+    bucket's id and endpoint from .response, for apps in the namespace to
+    mount. Inrun owns the ConfigMap; the API only answered.
+  tags:
+    - remote
+    - existing-service
+    - templates
+
+functions:
+  definitions:
+    - name: bucketAPI
+      description: The bucket API — the dev server in the cluster, or on localhost when inrun runs outside it
+      expression: >
+        {{ if .inrun.inPod }}
+          http://inrun-dev-server.inrun-system.svc:9999
+        {{ else }}
+          http://localhost:9999
+        {{ end }}
+
+spec:
+  crds:
+    bucket:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      operatorBox:
+        reconcile:
+          default: false
+          args:
+            quotaGB: "{{ .spec.quotaGB }}"
+          remote:
+            endpoint: "{{ bucketAPI }}/buckets/{{ .metadata.name }}"
+            timeout: 10s
+            request:
+              method: PUT
+              body: '{"quotaGB": {{ .args.quotaGB }}}'
+              expectedStatus: [200]
+              # The finalizing pass deletes the bucket instead.
+              finalize:
+                method: DELETE
+                # 404: the bucket is already gone, which is done.
+                expectedStatus: [202, 404]
+            # The service answers in its own shape: map it.
+            response:
+              status:
+                fields:
+                  - path: bucketId
+                    value: "{{ .response.json.id }}"
+                  - path: state
+                    value: "{{ .response.json.status }}"
+              requeue:
+                after: 5s
+                or:
+                  - field: response.json.status
+                    equals: provisioning
+                  # 202 while deleting: hold the CR until the API answers 404.
+                  - field: response.status
+                    equals: "202"
+          # Runs after the call, with .response in scope: the API's answer
+          # becomes a ConfigMap apps can mount.
+          onReconcile:
+            configMaps:
+              - name: "{{ .metadata.name }}-bucket"
+                data:
+                  bucketId: "{{ .response.json.id }}"
+                  endpoint: "{{ .response.json.endpoint }}"
+        runtime:
+          allowedNamespaces:
+            - default

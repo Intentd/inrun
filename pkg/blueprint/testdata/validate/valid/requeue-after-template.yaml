@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: requeue-after-template
+  version: 0.1.0
+  description: Valid requeue.after with a template expression.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          requeue:
+            after: '{{ .spec.checkInterval | default "60s" }}'
+            when:
+              - field: spec.enabled
+                equals: "true"

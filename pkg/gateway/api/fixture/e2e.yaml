@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: gateway-serve-fixture-e2e
+  description: >
+    End-to-end test for the gateway serve fixture.
+    Exercises: Gateway API (app workload), conditional admission rules
+    (deny when, deny or, warn when), dryRun violation response,
+    service-list endpoint.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-default.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e-gateway-serve
+    reuse: false
+
+  setup:
+    apply:
+      - path: ./setup.yaml
+        wait:
+          - kind: Namespace
+            name: team-payments
+            timeout: 10s
+          - kind: Namespace
+            name: team-platform
+            timeout: 10s
+    helm:
+      - repo: https://argoproj.github.io/argo-helm
+        chart: argo-cd
+        namespace: argocd
+        createNamespace: true
+        version: "7.3.11"
+        wait:
+          - kind: Deployment
+            name: argo-cd-argocd-server
+            namespace: argocd
+            ready: true
+            timeout: 180s
+
+      - repo: https://charts.jetstack.io
+        chart: cert-manager
+        namespace: cert-manager
+        createNamespace: true
+        version: v1.14.5
+        values:
+          installCRDs: true
+        wait:
+          - kind: Deployment
+            name: cert-manager-webhook
+            namespace: cert-manager
+            ready: true
+            timeout: 120s
+
+      - repo: https://prometheus-community.github.io/helm-charts
+        chart: kube-prometheus-stack
+        namespace: monitoring
+        createNamespace: true
+        version: "61.3.2"
+        values:
+          grafana.enabled: "false"
+          alertmanager.enabled: "false"
+          nodeExporter.enabled: "false"
+          kubeStateMetrics.enabled: "false"
+          prometheus.enabled: "false"
+          prometheusOperator.admissionWebhooks.enabled: "false"
+        wait:
+          - kind: Deployment
+            name: kube-prometheus-stack-operator
+            namespace: monitoring
+            ready: true
+            timeout: 180s
+
+  expect:
+    - include: ./e2e/happy-path.yaml
+    - include: ./e2e/admission.yaml
+    - include: ./e2e/appgroup.yaml
+    - include: ./e2e/clusterpolicy.yaml
+    - include: ./e2e/gateway.yaml
+    - include: ./e2e/deletion.yaml
+
+  onFailure:
+    kubectl:
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+          namespace: inrun-system
+          since: 5m
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 5m
+      describe:
+        - kind: PlatformResource
+          name: payments-api
+          namespace: team-payments
+      events:
+        - kind: PlatformResource
+          name: payments-api
+          namespace: team-payments

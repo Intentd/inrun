@@ -1,0 +1,104 @@
+expect:
+  - name: Cleanup verified
+    after: cr-deleted
+    timeout: 120s
+    resources:
+      - kind: ReconcilerSuite
+        name: probe-suite
+        namespace: default
+        count: 0
+      - kind: ReconcilerProbe
+        name: probe
+        count: 0
+      - kind: Namespace
+        name: probe-ns
+        count: 0
+      - kind: Secret
+        name: probe-creds
+        namespace: probe-ns
+        count: 0
+      - kind: ConfigMap
+        name: probe-config
+        namespace: probe-ns
+        count: 0
+      - kind: NetworkPolicy
+        name: probe-netpol
+        namespace: probe-ns
+        count: 0
+      - kind: ResourceQuota
+        name: probe-quota
+        namespace: probe-ns
+        count: 0
+      - kind: LimitRange
+        name: probe-limits
+        namespace: probe-ns
+        count: 0
+      - kind: ClusterRole
+        name: probe-cr
+        count: 0
+      - kind: ClusterRoleBinding
+        name: probe-crb
+        count: 0
+      - kind: ServiceAccount
+        name: probe-sa
+        namespace: probe-ns
+        count: 0
+      - kind: Role
+        name: probe-role
+        namespace: probe-ns
+        count: 0
+      - kind: RoleBinding
+        name: probe-rb
+        namespace: probe-ns
+        count: 0
+      - kind: ReplicaSet
+        name: probe-rs
+        namespace: probe-ns
+        count: 0
+      - kind: Deployment
+        name: probe-app
+        namespace: probe-ns
+        count: 0
+      - kind: Deployment
+        name: probe-premium
+        namespace: probe-ns
+        count: 0
+      - kind: Service
+        name: probe-svc
+        namespace: probe-ns
+        count: 0
+      - kind: Job
+        name: probe-init
+        namespace: probe-ns
+        count: 0
+      - kind: CronJob
+        name: probe-cron
+        namespace: probe-ns
+        count: 0
+      - kind: StatefulSet
+        name: probe-sts
+        namespace: probe-ns
+        count: 0
+      - kind: PersistentVolume
+        name: probe-pv
+        count: 0
+      - kind: PersistentVolumeClaim
+        name: probe-pvc
+        namespace: probe-ns
+        count: 0
+      - kind: Ingress
+        name: probe-ing
+        namespace: probe-ns
+        count: 0
+      - kind: HorizontalPodAutoscaler
+        name: probe-hpa
+        namespace: probe-ns
+        count: 0
+      - kind: PodDisruptionBudget
+        name: probe-pdb
+        namespace: probe-ns
+        count: 0
+      - kind: Pod
+        name: probe-pod
+        namespace: probe-ns
+        count: 0

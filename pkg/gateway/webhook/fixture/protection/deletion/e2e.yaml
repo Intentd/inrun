@@ -1,0 +1,112 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: deletion-protection-e2e
+  description: Verify that protected CRDs cannot be deleted while the operator is running
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd-protected.yaml
+  cr: ./cr-app.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    - ./crd-unprotected.yaml   # LogStream CRD — not protected, included to test contrast
+
+  expect:
+    - name: CR created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: App
+          name: my-app
+          namespace: default
+
+    - name: App deployment created
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          name: my-app-app
+          namespace: default
+          ready: true
+
+    - name: Protected CRD deletion blocked by webhook
+      after: cr-applied
+      timeout: 30s
+      commands:
+        - run: kubectl delete crd apps.security.inrun.dev
+          exitCode: 1
+          contains: "denied the request"
+
+    - name: Unprotected CRD can be deleted freely
+      after: cr-applied
+      timeout: 30s
+      commands:
+        - run: kubectl delete crd logstreams.security.inrun.dev --ignore-not-found
+          exitCode: 0
+
+    # The housekeeper watches the ValidatingWebhookConfiguration and recreates
+    # it immediately on DELETED events — deleting the VWC directly does not work.
+    # The only clean escape is to update the ConfigMap with enabled: false and
+    # restart the gateway. On startup the housekeeper reads enabled: false,
+    # calls cleanupValidatingWebhook, and never recreates it.
+    - name: Disable deletion protection and restart gateway to unblock cleanup
+      after: cr-applied
+      timeout: 120s
+      kubectl:
+        apply:
+          - inline: |
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: inrun-blueprint
+                namespace: inrun-system
+                labels:
+                  app.kubernetes.io/name: inrun
+                  app.kubernetes.io/tag: inrun-internal
+              data:
+                blueprint.yaml: |
+                  apiVersion: inrun.dev/v1
+                  kind: Blueprint
+                  metadata:
+                    name: deletion-protection
+                  gateway:
+                    endpoint: http://inrun-gateway:8080
+                  security:
+                    deletionProtection:
+                      enabled: false
+                      cleanupOnShutdown: true
+                      failurePolicy: Fail
+                  spec:
+                    crds:
+                      app:
+                        apiTypes:
+                          group: security.inrun.dev
+                          version: v1alpha1
+                          kind: App
+                          plural: apps
+
+        restart:
+          - kind: Deployment
+            name: inrun-gateway
+            namespace: inrun-system
+
+    - name: Cleanup verified — CRs and CRDs deleted after webhook removal
+      after: cr-deleted
+      timeout: 60s
+      resources:
+        - kind: App
+          name: my-app
+          namespace: default
+          count: 0
+        - kind: Deployment
+          name: my-app-app
+          namespace: default
+          count: 0

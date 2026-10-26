@@ -1,0 +1,112 @@
+name: Release Summary
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Container image tag (without v prefix)'
+        required: true
+        type: string
+      # Results from other jobs
+      build_result:
+        required: true
+        type: string
+      image_result:
+        required: true
+        type: string
+      examples_result:
+        required: true
+        type: string
+      release_result:
+        required: true
+        type: string
+      helm_result:
+        required: true
+        type: string
+      homebrew_result:
+        required: true
+        type: string
+      # Configurable branding / repository settings
+      github_repo:
+        description: 'GitHub repository (owner/name) for the main repo'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      container_registry:
+        description: 'Container registry base (e.g., ghcr.io/owner)'
+        required: false
+        type: string
+        default: 'ghcr.io/intentd'
+      inrun:
+        description: 'Shorthand for inrun (used in helm, namespace, etc.)'
+        required: false
+        type: string
+        default: 'inrun'
+      inrun_image:
+        description: 'Runtime image name (without registry)'
+        required: false
+        type: string
+        default: 'inrun'
+      inrun-console_image:
+        description: 'Console image name (without registry)'
+        required: false
+        type: string
+        default: 'inrun-console'
+      helm_repo_url:
+        description: 'Helm repository URL'
+        required: false
+        type: string
+        default: 'https://intentd.github.io/inrun'
+      helm_chart:
+        description: 'Helm chart reference (repo/chart)'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      brew_tap:
+        description: 'Homebrew tap (owner/tap)'
+        required: false
+        type: string
+        default: 'intentd/tap'
+
+jobs:
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write summary
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          REPO="${{ inputs.github_repo }}"
+          echo "## Release ${TAG}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Component | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          icon() { [ "$1" = "success" ] && echo "✅" || ([ "$1" = "skipped" ] && echo "⏭️" || echo "❌"); }
+          echo "| Runtime binaries | $(icon ${{ inputs.build_result }}) ${{ inputs.build_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Console binaries | $(icon ${{ inputs.build_result }}) ${{ inputs.build_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Example packs | $(icon ${{ inputs.examples_result }}) ${{ inputs.examples_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Container images | $(icon ${{ inputs.image_result }}) ${{ inputs.image_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Keyless signing + GitHub Release | $(icon ${{ inputs.release_result }}) ${{ inputs.release_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Helm chart | $(icon ${{ inputs.helm_result }}) ${{ inputs.helm_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Homebrew formulas | $(icon ${{ inputs.homebrew_result }}) ${{ inputs.homebrew_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Windows packages | 📦 Download from [GitHub Releases](https://github.com/${REPO}/releases/tag/${TAG}) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ inputs.release_result }}" = "success" ] && [ "${{ inputs.image_result }}" = "success" ]; then
+            echo "### ✅ Release ${TAG} complete" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+            echo "# Install CLI tools (macOS/Linux)" >> "$GITHUB_STEP_SUMMARY"
+            echo "brew tap ${{ inputs.brew_tap }} && brew install inrun inrun-console" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Windows users: download inrun_windows_amd64.zip and inrun-console_windows_amd64.zip from the release assets" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Deploy with Helm (Runtime + Console)" >> "$GITHUB_STEP_SUMMARY"
+            echo "helm repo add ${{ inputs.inrun }} ${{ inputs.helm_repo_url }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "helm install ${{ inputs.inrun }} ${{ inputs.helm_chart }} -n ${{ inputs.inrun }}-system --create-namespace" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Run Console separately" >> "$GITHUB_STEP_SUMMARY"
+            echo "inrun-console -u http://localhost:8080" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Release ${TAG} had failures — check jobs above" >> "$GITHUB_STEP_SUMMARY"
+          fi

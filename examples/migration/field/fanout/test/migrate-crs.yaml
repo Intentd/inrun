@@ -1,0 +1,60 @@
+expect:
+  - name: Alpha db-backup is scheduled weekdays at 02:00
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: cronjobs.demo.inrun.dev
+          name: db-backup
+          namespace: team-alpha
+          field: .spec.schedule.minute
+          equals: "0"
+        - kind: cronjobs.demo.inrun.dev
+          name: db-backup
+          namespace: team-alpha
+          field: .spec.schedule.hour
+          equals: "2"
+        - kind: cronjobs.demo.inrun.dev
+          name: db-backup
+          namespace: team-alpha
+          field: .spec.schedule.dayOfWeek
+          equals: "1-5"
+
+  - name: Beta cache-flush runs every 15 minutes
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: cronjobs.demo.inrun.dev
+          name: cache-flush
+          namespace: team-beta
+          field: .spec.schedule.minute
+          equals: "*/15"
+        - kind: cronjobs.demo.inrun.dev
+          name: cache-flush
+          namespace: team-beta
+          field: .spec.schedule.hour
+          equals: "*"
+        - kind: cronjobs.demo.inrun.dev
+          name: cache-flush
+          namespace: team-beta
+          field: .spec.schedule.dayOfWeek
+          equals: "*"
+
+  - name: Gamma report-gen is scheduled Mondays at 08:00
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: cronjobs.demo.inrun.dev
+          name: report-gen
+          namespace: team-gamma
+          field: .spec.schedule.minute
+          equals: "0"
+        - kind: cronjobs.demo.inrun.dev
+          name: report-gen
+          namespace: team-gamma
+          field: .spec.schedule.hour
+          equals: "8"
+        - kind: cronjobs.demo.inrun.dev
+          name: report-gen
+          namespace: team-gamma
+          field: .spec.schedule.dayOfWeek
+          equals: "1"

@@ -1,0 +1,53 @@
+expect:
+  - name: healthy URL also passes (same result — reconciler only runs configFetch)
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Active"
+
+  - name: Deployment created for healthy WebApp
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: Deployment
+        name: my-app
+        namespace: default
+        ready: true
+
+  - name: admissionOnlyRan empty for healthy CR too
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.admissionOnlyRan
+          notExists: true
+
+  - name: configFetchStatus shows reconciler ran configFetch
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.configFetchStatus
+          equals: "200"
+
+  - name: unconditional approvedMessage written on success
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.approvedMessage
+          equals: "deployment approved"

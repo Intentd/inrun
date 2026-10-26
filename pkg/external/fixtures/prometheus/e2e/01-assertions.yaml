@@ -1,0 +1,55 @@
+expect:
+  - name: phase is Ready — goroutines query succeeded
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Ready"
+
+  - name: goroutineCount is a non-zero integer
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.goroutineCount
+          exists: true
+
+  - name: goroutinesAboveOne is true — operator always has more than 1 goroutine
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.goroutinesAboveOne
+          equals: "true"
+
+  - name: goroutineSeriesCount is 1 — go_goroutines has one series
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.goroutineSeriesCount
+          equals: "1"
+
+  - name: cpuSeconds is set — process_cpu_seconds_total counter exists
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.cpuSeconds
+          exists: true

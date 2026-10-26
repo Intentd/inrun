@@ -1,0 +1,18 @@
+# Gateway apply simulation: serve-target annotation set manually to simulate a CR
+# that arrived via the Gateway API. In practice the gateway stamps this — here it
+# is set inline so the isDirectApply warn rule is skipped in kubectl-based testing.
+# Exercises: warn when: isDirectApply . → should NOT fire (annotation present).
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: payments-api-gateway
+  namespace: team-payments
+  annotations:
+    inrun.dev/serve-target: apifixture
+spec:
+  workloadType: app
+  team: team-payments
+  environment: staging
+  repoURL: https://github.com/myorg/payments-api
+  targetRevision: main
+  targetNamespace: team-payments

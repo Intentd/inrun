@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: volume-existing-service-ids-e2e
+  description: >
+    Reconcile a Volume through the dev server's volume API, which assigns
+    the id itself (run with --dev-server). The first pass creates the volume
+    by POST and stores its id; later passes read it by that id until ready;
+    a delete removes it by id and waits for the API to answer 404.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Inrun's finalizer on the CR
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: Volume
+            name: data
+            namespace: default
+            field: .metadata.finalizers[0]
+            equals: inrun.dev/cleanup
+
+    - name: The id the API assigned in status, ready after provisioning
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: Volume
+            name: data
+            namespace: default
+            field: .status.volumeId
+            equals: v-1
+          - kind: Volume
+            name: data
+            namespace: default
+            field: .status.state
+            equals: ready
+
+    - name: Delete released once the API answers 404
+      after: cr-deleted
+      timeout: 60s
+      resources:
+        - kind: Volume
+          name: data
+          namespace: default
+          count: 0

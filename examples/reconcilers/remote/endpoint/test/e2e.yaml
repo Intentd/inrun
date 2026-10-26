@@ -1,0 +1,202 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webapp-remote-e2e
+  description: >
+    Verify the remote reconciler creates a Deployment and Service and writes status
+    for a WebApp CR. The reconciler runs as a Deployment in the cluster, deployed
+    via setup before Inrun starts.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    apply:
+      - path: ../manifests/secret.yaml
+      - path: ../reconciler/deploy.yaml
+        wait:
+          - kind: Deployment
+            name: webapp-reconciler
+            namespace: default
+            ready: true
+            timeout: 60s
+
+  expect:
+    - name: WebApp CR created
+      after: cr-applied
+      timeout: 30s
+      resources:
+        - kind: WebApp
+          name: my-webapp
+          namespace: default
+
+    - name: Inrun's finalizer on the CR
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.finalizers[0]
+            equals: inrun.dev/cleanup
+
+    - name: Status written by reconciler
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .status.phase
+            equals: Running
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .status.endpoint
+            equals: my-webapp-svc.default.svc.cluster.local
+
+    - name: Labels and annotations set on the CR
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.labels.environment
+            equals: development
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            field: .metadata.annotations.webapp\.example\.com/image
+            equals: nginx:1.25
+
+    - name: Deployment created and ready
+      after: cr-applied
+      timeout: 120s
+      resources:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          ready: true
+      kubectl:
+        get:
+          - kind: Deployment
+            name: my-webapp
+            namespace: default
+            field: .spec.replicas
+            equals: "4"
+          - kind: Deployment
+            name: my-webapp
+            namespace: default
+            field: .spec.template.spec.containers[0].image
+            equals: nginx:1.25
+
+    - name: Service created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+      kubectl:
+        get:
+          - kind: Service
+            name: my-webapp-svc
+            namespace: default
+            field: .spec.ports[0].targetPort
+            equals: "8080"
+
+    - name: Drift correction — Deployment restored after manual edit
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        patch:
+          - kind: Deployment
+            name: my-webapp
+            namespace: default
+            patch: '{"spec":{"replicas":1}}'
+        get:
+          - kind: Deployment
+            name: my-webapp
+            namespace: default
+            field: .spec.replicas
+            equals: "4"
+
+    - name: Reconciler logs show authenticated calls
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        logs:
+          - labelSelector: app=webapp-reconciler
+            namespace: default
+            contains: key=default/my-webapp
+
+    - name: Prune — Service deleted when the reconciler stops returning it
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        patch:
+          - kind: WebApp
+            name: my-webapp
+            namespace: default
+            patch: '{"spec":{"expose":false}}'
+      resources:
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+          count: 0
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+
+    - name: Garbage collection on CR delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: WebApp
+          name: my-webapp
+          namespace: default
+          count: 0
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+          count: 0
+        - kind: Service
+          name: my-webapp-svc
+          namespace: default
+          count: 0
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-webapp
+          namespace: default
+      logs:
+        - labelSelector: app=webapp-reconciler
+          namespace: default
+          since: 2m
+      describe:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+        - kind: Deployment
+          name: webapp-reconciler
+          namespace: default
+      events:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+    commands:
+      - kubectl get pods -n default -o wide

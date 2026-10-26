@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: blockchainnode-constructor-e2e
+  description: >
+    Run with: inrun e2e --dev-server
+
+    Verifies the constructor args: pattern end-to-end. The constructor reads
+    flagUrl and the business-hours window from args, checks the clock itself,
+    and calls the flag service when in hours. Annotation and status reflect
+    the result.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd-node.yaml
+  cr: ./cr-node-e2e.yaml
+
+  valuesFiles:
+    - ./values.yaml
+
+  functions:
+    definitions:
+      - name: inBusinessHours
+        expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+
+  cluster:
+    provider: kind
+    name: inrun-args-constructor
+    reuse: false
+
+  expect:
+    - name: Deployment created and ready
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          namespace: default
+          name: 02-constructor-my-node
+          ready: true
+
+    - name: Feature flag annotation set (business hours)
+      after: cr-applied
+      timeout: 30s
+      when:
+        - field: '{{ inBusinessHours }}'
+          equals: "true"
+      kubectl:
+        get:
+          - kind: BlockchainNode
+            name: 02-constructor-my-node
+            namespace: default
+            field: .status.featureEnabled
+            equals: "true"
+          - kind: Deployment
+            name: 02-constructor-my-node
+            namespace: default
+            field: '.metadata.annotations.feature\.demo/v2-enabled'
+            equals: "true"
+
+    - name: Feature flag annotation false (outside hours)
+      after: cr-applied
+      timeout: 30s
+      or:
+        - field: '{{ inBusinessHours }}'
+          equals: "false"
+      kubectl:
+        get:
+          - kind: Deployment
+            name: 02-constructor-my-node
+            namespace: default
+            field: '.metadata.annotations.feature\.demo/v2-enabled'
+            equals: "false"
+
+    - name: Deployment removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          namespace: default
+          count: 0

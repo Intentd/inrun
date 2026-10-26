@@ -1,0 +1,48 @@
+expect:
+  # All 3 CRDs were in the missing map at startup — retryMissingCRDs activates
+  # them together (Phase 2 of the retry loop, no dependency check). All become
+  # pending with workers running. timeout covers the 90s retry interval.
+  - name: CRDs installed — reconcilers started, all pending
+    after: cr-applied
+    timeout: 2m
+    kubectl:
+      apply:
+        - file: ./crd-worker.yaml
+        - file: ./crd-component.yaml
+        - file: ./crd-platform.yaml
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jq: .state
+          equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jq: .started
+          equals: "true"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jq: .state
+          equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jq: .started
+          equals: "true"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jq: .state
+          equals: pending

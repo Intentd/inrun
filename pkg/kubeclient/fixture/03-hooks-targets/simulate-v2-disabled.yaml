@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: blockchainappwithtargets-v2-disabled
+  description: >
+    Run with: inrun simulate --dev-server
+
+    Routes through the "v2-disabled" target. featureEnabled is forced to "false"
+    via args — the hook sees the flag as off regardless of the flag service.
+    No enqueueGate on this surface; the Deployment is still created but the
+    hook behaves as if the feature is disabled.
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr.yaml
+  target: v2-disabled
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+        name: 03-hooks-targets-my-chain

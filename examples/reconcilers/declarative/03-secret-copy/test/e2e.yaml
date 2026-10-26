@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: secret-distribution-e2e
+  description: >
+    Distribute a database secret from a platform namespace into team namespaces
+    and verify removal on delete.
+
+    Demonstrates setup.apply + setup.wait: the source secret must exist in the
+    platform namespace before the operator is allowed to start reconciling.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    apply:
+      - ../manifests/setup.yaml   # creates platform/team-alpha/team-beta namespaces + source secret
+    wait:
+      - kind: Secret
+        name: database-credentials
+        namespace: platform
+        timeout: 15s   # source secret must exist before the operator starts
+
+  expect:
+    - name: CR created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: SecretDistribution
+          name: db-creds
+
+    - name: Secret distributed to team-alpha
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Secret
+          name: database-credentials
+          namespace: team-alpha
+
+    - name: Secret distributed to team-beta
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Secret
+          name: database-credentials
+          namespace: team-beta
+
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: SecretDistribution
+          name: db-creds
+          count: 0
+        - kind: Secret
+          name: database-credentials
+          namespace: team-alpha
+          count: 0
+        - kind: Secret
+          name: database-credentials
+          namespace: team-beta
+          count: 0

@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: bucket-existing-service-e2e
+  description: >
+    Reconcile a Bucket through the dev server's bucket API, which knows
+    nothing about Inrun (run with --dev-server). The answer is mapped into
+    status, a provisioning bucket is checked again until ready, and a delete
+    waits for the API to answer 404.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Inrun's finalizer on the CR
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: Bucket
+            name: logs
+            namespace: default
+            field: .metadata.finalizers[0]
+            equals: inrun.dev/cleanup
+
+    - name: The API's answer mapped into status, ready after provisioning
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: Bucket
+            name: logs
+            namespace: default
+            field: .status.bucketId
+            equals: b-logs
+          - kind: Bucket
+            name: logs
+            namespace: default
+            field: .status.state
+            equals: ready
+
+    - name: Delete released once the API answers 404
+      after: cr-deleted
+      timeout: 60s
+      resources:
+        - kind: Bucket
+          name: logs
+          namespace: default
+          count: 0

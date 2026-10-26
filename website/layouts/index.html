@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {{ partial "head.html" . }}
+</head>
+<body>
+
+<!-- NAV ────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">
+      {{ partial "wordmark.html" 28 }}
+    </a>
+
+    <div class="nav-links">
+      <a class="nav-link" href="/docs/" title="Browse the documentation">Docs</a>
+      <a class="nav-link" href="/docs/concepts/" title="How Inrun works">Concepts</a>
+      <a class="nav-link" href="/blog/" title="Read the Inrun blog">Blog</a>
+    </div>
+
+    <div class="nav-right">
+      <div id="docsearch"></div>
+      <a class="btn btn-ghost" href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="Inrun on GitHub" style="padding:7px 13px;font-size:13px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary" href="/docs/getting-started/" title="Install Inrun and reconcile your first resource" style="padding:7px 13px;font-size:13px;">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO ───────────────────────────────────────────────────────── -->
+<section class="hero w">
+  <div class="hero-inner">
+    <div class="hero-badge" data-reveal>
+      <span class="badge-dot"></span>
+      <a href="{{ .Site.Params.github }}/releases" target="_blank" rel="noopener" title="Releases on GitHub" style="color:inherit;text-decoration:none;"><span id="inrun-version">{{ .Site.Params.version }}</span> · open source · Apache 2.0</a>
+    </div>
+
+    <h1 data-reveal data-delay="1">Run intents<br><span class="dim">on Kubernetes</span></h1>
+
+    <p class="hero-sub" data-reveal data-delay="2">
+      Kubernetes reconciliation is battle-tested and free, but using it has meant writing an operator.<br>
+      Inrun opens it to anything that takes a request and returns a response: a template, a service in any language, an API you already run, or Go.<br>
+      Callers send an <strong>intent</strong> in their own words and read back a <strong>view</strong>. You bring the decision; Inrun brings the machinery.
+    </p>
+
+    <div class="hero-actions" data-reveal data-delay="3">
+      <a class="btn btn-primary btn-lg" href="/docs/getting-started/" title="Install Inrun and reconcile your first resource">Get Started →</a>
+      <a class="btn btn-outline btn-lg" href="/docs/concepts/" title="How Inrun works">How it works</a>
+      <a class="btn btn-ghost btn-lg" href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="Star Inrun on GitHub">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+
+    <div class="hero-install" data-reveal data-delay="4">
+      <span class="p">$</span>
+      <span class="cmd">brew install <span class="pkg">intentd/tap/inrun</span></span>
+      <button class="copy-btn" onclick="copycmd(this)" title="Copy to clipboard">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- THE LOOP ───────────────────────────────────────────────────── -->
+<div class="runtime-services">
+  <div class="rs-grid">
+    <div class="rs-item" data-reveal>
+      <div class="rs-kw" style="color:var(--intent)">Intent in</div>
+      <div class="rs-title">through the gateway</div>
+      <p class="rs-desc">Callers send JSON or YAML in the field names the Blueprint declares, with a token. The gateway checks it against the CRD's admission rules and builds the custom resource. No caller sees a CRD schema.</p>
+    </div>
+    <div class="rs-item" data-reveal data-delay="2">
+      <div class="rs-kw" style="color:var(--observe)">Reconcile</div>
+      <div class="rs-title">one contract, any reconciler</div>
+      <p class="rs-desc">Templates, a service you already run, or Go: every reconciler gets the same request and returns the same Result. Inrun runs the informers, queues, retries, finalizers, status and every write.</p>
+    </div>
+    <div class="rs-item" data-reveal data-delay="4">
+      <div class="rs-kw" style="color:var(--execute)">View out</div>
+      <div class="rs-title">only what the Blueprint declares</div>
+      <p class="rs-desc">The caller polls the gateway and reads a view: the fields <code style="font-family:var(--mono);font-size:12px;">serve.view</code> declares, not the whole object. The custom resource never has to leave the cluster.</p>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK START ──────────────────────────────────────────────────── -->
+<section class="qs w">
+  <div class="qs-wrap">
+    <div data-reveal>
+      <span class="label" style="color:var(--observe)">Quick Start</span>
+      <h2 style="margin-bottom:14px;">Reconciling in a minute</h2>
+      <p class="sub" style="max-width:380px;">
+        <code style="font-family:var(--mono);font-size:13px;">inrun init</code> scaffolds a Blueprint, a CRD and a CR. <code style="font-family:var(--mono);font-size:13px;">inrun simulate</code> checks it with no cluster; <code style="font-family:var(--mono);font-size:13px;">--dev</code> creates a kind cluster to run it on.
+      </p>
+
+      <div class="qs-selectors">
+        <div class="qs-row">
+          <span class="qs-lbl">OS</span>
+          <div class="chips">
+            <button class="chip on" onclick="qs('os','mac',this)">macOS</button>
+            <button class="chip" onclick="qs('os','linux',this)">Linux</button>
+          </div>
+        </div>
+        <div class="qs-row" id="method-row">
+          <span class="qs-lbl">Method</span>
+          <div class="chips" id="method-chips">
+            <button class="chip on" onclick="qs('mt','brew',this)">brew</button>
+            <button class="chip" onclick="qs('mt','curl',this)">curl</button>
+            <button class="chip" onclick="qs('mt','helm',this)">helm</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="qs-note" id="qs-note">inrun init · inrun simulate · inrun --dev</div>
+    </div>
+
+    <div class="cw" data-reveal data-delay="2">
+      <div class="cw-bar">
+        <span class="cw-dot" style="background:#FF5F57"></span>
+        <span class="cw-dot" style="background:#FEBC2E"></span>
+        <span class="cw-dot" style="background:#28C840"></span>
+        <span class="cw-name" id="qs-label">zsh</span>
+      </div>
+      <div class="cb" id="qs-out"></div>
+    </div>
+  </div>
+</section>
+
+<!-- THREE WAYS TO RECONCILE ─────────────────────────────────────── -->
+<section class="super w">
+  <div class="super-split">
+    <div data-reveal>
+      <span class="label" style="color:var(--execute)">Reconcilers</span>
+      <h2 style="margin-bottom:14px;">Write only the decision</h2>
+      <p class="sub" style="max-width:440px;margin-bottom:24px;">
+        A reconciler decides what a resource should become. Watching, queueing, retrying, applying, pruning, status, events and deletion belong to the runtime. Pick the reconciler per CRD, or per serve target; the CRD's API stays the same.
+      </p>
+      <a class="inc-trigger" href="/docs/concepts/reconcilers/" style="text-decoration:none;">
+        The reconciler contract
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="cw" data-reveal data-delay="2">
+      <div class="cw-tabs">
+        <button class="cw-tab on" onclick="switchTab('panel-yaml',this)">Declarative</button>
+        <button class="cw-tab" onclick="switchTab('panel-remote',this)">Remote</button>
+        <button class="cw-tab" onclick="switchTab('panel-typed',this)">Typed</button>
+      </div>
+
+      <div class="cw-panel" id="panel-yaml">
+        <div class="cw-panel-hd">
+          <span class="cw-fname">blueprint.yaml</span>
+          <span class="cw-pill">A complete reconciler · No code</span>
+        </div>
+        <div class="cb">
+<pre><span class="k">apiVersion</span>: <span class="s">inrun.dev/v1</span>
+<span class="k">kind</span>: <span class="t">Blueprint</span>
+<span class="k">metadata</span>:
+  <span class="k">name</span>: <span class="s">hello-website</span>
+<span class="k">spec</span>:
+  <span class="k">crds</span>:
+    <span class="k">website</span>:
+      <span class="k">crdFile</span>: <span class="s">./manifests/crd.yaml</span>
+      <span class="k">operatorBox</span>:
+        <span class="k">reconcile</span>:
+          <span class="k">onCreate</span>:
+            <span class="k">deployments</span>:
+              - <span class="k">name</span>:  <span class="s">"&#123;&#123; .metadata.name &#125;&#125;"</span>
+                <span class="k">image</span>: <span class="s">"&#123;&#123; .spec.image &#125;&#125;"</span>
+        <span class="k">emit</span>:
+          <span class="k">status</span>:
+            <span class="k">fields</span>:
+              - <span class="k">path</span>: <span class="s">phase</span>
+                <span class="k">value</span>: <span class="s">Running</span></pre>
+        </div>
+      </div>
+
+      <div class="cw-panel" id="panel-remote" hidden>
+        <div class="cw-panel-hd">
+          <span class="cw-fname">POST /reconcile</span>
+          <span class="cw-pill">Any language · One route on a service you run</span>
+        </div>
+        <div class="cb">
+<pre><span class="c">// Inrun sends, once per reconcile:</span>
+{ <span class="k">"key"</span>: <span class="s">"default/my-webapp"</span>,
+  <span class="k">"object"</span>: { ... },
+  <span class="k">"args"</span>: { <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span>, <span class="k">"replicas"</span>: <span class="v">2</span> } }
+
+<span class="c">// Your service answers; Inrun does every write:</span>
+{ <span class="k">"result"</span>: <span class="s">"ok"</span>,
+  <span class="k">"status"</span>: { <span class="k">"phase"</span>: <span class="s">"Running"</span> },
+  <span class="k">"resources"</span>: [
+    { <span class="k">"type"</span>: <span class="s">"deployment"</span>,
+      <span class="k">"fields"</span>: { <span class="k">"name"</span>: <span class="s">"my-webapp"</span>, <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span> } } ] }</pre>
+        </div>
+      </div>
+
+      <div class="cw-panel" id="panel-typed" hidden>
+        <div class="cw-panel-hd">
+          <span class="cw-fname">reconciler.go</span>
+          <span class="cw-pill">Go, compiled into your inrun</span>
+        </div>
+        <div class="cb">
+<pre><span class="kw">func</span> (r *<span class="t">JobRunner</span>) <span class="k">Reconcile</span>(ctx context.Context, req domain.Request) (domain.Result, <span class="t">error</span>) {
+  job := req.Object
+  <span class="kw">if</span> req.Finalizing() {
+    <span class="kw">return</span> domain.Result{}, r.release(ctx, job)
+  }
+  <span class="kw">return</span> domain.Result{
+    Status:    <span class="kw">map</span>[<span class="t">string</span>]any{<span class="s">"phase"</span>: <span class="s">"Running"</span>},
+    Resources: r.desired(job, req.Args()),
+  }, <span class="v">nil</span>
+}
+
+<span class="c">// Or keep an existing controller-runtime Reconcile unchanged.</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GATEWAY ─────────────────────────────────────────────────────── -->
+<section class="gateway w">
+  <div class="gw-split">
+    <div data-reveal>
+      <a href="/docs/concepts/gateway/" class="label" style="color:var(--intent);text-decoration:none;">Gateway</a>
+      <h2 style="margin-bottom:14px;">Callers never touch Kubernetes</h2>
+      <p class="sub" style="max-width:420px;margin-bottom:18px;">
+        Add <code style="font-family:var(--mono);font-size:13px;">serve</code> to a CRD and the gateway accepts intents for it: the fields a caller may send, the tokens that may send them, and the view they read back. The reconciler never reads the CR either: the Blueprint maps between the two sides.
+      </p>
+      <div class="caller-list">
+        <div class="caller-item"><span class="caller-dot" style="background:var(--observe)"></span>A CI pipeline</div>
+        <div class="caller-item"><span class="caller-dot" style="background:var(--execute)"></span>A frontend form</div>
+        <div class="caller-item"><span class="caller-dot" style="background:var(--intent)"></span>The console</div>
+        <div class="caller-item"><span class="caller-dot" style="background:var(--resource)"></span>curl</div>
+      </div>
+    </div>
+
+    <div class="cw" data-reveal data-delay="2">
+      <div class="cw-tabs">
+        <button class="cw-tab on" onclick="switchTab('panel-intent',this)">Intent in</button>
+        <button class="cw-tab" onclick="switchTab('panel-view',this)">View out</button>
+      </div>
+      <div class="cw-panel" id="panel-intent">
+        <div class="cw-panel-hd">
+          <span class="cw-fname">POST /api/v1/apply</span>
+          <span class="cw-pill">The caller's own field names</span>
+        </div>
+        <div class="cb">
+<pre>{ <span class="k">"target"</span>: <span class="s">"website"</span>,
+  <span class="k">"name"</span>: <span class="s">"hello-intent"</span>,
+  <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span>,
+  <span class="k">"replicas"</span>: <span class="v">2</span> }
+
+<span class="c">// → 202, and a URL to poll</span></pre>
+        </div>
+      </div>
+      <div class="cw-panel" id="panel-view" hidden>
+        <div class="cw-panel-hd">
+          <span class="cw-fname">GET /api/v1/resources/website/default/hello-intent</span>
+          <span class="cw-pill">Only what serve.view declares</span>
+        </div>
+        <div class="cb">
+<pre>{ <span class="k">"name"</span>: <span class="s">"hello-intent"</span>,
+  <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span>,
+  <span class="k">"phase"</span>: <span class="s">"Running"</span>,
+  <span class="k">"endpoint"</span>: <span class="s">"hello-intent.default.svc.cluster.local"</span> }</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT IS DIFFERENT ──────────────────────────────────────────── -->
+<section class="components w">
+  <span class="label" style="color:var(--observe)" data-reveal>Why Inrun</span>
+  <h2 style="margin-bottom:14px;" data-reveal>What comes with it</h2>
+  <div class="comp-grid">
+    <div class="comp-card" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">Kubernetes as a backend</div>
+      <h3>State that keeps itself true</h3>
+      <p>A custom resource can be a durable state machine: Kubernetes stores it, Inrun retries it until the decision holds, and cleans it up when it's done. Nothing has to be a Deployment.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">Shared as patterns</div>
+      <h3>Blueprints with their proof</h3>
+      <p><code style="font-family:var(--mono);font-size:12px;">inrun push</code> publishes a Blueprint to any OCI registry with its simulate and e2e results; <code style="font-family:var(--mono);font-size:12px;">inrun inspect</code> shows them before anyone runs it.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">The schema can change</div>
+      <h3>Under live data</h3>
+      <p><code style="font-family:var(--mono);font-size:12px;">migrate.from</code> moves fields to new paths and <code style="font-family:var(--mono);font-size:12px;">migrate.to</code> moves resources to a new CRD, with rollback, while callers keep sending the same intents.</p>
+    </div>
+    <div class="comp-card" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">No CRDs of its own</div>
+      <h3>Your CRDs, a Blueprint file</h3>
+      <p>The Blueprint is a ConfigMap in the cluster. Remove Inrun and nothing of Inrun's is left in your API server.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">Writes are fenced</div>
+      <h3>Only what the Blueprint allows</h3>
+      <p>Inrun does every write, only for kinds a CRD declares, with RBAC generated from the Blueprint.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">Deletion waits</div>
+      <h3>For your reconciler, with a bound</h3>
+      <p>Every CR carries Inrun's finalizer. Your reconciler finishes its cleanup first; a timeout keeps it from hanging forever.</p>
+    </div>
+    <div class="comp-card" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">Tested before a cluster</div>
+      <h3>simulate, envtest, e2e</h3>
+      <p>Every operator you write is testable without a cluster, and every one you share comes with its proof.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">Per serve target</div>
+      <h3>One CRD, several reconcilers</h3>
+      <p>Templates for one target, a remote service or Go for another. The caller picks the target; the API stays one CRD.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">Kubernetes-aware templates</div>
+      <h3>Functions</h3>
+      <p>Pod readiness, job completion, quantities, cron, semver and more, as functions in every template, plus your own.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONSOLE ──────────────────────────────────────────────────────── -->
+<section class="cc-section w">
+  <div class="cc-inner">
+    <div class="cc-copy" data-reveal>
+      <a href="/docs/concepts/console/" class="label" style="color:var(--observe);text-decoration:none;">Console</a>
+      <h2 style="margin-bottom:14px;">See every CRD, worker and resource</h2>
+      <p class="sub" style="max-width:400px;margin-bottom:28px;">
+        The console reads each runtime's <code style="font-family:var(--mono);font-size:13px;">/blueprint</code> API: CRDs, how each is reconciled, worker pools, queues, CRs and their status. It creates resources through the gateway, the same path as an intent.
+      </p>
+      <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="/docs/getting-started/learning-inrun/" title="Learning Inrun">Try it in Learning Inrun →</a>
+      </div>
+    </div>
+
+    <div class="cc-mock-wrap" data-reveal data-delay="2">
+      <div class="cc-mock">
+        <div class="cc-mock-bar">
+          <span class="cc-dot-r"></span><span class="cc-dot-y"></span><span class="cc-dot-g"></span>
+          <span class="cc-mock-url">localhost:8081</span>
+        </div>
+        <div class="cc-mock-body">
+          <div class="cc-mock-sidebar">
+            <div class="cc-mock-logo">⬡ <span>Console</span></div>
+            <div class="cc-mock-nav on">platform-operator</div>
+            <div class="cc-mock-nav">infra-operator</div>
+            <div class="cc-mock-nav">database-operator</div>
+          </div>
+          <div class="cc-mock-main">
+            <div class="cc-mock-hd">
+              <span class="cc-mock-name">platform-operator</span>
+              <span class="cc-mock-status green">● Healthy</span>
+            </div>
+            <div class="cc-mock-stats">
+              <div class="cc-stat"><span class="cc-stat-n">4</span><span class="cc-stat-l">CRDs</span></div>
+              <div class="cc-stat"><span class="cc-stat-n">16</span><span class="cc-stat-l">Workers</span></div>
+              <div class="cc-stat"><span class="cc-stat-n">247</span><span class="cc-stat-l">Resources</span></div>
+              <div class="cc-stat"><span class="cc-stat-n">0</span><span class="cc-stat-l">Errors</span></div>
+            </div>
+            <div class="cc-mock-cards">
+              <div class="cc-crd green"><div class="cc-crd-name">database</div><div class="cc-crd-st green">● Healthy · 4 workers</div><div class="cc-bar-wrap"><div class="cc-bar-fill" style="width:15%"></div></div><div class="cc-crd-detail">Queue: 3/64 · Uptime: 48h</div></div>
+              <div class="cc-crd green"><div class="cc-crd-name">application</div><div class="cc-crd-st green">● Healthy · 4 workers</div><div class="cc-bar-wrap"><div class="cc-bar-fill" style="width:8%"></div></div><div class="cc-crd-detail">Queue: 2/64 · Uptime: 47h</div></div>
+              <div class="cc-crd yellow"><div class="cc-crd-name">cache</div><div class="cc-crd-st yellow">⚠ Pending · 0 workers</div><div class="cc-bar-wrap"><div class="cc-bar-fill" style="width:0%"></div></div><div class="cc-crd-detail">Waiting for: database</div></div>
+              <div class="cc-crd green"><div class="cc-crd-name">ingress</div><div class="cc-crd-st green">● Healthy · 4 workers</div><div class="cc-bar-wrap"><div class="cc-bar-fill" style="width:3%"></div></div><div class="cc-crd-detail">Queue: 1/64 · Uptime: 48h</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</section>
+
+<!-- COMPONENTS ─────────────────────────────────────────────────────── -->
+<section class="components w">
+  <span class="label" style="color:var(--observe)" data-reveal>Components</span>
+  <h2 style="margin-bottom:14px;" data-reveal>Three processes, one CLI</h2>
+  <p class="sub" style="max-width:520px;" data-reveal><code style="font-family:var(--mono);font-size:13px;">inrun</code> runs them on your machine; the Helm chart runs them as Deployments.</p>
+  <div class="comp-grid">
+    <a class="comp-card" href="/docs/concepts/runtime/" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">runtime</div>
+      <h3>Runtime</h3>
+      <p>Watches your CRDs and their children, runs each reconcile pass, applies the Result, and exposes <code style="font-family:var(--mono);font-size:12px;">/blueprint</code>. Leader-elected.</p>
+    </a>
+    <a class="comp-card" href="/docs/concepts/gateway/" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">gateway</div>
+      <h3>Gateway</h3>
+      <p>Takes intents and returns views, and serves the admission and conversion webhooks over TLS. Stateless, several replicas.</p>
+    </a>
+    <a class="comp-card" href="/docs/concepts/console/" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">console</div>
+      <h3>Console</h3>
+      <p>A live view of one or more runtimes, and a form that sends intents through the gateway.</p>
+    </a>
+  </div>
+</section>
+
+<!-- COMMUNITY ────────────────────────────────────────────────────── -->
+<section class="community">
+  <div class="w">
+    <span class="label" style="color:var(--observe)" data-reveal>Community</span>
+    <h2 style="max-width:460px;margin:0 auto;text-align:center;" data-reveal>Any help is welcome</h2>
+    <p style="font-size:17px;color:var(--text2);font-weight:300;max-width:440px;margin:12px auto 0;text-align:center;line-height:1.65;" data-reveal>A bug report, a docs fix, an example. Built in the open, Apache 2.0.</p>
+    <div class="com-actions" data-reveal>
+      <a class="btn btn-primary btn-com" href="{{ .Site.Params.github }}/discussions" target="_blank" rel="noopener" title="GitHub Discussions">Discussions</a>
+      <a class="btn btn-ghost btn-com" href="{{ .Site.Params.github }}/issues" target="_blank" rel="noopener" title="GitHub issues">Issues</a>
+      <a class="btn btn-ghost btn-com" href="/docs/contributing/" title="How to contribute">Contributing</a>
+    </div>
+  </div>
+</section>
+
+<!-- RESOURCES ────────────────────────────────────────────────────── -->
+<section class="resources w">
+  <span class="label" style="color:var(--observe)" data-reveal>Learn</span>
+  <h2 style="margin-bottom:0;" data-reveal>Start here</h2>
+  <div class="res-grid">
+    <a class="res-card" href="/docs/getting-started/learning-inrun/" data-reveal>
+      <div class="res-head"><span class="res-icon">→</span><span class="res-arrow">→</span></div>
+      <h3>Learning Inrun</h3>
+      <p>Your first reconciled resource with <code style="font-family:var(--mono);font-size:12px;">inrun init</code>, then six example packs in order: declarative, remote, typed, intent, migration, registry.</p>
+    </a>
+    <a class="res-card" href="/blog/why-i-built-this/" data-reveal data-delay="2">
+      <div class="res-head"><span class="res-icon">✎</span><span class="res-arrow">→</span></div>
+      <h3>Why I Built This</h3>
+      <p>A missed interview, a wall of boilerplate, and a pattern that kept repeating, until the project turned out to be an intent runner.</p>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER ──────────────────────────────────────────────────────── -->
+<footer class="landing-footer">
+  <div class="foot">
+    <span class="foot-copy">© {{ now.Year }} Inrun · Apache 2.0 · Run intents on Kubernetes</span>
+    <ul class="foot-links">
+      <li><a href="/docs/">Docs</a></li>
+      <li><a href="{{ .Site.Params.github }}" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/blog/">Blog</a></li>
+    </ul>
+  </div>
+</footer>
+
+<button id="back-to-top" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+
+<script src="/js/landing.js"></script>
+{{ if and .Site.Params.algolia.appId .Site.Params.algolia.searchKey }}
+<script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3" crossorigin></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    docsearch({
+      appId: {{ .Site.Params.algolia.appId | jsonify | safeJS }},
+      apiKey: {{ .Site.Params.algolia.searchKey | jsonify | safeJS }},
+      indexName: {{ .Site.Params.algolia.indexName | jsonify | safeJS }},
+      container: '#docsearch',
+      debug: false,
+    });
+  });
+</script>
+{{ end }}
+</body>
+</html>

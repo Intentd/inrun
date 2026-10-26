@@ -1,0 +1,44 @@
+expect:
+  - name: healthy URL accepted by webhook
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ../cr.yaml
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Active"
+
+  - name: Deployment created for accepted WebApp
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: Deployment
+        name: my-app
+        namespace: default
+        ready: true
+
+  - name: configFetch ran at reconcile
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.configFetchStatus
+          equals: "200"
+
+  - name: admissionCheck not re-run at reconcile (fires.reconcile false)
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.admissionOnlyRan
+          notExists: true

@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: webservice-sim
+  description: A WebService gets its Deployment, Service and autoscaler on the first cycle
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+        name: orders
+      - cycle: 1
+        verb: apply
+        resource: services
+        name: orders-svc
+      - cycle: 1
+        verb: apply
+        resource: horizontalpodautoscalers
+        name: orders-hpa

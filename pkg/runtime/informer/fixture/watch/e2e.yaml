@@ -1,0 +1,120 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: watch-probe-e2e
+  description: >
+    Living fixture for operatorBox.observe.watch. A WatchProbe CR watches a shared
+    ConfigMap (shared-config) it does not own. Patching the ConfigMap triggers
+    a re-enqueue of the WatchProbe — verifying the secondary informer routes
+    events back to the primary CR without an ownerReference.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-watch-probe
+    reuse: false
+
+  expect:
+    - name: WatchProbe reconciled — output ConfigMap created
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        apply:
+          - file: ./configmap-shared.yaml
+        get:
+          - kind: WatchProbe
+            name: probe-alpha
+            namespace: default
+            field: .status.phase
+            equals: Watching
+      resources:
+        - kind: ConfigMap
+          name: probe-alpha-output
+          namespace: default
+
+    - name: Operator reports watch-probe as healthy
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - namespace: inrun-system
+            leaderElection:
+              lease: inrun-leader
+            port: 8080
+            path: /blueprint/watch-probe/health
+            jq: state
+            equals: healthy
+
+    - name: ConfigMap patched — WatchProbe re-enqueued, health remains healthy
+      after: cr-applied
+      timeout: 60s
+      wait: 3s
+      kubectl:
+        patch:
+          - kind: ConfigMap
+            name: shared-config
+            namespace: default
+            patch: '{"data":{"version":"2"}}'
+        get:
+          - kind: WatchProbe
+            name: probe-alpha
+            namespace: default
+            field: .status.phase
+            equals: Watching
+      resources:
+        - kind: ConfigMap
+          name: probe-alpha-output
+          namespace: default
+
+    - name: Operator still healthy after re-enqueue
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - namespace: inrun-system
+            leaderElection:
+              lease: inrun-leader
+            port: 8080
+            path: /blueprint/watch-probe/health
+            jq: state
+            equals: healthy
+
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: WatchProbe
+          name: probe-alpha
+          namespace: default
+          count: 0
+        - kind: ConfigMap
+          name: probe-alpha-output
+          namespace: default
+          count: 0
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WatchProbe
+          name: probe-alpha
+          namespace: default
+        - kind: ConfigMap
+          name: shared-config
+          namespace: default
+        - kind: ConfigMap
+          name: probe-alpha-output
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m
+    commands:
+      - kubectl get watchprobes -A -o wide
+      - kubectl get configmaps -n default
+      - kubectl get pods -n inrun-system -o wide

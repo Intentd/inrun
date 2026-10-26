@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: deletion-protection
+  author: intentd
+  version: 0.1.0
+  description: >
+    Demonstrates Inrun deletion protection.
+    Three CRDs are registered and protected by a ValidatingWebhookConfiguration
+    that Inrun creates and manages. A fourth CRD (LogStream) is deliberately
+    left out of this Blueprint — it can be deleted freely.
+    cleanupOnShutdown: true removes the webhook when the operator stops gracefully.
+
+gateway:
+  endpoint: http://inrun-gateway:8080
+
+security:
+  deletionProtection:
+    enabled: true
+    cleanupOnShutdown: true    # webhook is removed on graceful shutdown
+    failurePolicy: Fail        # block the DELETE when Inrun is unreachable
+
+spec:
+  crds:
+    app:
+      apiTypes:
+        group: security.inrun.dev
+        version: v1alpha1
+        kind: App
+        plural: apps
+      operatorBox:
+        reconcile:
+          resync: 30s
+          onCreate:
+            deployments:
+              - name: "{{ .metadata.name }}-app"
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+                reconcile: true
+
+            services:
+              - name: "{{ .metadata.name }}-svc"
+                port: "80"
+                targetPort: "{{ .spec.port }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: image
+                value: "{{ .spec.image }}"
+              - path: replicas
+                value: "{{ .spec.replicas }}"
+
+    database:
+      apiTypes:
+        group: security.inrun.dev
+        version: v1alpha1
+        kind: Database
+        plural: databases
+      operatorBox:
+        reconcile:
+          resync: 30s
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-db-config"
+                reconcile: true
+                data:
+                  engine: "{{ .spec.engine }}"
+                  storageSize: "{{ .spec.storageSize }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Ready"
+              - path: engine
+                value: "{{ .spec.engine }}"
+              - path: storageSize
+                value: "{{ .spec.storageSize }}"
+
+    cache:
+      apiTypes:
+        group: security.inrun.dev
+        version: v1alpha1
+        kind: Cache
+        plural: caches
+      operatorBox:
+        reconcile:
+          resync: 30s
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-cache-config"
+                reconcile: true
+                data:
+                  maxMemory: "{{ .spec.maxMemory }}"
+                  evictionPolicy: "{{ .spec.evictionPolicy }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Ready"
+              - path: maxMemory
+                value: "{{ .spec.maxMemory }}"
+              - path: evictionPolicy
+                value: "{{ .spec.evictionPolicy }}"
+

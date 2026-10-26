@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: external-kafka-e2e
+  description: >
+    Verifies protocol: kafka by deploying Kafka in inrun-system and reading
+    topic metadata (@events) from the WebApp reconciler.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./e2e/cr-e2e.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-external-kafka
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-kafka-deploy.yaml
+    - include: ./e2e/02-assertions.yaml
+    - include: ./e2e/03-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

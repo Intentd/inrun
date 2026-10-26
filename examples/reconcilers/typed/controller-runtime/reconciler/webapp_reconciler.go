@@ -1,0 +1,154 @@
+//go:build ignore
+
+package reconciler
+
+import (
+	"context"
+	"fmt"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	demov1alpha1 "github.com/intentd/from-controller-runtime-demo/api/v1alpha1"
+	"github.com/intentd/inrun/domain"
+	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/kubeclient/adapter"
+)
+
+// WebAppReconciler is a controller-runtime reconciler, unchanged apart from
+// dropping Scheme (Inrun registers types at startup) and SetupWithManager
+// (Inrun runs the informer, queue, workers, leader election and metrics).
+type WebAppReconciler struct {
+	client.Client
+}
+
+// NewWebAppReconciler is the only new code.
+// Two lines replace all of main.go, scheme registration, and SetupWithManager.
+func NewWebAppReconciler(kube kubeclient.Interface) domain.Reconciler {
+	return domain.ReconcilerFrom(&WebAppReconciler{
+		Client: adapter.ToClient(kube),
+	})
+}
+
+// Reconcile is unchanged from controller-runtime.
+func (r *WebAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	webapp := &demov1alpha1.WebApp{}
+	if err := r.Get(ctx, req.NamespacedName, webapp); err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileDeployment(ctx, webapp); err != nil {
+		logger.Error(err, "failed to reconcile Deployment")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileService(ctx, webapp); err != nil {
+		logger.Error(err, "failed to reconcile Service")
+		return ctrl.Result{}, err
+	}
+
+	// Patch the status rather than update it: a merge patch carries no
+	// resourceVersion, so it doesn't conflict with Inrun's own writes to the
+	// CR (finalizers, labels) made since the Get above.
+	original := webapp.DeepCopyObject().(*demov1alpha1.WebApp)
+	webapp.Status.Phase = "Running"
+	webapp.Status.Endpoint = fmt.Sprintf("%s.%s.svc.cluster.local", webapp.Name, webapp.Namespace)
+	webapp.Status.Replicas = webapp.Spec.Replicas
+	if err := r.Status().Patch(ctx, webapp, client.MergeFrom(original)); err != nil {
+		logger.Error(err, "failed to update WebApp status")
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *WebAppReconciler) reconcileDeployment(ctx context.Context, webapp *demov1alpha1.WebApp) error {
+	replicas := webapp.Spec.Replicas
+	deploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webapp.Name,
+			Namespace: webapp.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(webapp, demov1alpha1.GroupVersionKind),
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": webapp.Name},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": webapp.Name},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  webapp.Name,
+							Image: webapp.Spec.Image,
+							Ports: []corev1.ContainerPort{
+								{ContainerPort: webapp.Spec.Port},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	existing := &appsv1.Deployment{}
+	err := r.Get(ctx, client.ObjectKey{Name: webapp.Name, Namespace: webapp.Namespace}, existing)
+	if errors.IsNotFound(err) {
+		return r.Create(ctx, deploy)
+	}
+	if err != nil {
+		return err
+	}
+	patch := client.MergeFrom(existing.DeepCopy())
+	existing.Spec = deploy.Spec
+	return r.Patch(ctx, existing, patch)
+}
+
+func (r *WebAppReconciler) reconcileService(ctx context.Context, webapp *demov1alpha1.WebApp) error {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webapp.Name + "-svc",
+			Namespace: webapp.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(webapp, demov1alpha1.GroupVersionKind),
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{"app": webapp.Name},
+			Ports: []corev1.ServicePort{
+				{
+					Port:       80,
+					TargetPort: intstr.FromInt(int(webapp.Spec.Port)),
+				},
+			},
+		},
+	}
+
+	existing := &corev1.Service{}
+	err := r.Get(ctx, client.ObjectKey{Name: webapp.Name + "-svc", Namespace: webapp.Namespace}, existing)
+	if errors.IsNotFound(err) {
+		return r.Create(ctx, svc)
+	}
+	if err != nil {
+		return err
+	}
+	patch := client.MergeFrom(existing.DeepCopy())
+	existing.Spec.Ports = svc.Spec.Ports
+	return r.Patch(ctx, existing, patch)
+}

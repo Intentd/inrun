@@ -1,0 +1,52 @@
+expect:
+  - name: deploy PostgreSQL in inrun-system
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: postgres
+              namespace: inrun-system
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: postgres
+              template:
+                metadata:
+                  labels:
+                    app: postgres
+                spec:
+                  containers:
+                    - name: postgres
+                      image: postgres:16-alpine
+                      env:
+                        - name: POSTGRES_USER
+                          value: inrun
+                        - name: POSTGRES_PASSWORD
+                          value: inrun
+                        - name: POSTGRES_DB
+                          value: inrun
+                      ports:
+                        - containerPort: 5432
+        - inline: |
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: postgres
+              namespace: inrun-system
+            spec:
+              selector:
+                app: postgres
+              ports:
+                - port: 5432
+                  targetPort: 5432
+
+  - name: PostgreSQL pod is ready
+    timeout: 90s
+    resources:
+      - kind: Deployment
+        name: postgres
+        namespace: inrun-system
+        condition: Available

@@ -1,0 +1,7 @@
+apiVersion: testground.inrun.dev/v1alpha1
+kind: Website
+metadata:
+  name: site-b
+  namespace: default
+spec:
+  domain: a.example.com

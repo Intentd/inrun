@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: unique-operator-e2e
+  description: >
+    End-to-end test for unique: true. Applies a Website with
+    spec.domain set, then attempts a second Website with the same domain
+    and asserts the admission webhook rejects it synchronously at
+    kubectl apply time — not just on the next reconcile.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e-unique
+    reuse: false
+
+  expect:
+    - name: First Website accepted and reaches Ready
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: Website
+            name: site-a
+            namespace: default
+            field: .status.phase
+            equals: Ready
+
+    - name: Duplicate domain rejected by admission webhook at apply time
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        apply:
+          - file: ./cr-duplicate.yaml
+            exitCode: 1
+            contains: "denied the request"
+
+    - name: Rejection message names the actual rule
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        apply:
+          - file: ./cr-duplicate.yaml
+            exitCode: 1
+            contains: "spec.domain must be unique across all Website instances"
+
+    - name: Rejected duplicate was never created
+      after: cr-applied
+      timeout: 30s
+      resources:
+        - kind: Website
+          name: site-b
+          namespace: default
+          count: 0
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: Website
+          name: site-a
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 2m

@@ -1,0 +1,9 @@
+apiVersion: reconciler.inrun.dev/v1alpha1
+kind: ReconcilerProbe
+metadata:
+  name: probe-rejected
+  namespace: default
+spec:
+  image: nginx:1.25
+  port: 8080
+  schedule: "*/15 * * * *"

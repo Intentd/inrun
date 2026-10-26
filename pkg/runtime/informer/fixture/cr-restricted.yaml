@@ -1,0 +1,7 @@
+apiVersion: informer.inrun.dev/v1alpha1
+kind: InformerProbe
+metadata:
+  name: probe-restricted
+  namespace: team-b
+spec:
+  name: probe-restricted

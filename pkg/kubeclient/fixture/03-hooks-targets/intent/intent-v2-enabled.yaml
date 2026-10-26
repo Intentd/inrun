@@ -1,0 +1,6 @@
+target: v2-enabled
+name: 03-hooks-targets-my-chain
+image: ethereum/client-go:v1.14.0
+network: testnet
+nodeType: full-node
+replicas: 2

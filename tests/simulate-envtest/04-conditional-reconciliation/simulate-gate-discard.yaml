@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: gate-discard
+  description: >
+    spec.enabled: false — coordinator discards the item, reconciler never called.
+    No Deployment is created. Loop reaches steady state cleanly.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-disabled.yaml
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    absent:
+      - resource: deployments

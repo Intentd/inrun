@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: intent-reject
+  description: >
+    Intentionally failing simulate spec — asserts ops the reconciler does not produce.
+    Demonstrates that simulate catches runtime-level mismatches before cluster.
+    Run: inrun simulate -f simulate-reject.yaml (builds the CR from intent:, as serve play does)
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../crd.yaml
+  setup:
+    - ../setup.yaml
+  intent: ./primary.yaml
+  token: console
+  cycles: 5
+  skipExternal: true
+  expect:
+    steady: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+      - cycle: 1
+        verb: apply
+        resource: services

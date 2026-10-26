@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: test
+gateway:
+  enabled: true
+  api:
+    enabled: true
+    auth:
+      tokens:
+        - name: dev
+          token: "${INRUN_DEV_TOKEN}"
+spec:
+  crds:
+    platform:
+      apiTypes:
+        group: platform.inrun.dev
+        version: v1alpha1
+        kind: Platform
+        plural: platforms
+      serve:
+        enabled: true
+        fields:
+          name:
+            label: "Name"
+            order: 1

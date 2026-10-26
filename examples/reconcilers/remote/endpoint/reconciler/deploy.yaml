@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-reconciler
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webapp-reconciler
+  template:
+    metadata:
+      labels:
+        app: webapp-reconciler
+    spec:
+      containers:
+        - name: reconciler
+          image: ghcr.io/intentd/examples/remote/webapp-reconciler:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8025
+          env:
+            - name: RECONCILER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: webapp-reconciler-token
+                  key: token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-reconciler
+  namespace: default
+spec:
+  selector:
+    app: webapp-reconciler
+  ports:
+    - port: 8025
+      targetPort: 8025

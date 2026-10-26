@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: argocd-applicationset
+  version: v0.1.0
+  description: >
+    ArgoCD ApplicationSet built from a list of app definitions.
+    Each entry in spec.apps becomes an ArgoCD Application via the list generator.
+    Useful for grouping multiple repositories under a single named deployment unit.
+  author: intentd
+  tags:
+    - argocd
+    - applicationset
+    - multi-app
+    - gateway-fixture
+
+resources:
+  custom:
+    - apiVersion: argoproj.io/v1alpha1
+      kind: ApplicationSet
+      metadata:
+        name: "{{ .metadata.name }}"
+        namespace: argocd
+      spec:
+        generators:
+          - list:
+              elements: "{{ .spec.apps | toJSON }}"
+        template:
+          metadata:
+            name: "{{ .metadata.name }}-{{`{{name}}`}}"
+          spec:
+            project: default
+            source:
+              repoURL: "{{`{{repoURL}}`}}"
+              targetRevision: HEAD
+              path: "."
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: "{{ .metadata.namespace }}"

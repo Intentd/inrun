@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: namespace-protection-e2e
+  description: Enforce namespace restrictions at admission time — allowed namespaces pass, restricted ones are rejected
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-allowed.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    - ./setup.yaml   # creates production and staging namespaces
+
+  expect:
+    - name: Allowed CRs accepted — deployments in production
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          name: my-app-app
+          namespace: production
+          ready: true
+
+    - name: Blocked CR rejected by webhook
+      after: cr-applied
+      timeout: 30s
+      commands:
+        - run: kubectl apply -f ./cr-blocked.yaml
+          exitCode: 1
+          contains: "denied the request"
+
+    - name: Deployments removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          name: my-app-app
+          namespace: production
+          count: 0

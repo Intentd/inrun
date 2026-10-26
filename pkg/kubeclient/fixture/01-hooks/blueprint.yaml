@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: blockchainapp-hooks
+  author: intentd
+  version: 0.1.0
+  description: >
+    BlockchainApp operator — the runtime makes the feature-flag HTTP call before
+    invoking the hook, but only during business hours. Both the business-hours
+    window and the flag URL are Blueprint configuration; the hook binary is identical
+    across environments and schedules.
+
+functions:
+  include: ../include/functions.yaml
+
+spec:
+  crds:
+    blockchainapp:
+      crdFile: ./crd.yaml
+      crFiles:
+        - ./cr.yaml
+      apiTypes:
+        group: demo.inrun.dev
+        version: v1alpha1
+        kind: BlockchainApp
+        plural: blockchainapps
+        object: BlockchainApp
+        objectList: BlockchainAppList
+        location: github.com/intentd/inrun-args-hooks/api/v1alpha1
+        alias: bcappv1
+      operatorBox:
+        reconcile:
+          default: true
+          managedResources:
+            - kind: Deployment
+          args:
+            featureEnabled: '{{ .external.flags.body }}'
+            inBusinessHours: '{{ inBusinessHours }}'
+          external:
+            - name: flags
+              url: "{{ .spec.serviceUrl }}/flags/{{ .metadata.name }}/v2Enabled"
+              method: GET
+              continueOnError: true
+              timeout: 5s
+              when:
+                - field: '{{ inBusinessHours }}'
+                  equals: "true"
+          hooks:
+            location: github.com/intentd/inrun-args-hooks/hooks
+            function: BlockchainAppHooks
+            alias: bchooks
+          workers: 2
+          resync: 30s
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: featureEnabled
+                value: "{{ .external.flags.body }}"
+                when:
+                  - field: external.flags.called
+                    equals: "true"
+

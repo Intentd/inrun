@@ -1,0 +1,5 @@
+expect:
+  - include: ./gateway/schema.yaml
+  - include: ./gateway/apply-primary.yaml
+  - include: ./gateway/apply-aliases.yaml
+  - include: ./gateway/permissions.yaml

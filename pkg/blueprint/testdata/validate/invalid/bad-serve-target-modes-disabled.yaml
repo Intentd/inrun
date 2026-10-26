@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-serve-target-mode
+  version: 1.0.0
+  description: Tests that serve.modes where serve is enabled but all modes are disabled fail validation.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        modes:
+          target: false
+          cr: false

@@ -1,0 +1,10 @@
+# Status field projections for the gateway serve fixture.
+fields:
+  - path: workloadType
+    value: "{{ .spec.workloadType }}"
+  - path: team
+    value: "{{ .spec.team }}"
+  - path: environment
+    value: "{{ .spec.environment }}"
+  - path: phase
+    value: "Ready"

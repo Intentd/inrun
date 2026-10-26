@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: filter-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    Living fixture for preReconcile.enqueueGate. Verifies that the enqueue gate
+    drops objects at the informer layer — before they enter the queue — when
+    spec.active is false. The reconciler never runs; no resources are created;
+    CRD health stays healthy (not gated, unlike preReconcile.reconcileGate).
+
+spec:
+  crds:
+    filter-probe:
+      apiTypes:
+        group: filter.inrun.dev
+        version: v1alpha1
+        kind: FilterProbe
+        plural: filterprobes
+      operatorBox:
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-config"
+                namespace: "{{ .metadata.namespace }}"
+                data:
+                  observed: "{{ .metadata.name }}"
+        preReconcile:
+          enqueueGate:
+            when:
+              - field: "{{ .spec.active }}"
+                equals: "true"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: Running
+

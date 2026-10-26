@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: declarative-sim
+  description: >
+    Suite for the declarative pack — runs simulate for every example.
+
+imports:
+  - ./01-hello-website/test/simulate.yaml
+  - ./02-with-serviceaccount/test/simulate.yaml
+  - ./03-secret-copy/test/simulate.yaml
+  - ./04-configmap-copy/test/simulate.yaml

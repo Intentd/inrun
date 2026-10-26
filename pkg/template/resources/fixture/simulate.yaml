@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: resource-probe-sim
+  description: Verify the ResourceProbe hook fires — all 23 resource types applied on cycle 1
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+  cycles: 3
+
+  # Requires a compiled binary with the type registry.
+  # Run `make build` then `inrun simulate` from this directory.
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - include: ./ops/01-infra.yaml
+      - include: ./ops/02-rbac.yaml
+      - include: ./ops/03-workloads.yaml

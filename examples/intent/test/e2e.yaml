@@ -1,0 +1,121 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: website-intent-e2e
+  description: >
+    Send intent.json to the in-cluster gateway, check the CR it creates is
+    reconciled by the Python reconciler, and read the view back through the
+    gateway. The reconciler runs as a Deployment, applied in setup.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    apply:
+      - path: ../manifests/secret.yaml
+      - path: ../reconciler/deploy.yaml
+        wait:
+          - kind: Deployment
+            name: website-reconciler
+            namespace: default
+            ready: true
+            timeout: 90s
+
+  expect:
+    - name: Intent accepted by the gateway
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/apply
+            method: POST
+            headers:
+              Authorization: "Bearer dev-token"
+              Content-Type: "application/json"
+            body: '{"target":"website","name":"hello-intent","image":"nginx:1.25","replicas":1,"port":80}'
+            jq: .accepted
+            equals: "true"
+
+    - name: Intent became a reconciled Website
+      after: cr-applied
+      timeout: 120s
+      resources:
+        - kind: Deployment
+          name: hello-intent
+          namespace: default
+          ready: true
+        - kind: Service
+          name: hello-intent-svc
+          namespace: default
+
+    - name: View read back through the gateway
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/resources/website/default/hello-intent
+            headers:
+              Authorization: "Bearer dev-token"
+            jq: .phase
+            equals: Running
+
+    # The CR came from the gateway, not a file, so delete it the same way —
+    # while the runtime is still running to clear its finalizer. The DELETE is
+    # its own step: a retry would find the CR already going and get 404.
+    - name: Deleted through the gateway
+      after: cr-deleted
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - service: inrun-gateway
+            namespace: inrun-system
+            port: 8080
+            path: /api/v1/resources/website/default/hello-intent
+            method: DELETE
+            headers:
+              Authorization: "Bearer dev-token"
+            statusCode: 204
+
+    # The Website goes once its finalizing reconcile is done.
+    - name: Website and its Deployment are gone
+      after: cr-deleted
+      timeout: 60s
+      resources:
+        - kind: Website
+          name: hello-intent
+          namespace: default
+          count: 0
+        - kind: Deployment
+          name: hello-intent
+          namespace: default
+          count: 0
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: Website
+          namespace: default
+      logs:
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 5m
+        - labelSelector: app=website-reconciler
+          namespace: default
+          since: 5m
+    commands:
+      - kubectl get events -n default --sort-by=.lastTimestamp

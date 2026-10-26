@@ -1,0 +1,69 @@
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: TrafficPolicy
+metadata:
+  name: api-traffic
+  namespace: demo-06
+spec:
+  weight: "80"
+  timeout: 30s
+  retries: "3"
+---
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: VirtualService
+metadata:
+  name: api-virtual-service
+  namespace: demo-06
+spec:
+  host: api.demo-06.example.com
+  port: "8080"
+  upstream: api-backend
+---
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: Backend
+metadata:
+  name: api-backend
+  namespace: demo-06
+spec:
+  image: nginx:1.25
+  replicas: 2
+  port: 8080
+---
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: HealthCheck
+metadata:
+  name: api-health
+  namespace: demo-06
+spec:
+  target: api-backend
+  path: /healthz
+  interval: 15s
+  timeout: 5s
+---
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: RateLimit
+metadata:
+  name: api-rate-limit
+  namespace: demo-06
+spec:
+  limit: "1000"
+  window: 1m
+  burst: "200"
+---
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: CircuitBreaker
+metadata:
+  name: api-circuit-breaker
+  namespace: demo-06
+spec:
+  target: api-backend
+  threshold: "50"
+  cooldown: 30s
+  halfOpenRequests: "5"
+---
+apiVersion: net.demo.inrun.dev/v1alpha1
+kind: TLSPolicy
+metadata:
+  name: api-tls
+  namespace: demo-06
+spec:
+  commonName: api.demo-06.example.com

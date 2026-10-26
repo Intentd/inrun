@@ -1,0 +1,19 @@
+
+# Cache
+apiVersion: demo.inrun.dev/v1alpha1
+kind: Cache
+metadata:
+  name: example-cache
+spec:
+  backend: redis
+  size: small
+
+---
+# Database
+apiVersion: demo.inrun.dev/v1alpha1
+kind: Database
+metadata:
+  name: example-database
+spec:
+  engine: postgres
+  version: "14"

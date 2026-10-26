@@ -1,0 +1,16 @@
+expect:
+  - name: bad image rejected by webhook at apply time
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: kubectl apply -f ../cr-bad-image.yaml
+        exitCode: 1
+        contains: "denied the request"
+
+  - name: webhook denial message contains allowedRegistry note value
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: kubectl apply -f ../cr-bad-image.yaml
+        exitCode: 1
+        contains: "image must be from myorg/"

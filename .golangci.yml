@@ -1,0 +1,41 @@
+version: "2"
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gosimple
+    - unused
+    - ineffassign
+    - typecheck
+    - errcheck
+    - gocritic
+    - gosec
+    - revive
+    - misspell
+    - unconvert
+    - unparam
+    - goconst
+    - gocyclo
+    - nakedret
+    - prealloc
+    - exportloopref
+
+  disable:
+    - depguard
+    - dupl
+    - funlen
+    - wsl
+    - gomnd
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

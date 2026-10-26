@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/stack.json
+apiVersion: inrun.dev/v1
+kind: Stack
+metadata:
+  name: consume-deployment-stack
+  description: >
+    Run the published deployment-stack pattern without writing an operator.
+    The Stack imports it from the registry and tunes only how it runs here.
+
+imports:
+  registry:
+    - url: oci://ghcr.io/intentd/registry/patterns/blueprints/deployment-stack:v0.1.0
+
+# Everything else comes from the pattern: the CRD, the reconciler, the resources.
+spec:
+  crds:
+    application:
+      operatorBox:
+        reconcile:
+          workers: 4
+          resync: 30s

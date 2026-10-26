@@ -1,0 +1,15 @@
+# Exercises: warn when — production without productionApproval.
+# Expected: accepted, ValidationWarning event for spec.productionApproval.
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: payments-api-prod
+  namespace: team-payments
+spec:
+  workloadType: app
+  team: team-payments
+  environment: production
+  repoURL: https://github.com/myorg/payments-api
+  targetRevision: v1.4.2
+  targetNamespace: team-payments
+  # productionApproval intentionally absent — triggers warn rule

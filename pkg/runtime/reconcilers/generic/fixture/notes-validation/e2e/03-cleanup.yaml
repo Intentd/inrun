@@ -1,0 +1,26 @@
+expect:
+  - name: delete bad-image CR
+    after: cr-deleted
+    timeout: 30s
+    kubectl:
+      delete:
+        - kind: DeploymentRequest
+          name: bad-image-app
+          namespace: default
+
+  - name: cleanup verified
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: DeploymentRequest
+        name: my-app
+        namespace: default
+        count: 0
+      - kind: DeploymentRequest
+        name: bad-image-app
+        namespace: default
+        count: 0
+      - kind: Deployment
+        name: my-app
+        namespace: default
+        count: 0

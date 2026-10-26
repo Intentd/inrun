@@ -1,0 +1,10 @@
+paths:
+  - from: v1alpha1
+    to: v1
+    spec:
+      image: "{{ .spec.image }}"
+      replicas: "{{ .spec.replicas }}"
+  - from: v1beta1
+    to: v1
+    spec:
+      image: "{{ .spec.image }}"

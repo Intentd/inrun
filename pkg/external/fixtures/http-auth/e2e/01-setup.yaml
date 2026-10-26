@@ -1,0 +1,50 @@
+expect:
+  - name: create dev-server-token Secret
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ../secret.yaml
+
+  - name: WebApp reaches Ready
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          equals: "Ready"
+
+  - name: healthStatus is 200
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.healthStatus
+          equals: "200"
+
+  - name: configStatus is 200 — protected endpoint reached with valid token
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.configStatus
+          equals: "200"
+
+  - name: tokenValid is true — secretRef credential was accepted
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.tokenValid
+          equals: "true"

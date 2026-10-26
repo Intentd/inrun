@@ -1,0 +1,194 @@
+name: Sign and Release
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Container image tag (without v prefix)'
+        required: true
+        type: string
+      github_repo:
+        description: 'GitHub repository (owner/name) for the main repo'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      container_registry:
+        description: 'Container registry base (e.g., ghcr.io/owner)'
+        required: false
+        type: string
+        default: 'ghcr.io/intentd'
+      get_inrun:
+        description: 'Inrun installation script for Linux'
+        required: false
+        type: string
+        default: 'get.inrun.dev'
+      inrun:
+        description: 'Shorthand for inrun'
+        required: false
+        type: string
+        default: 'inrun'
+      inrun_image:
+        description: 'Runtime image name (without registry)'
+        required: false
+        type: string
+        default: 'inrun'
+      inrun-console_image:
+        description: 'Console image name (without registry)'
+        required: false
+        type: string
+        default: 'inrun-console'
+      helm_repo_url:
+        description: 'Helm repository URL'
+        required: false
+        type: string
+        default: 'https://intentd.github.io/inrun'
+      helm_chart:
+        description: 'Helm chart reference (repo/chart)'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      brew_tap:
+        description: 'Homebrew tap (owner/tap)'
+        required: false
+        type: string
+        default: 'intentd/tap'
+
+jobs:
+  release:
+    name: Sign and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum inrun_*.tar.gz inrun-console_*.tar.gz inrun_*.zip inrun-console_*.zip examples_*.tar.gz 2>/dev/null | grep -v "No such file" > checksums.txt
+          echo "✅ Checksums generated"
+
+      # Keyless: cosign signs with this workflow's GitHub OIDC identity, so
+      # there is no key to keep. The bundle carries the signature and the
+      # certificate; every archive is covered through checksums.txt.
+      - name: Sign checksums
+        run: |
+          cd dist
+          cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
+          echo "✅ Signed: checksums.txt"
+
+      - name: Verify signature and checksums
+        run: |
+          cd dist
+          cosign verify-blob checksums.txt \
+            --bundle checksums.txt.sigstore.json \
+            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/sign-and-release.yml@${{ github.ref }}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          sha256sum -c checksums.txt
+
+      - name: Extract changelog
+        run: |
+          TAG="${GITHUB_REF_NAME}"  # includes 'v', used for release title and changelog section
+          IMAGE_TAG="${{ inputs.image_tag }}"
+          if grep -q "## ${TAG}" CHANGELOG.md 2>/dev/null; then
+            awk "/## ${TAG}/{found=1; next} /## v[0-9]/{if(found) exit} found{print}" CHANGELOG.md > release_notes.txt
+          else
+            echo "Release ${TAG}" > release_notes.txt
+          fi
+          cat >> release_notes.txt << EOF
+
+          ### 📦 Installation
+
+          #### CLI (Runtime + Console)
+
+          \`\`\`bash
+          # macOS
+          brew tap ${{ inputs.brew_tap }} && brew install inrun inrun-console
+
+          # Linux
+          curl -sSL ${{ inputs.get_inrun }} | bash
+
+          # Windows (ZIP)
+          # Download inrun_windows_amd64.zip and inrun-console_windows_amd64.zip from release assets
+          \`\`\`
+
+          #### Container Images
+
+          \`\`\`bash
+          # Runtime
+          docker pull ${{ inputs.container_registry }}/${{ inputs.inrun_image }}:${IMAGE_TAG}
+
+          # Console
+          docker pull ${{ inputs.container_registry }}/${{ inputs.inrun-console_image }}:${IMAGE_TAG}
+          \`\`\`
+
+          #### Helm
+
+          \`\`\`bash
+          helm repo add ${{ inputs.inrun }} ${{ inputs.helm_repo_url }}
+          helm upgrade --install ${{ inputs.inrun }} ${{ inputs.helm_chart }} -n ${{ inputs.inrun }}-system --create-namespace
+          \`\`\`
+
+          #### Examples
+
+          \`\`\`bash
+          # upgrade inrun CLI
+          inrun upgrade --version v${IMAGE_TAG}
+
+          # initialize a pack
+          inrun init --pack <pack-name>
+
+          # Run
+          inrun
+          \`\`\`
+          EOF
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: "${{ github.ref_name }}"
+          body_path: release_notes.txt
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            dist/inrun_linux_amd64.tar.gz
+            dist/inrun_linux_arm64.tar.gz
+            dist/inrun_darwin_amd64.tar.gz
+            dist/inrun_darwin_arm64.tar.gz
+            dist/inrun_windows_amd64.tar.gz
+            dist/inrun_windows_amd64.zip
+            dist/inrun-console_linux_amd64.tar.gz
+            dist/inrun-console_linux_arm64.tar.gz
+            dist/inrun-console_darwin_amd64.tar.gz
+            dist/inrun-console_darwin_arm64.tar.gz
+            dist/inrun-console_windows_amd64.tar.gz
+            dist/inrun-console_windows_amd64.zip
+            dist/checksums.txt
+            dist/checksums.txt.sigstore.json
+            dist/examples_declarative_${{ github.ref_name }}.tar.gz
+            dist/examples_remote_${{ github.ref_name }}.tar.gz
+            dist/examples_typed_${{ github.ref_name }}.tar.gz
+            dist/examples_intent_${{ github.ref_name }}.tar.gz
+            dist/examples_migration_${{ github.ref_name }}.tar.gz
+            dist/examples_registry_${{ github.ref_name }}.tar.gz
+          fail_on_unmatched_files: true
+      
+      - name: Upload checksums as artifact
+        uses: actions/upload-artifact@v4
+        with:
+         name: checksums
+         path: dist/checksums.txt
+         retention-days: 1

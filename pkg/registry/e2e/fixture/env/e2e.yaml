@@ -1,0 +1,21 @@
+# env-resolver-suite-e2e.yaml
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: env-resolver-suite-e2e
+  description: >
+    Proves a pure aggregator's spec.env reaches its imports, and that a leaf's
+    own spec.env overrides it on collision.
+
+spec:
+  cluster: 
+    provider: none
+  env:
+    DEV_TOKEN: from-suite
+    SHARED: suite-value
+
+imports:
+  - ./env-resolver-e2e.yaml           # declares its own → wins (from-spec)
+  - ./env-resolver-override-e2e.yaml  # declares DEV_TOKEN + LEAF_ONLY → wins
+  - ./env-resolver-inherit-e2e.yaml   # declares nothing → inherits from-suite

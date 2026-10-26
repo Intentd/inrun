@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+# Triggers: unknown HPA behavior.preset
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-hpa-preset
+  version: 0.1.0
+  description: Tests that an unknown HPA behavior.preset is rejected.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          onCreate:
+            hpa:
+            - name: widget-hpa
+              minReplicas: 1
+              maxReplicas: 10
+              scaleTargetRef:
+                apiVersion: apps/v1
+                kind: Deployment
+                name: widget-controller
+              behavior:
+                preset: aggressive
+

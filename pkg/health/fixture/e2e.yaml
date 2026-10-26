@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: health-probe-e2e
+  description: >
+    Living fixture for pkg/health. Boots a minimal declarative operator
+    and asserts the three Kubernetes probe endpoints — /startup, /health,
+    /ready — via port-forward to the leader pod.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-health-probe
+    reuse: false
+
+  expect:
+    - name: HealthProbe CR reaches Running status
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: HealthProbe
+            name: probe
+            namespace: default
+            field: .status.phase
+            equals: Running
+
+    - name: /startup — operator fully initialised
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - leaderElection:
+              lease: inrun-leader
+              namespace: inrun-system
+            port: 8080
+            path: /startup
+            contains: started
+
+    - name: /health — operator liveness
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        port-forward:
+          - leaderElection:
+              lease: inrun-leader
+              namespace: inrun-system
+            port: 8080
+            path: /health
+            contains: healthy
+
+    - name: /ready — operator readiness
+      after: cr-applied
+      timeout: 30s
+      kubectl:
+        port-forward:
+          - leaderElection:
+              lease: inrun-leader
+              namespace: inrun-system
+            port: 8080
+            path: /ready
+            contains: ready
+
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: HealthProbe
+          name: probe
+          namespace: default
+          count: 0
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: HealthProbe
+          name: probe
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m
+    commands:
+      - kubectl get pods -n inrun-system -o wide

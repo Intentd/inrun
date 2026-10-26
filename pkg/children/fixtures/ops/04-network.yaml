@@ -1,0 +1,36 @@
+ops:
+  # API Network Resources
+  - cycle: 1
+    verb: apply
+    resource: services
+    name: acme-api-svc
+  - cycle: 1
+    verb: apply
+    resource: ingresses
+    name: acme-api-ingress
+  - cycle: 1
+    verb: apply
+    resource: horizontalpodautoscalers
+    name: acme-api-hpa
+  - cycle: 1
+    verb: apply
+    resource: poddisruptionbudgets
+    name: acme-api-pdb
+  
+  # Worker Network Resources
+  - cycle: 1
+    verb: apply
+    resource: services
+    name: acme-worker-svc
+  - cycle: 1
+    verb: apply
+    resource: ingresses
+    name: acme-worker-ingress
+  - cycle: 1
+    verb: apply
+    resource: horizontalpodautoscalers
+    name: acme-worker-hpa
+  - cycle: 1
+    verb: apply
+    resource: poddisruptionbudgets
+    name: acme-worker-pdb

@@ -1,0 +1,4 @@
+target: cronjob
+name: daily-backup
+schedule: "0 2 * * 1-5"
+image: "busybox:latest"

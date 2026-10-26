@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: publish-intent-no-gateway
+  version: 1.0.0
+  description: Tests that intent true requires gateway.api.enabled.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+publish:
+  tests:
+    intent: true

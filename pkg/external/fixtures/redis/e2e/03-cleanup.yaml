@@ -1,0 +1,8 @@
+expect:
+  - name: no WebApps remain
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: WebApp
+        namespace: default
+        count: 0

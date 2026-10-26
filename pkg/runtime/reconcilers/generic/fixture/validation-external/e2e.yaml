@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: validation-external-e2e
+  description: >
+    Verifies validation.external with fires.reconcile: false. healthCheck is
+    admission-only — the reconciler never calls it. A CR pointing to /status/503
+    passes reconcile because the healthCheck rule is skipped (called == "").
+    Only configFetch drives phase. admissionOnlyRan stays empty proving the
+    call was suppressed. The webhook fixture tests the admission side.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-validation-external
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-bad-health-denied.yaml
+    - include: ./e2e/02-healthy-passes.yaml
+    - include: ./e2e/03-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

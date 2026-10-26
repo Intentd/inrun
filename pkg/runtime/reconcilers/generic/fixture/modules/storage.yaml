@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: reconciler-probe-storage
+  description: Storage resources — PersistentVolume, PersistentVolumeClaim.
+
+resources:
+  persistentVolumes:
+    - name: "{{ .metadata.name }}-pv"
+      capacity: 1Gi
+      accessModes: [ReadWriteOnce]
+      hostPath: "/tmp/inrun-{{ .metadata.name }}"
+
+  persistentVolumeClaims:
+    - name: "{{ .metadata.name }}-pvc"
+      namespace: "{{ .metadata.name }}-ns"
+      storage: 1Gi
+      accessModes: [ReadWriteOnce]

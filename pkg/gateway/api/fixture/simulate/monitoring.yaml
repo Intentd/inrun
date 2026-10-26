@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: gateway-fixture-monitoring
+  description: monitoring workload — Prometheus ServiceMonitor created on cycle 1
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../crd.yaml
+  setup:
+    - ../setup.yaml
+  cr: ../crs/monitoring-valid.yaml
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    crds:
+      platformResource:
+        ops:
+          - cycle: 1
+            verb: create
+            resource: servicemonitors
+            name: platform-monitor

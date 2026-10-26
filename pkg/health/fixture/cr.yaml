@@ -1,0 +1,7 @@
+apiVersion: health.inrun.dev/v1alpha1
+kind: HealthProbe
+metadata:
+  name: probe
+  namespace: default
+spec:
+  name: probe

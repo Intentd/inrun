@@ -1,0 +1,118 @@
+# Serve field config for the gateway fixture.
+# Included from blueprint.yaml via serve.include.
+# Tests: category, when (field + time), or, disabled, required indicators, placeholders, defaults.
+
+# ── Basic ─────────────────────────────────────────────────────────────────────
+fields:
+  workloadType:
+    label: "Workload Type"
+    hint: "app = ArgoCD Application · cert = TLS Certificate · monitoring = ServiceMonitor"
+    order: 1
+    category: "Basic"
+
+  team:
+    label: "Team"
+    placeholder: "team-payments"
+    hint: "Slug of the owning team. Sets namespace binding."
+    order: 2
+    category: "Basic"
+
+  environment:
+    label: "Environment"
+    hint: "staging or production"
+    order: 3
+    category: "Basic"
+
+  # ── Application — visible only when workloadType = app ────────────────────────
+
+  repoURL:
+    label: "Repository URL"
+    placeholder: "https://github.com/myorg/payments"
+    order: 10
+    category: "Application"
+    when:
+      - field: workloadType
+        equals: app
+
+  targetRevision:
+    label: "Branch / Tag"
+    placeholder: "main"
+    order: 11
+    category: "Application"
+    when:
+      - field: workloadType
+        equals: app
+
+  targetNamespace:
+    label: "Target Namespace"
+    placeholder: "team-payments"
+    order: 12
+    category: "Application"
+    when:
+      - field: workloadType
+        equals: app
+
+  # ── Certificate — visible only when workloadType = cert ───────────────────────
+
+  domain:
+    label: "Domain"
+    placeholder: "api.payments.example.com"
+    order: 20
+    category: "Certificate"
+    when:
+      - field: workloadType
+        equals: cert
+
+  issuer:
+    label: "Certificate Issuer"
+    placeholder: "letsencrypt-prod"
+    order: 21
+    category: "Certificate"
+    when:
+      - field: workloadType
+        equals: cert
+
+  # ── Monitoring — visible only when workloadType = monitoring ──────────────────
+
+  scrapeInterval:
+    label: "Scrape Interval"
+    hint: "Prometheus scrape interval. Default is 30s."
+    order: 30
+    category: "Monitoring"
+    when:
+      - field: workloadType
+        equals: monitoring
+
+  # ── Production guard ──────────────────────────────────────────────────────────
+  # Visible when: environment is staging (always visible to devs), OR it is a
+  # weekday between 09:00–17:00 (production release window). or = OR logic.
+
+  productionApproval:
+    label: "Production Approval Ticket"
+    placeholder: "JIRA-1234"
+    hint: "Required for production deploys. Must link to an approved change request."
+    required: true
+    order: 40
+    category: "Production"
+    or:
+      - field: environment
+        equals: staging
+      - time:
+          after: "09:00"
+          before: "17:00"
+        dayOfWeek:
+          weekday: true
+
+  # ── System fields — disabled (visible but locked) ─────────────────────────────
+
+  legacyMigration:
+    label: "Legacy Migration Target"
+    order: 50
+    category: "Advanced"
+    disabled: "Managed by the platform team — contact #platform-eng to request a change"
+
+  maintenanceWindow:
+    label: "Maintenance Window"
+    order: 51
+    category: "Advanced"
+    disabled: "Set via the platform API. Undergoing maintenance tooling update."

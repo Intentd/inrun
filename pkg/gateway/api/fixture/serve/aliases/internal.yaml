@@ -1,0 +1,16 @@
+# Alias config for the "internal" entry point on PlatformResource.
+# Platform team callers — full CR plus extended provenance payload.
+# All three provenance fields are surfaced so platform tooling can
+# reason about how and where the intent was delivered.
+tokens:
+  console:
+    permissions:
+      global: [get, list, create, update, delete]
+
+view:
+  fullObject: true
+  payload:
+    phase: '{{ .status.phase }}'
+    target: '{{ getServeTarget . }}'
+    alias: '{{ getServeAlias . }}'
+    source: '{{ getServeSource . }}'

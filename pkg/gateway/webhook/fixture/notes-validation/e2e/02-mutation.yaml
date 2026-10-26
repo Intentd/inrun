@@ -1,0 +1,39 @@
+expect:
+  - name: business-hours gate denies at webhook outside window
+    after: cr-applied
+    timeout: 30s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "false"
+    commands:
+      - run: kubectl apply -f ../cr.yaml
+        exitCode: 1
+        contains: "business hours"
+
+  - name: mutation defaults spec.replicas via webhook before admission
+    after: cr-applied
+    timeout: 30s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "true"
+    kubectl:
+      apply:
+        - file: ../cr.yaml
+      get:
+        - kind: DeploymentRequest
+          name: my-app
+          namespace: default
+          field: .spec.replicas
+          equals: "2"
+
+  - name: valid CR accepted during business hours
+    after: cr-applied
+    timeout: 60s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "true"
+    resources:
+      - kind: DeploymentRequest
+        name: my-app
+        namespace: default
+        count: 1

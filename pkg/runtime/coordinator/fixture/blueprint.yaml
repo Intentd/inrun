@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: coordinator-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    Living fixture for pkg/coordinator. Three CRDs exercise the dependency
+    health state machine: Worker has no dependencies. Component depends on
+    Worker (condition: started). Platform depends on Worker (condition: healthy).
+    The e2e applies CRDs and CRs in phases to observe each transition.
+
+spec:
+  crds:
+    worker:
+      apiTypes:
+        group: coordinator.inrun.dev
+        version: v1alpha1
+        kind: Worker
+        plural: workers
+      operatorBox:
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: Running
+
+    component:
+      apiTypes:
+        group: coordinator.inrun.dev
+        version: v1alpha1
+        kind: Component
+        plural: components
+      dependsOn:
+        worker:
+          condition: started
+      operatorBox:
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: Running
+
+    platform:
+      apiTypes:
+        group: coordinator.inrun.dev
+        version: v1alpha1
+        kind: Platform
+        plural: platforms
+      dependsOn:
+        worker:
+          condition: healthy
+      operatorBox:
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: Running
+              - path: workerRef
+                value: "{{ .spec.workerRef }}"
+

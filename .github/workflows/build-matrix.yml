@@ -1,0 +1,202 @@
+name: Build Matrix
+
+on:
+  workflow_call:
+    outputs:
+      cache-miss:
+        description: 'True if any binary was rebuilt (cache miss)'
+        value: ${{ jobs.aggregate-cache-miss.outputs.cache-miss }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}_${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            goarch: amd64
+            goos: linux
+          - os: linux
+            arch: arm64
+            goarch: arm64
+            goos: linux
+          - os: darwin
+            arch: amd64
+            goarch: amd64
+            goos: darwin
+          - os: darwin
+            arch: arm64
+            goarch: arm64
+            goos: darwin
+          - os: windows
+            arch: amd64
+            goarch: amd64
+            goos: windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run function generator
+        run: make generate-functions
+
+      - name: Cache compiled binaries for ${{ matrix.os }}_${{ matrix.arch }}
+        id: cache-binaries
+        uses: actions/cache@v5
+        with:
+          path: |
+            dist/inrun
+            dist/inrun.exe
+            dist/inrun-console
+            dist/inrun-console.exe
+          key: binaries-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('go.sum', '**/*.go', 'cmd/**/*.go') }}
+
+      # Record cache miss for this matrix entry
+      - name: Record cache miss flag
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/cache-miss-flags
+          touch "/tmp/cache-miss-flags/${{ matrix.os }}-${{ matrix.arch }}"
+
+      - name: Set binary names
+        run: |
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            echo "RUNTIME=inrun.exe" >> $GITHUB_ENV
+            echo "CONTROL=inrun-console.exe" >> $GITHUB_ENV
+          else
+            echo "RUNTIME=inrun" >> $GITHUB_ENV
+            echo "CONTROL=inrun-console" >> $GITHUB_ENV
+          fi
+
+      - name: Build runtime binary
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+          RUNTIME: ${{ env.RUNTIME }}
+        run: |
+          mkdir -p dist
+          go build \
+            -trimpath \
+            -ldflags="-s -w \
+              -X github.com/intentd/inrun/pkg/util/version.Version=${{ github.ref_name }} \
+              -X github.com/intentd/inrun/pkg/util/version.Commit=${{ github.sha }} \
+              -X github.com/intentd/inrun/pkg/util/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -o dist/${{ env.RUNTIME }} \
+            ./cmd/inrun/
+          echo "✅ Runtime built: dist/${{ env.RUNTIME }}"
+
+      - name: Build console binary
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+          CONTROL: ${{ env.CONTROL }}
+        working-directory: cmd/console
+        run: |
+          go build \
+            -trimpath \
+            -ldflags="-s -w \
+              -X github.com/intentd/inrun/console/version.Version=${{ github.ref_name }} \
+              -X github.com/intentd/inrun/console/version.Commit=${{ github.sha }} \
+              -X github.com/intentd/inrun/console/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -o ../../dist/${{ env.CONTROL }} .
+          echo "✅ Console built: dist/${{ env.CONTROL }}"
+
+      - name: Package runtime tarball
+        env:
+          RUNTIME: ${{ env.RUNTIME }}
+        run: |
+          ARCHIVE="inrun_${{ matrix.os }}_${{ matrix.arch }}.tar.gz"
+          tar -czf "dist/${ARCHIVE}" -C dist "${{ env.RUNTIME }}" -C "${{ github.workspace }}" README.md LICENSE
+          echo "✅ Archive: dist/${ARCHIVE}"
+
+      - name: Package console tarball
+        env:
+          CONTROL: ${{ env.CONTROL }}
+        run: |
+          ARCHIVE="inrun-console_${{ matrix.os }}_${{ matrix.arch }}.tar.gz"
+          tar -czf "dist/${ARCHIVE}" -C dist "${{ env.CONTROL }}" -C "${{ github.workspace }}" README.md LICENSE
+          echo "✅ Archive: dist/${ARCHIVE}"
+
+      - name: Package Windows ZIP (optional)
+        if: matrix.goos == 'windows'
+        env:
+          RUNTIME: ${{ env.RUNTIME }}
+          CONTROL: ${{ env.CONTROL }}
+        run: |
+          zip -j "dist/inrun_${{ matrix.os }}_${{ matrix.arch }}.zip" "dist/${{ env.RUNTIME }}"
+          zip -j "dist/inrun-console_${{ matrix.os }}_${{ matrix.arch }}.zip" "dist/${{ env.CONTROL }}"
+          zip -u "dist/inrun_${{ matrix.os }}_${{ matrix.arch }}.zip" README.md LICENSE
+          zip -u "dist/inrun-console_${{ matrix.os }}_${{ matrix.arch }}.zip" README.md LICENSE
+          echo "✅ ZIP packages created"
+
+      - name: Upload runtime artifact (tar.gz)
+        uses: actions/upload-artifact@v7
+        with:
+          name: inrun_${{ matrix.os }}_${{ matrix.arch }}
+          path: dist/inrun_${{ matrix.os }}_${{ matrix.arch }}.tar.gz
+          retention-days: 1
+
+      - name: Upload console artifact (tar.gz)
+        uses: actions/upload-artifact@v7
+        with:
+          name: inrun-console_${{ matrix.os }}_${{ matrix.arch }}
+          path: dist/inrun-console_${{ matrix.os }}_${{ matrix.arch }}.tar.gz
+          retention-days: 1
+
+      - name: Upload Windows ZIP artifacts
+        if: matrix.goos == 'windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: inrun_windows_amd64_zip
+          path: |
+            dist/inrun_windows_amd64.zip
+            dist/inrun-console_windows_amd64.zip
+          retention-days: 1
+
+      # Upload cache miss flag for this matrix entry (only if miss)
+      - name: Upload cache miss flag
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: cache-miss-flags
+          path: /tmp/cache-miss-flags/
+          retention-days: 1
+          if-no-files-found: ignore
+
+  # Aggregator job that determines overall cache miss
+  aggregate-cache-miss:
+    name: Aggregate cache miss status
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      cache-miss: ${{ steps.check-miss.outputs.cache-miss }}
+    steps:
+      - name: Download all cache miss flags
+        uses: actions/download-artifact@v8
+        with:
+          name: cache-miss-flags
+          path: /tmp/collected-flags
+        continue-on-error: true
+
+      - name: Determine if any cache miss occurred
+        id: check-miss
+        run: |
+          if [ -d /tmp/collected-flags ] && [ -n "$(ls -A /tmp/collected-flags)" ]; then
+            echo "cache-miss=true" >> $GITHUB_OUTPUT
+          else
+            echo "cache-miss=false" >> $GITHUB_OUTPUT
+          fi

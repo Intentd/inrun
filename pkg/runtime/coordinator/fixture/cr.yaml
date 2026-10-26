@@ -1,0 +1,6 @@
+apiVersion: seed.coordinator.inrun.dev/v1alpha1
+kind: CoordinatorSeed
+metadata:
+  name: coordinator-seed
+  namespace: default
+spec: {}

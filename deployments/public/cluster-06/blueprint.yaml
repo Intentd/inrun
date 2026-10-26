@@ -1,0 +1,219 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: network-suite
+  author: intentd
+  version: 0.1.0
+  tags:
+    - networking
+    - traffic
+    - tls
+    - ratelimit
+    - resilience
+  description: >
+    A 7-CRD networking suite operator. Manages traffic routing, ReplicaSet-backed
+    compute, health monitoring, rate limiting with rotating keys, circuit breaking,
+    and self-signed TLS certificate generation. Imports local modules for structural
+    patterns — keeping each CRD entry focused on its domain logic only.
+
+spec:
+  crds:
+    traffic-policy:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: TrafficPolicy
+        plural: trafficpolicies
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-traffic-policy"
+                data:
+                  WEIGHT: "{{ .spec.weight }}"
+                  TIMEOUT: "{{ .spec.timeout }}"
+                  RETRIES: "{{ .spec.retries }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Active"
+              - path: weight
+                value: "{{ .spec.weight }}"
+
+    virtual-service:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: VirtualService
+        plural: virtualservices
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          onCreate:
+            services:
+              - name: "{{ .metadata.name }}-vs"
+                port: "80"
+                targetPort: "{{ .spec.port }}"
+            configMaps:
+              - name: "{{ .metadata.name }}-virtual-service"
+                data:
+                  HOST: "{{ .spec.host }}"
+                  UPSTREAM: "{{ .spec.upstream }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Bound"
+              - path: host
+                value: "{{ .spec.host }}"
+              - path: endpoint
+                value: "{{ .metadata.name }}-vs.{{ .metadata.namespace }}.svc.cluster.local"
+
+    backend:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: Backend
+        plural: backends
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          imports:
+            - module: ../modules/replicaset-service/module.yaml
+              with:
+                image: "{{ .spec.image }}"
+                replicas: "{{ .spec.replicas }}"
+                port: "{{ .spec.port }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Ready"
+
+    health-check:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: HealthCheck
+        plural: healthchecks
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-health-check"
+                data:
+                  TARGET: "{{ .spec.target }}"
+                  PATH: "{{ .spec.path }}"
+                  INTERVAL: "{{ .spec.interval }}"
+                  TIMEOUT: "{{ .spec.timeout }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Monitoring"
+              - path: target
+                value: "{{ .spec.target }}"
+              - path: interval
+                value: "{{ .spec.interval }}"
+
+    rate-limit:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: RateLimit
+        plural: ratelimits
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          imports:
+            - module: ../modules/rotating-api-key/module.yaml
+              with:
+                rotateAfter: "180d"
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-rate-limit"
+                data:
+                  LIMIT: "{{ .spec.limit }}"
+                  WINDOW: "{{ .spec.window }}"
+                  BURST: "{{ .spec.burst }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Enforced"
+              - path: limit
+                value: "{{ .spec.limit }}"
+              - path: window
+                value: "{{ .spec.window }}"
+
+    circuit-breaker:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: CircuitBreaker
+        plural: circuitbreakers
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .metadata.name }}-circuit-breaker"
+                data:
+                  TARGET: "{{ .spec.target }}"
+                  THRESHOLD: "{{ .spec.threshold }}"
+                  COOLDOWN: "{{ .spec.cooldown }}"
+                  HALF_OPEN_REQUESTS: "{{ .spec.halfOpenRequests }}"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Closed"
+              - path: target
+                value: "{{ .spec.target }}"
+              - path: threshold
+                value: "{{ .spec.threshold }}"
+
+    tls-policy:
+      namespaced: true
+      apiTypes:
+        group: net.demo.inrun.dev
+        version: v1alpha1
+        kind: TLSPolicy
+        plural: tlspolicies
+      operatorBox:
+        runtime:
+          allowedNamespaces:
+            - demo-06
+        reconcile:
+          imports:
+            - module: ../modules/tls-cert/module.yaml
+              with:
+                commonName: "{{ .spec.commonName }}"
+                rotateAfter: "1y"
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Issued"

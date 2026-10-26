@@ -1,0 +1,12 @@
+# Valid CR — passes all validation rules as declared.
+# All fields are explicit: shows the operator running with known values.
+apiVersion: admission.inrun.dev/v1alpha1
+kind: Platform
+metadata:
+  name: my-platform
+  namespace: default
+spec:
+  image: registry.internal/my-platform:v1.0
+  replicas: 3
+  environment: production
+  rateLimit: 500

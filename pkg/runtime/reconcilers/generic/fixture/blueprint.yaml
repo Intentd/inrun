@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: reconciler-probe
+  author: intentd
+  version: 0.1.0
+  description: >
+    ReconcilerProbe — living integration fixture for all reconciler resource types.
+    All resource blocks live in focused modules under modules/. Add coverage for a
+    new type there. See pkg/reconciler/fixture/README.md for the checklist.
+
+security:
+  webhooks:
+    admission:
+      enabled: true
+
+gateway:
+  enabled: true
+
+spec:
+  crds:
+    reconciler-suite:
+      apiTypes:
+        group: reconciler.inrun.dev
+        version: v1alpha1
+        kind: ReconcilerSuite
+        plural: reconcilersuites
+      operatorBox:
+        reconcile:
+          onCreate:
+            custom:
+              - apiVersion: reconciler.inrun.dev/v1alpha1
+                kind: ReconcilerProbe
+                metadata:
+                  name: probe
+                  namespaced: false
+                spec:
+                  image: nginx:1.25
+                  replicas: 1
+                  port: 8080
+                  tier: premium
+                  schedule: "*/15 * * * *"
+                  extraLabels:
+                    - "team=platform"
+                    - "env=ci"
+                observe: false
+
+    reconciler-probe:
+      apiTypes:
+        group: reconciler.inrun.dev
+        version: v1alpha1
+        kind: ReconcilerProbe
+        plural: reconcilerprobes
+      # ── Admission ─────────────────────────────────────────────────────────
+      admission:
+        validation:
+          rules:
+            - field: spec.replicas
+              greaterThan: 0
+              message: "replicas must be at least 1"
+              action: deny
+            - field: spec.tier
+              in: "basic,premium"
+              message: "tier must be basic or premium"
+              action: deny
+
+        mutation:
+          rules:
+            - field: spec.image
+              default: "nginx:stable"
+      operatorBox:
+        reconcile:
+          workers: 3
+          resync: 30s
+          imports:
+            - module: ./modules/core.yaml
+            - module: ./modules/policy.yaml
+            - module: ./modules/rbac.yaml
+            - module: ./modules/workloads.yaml
+            - module: ./modules/network.yaml
+            - module: ./modules/storage.yaml
+          onDelete:
+            ordered: true
+            groups:
+              - clusterRoleBindings:
+              - clusterRoles:
+              - persistentVolumes:
+              - deployments:
+              - cronJobs:
+              - jobs:
+              - services:
+              - secrets:
+              - configMaps:
+              - serviceAccounts:
+              - namespaces:
+        emit:
+          status:
+            include: ./status/status.yaml
+

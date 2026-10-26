@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun Helm Chart Values",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "global": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace":        { "type": "string" },
+        "nameOverride":     { "type": "string" },
+        "fullnameOverride": { "type": "string" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "enabled":           { "type": "boolean" },
+        "imagePullSecrets":  { "type": "array" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository":  { "type": "string" },
+            "tag":         { "type": "string" },
+            "pullPolicy":  { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        },
+        "replicaCount":    { "type": "integer", "minimum": 1 },
+        "serviceAccount": { "type": "string" },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type":        { "type": "string" },
+            "annotations": { "type": "object" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "server": {
+          "type": "object",
+          "properties": {
+            "readTimeout":  { "type": "integer" },
+            "writeTimeout": { "type": "integer" },
+            "httpPort":     { "type": "integer" }
+          }
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "logLevel":        { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+            "defaultWorkers":  { "type": "integer", "minimum": 1 },
+            "defaultResync":   { "type": "string" },
+            "MaxDepth":   { "type": "integer", "minimum": 1 },
+            "failureThreshold": { "type": "integer", "minimum": 0 },
+            "environment":     { "type": "string" }
+          }
+        },
+        "gatewayEndpoint":   { "type": "string" },
+        "leaderElection": {
+          "type": "object",
+          "properties": {
+            "enabled":       { "type": "boolean" },
+            "leaseDuration": { "type": "integer" },
+            "renewDeadline": { "type": "integer" },
+            "retryPeriod":   { "type": "integer" }
+          }
+        },
+        "blueprint": {
+          "type": "object",
+          "properties": {
+            "existingConfigMap": { "type": "string" },
+            "configMapKey":     { "type": "string" },
+            "mountPath":        { "type": "string" }
+          }
+        },
+        "registry": {
+          "type": "object",
+          "properties": {
+            "url":     { "type": "string" }
+          }
+        },
+        "pdb":               { "$ref": "#/$defs/pdb" },
+        "networkPolicy":     { "$ref": "#/$defs/networkPolicy" },
+        "podSecurityContext": { "$ref": "#/$defs/podSecurityContext" },
+        "securityContext":   { "$ref": "#/$defs/securityContext" },
+        "startupProbe":      { "$ref": "#/$defs/probe" },
+        "livenessProbe":     { "$ref": "#/$defs/probe" },
+        "readinessProbe":    { "$ref": "#/$defs/probe" },
+        "nodeSelector":   { "type": "object" },
+        "tolerations":    { "type": "array" },
+        "affinity":       { "type": "object" },
+        "topologySpreadConstraints": { "type": "array" },
+        "extraEnv":       { "type": "array" },
+        "extraEnvFrom":   { "type": "array" },
+        "extraVolumes":   { "type": "array" },
+        "extraVolumeMounts": { "type": "array" },
+        "podAnnotations": { "type": "object" },
+        "podLabels":      { "type": "object" }
+      }
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "enabled":          { "type": "boolean" },
+        "imagePullSecrets": { "type": "array" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag":        { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        },
+        "replicaCount":   { "type": "integer", "minimum": 1 },
+        "serviceAccount": { "type": "string" },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type":        { "type": "string" },
+            "annotations": { "type": "object" }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled":     { "type": "boolean" },
+            "className":   { "type": "string" },
+            "annotations": { "type": "object" },
+            "hosts":       { "type": "array" },
+            "tls":         { "type": "array" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "server": {
+          "type": "object",
+          "properties": {
+            "readTimeout":  { "type": "integer" },
+            "writeTimeout": { "type": "integer" },
+            "httpPort":     { "type": "integer" },
+            "httpsPort":    { "type": "integer" }
+          }
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "logLevel":    { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+            "environment": { "type": "string" }
+          }
+        },
+        "webhooks": {
+          "type": "object",
+          "properties": {
+            "enabled":        { "type": "boolean" },
+            "admission":      { "type": "boolean" },
+            "conversion":     { "type": "boolean" },
+            "existingSecret": { "type": "string" },
+            "certKey":        { "type": "string" },
+            "keyKey":         { "type": "string" }
+          }
+        },
+        "blueprint": {
+          "type": "object",
+          "properties": {
+            "existingConfigMap": { "type": "string" },
+            "configMapKey":     { "type": "string" },
+            "mountPath":        { "type": "string" }
+          }
+        },
+        "registry": {
+          "type": "object",
+          "properties": {
+            "url":     { "type": "string" }
+          }
+        },
+        "hpa":               { "$ref": "#/$defs/hpa" },
+        "podSecurityContext": { "$ref": "#/$defs/podSecurityContext" },
+        "securityContext":   { "$ref": "#/$defs/securityContext" },
+        "startupProbe":      { "$ref": "#/$defs/probe" },
+        "livenessProbe":     { "$ref": "#/$defs/probe" },
+        "readinessProbe":    { "$ref": "#/$defs/probe" },
+        "nodeSelector":   { "type": "object" },
+        "tolerations":    { "type": "array" },
+        "affinity":       { "type": "object" },
+        "topologySpreadConstraints": { "type": "array" },
+        "extraEnv":       { "type": "array" },
+        "extraEnvFrom":   { "type": "array" },
+        "extraVolumes":   { "type": "array" },
+        "extraVolumeMounts": { "type": "array" },
+        "podAnnotations": { "type": "object" },
+        "podLabels":      { "type": "object" }
+      }
+    },
+    "console": {
+      "type": "object",
+      "properties": {
+        "enabled":          { "type": "boolean" },
+        "imagePullSecrets": { "type": "array" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag":        { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        },
+        "replicaCount":   { "type": "integer", "minimum": 1 },
+        "serviceAccount": { "type": "string" },
+        "config": {
+          "type": "object",
+          "properties": {
+            "inrunURLs":    { "type": "array", "items": { "type": "string" } },
+            "port":            { "type": "integer" },
+            "refreshInterval": { "type": "string" },
+            "logLevel":        { "type": "string", "enum": ["debug", "info", "warn", "error"] }
+          }
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type":        { "type": "string" },
+            "port":        { "type": "integer" },
+            "annotations": { "type": "object" }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled":     { "type": "boolean" },
+            "className":   { "type": "string" },
+            "annotations": { "type": "object" },
+            "hosts":       { "type": "array" },
+            "tls":         { "type": "array" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "hpa":               { "$ref": "#/$defs/hpa" },
+        "pdb":               { "$ref": "#/$defs/pdb" },
+        "networkPolicy":     { "$ref": "#/$defs/networkPolicy" },
+        "podSecurityContext": { "$ref": "#/$defs/podSecurityContext" },
+        "securityContext":   { "$ref": "#/$defs/securityContext" },
+        "livenessProbe":     { "$ref": "#/$defs/probe" },
+        "readinessProbe":    { "$ref": "#/$defs/probe" },
+        "nodeSelector":   { "type": "object" },
+        "tolerations":    { "type": "array" },
+        "affinity":       { "type": "object" },
+        "topologySpreadConstraints": { "type": "array" },
+        "extraEnv":       { "type": "array" },
+        "extraEnvFrom":   { "type": "array" },
+        "extraVolumes":   { "type": "array" },
+        "extraVolumeMounts": { "type": "array" },
+        "podAnnotations": { "type": "object" },
+        "podLabels":      { "type": "object" }
+      }
+    }
+  },
+  "$defs": {
+    "resources": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu":    { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu":    { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "properties": {
+        "initialDelaySeconds": { "type": "integer" },
+        "periodSeconds":       { "type": "integer" },
+        "failureThreshold":    { "type": "integer" },
+        "timeoutSeconds":      { "type": "integer" }
+      }
+    },
+    "hpa": {
+      "type": "object",
+      "properties": {
+        "enabled":                         { "type": "boolean" },
+        "minReplicas":                     { "type": "integer", "minimum": 1 },
+        "maxReplicas":                     { "type": "integer", "minimum": 1 },
+        "targetCPUUtilizationPercentage":    { "type": "integer", "minimum": 1, "maximum": 100 },
+        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "pdb": {
+      "type": "object",
+      "properties": {
+        "enabled":      { "type": "boolean" },
+        "minAvailable": { "type": ["integer", "string"] }
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled":     { "type": "boolean" },
+        "ingressFrom": { "type": "array" }
+      }
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "properties": {
+        "runAsNonRoot":  { "type": "boolean" },
+        "runAsUser":     { "type": "integer" },
+        "runAsGroup":    { "type": "integer" },
+        "fsGroup":       { "type": "integer" },
+        "seccompProfile": {
+          "type": "object",
+          "properties": { "type": { "type": "string" } }
+        }
+      }
+    },
+    "securityContext": {
+      "type": "object",
+      "properties": {
+        "allowPrivilegeEscalation": { "type": "boolean" },
+        "readOnlyRootFilesystem":   { "type": "boolean" },
+        "runAsNonRoot":             { "type": "boolean" },
+        "runAsUser":                { "type": "integer" },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "drop": { "type": "array", "items": { "type": "string" } },
+            "add":  { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}

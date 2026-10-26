@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webhook-protection-suite
+  description: >
+    Gateway webhook regression suite — admission webhooks (validation +
+    mutation), deletion protection, and namespace restriction enforcement.
+    Runs all three in the same cluster.
+
+imports:
+  - ./admission/e2e.yaml
+  - ./deletion/e2e.yaml
+  - ./namespace/e2e.yaml

@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webhook-notes-validation-e2e
+  description: >
+    Verifies that user-defined notes work in admission webhook validation and mutation.
+    The allowedRegistry note drives the image prefix rule — rejected synchronously
+    at kubectl apply time. The inBusinessHours note gates the whole operator.
+    Mutation defaults spec.replicas from the defaultReplicas note before validation runs.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-placeholder.yaml
+
+  functions:
+    definitions:
+      - name: inBusinessHours
+        expression: '{{ and weekday (timeInWindow "09:00" "18:00") }}'
+
+  cluster:
+    provider: kind
+    name: inrun-webhook-notes-validation
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-webhook-deny.yaml
+    - include: ./e2e/02-mutation.yaml
+    - include: ./e2e/03-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: DeploymentRequest
+          name: my-app
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

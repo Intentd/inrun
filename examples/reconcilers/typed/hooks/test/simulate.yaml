@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: database-hooks-sim
+  description: Verify typed hooks fire — StatefulSet, Service, and backup CronJob created in cycle 1
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: statefulsets
+      - cycle: 1
+        verb: apply
+        resource: services
+      - cycle: 1
+        verb: apply
+        resource: cronjobs
+        name: my-db-backup

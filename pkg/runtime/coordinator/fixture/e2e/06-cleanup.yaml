@@ -1,0 +1,31 @@
+expect:
+  - name: Cleanup verified
+    after: cr-deleted
+    timeout: 60s
+    kubectl:
+      delete:
+        - kind: Worker
+          name: core-worker
+          namespace: default
+          ignoreNotFound: true
+        - kind: Component
+          name: core-component
+          namespace: default
+          ignoreNotFound: true
+        - kind: Platform
+          name: main-platform
+          namespace: default
+          ignoreNotFound: true
+    resources:
+      - kind: Worker
+        name: core-worker
+        namespace: default
+        count: 0
+      - kind: Component
+        name: core-component
+        namespace: default
+        count: 0
+      - kind: Platform
+        name: main-platform
+        namespace: default
+        count: 0

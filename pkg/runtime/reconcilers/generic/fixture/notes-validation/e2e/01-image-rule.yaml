@@ -1,0 +1,27 @@
+expect:
+  - name: bad image is denied by allowedRegistry note
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ./cr-bad-image.yaml
+      get:
+        - kind: DeploymentRequest
+          name: bad-image-app
+          namespace: default
+          field: .status.conditions[?(@.type=="ValidationFailed")].status
+          equals: "True"
+        - kind: DeploymentRequest
+          name: bad-image-app
+          namespace: default
+          field: .status.conditions[?(@.type=="Ready")].status
+          equals: "False"
+
+  - name: no Deployment created for denied CR
+    after: cr-applied
+    timeout: 15s
+    resources:
+      - kind: Deployment
+        name: bad-image-app
+        namespace: default
+        count: 0

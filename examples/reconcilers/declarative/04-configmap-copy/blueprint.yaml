@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: configmap-distribution
+  author: intentd
+  version: 0.1.0
+  description: >
+    A namespaced ConfigMapDistribution, created in the namespace that owns a
+    ConfigMap, copies it into every target namespace declared in the CR. The
+    copies are in other namespaces, so they carry no owner reference; Inrun
+    finds and removes them by the owner-uid label when the CR is deleted.
+
+spec:
+  crds:
+    configmap-distribution:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      setup:
+        apply:
+          - ./manifests/setup.yaml
+        wait:
+          - kind: ConfigMap
+            name: app-config
+            namespace: platform
+            timeout: 15s
+      operatorBox:
+        reconcile:
+          onCreate:
+            configMaps:
+              - name: "{{ .spec.configMapName }}"
+                fromConfigMap: "{{ .spec.configMapName }}"
+                fromNamespace: "{{ .metadata.namespace }}"   # the CR's own namespace
+                # toNamespaces copies the ConfigMap to each target namespace.
+                # Each element supports template expressions.
+                toNamespaces:
+                  - "{{ .spec.targetNamespaces }}"
+                reconcile: true   # re-sync if source ConfigMap changes
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Distributed"
+              - path: sourceConfigMap
+                value: "{{ .spec.configMapName }}"
+              - path: sourceNamespace
+                value: "{{ .metadata.namespace }}"
+

@@ -1,0 +1,115 @@
+expect:
+  # ── preview alias ──────────────────────────────────────────────────────────
+  - name: Apply via preview alias creates CR with alias annotation
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+            Content-Type: "application/json"
+          body: >
+            {"target":"preview","name":"gw-preview","workloadType":"app",
+            "team":"team-payments","environment":"staging",
+            "repoURL":"https://github.com/myorg/test","targetRevision":"main",
+            "targetNamespace":"team-payments"}
+          jq: .name
+          equals: "gw-preview"
+
+  - name: Preview alias stamps serve-alias annotation on CR
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: PlatformResource
+          name: gw-preview
+          namespace: team-payments
+          field: .metadata.annotations["inrun.dev/serve-alias"]
+          equals: "preview"
+
+  - name: GET via gateway for preview alias — payload shows alias field
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-preview
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .payload.alias
+          equals: "preview"
+
+  - name: GET via gateway for preview alias — no raw CR (default false)
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-preview
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .spec
+          notExists: true
+
+  # ── internal alias ─────────────────────────────────────────────────────────
+  - name: Apply via internal alias creates CR with alias annotation
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+            Content-Type: "application/json"
+          body: >
+            {"target":"internal","name":"gw-internal","workloadType":"app",
+            "team":"team-payments","environment":"staging",
+            "repoURL":"https://github.com/myorg/test","targetRevision":"main",
+            "targetNamespace":"team-payments"}
+          jq: .name
+          equals: "gw-internal"
+
+  - name: GET via gateway for internal alias — alias provenance in payload
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-internal
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .payload.alias
+          equals: "internal"
+
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-internal
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .payload.target
+          equals: "apifixture"
+
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-internal
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          jq: .spec.workloadType
+          equals: "app"

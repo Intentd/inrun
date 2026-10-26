@@ -1,0 +1,19 @@
+.env
+extensions/
+unknown/
+_runtime_*/
+example-crds/
+inrun-demo
+inrun.md
+inrun.yaml
+reviews/
+inrun-certs/
+coverage.out/
+coverage
+node_modules/
+
+# Generated
+zz_generated_rbac.yaml
+
+# certs
+certs/

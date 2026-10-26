@@ -1,0 +1,124 @@
+expect:
+  # ── unknown target ─────────────────────────────────────────────────────────
+  - name: Apply with unknown target is rejected
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+            Content-Type: "application/json"
+          body: '{"target":"does-not-exist","name":"gw-bad","workloadType":"app"}'
+          contains: "unknown target"
+
+  # ── unauthenticated ────────────────────────────────────────────────────────
+  - name: Unauthenticated apply is rejected with 401
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Content-Type: "application/json"
+          body: '{"target":"apifixture","name":"gw-unauth"}'
+          statusCode: 401
+
+  # ── console restricted operations ───────────────────────────────────
+  - name: console denied delete on preview alias (only get/list allowed)
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/platformresource/team-payments/gw-preview
+          method: DELETE
+          headers:
+            Authorization: "Bearer ${FIXTURE_CONSOLE_TOKEN}"
+          statusCode: 403
+
+  # ── ci-pipeline token via secretRef ───────────────────────────────────────
+  # The ci-pipeline token is auto-generated and stored in the fixture-ci-token
+  # Secret by the gateway. We decode it at test time via kubectl and use it
+  # in a raw curl through a background port-forward.
+
+  - name: ci-pipeline token denied for preview alias (not in alias token map)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          CI_TOKEN=$(kubectl get secret fixture-ci-token -n inrun-system -o jsonpath='{.data.token}' | base64 -d)
+          kubectl port-forward -n inrun-system svc/inrun-gateway 18081:8080 &
+          PF_PID=$!
+          trap "kill $PF_PID 2>/dev/null" EXIT
+          sleep 2
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:18081/api/v1/apply \
+            -H "Authorization: Bearer $CI_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"target":"preview","name":"gw-ci-preview","workloadType":"app","team":"team-payments","environment":"staging","repoURL":"https://github.com/myorg/test","targetRevision":"main","targetNamespace":"team-payments"}')
+          kill $PF_PID 2>/dev/null
+          [ "$STATUS" = "403" ]
+        exitCode: 0
+
+  - name: ci-pipeline token denied for internal alias (not in alias token map)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          CI_TOKEN=$(kubectl get secret fixture-ci-token -n inrun-system -o jsonpath='{.data.token}' | base64 -d)
+          kubectl port-forward -n inrun-system svc/inrun-gateway 18082:8080 &
+          PF_PID=$!
+          trap "kill $PF_PID 2>/dev/null" EXIT
+          sleep 2
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:18082/api/v1/apply \
+            -H "Authorization: Bearer $CI_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"target":"internal","name":"gw-ci-internal","workloadType":"app","team":"team-payments","environment":"staging","repoURL":"https://github.com/myorg/test","targetRevision":"main","targetNamespace":"team-payments"}')
+          kill $PF_PID 2>/dev/null
+          [ "$STATUS" = "403" ]
+        exitCode: 0
+
+  - name: ci-pipeline token denied for create on primary target (read-only at CRD level)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          CI_TOKEN=$(kubectl get secret fixture-ci-token -n inrun-system -o jsonpath='{.data.token}' | base64 -d)
+          kubectl port-forward -n inrun-system svc/inrun-gateway 18083:8080 &
+          PF_PID=$!
+          trap "kill $PF_PID 2>/dev/null" EXIT
+          sleep 2
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:18083/api/v1/apply \
+            -H "Authorization: Bearer $CI_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"target":"apifixture","name":"gw-ci-primary","workloadType":"app","team":"team-payments","environment":"staging","repoURL":"https://github.com/myorg/test","targetRevision":"main","targetNamespace":"team-payments"}')
+          kill $PF_PID 2>/dev/null
+          [ "$STATUS" = "403" ]
+        exitCode: 0
+
+  - name: ci-pipeline token allowed for GET on primary target (read-only is sufficient)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          CI_TOKEN=$(kubectl get secret fixture-ci-token -n inrun-system -o jsonpath='{.data.token}' | base64 -d)
+          kubectl port-forward -n inrun-system svc/inrun-gateway 18084:8080 &
+          PF_PID=$!
+          trap "kill $PF_PID 2>/dev/null" EXIT
+          sleep 2
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            http://localhost:18084/api/v1/resources/platformresource/team-payments/gw-primary \
+            -H "Authorization: Bearer $CI_TOKEN")
+          kill $PF_PID 2>/dev/null
+          [ "$STATUS" = "200" ]
+        exitCode: 0

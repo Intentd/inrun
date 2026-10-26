@@ -1,0 +1,45 @@
+# Public deployment values.
+# Applied to cluster-01 (the instance that runs the Console).
+# cluster-02 and cluster-03 pass --set console.enabled=false.
+#
+# PUBLIC_DEPLOYMENT=true disables password login and runtime manager
+# in the console — safe for public access.
+
+runtime:
+  image:
+    tag: 0.1.0
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+gateway:
+  image:
+    tag: 0.1.0
+
+console:
+  replicaCount: 2
+  image:
+    tag: 0.1.0
+  config:
+    inrunURLs:
+      - http://inrun-runtime.inrun-system-01.svc.cluster.local:8080
+      - http://inrun-runtime.inrun-system-02.svc.cluster.local:8080
+      - http://inrun-runtime.inrun-system-03.svc.cluster.local:8080
+      - http://inrun-runtime.inrun-system-04.svc.cluster.local:8080
+      - http://inrun-runtime.inrun-system-05.svc.cluster.local:8080
+      - http://inrun-runtime.inrun-system-06.svc.cluster.local:8080
+  extraEnv:
+    - name: PUBLIC_DEPLOYMENT
+      value: "true"
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: console.inrun.dev
+        paths:
+          - path: /
+            pathType: Prefix

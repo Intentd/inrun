@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: constructor-e2e
+  description: Verify the constructor pattern — operator builds pipeline jobs from a typed Go constructor and they run to completion
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Pipeline jobs created
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Job
+          namespace: default
+          name: build-and-test-build
+        - kind: Job
+          namespace: default
+          name: build-and-test-notify
+        - kind: Job
+          namespace: default
+          name: build-and-test-test
+
+    - name: Jobs removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Job
+          namespace: default
+          name: build-and-test-build
+          count: 0
+        - kind: Job
+          namespace: default
+          name: build-and-test-notify
+          count: 0
+        - kind: Job
+          namespace: default
+          name: build-and-test-test
+          count: 0

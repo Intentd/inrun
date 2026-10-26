@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: informer-probe-e2e
+  description: >
+    Living fixture for pkg/runtime/informer. Verifies that the namespace filter
+    gates reconciliation at the queue layer. The blueprint allows only team-a.
+    A CR in team-a is reconciled and its ConfigMap is created. A CR in team-b
+    is accepted by the API server but the informer drops the event — no
+    reconcile fires, no ConfigMap is created, no status is set.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-informer-probe
+    reuse: false
+
+  setup:
+    apply:
+      - ./setup.yaml
+
+  expect:
+    # Allowed namespace — informer fires, reconciler runs, ConfigMap created.
+    - name: Allowed CR reconciled — status set, ConfigMap created
+      after: cr-applied
+      timeout: 60s
+      kubectl:
+        get:
+          - kind: InformerProbe
+            name: probe-allowed
+            namespace: team-a
+            field: .status.phase
+            equals: Running
+      resources:
+        - kind: ConfigMap
+          name: probe-allowed-config
+          namespace: team-a
+
+    # Restricted namespace — CR accepted by API, informer drops event.
+    # Reconciler never runs; no ConfigMap created; status.phase stays empty.
+    - name: Restricted CR accepted but not reconciled — no ConfigMap, status empty
+      after: cr-applied
+      timeout: 30s
+      wait: 5s
+      kubectl:
+        apply:
+          - file: ./cr-restricted.yaml
+        get:
+          - kind: InformerProbe
+            name: probe-restricted
+            namespace: team-b
+            field: .status.phase
+            notEquals: Running
+      resources:
+        - kind: ConfigMap
+          name: probe-restricted-config
+          namespace: team-b
+          count: 0
+
+    # Cleanup
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      kubectl:
+        delete:
+          - kind: InformerProbe
+            name: probe-restricted
+            namespace: team-b
+            ignoreNotFound: true
+      resources:
+        - kind: InformerProbe
+          name: probe-allowed
+          namespace: team-a
+          count: 0
+        - kind: InformerProbe
+          name: probe-restricted
+          namespace: team-b
+          count: 0
+        - kind: ConfigMap
+          name: probe-allowed-config
+          namespace: team-a
+          count: 0
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: InformerProbe
+          name: probe-allowed
+          namespace: team-a
+        - kind: InformerProbe
+          name: probe-restricted
+          namespace: team-b
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m
+    commands:
+      - kubectl get informerprobes -A -o wide
+      - kubectl get configmaps -n team-a
+      - kubectl get configmaps -n team-b
+      - kubectl get pods -n inrun-system -o wide

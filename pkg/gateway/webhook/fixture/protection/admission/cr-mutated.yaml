@@ -1,0 +1,15 @@
+# Minimal CR — only the required field is declared.
+# Inrun mutation webhook fills in the defaults before validation runs.
+# Check the status after apply to see exactly what was mutated.
+#
+#   spec.replicas     not declared → mutated to 2
+#   spec.environment  not declared → mutated to "development"
+#   spec.rateLimit    not declared → mutated to 100
+apiVersion: admission.inrun.dev/v1alpha1
+kind: Platform
+metadata:
+  name: minimal-platform
+  namespace: default
+spec:
+  image: registry.internal/my-platform:v1.0
+  # replicas, environment, rateLimit intentionally omitted

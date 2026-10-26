@@ -1,0 +1,16 @@
+# https://inrun.dev/docs/reference/schema/simulate/
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: # TODO: operator name
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../manifests/cr.yaml
+  expect:
+    # TODO: add assertions — or generate them from a live run:
+    #   inrun simulate init
+    #
+    # - cycle: 1
+    #   verb: create
+    #   resource: deployments
+    #   name: "{{ .metadata.name }}"

@@ -1,0 +1,7 @@
+target: internal
+name: my-service
+workloadType: app
+team: platform
+environment: staging
+repoURL: https://github.com/myorg/payments
+productionApproval: JIRA-1234

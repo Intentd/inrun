@@ -1,0 +1,125 @@
+expect:
+  - name: Platform-01 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.scaling.min
+          equals: "3"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.observability.logging.level
+          equals: "info"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.replicas
+          exists: false
+
+  - name: Platform-02 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .spec.scaling.min
+          equals: "5"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .spec.observability.logging.level
+          equals: "warn"
+
+  - name: Platform-03 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          field: .spec.scaling.min
+          equals: "2"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          field: .spec.observability.logging.level
+          equals: "debug"
+
+  - name: Platform-04 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-04
+          field: .spec.scaling.min
+          equals: "10"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-04
+          field: .spec.observability.logging.level
+          equals: "error"
+
+  - name: Platform-05 migrates replicas only — no logLevel in the old CR
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-05
+          field: .spec.scaling.min
+          equals: "1"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-05
+          field: .spec.observability.logging.level
+          exists: false
+
+  - name: Platform-06 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.scaling.min
+          equals: "4"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.observability.logging.level
+          equals: "info"
+
+  - name: Platform-07 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-07
+          field: .spec.scaling.min
+          equals: "7"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-07
+          field: .spec.observability.logging.level
+          equals: "warn"
+
+  - name: Platform-08 migrated replicas and logLevel to nested paths
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-08
+          field: .spec.scaling.min
+          equals: "3"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-08
+          field: .spec.observability.logging.level
+          equals: "info"

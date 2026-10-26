@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: children-foreach-e2e
+  description: >
+    Living integration fixture for forEach expansion and child tracking in pkg/children/.
+    One acme Tenant CR expands into every resource type across two namespaces and two apps.
+    When you add a new resource type, add a call in the module and an assertion in e2e/01-resources.yaml.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-children-fixture
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-resources.yaml
+    - include: ./e2e/02-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: Tenant
+          name: acme
+      describe:
+        - kind: Deployment
+          name: acme-api
+          namespace: default
+    commands:
+      - kubectl get all -n acme-dev
+      - kubectl get all -n acme-staging
+      - kubectl get clusterroles,clusterrolebindings | grep acme
+      - kubectl get pv | grep acme

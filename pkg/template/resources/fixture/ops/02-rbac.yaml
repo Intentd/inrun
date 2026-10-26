@@ -1,0 +1,29 @@
+ops:
+  - cycle: 1
+    verb: apply
+    resource: clusterroles
+    name: probe-cr
+  - cycle: 1
+    verb: apply
+    resource: clusterrolebindings
+    name: probe-crb
+  - cycle: 1
+    verb: apply
+    resource: roles
+    name: probe-role
+  - cycle: 1
+    verb: apply
+    resource: rolebindings
+    name: probe-rb
+  - cycle: 1
+    verb: apply
+    resource: networkpolicies
+    name: probe-netpol
+  - cycle: 1
+    verb: apply
+    resource: resourcequotas
+    name: probe-quota
+  - cycle: 1
+    verb: apply
+    resource: limitranges
+    name: probe-limits

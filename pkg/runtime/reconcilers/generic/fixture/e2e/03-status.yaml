@@ -1,0 +1,18 @@
+expect:
+  - name: Status fields populated
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      get:
+        - kind: ReconcilerProbe
+          name: probe
+          field: .status.phase
+          equals: Premium
+        - kind: ReconcilerProbe
+          name: probe
+          field: .status.configReady
+          equals: "true"
+        - kind: ReconcilerProbe
+          name: probe
+          field: .status.secretCreated
+          equals: "true"

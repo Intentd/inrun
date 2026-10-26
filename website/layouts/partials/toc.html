@@ -1,0 +1,17 @@
+{{ if and .TableOfContents .File }}
+<aside class="docs-toc" id="docs-toc" aria-label="Table of contents">
+  <div class="toc-inner">
+    <p class="toc-title">On this page</p>
+    {{ .TableOfContents }}
+    <div class="toc-footer">
+      <a href="{{ .Site.Params.github }}/edit/main/docs/{{ .File.Path }}" target="_blank" rel="noopener noreferrer" class="edit-on-github">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit on GitHub
+      </a>
+    </div>
+  </div>
+</aside>
+{{ end }}

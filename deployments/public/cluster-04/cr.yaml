@@ -1,0 +1,49 @@
+apiVersion: apps.demo.inrun.dev/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: demo-04
+spec:
+  image: nginx:1.25
+  replicas: 2
+  port: 80
+  host: my-app.demo-04.example.com
+---
+apiVersion: apps.demo.inrun.dev/v1alpha1
+kind: AppService
+metadata:
+  name: my-app-svc
+  namespace: demo-04
+spec:
+  app: my-app
+  port: "8080"
+---
+apiVersion: apps.demo.inrun.dev/v1alpha1
+kind: Route
+metadata:
+  name: my-app-route
+  namespace: demo-04
+spec:
+  host: my-app.demo-04.example.com
+  path: /
+  service: my-app-svc
+---
+apiVersion: apps.demo.inrun.dev/v1alpha1
+kind: ConfigBundle
+metadata:
+  name: my-app-config
+  namespace: demo-04
+spec:
+  target: my-app
+  env: production
+---
+apiVersion: apps.demo.inrun.dev/v1alpha1
+kind: ScalePolicy
+metadata:
+  name: my-app-scale
+  namespace: demo-04
+spec:
+  target: my-app
+  minReplicas: "1"
+  maxReplicas: "10"
+  cpuThreshold: "70"

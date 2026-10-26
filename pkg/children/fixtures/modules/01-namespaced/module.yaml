@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-namespaced
+  description: >
+    Fixture module — Namespace + namespace-scoped policies, all forEach over spec.namespaces.
+
+resources:
+  namespaces:
+    - name: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns
+
+  networkPolicies:
+    - name: "{{ .metadata.name }}-{{ .ns }}-deny-all"
+      namespace: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns
+      preset: deny-all
+
+  resourceQuotas:
+    - name: "{{ .metadata.name }}-{{ .ns }}-quota"
+      namespace: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns
+      preset: small
+
+  limitRanges:
+    - name: "{{ .metadata.name }}-{{ .ns }}-limits"
+      namespace: "{{ .ns }}"
+      forEach:
+        field: spec.namespaces
+        as: ns

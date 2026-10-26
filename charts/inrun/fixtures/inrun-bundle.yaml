@@ -1,0 +1,256 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-system
+spec: {}
+status: {}
+
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun
+  namespace: inrun-system
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-gateway
+  namespace: inrun-system
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-console
+  namespace: inrun-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-inrun-system
+rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - create
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - demo.inrun.dev
+  resources:
+  - websites
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - demo.inrun.dev
+  resources:
+  - websites/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-inrun-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: inrun-inrun-system
+subjects:
+- kind: ServiceAccount
+  name: inrun
+  namespace: inrun-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-gateway-inrun-system
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-gateway-inrun-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: inrun-gateway-inrun-system
+subjects:
+- kind: ServiceAccount
+  name: inrun-gateway
+  namespace: inrun-system
+
+
+---
+apiVersion: v1
+data:
+  blueprint.yaml: |
+    apiVersion: inrun.dev/v1
+    kind: Blueprint
+    metadata:
+        name: hello-website
+        description: Fixture blueprint for chart e2e — one CRD, one Deployment, one Service.
+        version: 0.1.0
+    spec:
+        crds:
+            website:
+                blueprintName: hello-website
+                blueprintNamespace: default
+                blueprintDescription: Fixture blueprint for chart e2e — one CRD, one Deployment, one Service.
+                blueprintVersion: 0.1.0
+                description: 'Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website'
+                mode: dynamic
+                apiTypes:
+                    group: demo.inrun.dev
+                    version: v1alpha1
+                    kind: Website
+                    plural: websites
+                    apiPath: /apis
+                operatorBox:
+                    runtime:
+                        allowedNamespaces:
+                            - default
+                    reconcile:
+                        workers: 3
+                        resync: 15s
+                        queue:
+                            failureThreshold: 5
+                        onCreate:
+                            deployments:
+                                - name: '{{ .metadata.name }}'
+                                  image: '{{ .spec.image }}'
+                                  replicas: '{{ .spec.replicas }}'
+                                  port: '{{ .spec.port }}'
+                                  reconcile: true
+                            services:
+                                - name: '{{ .metadata.name }}-svc'
+                                  port: "80"
+                                  targetPort: '{{ .spec.port }}'
+                                  reconcile: true
+                    emit:
+                        status:
+                            fields:
+                                - path: phase
+                                  value: Running
+                warnings: []
+                info: []
+    security:
+        namespaceProtection:
+            enabled: true
+            cleanupOnShutdown: true
+    gateway:
+        enabled: true
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: inrun
+    app.kubernetes.io/tag: inrun-internal
+    inrun.dev/deletion-protection: "true"
+  name: inrun-blueprint
+  namespace: inrun-system
+

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: external-prometheus-e2e
+  description: >
+    Verifies protocol: prometheus against Inrun's own /api/v1/query endpoint.
+    Queries go_goroutines and process_cpu_seconds_total from the inrun-runtime
+    health server (/api/v1/query). Exercises promValue, promAboveThreshold, and promSeriesCount.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-external-prometheus
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-assertions.yaml
+    - include: ./e2e/02-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

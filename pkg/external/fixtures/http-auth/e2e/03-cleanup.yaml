@@ -1,0 +1,18 @@
+expect:
+  - name: delete dev-server-token Secret
+    after: cr-deleted
+    timeout: 30s
+    kubectl:
+      delete:
+        - kind: Secret
+          name: dev-server-token
+          namespace: default
+          ignoreNotFound: true
+
+  - name: no WebApps remain
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: WebApp
+        namespace: default
+        count: 0

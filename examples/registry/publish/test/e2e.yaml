@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webservice-e2e
+  description: The WebService comes up ready and everything it created goes away when it is deleted
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Complete Stack Running
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          name: orders
+          namespace: default
+          ready: true
+        - kind: Service
+          name: orders-svc
+          namespace: default
+        - kind: roles
+          name: orders-role
+          namespace: default
+        - kind: rolebindings 
+          name: orders-rolebinding
+          namespace: default
+        - kind: horizontalpodautoscalers
+          namespace: default
+          name: orders-hpa
+        - kind: poddisruptionbudgets
+          name: orders-pdb
+          namespace: default
+
+    - name: Cleaned up
+      after: cr-deleted
+      timeout: 60s
+      resources:
+        - kind: Deployment
+          name: orders
+          namespace: default
+          count: 0
+        - kind: Service
+          name: orders-svc
+          namespace: default
+          count: 0
+        - kind: WebService
+          name: orders
+          namespace: default
+          count: 0

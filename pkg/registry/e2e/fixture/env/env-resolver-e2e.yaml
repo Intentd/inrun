@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: env-resolver-e2e
+  description: Proves spec.env and expect.env resolve into commands:.
+
+spec:
+  cluster:
+    provider: none
+
+  env:
+    DEV_TOKEN: from-spec
+    SHARED: spec-value
+
+  expect:
+    - name: spec env reaches sh -c
+      timeout: 5s
+      commands:
+        - run: 'test "$DEV_TOKEN" = "from-spec"'
+        - run: 'test "$SHARED" = "spec-value"'
+
+    - name: expect env overrides spec env
+      timeout: 5s
+      env:
+        DEV_TOKEN: from-expect
+      commands:
+        - run: 'test "$DEV_TOKEN" = "from-expect"'
+        - run: 'test "$SHARED" = "spec-value"'
+
+    - name: undeclared keys fall through to the process env
+      timeout: 5s
+      commands:
+        - run: 'test -n "$HOME"'
+        - run: 'test -n "$ALEX"'
+
+    - name: expect env is scoped — next expectation sees the spec value
+      timeout: 5s
+      commands:
+        - run: 'test "$DEV_TOKEN" = "from-spec"'

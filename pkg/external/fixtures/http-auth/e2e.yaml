@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: http-auth-e2e
+  description: >
+    Verifies auth.secretRef on external calls. The config call hits
+    /protected/:name which requires Bearer dev-token-abc123. The token is
+    read from a Kubernetes Secret. status.tokenValid proves the credential
+    was resolved and accepted. Patching the Secret to a wrong token drives
+    configStatus to 401 on the next reconcile.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./e2e/cr-e2e.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-http-auth
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-setup.yaml
+    - include: ./e2e/02-wrong-token.yaml
+    - include: ./e2e/03-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

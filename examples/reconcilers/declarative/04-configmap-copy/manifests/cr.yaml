@@ -1,0 +1,10 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: ConfigMapDistribution
+metadata:
+  name: app-config-distribution
+  namespace: platform   # the namespace that owns app-config
+spec:
+  configMapName: app-config
+  targetNamespaces:
+    - team-alpha
+    - team-beta

@@ -1,0 +1,25 @@
+expect:
+  - name: bad health URL rejected by webhook at apply time
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: kubectl apply -f ../cr-bad-health.yaml
+        exitCode: 1
+        contains: "denied the request"
+
+  - name: denial message names the health check failure
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: kubectl apply -f ../cr-bad-health.yaml
+        exitCode: 1
+        contains: "health check failed at admission"
+
+  - name: no WebApp persisted for denied CR
+    after: cr-applied
+    timeout: 30s
+    resources:
+      - kind: WebApp
+        name: my-app-degraded
+        namespace: default
+        count: 0

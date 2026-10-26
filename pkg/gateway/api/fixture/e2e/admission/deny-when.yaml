@@ -1,0 +1,74 @@
+expect:
+  - name: Admission blocks cert workload missing domain (deny when)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: cert-no-domain
+            namespace: team-platform
+          spec:
+            workloadType: cert
+            team: team-platform
+            environment: staging
+            issuer: letsencrypt-staging
+          EOF
+        exitCode: 1
+        contains: "spec.domain is required for cert workloads"
+
+  - name: Deny when skipped for cert with domain present
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: api-tls-cert
+              namespace: team-platform
+            spec:
+              workloadType: cert
+              team: team-platform
+              environment: production
+              domain: api.payments.example.com
+              issuer: letsencrypt-prod
+              productionApproval: CHG-20240721-0099
+    resources:
+      - kind: PlatformResource
+        name: api-tls-cert
+        namespace: team-platform
+
+  - name: cert-manager Certificate created for cert workload
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: Certificate
+        name: api-tls-cert
+        namespace: team-platform
+
+  - name: Deny when skipped for non-cert workload (no domain)
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: app-no-domain
+              namespace: team-platform
+            spec:
+              workloadType: app
+              team: team-platform
+              environment: staging
+              repoURL: https://github.com/myorg/infra
+              targetRevision: main
+              targetNamespace: team-platform
+    resources:
+      - kind: PlatformResource
+        name: app-no-domain
+        namespace: team-platform

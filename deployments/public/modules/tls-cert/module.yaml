@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: tls-cert
+  version: v0.1.0
+  description: >
+    Self-signed TLS certificate generated on first creation, rotated after
+    rotateAfter. The Secret contains tls.crt, tls.key, and ca.crt.
+    Never drift-corrected — the cert stays stable between rotations.
+  author: intentd
+  tags:
+    - secret
+    - tls
+    - certificate
+    - rotation
+    - once
+
+inputs:
+  - name: commonName
+    required: true
+    description: Certificate common name (e.g. myapp.mynamespace.svc)
+
+  - name: rotateAfter
+    default: "1y"
+    description: Certificate lifetime before rotation
+
+resources:
+  onCreate:
+    secrets:
+      - name: "{{ .metadata.name }}-tls"
+        once: true
+        rotateAfter: '{{ index .inputs "rotateAfter" }}'
+        tls:
+          commonName: '{{ index .inputs "commonName" }}'
+          dnsNames:
+            - "{{ .metadata.name }}"
+            - "{{ .metadata.name }}.{{ .metadata.namespace }}"
+            - "{{ .metadata.name }}.{{ .metadata.namespace }}.svc"
+            - "{{ .metadata.name }}.{{ .metadata.namespace }}.svc.cluster.local"
+          validFor: '{{ index .inputs "rotateAfter" }}'
+
+status:
+  fields:
+    - path: tlsSecret
+      value: "{{ .metadata.name }}-tls"
+    - path: commonName
+      value: '{{ index .inputs "commonName" }}'

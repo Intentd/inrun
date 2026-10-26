@@ -1,0 +1,23 @@
+# A stand-in for Argo CD's ApplicationSet CRD, so simulate --envtest can store
+# the ApplicationSet the argocd-applicationset module writes. It accepts any
+# spec; the real CRD comes with Argo CD.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: applicationsets.argoproj.io
+spec:
+  group: argoproj.io
+  scope: Namespaced
+  names:
+    kind: ApplicationSet
+    listKind: ApplicationSetList
+    plural: applicationsets
+    singular: applicationset
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true

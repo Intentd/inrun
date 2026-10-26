@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: configmap-distribution-e2e
+  description: >
+    Distribute a shared ConfigMap from a platform namespace into team namespaces
+    and verify removal on delete.
+
+    Demonstrates setup.apply + setup.wait: the source ConfigMap must exist in
+    the platform namespace before the operator is allowed to start reconciling.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    apply:
+      - ../manifests/setup.yaml   # creates platform/team-alpha/team-beta namespaces + source ConfigMap
+    wait:
+      - kind: ConfigMap
+        name: app-config
+        namespace: platform
+        timeout: 15s   # source ConfigMap must exist before the operator starts
+
+  expect:
+    - name: CR created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: ConfigMapDistribution
+          name: app-config-distribution
+          namespace: platform
+
+    - name: ConfigMap distributed to team-alpha
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: ConfigMap
+          name: app-config
+          namespace: team-alpha
+
+    - name: ConfigMap distributed to team-beta
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: ConfigMap
+          name: app-config
+          namespace: team-beta
+
+    # The copies are in other namespaces than their namespaced owner, so they
+    # carry no owner reference; Inrun removes them by the owner-uid label.
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: ConfigMapDistribution
+          name: app-config-distribution
+          namespace: platform
+          count: 0
+        - kind: ConfigMap
+          name: app-config
+          namespace: team-alpha
+          count: 0
+        - kind: ConfigMap
+          name: app-config
+          namespace: team-beta
+          count: 0

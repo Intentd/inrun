@@ -1,0 +1,32 @@
+ops:
+  # Namespace
+  - cycle: 1
+    verb: create
+    resource: namespaces
+    name: probe-ns
+  
+  # Configuration
+  - cycle: 1
+    verb: create
+    resource: secrets
+    name: probe-creds
+  - cycle: 1
+    verb: apply
+    resource: configmaps
+    name: probe-config
+  
+  # Network Policies
+  - cycle: 1
+    verb: apply
+    resource: networkpolicies
+    name: probe-netpol
+  
+  # Resource Management
+  - cycle: 1
+    verb: apply
+    resource: resourcequotas
+    name: probe-quota
+  - cycle: 1
+    verb: apply
+    resource: limitranges
+    name: probe-limits

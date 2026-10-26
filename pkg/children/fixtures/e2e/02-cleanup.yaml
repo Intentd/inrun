@@ -1,0 +1,213 @@
+expect:
+  - name: All resources removed on delete
+    after: cr-deleted
+    timeout: 120s
+    resources:
+      - kind: Tenant
+        name: acme
+        count: 0
+
+      # ── Cluster-scoped ────────────────────────────────────────────────────
+      - kind: Namespace
+        name: acme-dev
+        count: 0
+      - kind: Namespace
+        name: acme-staging
+        count: 0
+
+      - kind: ClusterRole
+        name: acme-developer
+        count: 0
+      - kind: ClusterRole
+        name: acme-reviewer
+        count: 0
+
+      - kind: ClusterRoleBinding
+        name: acme-developer-binding
+        count: 0
+      - kind: ClusterRoleBinding
+        name: acme-reviewer-binding
+        count: 0
+
+      - kind: PersistentVolume
+        name: acme-api-pv
+        count: 0
+      - kind: PersistentVolume
+        name: acme-worker-pv
+        count: 0
+
+      - kind: TenantPlan
+        name: acme-plan
+        count: 0
+
+      # ── default namespace (workloads / network) ───────────────────────────
+      - kind: Deployment
+        name: acme-api
+        namespace: default
+        count: 0
+      - kind: Deployment
+        name: acme-worker
+        namespace: default
+        count: 0
+
+      - kind: StatefulSet
+        name: acme-api-sts
+        namespace: default
+        count: 0
+      - kind: StatefulSet
+        name: acme-worker-sts
+        namespace: default
+        count: 0
+
+      - kind: ReplicaSet
+        name: acme-api-rs
+        namespace: default
+        count: 0
+      - kind: ReplicaSet
+        name: acme-worker-rs
+        namespace: default
+        count: 0
+
+      - kind: Pod
+        name: acme-api-pod
+        namespace: default
+        count: 0
+      - kind: Pod
+        name: acme-worker-pod
+        namespace: default
+        count: 0
+
+      - kind: Job
+        name: acme-api-job
+        namespace: default
+        count: 0
+      - kind: Job
+        name: acme-worker-job
+        namespace: default
+        count: 0
+
+      - kind: CronJob
+        name: acme-api-cron
+        namespace: default
+        count: 0
+      - kind: CronJob
+        name: acme-worker-cron
+        namespace: default
+        count: 0
+
+      - kind: Service
+        name: acme-api-svc
+        namespace: default
+        count: 0
+      - kind: Service
+        name: acme-worker-svc
+        namespace: default
+        count: 0
+
+      - kind: Ingress
+        name: acme-api-ingress
+        namespace: default
+        count: 0
+      - kind: Ingress
+        name: acme-worker-ingress
+        namespace: default
+        count: 0
+
+      - kind: HorizontalPodAutoscaler
+        name: acme-api-hpa
+        namespace: default
+        count: 0
+      - kind: HorizontalPodAutoscaler
+        name: acme-worker-hpa
+        namespace: default
+        count: 0
+
+      - kind: PodDisruptionBudget
+        name: acme-api-pdb
+        namespace: default
+        count: 0
+      - kind: PodDisruptionBudget
+        name: acme-worker-pdb
+        namespace: default
+        count: 0
+
+      - kind: ConfigMap
+        name: acme-plan-config
+        namespace: default
+        count: 0
+
+      # ── acme-dev namespace ────────────────────────────────────────────────
+      - kind: NetworkPolicy
+        name: acme-acme-dev-deny-all
+        namespace: acme-dev
+        count: 0
+      - kind: ResourceQuota
+        name: acme-acme-dev-quota
+        namespace: acme-dev
+        count: 0
+      - kind: LimitRange
+        name: acme-acme-dev-limits
+        namespace: acme-dev
+        count: 0
+      - kind: ServiceAccount
+        name: acme-acme-dev-sa
+        namespace: acme-dev
+        count: 0
+      - kind: Role
+        name: acme-acme-dev-role
+        namespace: acme-dev
+        count: 0
+      - kind: RoleBinding
+        name: acme-acme-dev-rolebinding
+        namespace: acme-dev
+        count: 0
+      - kind: ConfigMap
+        name: acme-acme-dev-config
+        namespace: acme-dev
+        count: 0
+      - kind: Secret
+        name: acme-acme-dev-secret
+        namespace: acme-dev
+        count: 0
+      - kind: PersistentVolumeClaim
+        name: acme-acme-dev-pvc
+        namespace: acme-dev
+        count: 0
+
+      # ── acme-staging namespace ────────────────────────────────────────────
+      - kind: NetworkPolicy
+        name: acme-acme-staging-deny-all
+        namespace: acme-staging
+        count: 0
+      - kind: ResourceQuota
+        name: acme-acme-staging-quota
+        namespace: acme-staging
+        count: 0
+      - kind: LimitRange
+        name: acme-acme-staging-limits
+        namespace: acme-staging
+        count: 0
+      - kind: ServiceAccount
+        name: acme-acme-staging-sa
+        namespace: acme-staging
+        count: 0
+      - kind: Role
+        name: acme-acme-staging-role
+        namespace: acme-staging
+        count: 0
+      - kind: RoleBinding
+        name: acme-acme-staging-rolebinding
+        namespace: acme-staging
+        count: 0
+      - kind: ConfigMap
+        name: acme-acme-staging-config
+        namespace: acme-staging
+        count: 0
+      - kind: Secret
+        name: acme-acme-staging-secret
+        namespace: acme-staging
+        count: 0
+      - kind: PersistentVolumeClaim
+        name: acme-acme-staging-pvc
+        namespace: acme-staging
+        count: 0

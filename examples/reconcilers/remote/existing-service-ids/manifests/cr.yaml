@@ -1,0 +1,7 @@
+apiVersion: storage.demo.inrun.dev/v1alpha1
+kind: Volume
+metadata:
+  name: data
+  namespace: default
+spec:
+  sizeGB: 10

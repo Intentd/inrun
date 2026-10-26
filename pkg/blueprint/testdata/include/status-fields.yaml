@@ -1,0 +1,8 @@
+fields:
+  - path: phase
+    value: Pending
+    when:
+      - field: status.phase
+        notExists: true
+  - path: team
+    value: "{{ .spec.team }}"

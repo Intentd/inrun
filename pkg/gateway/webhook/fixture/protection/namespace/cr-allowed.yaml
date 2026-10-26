@@ -1,0 +1,31 @@
+---
+# App in "production" namespace — allowed by allowedNamespaces rule.
+apiVersion: security.inrun.dev/v1alpha1
+kind: App
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  image: nginx:1.25
+  replicas: 2
+  port: 8080
+---
+# Database in "production" namespace — allowed.
+apiVersion: security.inrun.dev/v1alpha1
+kind: Database
+metadata:
+  name: my-database
+  namespace: production
+spec:
+  engine: postgres
+  storageSize: "5Gi"
+---
+# Cache in "staging" namespace — not in restrictedNamespaces, so allowed.
+apiVersion: security.inrun.dev/v1alpha1
+kind: Cache
+metadata:
+  name: my-cache
+  namespace: staging
+spec:
+  maxMemory: "512Mi"
+  evictionPolicy: allkeys-lru

@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: conditional-reconciliation-envtest
+  description: >
+    Suite for the coordinator pre-reconcile gate.
+    Two scenarios: gate passes (Deployment created) and gate discards (no Deployment).
+
+imports:
+  - ./simulate-gate-pass.yaml
+  - ./simulate-gate-discard.yaml

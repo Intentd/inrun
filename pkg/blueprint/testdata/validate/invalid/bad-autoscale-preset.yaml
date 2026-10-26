@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+# Triggers: autoscale.preset combined with manual fields
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-autoscale-preset
+  version: 0.1.0
+  description: Tests that autoscale.preset cannot be combined with manual autoscale fields.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        runtime:
+          autoscale:
+            preset: steady
+            interval: 30s
+

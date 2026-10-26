@@ -1,0 +1,14 @@
+fields:
+  - path: phase
+    value: >
+      {{ if eq .spec.tier "premium" }}Premium{{ else }}Basic{{ end }}
+  - path: tier
+    value: "{{ .spec.tier }}"
+  - path: image
+    value: "{{ .spec.image }}"
+  - path: replicas
+    value: "{{ .spec.replicas }}"
+  - path: configReady
+    value: "{{ resourceExists .children.configmap }}"
+  - path: secretCreated
+    value: "{{ resourceExists .children.secret }}"

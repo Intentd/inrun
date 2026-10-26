@@ -1,0 +1,46 @@
+ops:
+  # Cluster-wide RBAC
+  - cycle: 1
+    verb: apply
+    resource: clusterroles
+    name: acme-developer
+  - cycle: 1
+    verb: apply
+    resource: clusterroles
+    name: acme-reviewer
+  - cycle: 1
+    verb: apply
+    resource: clusterrolebindings
+    name: acme-developer-binding
+  - cycle: 1
+    verb: apply
+    resource: clusterrolebindings
+    name: acme-reviewer-binding
+  
+  # DEV Environment
+  - cycle: 1
+    verb: create
+    resource: serviceaccounts
+    name: acme-acme-dev-sa
+  - cycle: 1
+    verb: apply
+    resource: roles
+    name: acme-acme-dev-role
+  - cycle: 1
+    verb: apply
+    resource: rolebindings
+    name: acme-acme-dev-rolebinding
+  
+  # STAGING Environment
+  - cycle: 1
+    verb: create
+    resource: serviceaccounts
+    name: acme-acme-staging-sa
+  - cycle: 1
+    verb: apply
+    resource: roles
+    name: acme-acme-staging-role
+  - cycle: 1
+    verb: apply
+    resource: rolebindings
+    name: acme-acme-staging-rolebinding

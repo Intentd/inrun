@@ -1,0 +1,14 @@
+expect:
+  - name: Cluster-scoped resources removed on delete
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: ClusterRole
+        name: probe-cr
+        count: 0
+      - kind: ClusterRoleBinding
+        name: probe-crb
+        count: 0
+      - kind: PersistentVolume
+        name: probe-pv
+        count: 0

@@ -1,0 +1,9 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: Website
+metadata:
+  name: my-site
+  namespace: default
+spec:
+  image: nginx:1.25
+  replicas: 2
+  port: 80

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: external-postgres-e2e
+  description: >
+    Verifies protocol: postgres by deploying PostgreSQL in inrun-system
+    and querying current_database() and pg_stat_activity from the WebApp reconciler.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./e2e/cr-e2e.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-external-postgres
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-postgres-deploy.yaml
+    - include: ./e2e/02-assertions.yaml
+    - include: ./e2e/03-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          namespace: default
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          since: 2m

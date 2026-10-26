@@ -1,0 +1,32 @@
+{{ $icon := .Get "icon" | default "" }}
+{{ $title := .Get "title" | default "" }}
+{{ $href := .Get "href" | default "" }}
+
+{{ if $href }}
+<a href="{{ $href }}" class="shortcode-card shortcode-card-link">
+{{ else }}
+<div class="shortcode-card">
+{{ end }}
+  {{ if $icon }}
+  <div class="shortcode-card-icon">
+    {{ $icon | safeHTML }}
+  </div>
+  {{ end }}
+  <div class="shortcode-card-body">
+    {{ if $title }}
+    <h3 class="shortcode-card-title">{{ $title }}</h3>
+    {{ end }}
+    <div class="shortcode-card-content">
+      {{ .Inner | markdownify }}
+    </div>
+  </div>
+  {{ if $href }}
+  <svg class="shortcode-card-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+    <path d="M5 12h14M12 5l7 7-7 7"/>
+  </svg>
+  {{ end }}
+{{ if $href }}
+</a>
+{{ else }}
+</div>
+{{ end }}

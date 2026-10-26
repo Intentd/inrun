@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+# Triggers: enqueueGate template uses a sentinel not declared in preReconcile.sentinels
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-watch-undeclared-sentinel-in-gate
+  version: 0.1.0
+  description: gate template references a sentinel that is not declared.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        preReconcile:
+          sentinels:
+            - generationChanged
+          enqueueGate:
+            when:
+              - field: "{{ labelsChanged }}"
+                equals: "true"

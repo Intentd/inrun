@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: volume-existing-service-ids
+  author: intentd
+  version: 0.1.0
+  description: >
+    A storage API that assigns the id itself, used as the reconciler. The
+    first reconcile POSTs to create the volume and stores the id it answers;
+    later ones read the volume by that id and mirror its state. On delete, a
+    DELETE by id holds the CR until the API answers 404. Inrun sends an
+    Idempotency-Key with the POST, so a create that is retried (the status
+    patch with the id was lost) answers the first volume instead of making a
+    second. Nothing is created in the cluster.
+  tags:
+    - remote
+    - existing-service
+    - idempotency
+
+functions:
+  definitions:
+    - name: volumeAPI
+      description: The volume API — the dev server in the cluster, or on localhost when inrun runs outside it
+      expression: >
+        {{ if .inrun.inPod }}
+          http://inrun-dev-server.inrun-system.svc:9999
+        {{ else }}
+          http://localhost:9999
+        {{ end }}
+
+spec:
+  crds:
+    volume:
+      crdFile: ./manifests/crd.yaml
+      crFiles:
+        - ./manifests/cr.yaml
+      operatorBox:
+        reconcile:
+          default: false
+          args:
+            sizeGB: "{{ .spec.sizeGB }}"
+          # Read the volume by the id the API assigned, once there is one.
+          # 404: it was deleted outside the cluster, so it is created again.
+          external:
+            - name: current
+              url: "{{ volumeAPI }}/volumes/{{ .status.volumeId }}"
+              when:
+                - field: status.volumeId
+                  exists: true
+              expectedStatus: [200, 404]
+          remote:
+            endpoint: "{{ volumeAPI }}/volumes"
+            timeout: 10s
+            request:
+              # Create only while there is no volume. The POST carries an
+              # Idempotency-Key Inrun derives from the CR and the request.
+              method: POST
+              body: '{"name": "{{ .metadata.name }}", "sizeGB": {{ .args.sizeGB }}}'
+              expectedStatus: [201]
+              or:
+                - field: status.volumeId
+                  notExists: true
+                - field: external.current.status
+                  equals: "404"
+              # The finalizing pass deletes the volume by its id.
+              finalize:
+                url: "{{ volumeAPI }}/volumes/{{ .status.volumeId }}"
+                method: DELETE
+                # 404: the volume is gone, which is done.
+                expectedStatus: [202, 404]
+                when:
+                  - field: external.current.status
+                    equals: "200"
+            response:
+              # Written on the create pass only: later passes make no call.
+              status:
+                fields:
+                  - path: volumeId
+                    value: "{{ .response.json.id }}"
+              requeue:
+                after: 5s
+                or:
+                  # Just created, or still provisioning: read it again.
+                  - field: response.status
+                    equals: "201"
+                  - field: external.current.json.status
+                    equals: provisioning
+                  # 202 while deleting: hold the CR until the API answers 404.
+                  - field: response.status
+                    equals: "202"
+        # The volume's state, from the read by id.
+        emit:
+          status:
+            fields:
+              - path: state
+                value: '{{ .external.current.json.status | default "creating" }}'
+        runtime:
+          allowedNamespaces:
+            - default

@@ -1,0 +1,20 @@
+# Two documents of the SAME kind. The FIRST is the CR actually reconciled;
+# the SECOND is a pre-existing instance seeded into the fake dynamic client
+# (never reconciled itself) — see resolveCRInputs in cmd/cli/simulate.go and
+# "Same-kind pre-existing instances" in ../../docs/04-internals.md.
+# Both share spec.domain, so validation.rules' unique: true must deny.
+apiVersion: testground.inrun.dev/v1alpha1
+kind: Website
+metadata:
+  name: site-b
+  namespace: default
+spec:
+  domain: shared.example.com
+---
+apiVersion: testground.inrun.dev/v1alpha1
+kind: Website
+metadata:
+  name: site-a
+  namespace: default
+spec:
+  domain: shared.example.com

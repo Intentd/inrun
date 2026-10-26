@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-network
+  description: >
+    Fixture module — Networking, all forEach over spec.apps.
+    Covers Service, Ingress, HPA, PDB.
+
+resources:
+  services:
+    - name: "{{ .metadata.name }}-{{ .app }}-svc"
+      port: "80"
+      targetPort: "80"
+      forEach:
+        field: spec.apps
+        as: app
+
+  ingresses:
+    - name: "{{ .metadata.name }}-{{ .app }}-ingress"
+      host: "{{ .app }}.fixture.local"
+      serviceName: "{{ .metadata.name }}-{{ .app }}-svc"
+      servicePort: "80"
+      forEach:
+        field: spec.apps
+        as: app
+
+  hpa:
+    - name: "{{ .metadata.name }}-{{ .app }}-hpa"
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: "{{ .metadata.name }}-{{ .app }}"
+      minReplicas: "1"
+      maxReplicas: "3"
+      targetCPUUtilizationPercentage: "70"
+      forEach:
+        field: spec.apps
+        as: app
+
+  pdb:
+    - name: "{{ .metadata.name }}-{{ .app }}-pdb"
+      selector:
+        app: "{{ .metadata.name }}-{{ .app }}"
+      minAvailable: "1"
+      forEach:
+        field: spec.apps
+        as: app

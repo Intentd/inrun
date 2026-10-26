@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: test
+spec:
+  crds:
+    platform:
+      apiTypes:
+        group: platform.inrun.dev
+        version: v1alpha1
+        kind: Platform
+        plural: platforms
+      operatorBox:
+        emit:
+          status:
+            include: ./status-fields.yaml
+            fields:
+              - path: environment
+                value: "{{ .spec.environment }}"
+

@@ -1,0 +1,131 @@
+<aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
+  <div class="sidebar-inner">
+    <!-- Search -->
+    <div class="docsearch-wrapper">
+      {{ if and .Site.Params.algolia.appId .Site.Params.algolia.searchKey }}
+      <div id="docsearch"></div>
+      {{ else }}
+      <input type="search" placeholder="Search docs..." class="sidebar-search-input" aria-label="Search documentation" id="sidebar-search-input">
+      {{ end }}
+    </div>
+
+    <nav class="sidebar-nav">
+      {{ $currentPage := . }}
+      {{ range $currentPage.Site.Data.sidebar.nav }}
+        {{ if .page }}
+          {{/* Standalone page link */}}
+          {{ $page := $currentPage.Site.GetPage (printf "docs/%s" (strings.TrimSuffix "/" (path.Base .url))) }}
+          {{ $isActive := eq $currentPage $page }}
+          <div class="sidebar-standalone">
+            <a href="{{ .url }}" class="sidebar-standalone-link{{ if $isActive }} active{{ end }}">
+              {{ .title }}
+            </a>
+          </div>
+        {{ else }}
+          {{/* Collapsible section */}}
+          {{ $section := $currentPage.Site.GetPage "section" (printf "docs/%s" .section) }}
+          {{ if $section }}
+            {{ $isActiveSection := or ($currentPage.IsDescendant $section) (eq $currentPage $section) }}
+            <div class="sidebar-section{{ if $isActiveSection }} open{{ end }}">
+              <div class="sidebar-section-header{{ if $isActiveSection }} active-section{{ end }}">
+                <a href="{{ .url }}" class="sidebar-section-link">{{ .title }}</a>
+                <button class="sidebar-section-toggle" aria-expanded="{{ if $isActiveSection }}true{{ else }}false{{ end }}" aria-label="Toggle {{ .title }}">
+                  <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+              </div>
+              <ul class="sidebar-section-pages" role="list">
+                {{ $children := $section.RegularPages }}
+                {{ range $section.Sections }}{{ $children = $children | append . }}{{ end }}
+                {{ range sort $children "Weight" "asc" }}
+                  {{ $childActive := or (eq $currentPage .) ($currentPage.IsDescendant .) }}
+                  {{ if .IsSection }}
+                    {{ $subChildren := .RegularPages }}
+                    {{ range .Sections }}{{ $subChildren = $subChildren | append . }}{{ end }}
+                    <li class="sidebar-subsection{{ if $childActive }} open{{ end }}">
+                      <div class="sidebar-subsection-header">
+                        <a href="{{ .RelPermalink }}" class="sidebar-link{{ if $childActive }} active{{ end }}">{{ .LinkTitle }}</a>
+                        {{ if $subChildren }}
+                        <button class="sidebar-subsection-toggle" aria-expanded="{{ if $childActive }}true{{ else }}false{{ end }}" aria-label="Toggle {{ .Title }}">
+                          <svg class="chevron" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        {{ end }}
+                      </div>
+                      {{ if $subChildren }}
+                      <ul class="sidebar-subsection-pages" role="list">
+                        {{ range sort $subChildren "Weight" "asc" }}
+                        {{ if .IsSection }}
+                          {{ $subSubActive := or (eq $currentPage .) ($currentPage.IsDescendant .) }}
+                          {{ $subSubChildren := .RegularPages }}
+                          {{ range .Sections }}{{ $subSubChildren = $subSubChildren | append . }}{{ end }}
+                          <li class="sidebar-subsubsection{{ if $subSubActive }} open{{ end }}">
+                            <div class="sidebar-subsubsection-header">
+                              <a href="{{ .RelPermalink }}" class="sidebar-link sidebar-link--nested{{ if $subSubActive }} active{{ end }}">{{ .LinkTitle }}</a>
+                              {{ if $subSubChildren }}
+                              <button class="sidebar-subsubsection-toggle" aria-expanded="{{ if $subSubActive }}true{{ else }}false{{ end }}" aria-label="Toggle {{ .Title }}">
+                                <svg class="chevron" viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7"/></svg>
+                              </button>
+                              {{ end }}
+                            </div>
+                            {{ if $subSubChildren }}
+                            <ul class="sidebar-subsubsection-pages" role="list">
+                              {{ range sort $subSubChildren "Weight" "asc" }}
+                              {{ if .IsSection }}
+                                {{ $l4Active := or (eq $currentPage .) ($currentPage.IsDescendant .) }}
+                                {{ $l4Children := .RegularPages }}
+                                {{ range .Sections }}{{ $l4Children = $l4Children | append . }}{{ end }}
+                                <li class="sidebar-l4section{{ if $l4Active }} open{{ end }}">
+                                  <div class="sidebar-l4section-header">
+                                    <a href="{{ .RelPermalink }}" class="sidebar-link sidebar-link--deep{{ if $l4Active }} active{{ end }}">{{ .LinkTitle }}</a>
+                                    {{ if $l4Children }}
+                                    <button class="sidebar-l4section-toggle" aria-expanded="{{ if $l4Active }}true{{ else }}false{{ end }}" aria-label="Toggle {{ .Title }}">
+                                      <svg class="chevron" viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    {{ end }}
+                                  </div>
+                                  {{ if $l4Children }}
+                                  <ul class="sidebar-l4section-pages" role="list">
+                                    {{ range sort $l4Children "Weight" "asc" }}
+                                    <li>
+                                      <a href="{{ .RelPermalink }}" class="sidebar-link sidebar-link--deeper{{ if eq $currentPage . }} active{{ end }}">{{ .LinkTitle }}</a>
+                                    </li>
+                                    {{ end }}
+                                  </ul>
+                                  {{ end }}
+                                </li>
+                              {{ else }}
+                              <li>
+                                <a href="{{ .RelPermalink }}" class="sidebar-link sidebar-link--deep{{ if eq $currentPage . }} active{{ end }}">{{ .LinkTitle }}</a>
+                              </li>
+                              {{ end }}
+                              {{ end }}
+                            </ul>
+                            {{ end }}
+                          </li>
+                        {{ else }}
+                        <li>
+                          <a href="{{ .RelPermalink }}" class="sidebar-link sidebar-link--nested{{ if eq $currentPage . }} active{{ end }}">{{ .LinkTitle }}</a>
+                        </li>
+                        {{ end }}
+                        {{ end }}
+                      </ul>
+                      {{ end }}
+                    </li>
+                  {{ else }}
+                  <li>
+                    <a href="{{ .RelPermalink }}" class="sidebar-link{{ if $childActive }} active{{ end }}">{{ .LinkTitle }}</a>
+                  </li>
+                  {{ end }}
+                {{ end }}
+              </ul>
+            </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </nav>
+  </div>
+</aside>
+
+<!-- Mobile overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>

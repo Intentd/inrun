@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ .CRD.Name }} – {{ .BlueprintName }} Docs – Inrun</title>
+  <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
+  <link rel="stylesheet" href="/console/assets/static/css/inrun-docs.css">
+  <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+  <!-- Top nav -->
+  <nav class="inrun-nav">
+    <div class="inrun-nav-inner">
+      <a href="/console" class="inrun-nav-brand">
+        <img src="/console/assets/static/inrun-mark.svg" alt="Inrun" width="24" height="24">
+        <span>Inrun Console</span>
+      </a>
+      <div class="inrun-nav-links">
+        <a href="/console" class="inrun-nav-link">Dashboard</a>
+        <a href="/console/docs" class="inrun-nav-link active">Docs</a>
+        {{/* <a href="/console/metrics" class="inrun-nav-link">Metrics</a> */}}
+      </div>
+      <div class="inrun-nav-controls">
+        {{ if .RuntimeVersion }}<span class="inrun-runtime-badge">runtime {{ .RuntimeVersion }}</span>{{ end }}
+        <a href="https://inrun.dev" target="_blank" rel="noopener" class="inrun-nav-link inrun-nav-link-sm">Official Docs</a>
+        <a href="https://github.com/intentd/inrun" target="_blank" rel="noopener" class="inrun-icon-link" title="GitHub">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        </a>
+        <button class="inrun-theme-btn" id="inrun-theme-toggle" title="Toggle theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="inrun-docs-layout">
+
+    <!-- Left sidebar -->
+    <aside class="inrun-sidebar" id="inrun-sidebar">
+      <div class="inrun-sidebar-inner">
+        {{ if .BlueprintVersion }}
+        <div class="inrun-sidebar-version">
+          <span class="inrun-version-badge">{{ .BlueprintName }} {{ .BlueprintVersion }}</span>
+        </div>
+        {{ end }}
+
+        <div class="inrun-sidebar-group is-open">
+          <button class="inrun-sidebar-group-toggle">
+            <span>On this page</span>
+            <svg class="inrun-toggle-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <ul class="inrun-sidebar-items">
+            <li class="inrun-sidebar-item"><a href="#overview">Overview</a></li>
+            <li class="inrun-sidebar-item"><a href="#reconcile-mode">Reconcile Mode</a></li>
+            <li class="inrun-sidebar-item"><a href="#configuration">Configuration</a></li>
+            {{ if .CRD.DependsOn }}<li class="inrun-sidebar-item"><a href="#dependencies">Dependencies</a></li>{{ end }}
+            {{ if .HasChildren }}<li class="inrun-sidebar-item"><a href="#child-resources">Child Resources</a></li>{{ end }}
+            {{ if ne .CRD.State "endpoints-disabled" }}<li class="inrun-sidebar-item"><a href="#operatorbox">operatorBox</a></li>{{ end }}
+            <li class="inrun-sidebar-item"><a href="#kubectl">kubectl Reference</a></li>
+            {{ if .HasRBAC }}<li class="inrun-sidebar-item"><a href="#rbac">Access Control</a></li>{{ end }}
+            {{ if or .HasAdmission .HasConversion }}<li class="inrun-sidebar-item"><a href="#webhooks">Webhooks</a></li>{{ end }}
+            {{ if .HasProtection }}<li class="inrun-sidebar-item"><a href="#protection">Protection</a></li>{{ end }}
+            <li class="inrun-sidebar-item"><a href="#endpoints">Endpoints</a></li>
+          </ul>
+        </div>
+
+        <div class="inrun-sidebar-group is-open">
+          <button class="inrun-sidebar-group-toggle">
+            <span>Blueprint</span>
+            <svg class="inrun-toggle-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <ul class="inrun-sidebar-items">
+            <li class="inrun-sidebar-item"><a href="/console/docs">← All docs</a></li>
+            <li class="inrun-sidebar-item"><a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }} dashboard</a></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <article class="inrun-docs-content" id="content">
+
+      <!-- Breadcrumb -->
+      <nav class="inrun-breadcrumbs">
+        <ol>
+          <li><a href="/console">Blueprints</a> /</li>
+          <li><a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }}</a> /</li>
+          <li><a href="/console/docs">Docs</a> /</li>
+          <li aria-current="page">{{ .CRD.Name }}</li>
+        </ol>
+      </nav>
+
+      <!-- Header -->
+      <header class="inrun-doc-header">
+        <h1>{{ .CRD.Name }}</h1>
+        {{ if .CRD.Description }}
+        <p class="inrun-doc-description">{{ .CRD.Description }}</p>
+        {{ end }}
+        <div class="inrun-doc-meta">
+          <span><span class="inrun-state inrun-state-{{ .CRD.State }}">{{ .CRD.State }}</span></span>
+          <span>{{ .BlueprintName }}{{ if .BlueprintVersion }} {{ .BlueprintVersion }}{{ end }}</span>
+          {{ if .CRD.Uptime }}<span>uptime {{ .CRD.Uptime }}</span>{{ end }}
+        </div>
+      </header>
+
+      <div class="inrun-doc-body">
+
+        <!-- ── Overview ───────────────────────────────────────── -->
+        <h2 id="overview">Overview</h2>
+        <p>
+          <code>{{ .CRD.Name }}</code> is a custom resource managed by the
+          <strong>{{ .BlueprintName }}</strong> operator running on Inrun.
+          {{ if .CRD.Namespaced }}
+          Resources of this type are <strong>namespace-scoped</strong>{{ if .CRD.Namespace }} and are restricted to the <code>{{ .CRD.Namespace }}</code> namespace{{ end }}.
+          {{ else }}
+          Resources of this type are <strong>cluster-scoped</strong>.
+          {{ end }}
+        </p>
+
+        <table>
+          <thead><tr><th>Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>API Version</td><td><code>{{ .KubectlGroup }}{{ if .KubectlGroup }}/{{ end }}{{ .KubectlVersion }}</code></td></tr>
+            <tr><td>Kind</td><td><code>{{ .KubectlKind }}</code></td></tr>
+            <tr><td>GVR (plural)</td><td><code>{{ .CRD.GVR }}</code></td></tr>
+            <tr><td>Scope</td><td>{{ if .CRD.Namespaced }}Namespaced{{ else }}Cluster-scoped{{ end }}</td></tr>
+            {{ if .CRD.Namespace }}<tr><td>Operator namespace</td><td><code>{{ .CRD.Namespace }}</code></td></tr>{{ end }}
+            <tr>
+              <td>Cross-read access</td>
+              <td>
+                {{ if .CRD.CrossAccess }}
+                <span style="color:var(--inrun-green)">✓ allowed</span> — sibling operators may read this CRD's CR state via <code>cross:</code>
+                {{ else }}
+                <span style="color:var(--inrun-muted)">⊘ denied</span> — <code>crossAccess: false</code> blocks all inbound cross-reads; outbound reads are unaffected
+                {{ end }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- ── Reconcile Mode ────────────────────────────────── -->
+        <h2 id="reconcile-mode">Reconcile Mode</h2>
+
+        {{ if or (eq .CRD.Mode "typed") (eq .CRD.Mode "dynamic") }}
+        {{ $kind := mapGet .CRD.OperatorBox "type" | asString }}
+        {{ if eq .CRD.Mode "typed" }}
+        <p>
+          This CRD runs in <strong>typed mode</strong>: Inrun decodes each custom resource into its Go type, so Go reconcilers get type-safe field access.
+        </p>
+        {{ else if eq .CRD.Mode "dynamic" }}
+        <p>
+          This CRD runs in <strong>dynamic mode</strong>: Inrun works with the unstructured object, and no Go types are compiled in.
+        </p>
+        {{ end }}
+
+        {{ if eq $kind "declarative" }}
+        <p>
+          It is reconciled <strong>declaratively</strong>: the Blueprint's <code>onCreate</code> and <code>onReconcile</code> templates, with expressions like <code>{{ "{{ .spec.field }}" }}</code>, become the CR's children and status.
+        </p>
+        {{ else if eq $kind "hooks" }}
+        <p>
+          It is reconciled by <strong>Go hooks</strong>: compiled functions that receive the typed object and return what to apply, alongside the Blueprint's templates.
+        </p>
+        {{ else if eq $kind "constructor" }}
+        <p>
+          It is reconciled by a <strong>Go constructor</strong>: a compiled reconciler that returns the CR's children and status as a Result.
+        </p>
+        {{ else if eq $kind "remote" }}
+        <p>
+          It is reconciled by a <strong>remote reconciler</strong>: Inrun calls an HTTP endpoint once per reconcile with the CR and its <code>reconcile.args</code>, and applies the Result it returns.
+        </p>
+        {{ end }}
+        {{ with mapGet .CRD.OperatorBox "targets" }}
+        <p>
+          Some serve targets are reconciled differently:{{ range $t, $k := . }} <code>{{ $t }}</code> ({{ $k }}){{ end }}.
+        </p>
+        {{ end }}
+        <p>
+          Whatever the reconciler, the runtime owns the lifecycle: Inrun's finalizer, managed labels, applying and pruning children, events, metrics, health, and holding a deleted CR until its finalizing reconcile is done.
+        </p>
+
+        {{ else }}
+        <p>Reconcile mode unavailable — endpoints are disabled for this CRD.</p>
+        {{ end }}
+
+        <hr>
+
+        <!-- ── Configuration ─────────────────────────────────── -->
+        {{ if ne .CRD.State "endpoints-disabled" }}
+        <h2 id="configuration">Configuration</h2>
+        <p>
+          The operator maintains <strong>{{ .CRD.Workers }} worker goroutines</strong>
+          {{ if .HasAutoscaler }}(autoscaled, currently <strong>{{ .CRD.AutoscalerWorkers.Effective }} effective</strong>){{ end }}
+          to process reconcile events concurrently.
+          Each worker dequeues one CR key at a time, reconciles it, and returns.
+          The queue has a maximum depth of <strong>{{ .CRD.MaxDepth }}</strong> events.
+        </p>
+        <p>
+          Inrun resyncs all managed resources every <strong>{{ .CRD.Resync }}</strong> by re-enqueueing every CR key. This ensures drift caused by external changes is corrected even without a Kubernetes watch event.
+        </p>
+
+        {{ if .HasAutoscaler }}
+        <h3>Autoscaler</h3>
+        <p>
+          The worker count is managed dynamically. The autoscaler monitors queue depth and adjusts the number of active workers between <strong>{{ .CRD.AutoscalerWorkers.Configured }}</strong> (configured) and <strong>{{ .CRD.AutoscalerWorkers.Max }}</strong> (max).
+          At the time of this page load, <strong>{{ .CRD.AutoscalerWorkers.InFlight }}</strong> reconciles are in-flight and workers are <strong>{{ printf "%.0f" .CRD.AutoscalerWorkers.BusyPercent }}%</strong> busy.
+        </p>
+        {{ end }}
+
+        <hr>
+        {{ end }}
+
+        <!-- ── Dependencies ──────────────────────────────────── -->
+        {{ if .CRD.DependsOn }}
+        <h2 id="dependencies">Dependencies</h2>
+        <p>
+          This CRD will not begin reconciliation until all of its dependencies are in the required state.
+          {{ if .CRD.HasUnhealthyDependencies }}
+        </p>
+        <div class="inrun-callout inrun-callout-warning">
+          <div class="inrun-callout-header">Unhealthy dependencies</div>
+          <div class="inrun-callout-body"><p>One or more dependencies are not yet satisfied. Reconciliation may be blocked.</p></div>
+        </div>
+        <p>
+          {{ end }}
+        </p>
+
+        <table>
+          <thead><tr><th>Dependency</th><th>Required condition</th><th>Current state</th><th>Satisfied</th></tr></thead>
+          <tbody>
+            {{ range $name, $dep := .CRD.Dependencies }}
+            <tr>
+              <td><code>{{ $name }}</code></td>
+              <td><code>{{ $dep.AcceptableCondition }}</code></td>
+              <td><span class="inrun-state inrun-state-{{ $dep.State }}">{{ $dep.State }}</span></td>
+              <td>{{ if $dep.Satisfied }}✓{{ else }}✗{{ end }}</td>
+            </tr>
+            {{ else }}
+            {{ range .CRD.DependsOn }}
+            <tr><td><code>{{ . }}</code></td><td>—</td><td>—</td><td>—</td></tr>
+            {{ end }}
+            {{ end }}
+          </tbody>
+        </table>
+
+        <hr>
+        {{ end }}
+
+        <!-- ── Child Resources ───────────────────────────────── -->
+        {{ if .HasChildren }}
+        <h2 id="child-resources">Child Resources</h2>
+        <p>
+          When the operator reconciles a <code>{{ .CRD.Name }}</code> instance it creates and manages
+          the following Kubernetes resources on its behalf. These are owned by the CR via owner references
+          and are deleted automatically when the CR is deleted (unless deletion protection is active).
+        </p>
+        <p>
+          Resources listed under <strong>onCreate</strong> are created on the first reconcile.
+          Resources listed under <strong>onReconcile</strong> are re-applied on every reconcile cycle.
+          A resource appearing in both phases is created once and kept in sync thereafter.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Kind</th>
+              <th>Count</th>
+              <th>Lifecycle phases</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .ChildResources }}
+            <tr>
+              <td><code>{{ .Kind }}</code></td>
+              <td>{{ .Count }}</td>
+              <td>
+                {{ range .Phases }}<span class="inrun-state inrun-state-started" style="margin-right:4px">{{ . }}</span>{{ end }}
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+        <p>
+          To see the actual child resources created for a running instance, navigate to the instance's
+          detail page from the <a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }} control panel</a>.
+        </p>
+        <hr>
+        {{ end }}
+
+        <!-- ── operatorBox ───────────────────────────────────── -->
+        {{ if ne .CRD.State "endpoints-disabled" }}
+        {{ $ob := .CRD.OperatorBox }}
+        {{ $fins    := mapGet $ob "finalizers" }}
+        {{ $hooks   := mapGet $ob "hooks" }}
+        {{ $ctor    := mapGet $ob "constructor" }}
+        {{ $hookConf := mapGet $hooks "configured" | asBool }}
+        {{ $ctorConf := mapGet $ctor  "configured" | asBool }}
+        {{ $finVals  := mapGet $fins  "values"     | asSlice }}
+        <h2 id="operatorbox">operatorBox</h2>
+        <p>
+          Summary of the reconciler configuration declared in the Blueprint for this CRD.
+        </p>
+        <table>
+          <thead><tr><th>Feature</th><th>Configured</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Hooks</td>
+              <td>{{ if $hookConf }}✓{{ else }}—{{ end }}</td>
+              <td>{{ if $hookConf }}<code>{{ mapGet $hooks "source" | asString }}</code>{{ if mapGet $hooks "function" | asString }} · <code>{{ mapGet $hooks "function" | asString }}</code>{{ end }}{{ else }}No reconcile hooks{{ end }}</td>
+            </tr>
+            <tr>
+              <td>Constructor</td>
+              <td>{{ if $ctorConf }}✓{{ else }}—{{ end }}</td>
+              <td>{{ if $ctorConf }}<code>{{ mapGet $ctor "source" | asString }}</code>{{ else }}None{{ end }}</td>
+            </tr>
+            <tr>
+              <td>Finalizers</td>
+              <td>{{ if $finVals }}{{ len $finVals }}{{ else }}—{{ end }}</td>
+              <td>{{ if $finVals }}{{ range $finVals }}<code>{{ . }}</code> {{ end }}{{ else }}Removed (<code>runtime.finalizers.remove</code>){{ end }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr>
+        {{ end }}
+
+        <!-- ── kubectl Reference ─────────────────────────────── -->
+        <h2 id="kubectl">kubectl Reference</h2>
+        <p>Use the commands below to interact with <code>{{ .CRD.Name }}</code> resources from the command line.</p>
+
+        {{ if .CRD.Namespaced }}
+        <h3>List resources</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }} -n &lt;namespace&gt;</code></pre>
+
+        <h3>Describe a resource</h3>
+        <pre><code>kubectl describe {{ .KubectlKindLower }} &lt;name&gt; -n &lt;namespace&gt;</code></pre>
+
+        <h3>Get YAML</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }} &lt;name&gt; -n &lt;namespace&gt; -o yaml</code></pre>
+
+        <h3>Watch for changes</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }} -n &lt;namespace&gt; -w</code></pre>
+
+        <h3>Delete a resource</h3>
+        <pre><code>kubectl delete {{ .KubectlKindLower }} &lt;name&gt; -n &lt;namespace&gt;</code></pre>
+        {{ else }}
+        <h3>List resources</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }}</code></pre>
+
+        <h3>Describe a resource</h3>
+        <pre><code>kubectl describe {{ .KubectlKindLower }} &lt;name&gt;</code></pre>
+
+        <h3>Get YAML</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }} &lt;name&gt; -o yaml</code></pre>
+
+        <h3>Watch for changes</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }} -w</code></pre>
+
+        <h3>Delete a resource</h3>
+        <pre><code>kubectl delete {{ .KubectlKindLower }} &lt;name&gt;</code></pre>
+        {{ end }}
+
+        <h3>Filter by Inrun managed label</h3>
+        <pre><code>kubectl get {{ .KubectlKindLower }} -l inrun.dev/managed=true{{ if .CRD.Namespaced }} -n &lt;namespace&gt;{{ end }}</code></pre>
+
+        <hr>
+
+        <!-- ── Access Control ────────────────────────────────── -->
+        {{ if .HasRBAC }}
+        <h2 id="rbac">Access Control</h2>
+        <p>
+          The operator holds the following RBAC permissions to manage <code>{{ .CRD.Name }}</code> resources.
+          {{ if .CRD.RBAC.Summary }}{{ .CRD.RBAC.Summary }}{{ end }}
+        </p>
+
+        <table>
+          <thead><tr><th>API Groups</th><th>Resources</th><th>Verbs</th></tr></thead>
+          <tbody>
+            {{ range .CRD.RBAC.Rules }}
+            <tr>
+              <td>{{ range .APIGroups }}<code>{{ if . }}{{ . }}{{ else }}core{{ end }}</code> {{ end }}</td>
+              <td>{{ range .Resources }}<code>{{ . }}</code> {{ end }}</td>
+              <td>{{ range .Verbs }}<code>{{ . }}</code> {{ end }}</td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+
+        <hr>
+        {{ end }}
+
+        <!-- ── Webhooks ───────────────────────────────────────── -->
+        {{ if or .HasAdmission .HasConversion }}
+        <h2 id="webhooks">Webhooks</h2>
+
+        {{ if .HasAdmission }}
+        <h3>Admission</h3>
+        <p>
+          This CRD has admission webhooks enabled. Requests to create or update <code>{{ .CRD.Name }}</code> resources pass through Inrun's admission controller before being persisted.
+        </p>
+        <ul>
+          <li><strong>Validation:</strong> rejects requests that fail declared validation rules, optionally emitting warnings for non-blocking issues.</li>
+          <li><strong>Mutation:</strong> applies default values and normalizations before the object is stored.</li>
+        </ul>
+
+        <table>
+          <thead><tr><th>Phase</th><th>Total</th><th>Allowed</th><th>Denied</th><th>Avg latency</th><th>P95 latency</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Validation</td>
+              <td>{{ .CRD.Admission.ValidationTotal }}</td>
+              <td>{{ .CRD.Admission.ValidationAllowed }}</td>
+              <td>{{ .CRD.Admission.ValidationDenied }}</td>
+              <td><code>{{ printf "%.1f" .CRD.Admission.ValAvgLatencyMs }}ms</code></td>
+              <td><code>{{ printf "%.1f" .CRD.Admission.ValP95LatencyMs }}ms</code></td>
+            </tr>
+            <tr>
+              <td>Mutation</td>
+              <td>{{ .CRD.Admission.MutationTotal }}</td>
+              <td>{{ .CRD.Admission.MutationApplied }}</td>
+              <td>{{ .CRD.Admission.MutationSkipped }}</td>
+              <td><code>{{ printf "%.1f" .CRD.Admission.MutAvgLatencyMs }}ms</code></td>
+              <td><code>{{ printf "%.1f" .CRD.Admission.MutP95LatencyMs }}ms</code></td>
+            </tr>
+          </tbody>
+        </table>
+        {{ end }}
+
+        {{ if .HasConversion }}
+        <h3>Version Conversion</h3>
+        <p>
+          Multiple API versions of this CRD are in use. Inrun's conversion webhook translates objects between versions transparently so that older and newer clients can coexist.
+        </p>
+        <table>
+          <thead><tr><th>Total conversions</th><th>Success</th><th>Failures</th><th>Avg latency</th><th>P95 latency</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>{{ .CRD.Conversion.Total }}</td>
+              <td>{{ .CRD.Conversion.Success }}</td>
+              <td>{{ .CRD.Conversion.Failures }}</td>
+              <td><code>{{ printf "%.1f" .CRD.Conversion.AvgLatencyMs }}ms</code></td>
+              <td><code>{{ printf "%.1f" .CRD.Conversion.P95LatencyMs }}ms</code></td>
+            </tr>
+          </tbody>
+        </table>
+        {{ end }}
+
+        <hr>
+        {{ end }}
+
+        <!-- ── Protection ─────────────────────────────────────── -->
+        {{ if .HasProtection }}
+        <h2 id="protection">Protection</h2>
+
+        {{ if .CRD.DeletionProtection }}{{ if .CRD.DeletionProtection.Enabled }}
+        <h3>Deletion Protection</h3>
+        <p>
+          Deletion protection is <strong>active</strong>. Requests to delete <code>{{ .CRD.Name }}</code> resources are evaluated against protection rules before Kubernetes processes them. Requests that do not meet the criteria are blocked and a human-readable reason is returned to the caller.
+        </p>
+        {{ end }}{{ end }}
+
+        {{ if .CRD.NamespaceProtection }}{{ if .CRD.NamespaceProtection.Enabled }}
+        <h3>Namespace Protection</h3>
+        <p>
+          Namespace protection restricts where <code>{{ .CRD.Name }}</code> resources may be created or modified.
+        </p>
+        {{ if .CRD.NamespaceProtection.AllowedNamespaces }}
+        <p><strong>Allowed namespaces:</strong>
+          {{ range .CRD.NamespaceProtection.AllowedNamespaces }}<code>{{ . }}</code> {{ end }}
+        </p>
+        {{ end }}
+        {{ if .CRD.NamespaceProtection.RestrictedNamespaces }}
+        <p><strong>Restricted namespaces:</strong>
+          {{ range .CRD.NamespaceProtection.RestrictedNamespaces }}<code>{{ . }}</code> {{ end }}
+        </p>
+        {{ end }}
+        {{ end }}{{ end }}
+
+        <hr>
+        {{ end }}
+
+
+        <!-- ── Endpoints ──────────────────────────────────────── -->
+        <h2 id="endpoints">Endpoints</h2>
+        <p>
+          Inrun exposes per-CRD HTTP endpoints for health reporting and runtime introspection.
+          Endpoints can be selectively disabled in the Blueprint via <code>endpoints:</code>.
+        </p>
+
+        <table>
+          <thead><tr><th>Endpoint</th><th>Path</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Health</td>
+              <td><code>/blueprint/{{ .CRD.Name | toLower }}/health</code></td>
+              <td>
+                {{- if .CRD.HealthEndpointDisabled }}
+                <span style="color:var(--inrun-muted)">⊘ disabled — <code>endpoints: health: false</code></span>
+                {{- else }}
+                <span style="color:var(--inrun-green)">✓ enabled</span>
+                {{- end }}
+              </td>
+            </tr>
+            <tr>
+              <td>Info</td>
+              <td><code>/blueprint/{{ .CRD.Name | toLower }}</code></td>
+              <td>
+                {{- if .CRD.InfoEndpointDisabled }}
+                <span style="color:var(--inrun-muted)">⊘ disabled — <code>endpoints: enabled: false</code></span>
+                {{- else }}
+                <span style="color:var(--inrun-green)">✓ enabled</span>
+                {{- end }}
+              </td>
+            </tr>
+            <tr>
+              <td>CR List</td>
+              <td><code>/blueprint/{{ .CRD.Name | toLower }}/cr</code></td>
+              <td>
+                {{- if .CRD.InfoEndpointDisabled }}
+                <span style="color:var(--inrun-muted)">⊘ disabled — <code>endpoints: enabled: false</code></span>
+                {{- else }}
+                <span style="color:var(--inrun-green)">✓ enabled</span>
+                {{- end }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+      </div><!-- inrun-doc-body -->
+    </article>
+
+    <!-- Right TOC (empty col to mirror site layout) -->
+    <div class="inrun-toc-col"></div>
+
+  </div><!-- inrun-docs-layout -->
+
+  <script src="/console/assets/static/js/inrun-docs.js"></script>
+</body>
+</html>

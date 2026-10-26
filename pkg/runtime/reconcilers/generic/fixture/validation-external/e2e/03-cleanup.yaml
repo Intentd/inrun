@@ -1,0 +1,17 @@
+expect:
+  - name: cleanup bad-health WebApp
+    after: cr-deleted
+    timeout: 60s
+    kubectl:
+      delete:
+        - kind: WebApp
+          name: my-app-degraded
+          namespace: default
+
+  - name: all WebApps removed
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: WebApp
+        namespace: default
+        count: 0

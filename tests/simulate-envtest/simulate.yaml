@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: envtest-suite
+  description: >
+    envtest suite — the same scenarios covered by tests/integration/kubeclient and
+    tests/integration/informer, expressed as simulate.yaml files.
+    Run with: inrun simulate -f simulate.yaml --envtest
+
+imports:
+  - 01-probe-reconcile/simulate.yaml
+  - 02-status-patch/simulate.yaml
+  - 03-namespace-filter/simulate.yaml
+  - 04-conditional-reconciliation/simulate.yaml

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: rotating-credentials
+  version: v0.1.0
+  description: >
+    Auto-generates a username, password, and token on first creation.
+    Rotated automatically after rotateAfter. Never drift-corrected —
+    credentials stay stable between rotations.
+  author: intentd
+  tags:
+    - secret
+    - credentials
+    - rotation
+    - once
+
+inputs:
+  - name: rotateAfter
+    default: "90d"
+    description: How long before credentials are rotated (e.g. 30d, 60d, 1y)
+
+resources:
+  onCreate:
+    secrets:
+      - name: "{{ .metadata.name }}-credentials"
+        once: true
+        rotateAfter: '{{ index .inputs "rotateAfter" }}'
+        data:
+          username: "{{ randomAlphanumeric 16 }}"
+          password: "{{ randomAlphanumeric 32 }}"
+          token: "{{ randomBase64 24 }}"
+
+status:
+  fields:
+    - path: credentialsSecret
+      value: "{{ .metadata.name }}-credentials"

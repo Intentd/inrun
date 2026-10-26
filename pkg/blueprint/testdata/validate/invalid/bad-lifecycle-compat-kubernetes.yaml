@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-compat-kubernetes
+  version: 1.0.0
+  description: Tests that an invalid kubernetes semver range fails validation.
+lifecycle:
+  compatibility:
+    kubernetes: "!!!invalid"
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

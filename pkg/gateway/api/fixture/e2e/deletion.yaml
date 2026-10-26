@@ -1,0 +1,9 @@
+expect:
+  - name: ArgoCD Application removed after PlatformResource deletion
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: Application
+        name: payments-api
+        namespace: argocd
+        count: 0

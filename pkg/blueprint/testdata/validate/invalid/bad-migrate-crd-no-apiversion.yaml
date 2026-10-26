@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: migrate-invalid-no-apiversion
+  version: 0.1.0
+  description: Invalid — migrate.to.apiVersion is required.
+spec:
+  crds:
+    appconfig:
+      crdFile: ../crd.yaml
+      migrate:
+        to:
+          kind: Config

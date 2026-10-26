@@ -1,0 +1,51 @@
+expect:
+  - name: mutation defaults spec.replicas from defaultReplicas note
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ./cr.yaml
+      get:
+        - kind: DeploymentRequest
+          name: my-app
+          namespace: default
+          field: .spec.replicas
+          equals: "2"
+
+  - name: Deployment created during business hours
+    after: cr-applied
+    timeout: 60s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "true"
+    resources:
+      - kind: Deployment
+        name: my-app
+        namespace: default
+        ready: true
+
+  - name: business-hours gate denies outside window
+    after: cr-applied
+    timeout: 30s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "false"
+    kubectl:
+      get:
+        - kind: DeploymentRequest
+          name: my-app
+          namespace: default
+          field: .status.conditions[?(@.type=="ValidationFailed")].status
+          equals: "True"
+
+  - name: no Deployment outside business hours
+    after: cr-applied
+    timeout: 15s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "false"
+    resources:
+      - kind: Deployment
+        name: my-app
+        namespace: default
+        count: 0

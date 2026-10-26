@@ -1,0 +1,20 @@
+ops:
+  # DEV Environment
+  - cycle: 1
+    verb: apply
+    resource: configmaps
+    name: acme-acme-dev-config
+  - cycle: 1
+    verb: apply
+    resource: secrets
+    name: acme-acme-dev-secret
+  
+  # STAGING Environment
+  - cycle: 1
+    verb: apply
+    resource: configmaps
+    name: acme-acme-staging-config
+  - cycle: 1
+    verb: apply
+    resource: secrets
+    name: acme-acme-staging-secret

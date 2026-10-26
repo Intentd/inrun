@@ -1,0 +1,23 @@
+expect:
+  # Worker not yet healthy — Platform gate still closed, no reconcile fires.
+  - name: Platform CR applied — gate closed, no reconcile while Worker unhealthy
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ./cr-platform.yaml
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jq: .totalReconciles
+          equals: "0"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jq: .hasUnhealthyDependencies
+          equals: "true"

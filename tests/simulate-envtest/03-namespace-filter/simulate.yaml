@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: probe-namespace-filter
+  description: >
+    Probe CR is in namespace "default" but the blueprint only allows "staging".
+    The real informer's namespace filter drops the watch event — the reconciler
+    never runs and no Deployments are created.
+
+spec:
+  blueprint: ./blueprint-staging-only.yaml
+  cr: ../cr.yaml
+  crd: ../crd.yaml
+  cycles: 3
+
+  expect:
+    noErrors: true
+    absent:
+      - verb: create
+        resource: deployments

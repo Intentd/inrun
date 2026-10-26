@@ -1,0 +1,44 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: logstreams.security.inrun.dev
+spec:
+  group: security.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Endpoint
+          type: string
+          jsonPath: .spec.endpoint
+        - name: Format
+          type: string
+          jsonPath: .spec.format
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [endpoint]
+              properties:
+                endpoint:
+                  type: string
+                format:
+                  type: string
+                  default: json
+                  enum: [json, text, ndjson]
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  names:
+    kind: LogStream
+    plural: logstreams
+    singular: logstream
+  scope: Namespaced

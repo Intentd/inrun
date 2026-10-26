@@ -1,0 +1,27 @@
+expect:
+  - name: Runtime started — all CRDs pending, not yet installed
+    after: cr-applied
+    timeout: 15s
+    kubectl:
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jq: .state
+          equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jq: .state
+          equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jq: .state
+          equals: pending

@@ -1,0 +1,171 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: inrun-chart-e2e
+  description: >
+    custom.target: kubernetes — Inrun Helm chart installed via setup.helm
+    with gateway enabled. CRD, bundle, and fixture CR are applied before the
+    chart so Inrun reconciles on first boot. Asserts that all three
+    deployments are ready, that conditional templates are not created when their
+    flags are off (default values), and that the runtime reconciles the fixture
+    CR producing a Deployment and Service.
+
+spec:
+  custom:
+    target: kubernetes
+
+  cluster:
+    provider: kind
+    name: inrun-chart-e2e
+    reuse: false
+
+  setup:
+    apply:
+      - path: fixtures/crd.yaml
+        wait:
+          - kind: CustomResourceDefinition
+            name: websites.demo.inrun.dev
+            timeout: 30s
+      - path: fixtures/inrun-bundle.yaml
+        wait:
+          - kind: ConfigMap
+            name: inrun-blueprint
+            namespace: inrun-system
+            timeout: 30s
+      - path: fixtures/cr.yaml
+        wait:
+          - kind: Website
+            name: hello-website
+            namespace: default
+            timeout: 30s
+    helm:
+      - chart: ./
+        release: inrun
+        namespace: inrun-system
+        createNamespace: true
+        values:
+          gateway.enabled: true
+          gateway.image.tag: 0.1.0-rc
+          runtime.image.tag: 0.1.0-rc
+          console.image.tag: 0.1.0-rc
+        wait:
+          - kind: Deployment
+            name: inrun-runtime
+            namespace: inrun-system
+            ready: true
+            timeout: 120s
+          - kind: Deployment
+            name: inrun-gateway
+            namespace: inrun-system
+            ready: true
+            timeout: 120s
+          - kind: Deployment
+            name: inrun-console
+            namespace: inrun-system
+            ready: true
+            timeout: 120s
+
+  expect:
+    - include: ./e2e/infra-ready.yaml
+
+    - name: Ingress not created (console.ingress.enabled defaults to false)
+      after: setup-complete
+      timeout: 30s
+      resources:
+        - kind: Ingress
+          namespace: inrun-system
+          count: 0
+
+    - name: NetworkPolicies not created (networkPolicy.enabled defaults to false)
+      timeout: 30s
+      resources:
+        - kind: NetworkPolicy
+          namespace: inrun-system
+          count: 0
+
+    - name: Namespace protection webhook registered by gateway
+      timeout: 60s
+      resources:
+        - kind: ValidatingWebhookConfiguration
+          name: inrun-namespace-protection
+
+    - name: Runtime reconciles fixture CR — Deployment and Service created
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          name: hello-website
+          namespace: default
+          ready: true
+        - kind: Service
+          name: hello-website-svc
+          namespace: default
+
+    - name: Fixture CR rendered with correct configuration
+      timeout: 30s
+      kubectl:
+        get:
+          - kind: Deployment
+            name: hello-website
+            namespace: default
+            field: spec.replicas
+            equals: "1"
+          - kind: Service
+            name: hello-website-svc
+            namespace: default
+            field: spec.ports[0].port
+            equals: "80"
+
+    - name: Runtime API responds with reconciled service
+      timeout: 60s
+      kubectl:
+        port-forward:
+          - namespace: inrun-system
+            leaderElection:
+              lease: inrun-leader
+            port: 8080
+            path: /blueprint/website/health
+            jq: resourceCount
+            equals: "1"
+
+          - namespace: inrun-system
+            leaderElection:
+              lease: inrun-leader
+            port: 8080
+            path: /blueprint/website/health
+            jq: healthy
+            equals: "true"
+
+          - namespace: inrun-system
+            leaderElection:
+              lease: inrun-leader
+            port: 8080
+            path: /blueprint/website
+            contains: "Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website"
+
+    - include: ./e2e/cleanup.yaml
+
+  onFailure:
+    kubectl:
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+          namespace: inrun-system
+          since: 5m
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 5m
+      describe:
+        - kind: Deployment
+          name: inrun-runtime
+          namespace: inrun-system
+        - kind: Deployment
+          name: inrun-gateway
+          namespace: inrun-system
+      events:
+        - kind: Deployment
+          name: inrun-runtime
+          namespace: inrun-system
+        - kind: Deployment
+          name: inrun-gateway
+          namespace: inrun-system

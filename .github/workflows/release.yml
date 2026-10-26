@@ -1,0 +1,100 @@
+name: Inrun Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+  actions: write      # cleanup-caches deletes this repo's caches
+
+jobs:
+  prepare:
+    name: Prepare Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.imagetag.outputs.value }}
+      chart_version: ${{ steps.imagetag.outputs.value }}   # same as image_tag for now
+    steps:
+      - name: Compute image tag (strip v prefix)
+        id: imagetag
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Strip 'v' prefix if present (for version tags)
+          STRIPPED="${TAG#v}"
+          echo "value=$STRIPPED" >> $GITHUB_OUTPUT
+          echo "IMAGE_TAG=$STRIPPED" >> $GITHUB_ENV
+
+  build:
+    name: Build Runtime and Console
+    uses: ./.github/workflows/build-matrix.yml
+    secrets: inherit
+
+  examples:
+    name: Package Examples
+    uses: ./.github/workflows/package-examples.yml
+    secrets: inherit
+
+  image:
+    name: Build and Push Image
+    needs: [prepare]
+    uses: ./.github/workflows/build-push-images.yml
+    secrets: inherit
+    with:
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+
+  helm:
+    name: Release Helm Chart
+    uses: ./.github/workflows/release-helm.yml
+    needs: [prepare, build, image]
+    if: ${{ !contains(github.ref_name, '-') }}
+    secrets: inherit
+    with:
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+
+  release:
+    name: Sign and Release
+    uses: ./.github/workflows/sign-and-release.yml
+    permissions:
+      contents: write
+      id-token: write
+    needs: [prepare, build, image, examples]
+    secrets: inherit
+    with:
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+
+  homebrew:
+    name: Publish Homebrew Formulas
+    needs: [prepare, release]
+    uses: ./.github/workflows/publish-homebrew.yml
+    # Skip Homebrew for pre-release tags — formula consumers expect stable releases.
+    if: ${{ !contains(github.ref_name, '-') }}
+    secrets: inherit
+    with:
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+      tap_repository: intentd/homebrew-tap
+
+  summary:
+    name: Release Summary
+    needs: [prepare, build, image, examples, release, helm, homebrew]
+    if: always()
+    uses: ./.github/workflows/release-summary.yml
+    with:
+      build_result: ${{ needs.build.result }}
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+      image_result: ${{ needs.image.result }}
+      examples_result: ${{ needs.examples.result }}
+      release_result: ${{ needs.release.result }}
+      helm_result: ${{ needs.helm.result }}
+      homebrew_result: ${{ needs.homebrew.result }}
+
+  cleanup:
+    name: Clean up old GitHub Actions caches
+    needs: [build, summary]
+    if: needs.build.outputs.cache-miss == 'true'
+    uses: ./.github/workflows/cleanup-caches.yml
+    secrets: inherit
+    with:
+      older_than_hours: 2

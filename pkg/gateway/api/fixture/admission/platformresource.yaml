@@ -1,0 +1,65 @@
+rules:
+  - field: spec.team
+    exists: true
+    message: "spec.team is required — all platform resources must declare team ownership"
+    action: deny
+
+  - field: spec.workloadType
+    in: "app,cert,monitoring"
+    message: "spec.workloadType must be one of: app, cert, monitoring"
+    action: deny
+
+  - field: spec.environment
+    in: "staging,production"
+    message: "spec.environment must be staging or production"
+    action: deny
+
+  # Deny when: cert workload is missing a domain — only applies to cert workloads.
+  - field: spec.domain
+    exists: true
+    message: "spec.domain is required for cert workloads"
+    action: deny
+    when:
+      - field: spec.workloadType
+        equals: cert
+
+  # Deny when: or — app or monitoring workload must declare a repoURL.
+  - field: spec.repoURL
+    exists: true
+    message: "spec.repoURL is required for app and monitoring workloads"
+    action: deny
+    or:
+      - field: spec.workloadType
+        equals: app
+      - field: spec.workloadType
+        equals: monitoring
+
+  # Unique domain per cluster — no two certs share a domain.
+  - field: spec.domain
+    unique: true
+    message: "spec.domain must be unique — a certificate for this domain already exists"
+    action: deny
+    when:
+      - field: spec.workloadType
+        equals: cert
+
+  # Warn when: production deploy missing an approval ticket.
+  - field: spec.productionApproval
+    exists: true
+    message: "production deploys should include a productionApproval ticket"
+    action: warn
+    when:
+      - field: spec.environment
+        equals: production
+
+  # Warn when: direct apply — CR arrived without gateway provenance annotations.
+  # In production, direct kubectl applies bypass alias routing, token gating, and
+  # response shaping. This surfaces them at admission time so operators can detect
+  # and investigate bypass patterns.
+  - field: metadata.annotations
+    exists: true
+    message: "direct apply detected — this CR bypasses the Gateway API (no serve-target annotation)"
+    action: warn
+    when:
+      - field: '{{ isDirectApply . }}'
+        equals: "true"

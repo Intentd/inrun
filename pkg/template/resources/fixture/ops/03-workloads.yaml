@@ -1,0 +1,49 @@
+ops:
+  - cycle: 1
+    verb: apply
+    resource: deployments
+    name: probe-deploy
+  - cycle: 1
+    verb: apply
+    resource: statefulsets
+    name: probe-sts
+  - cycle: 1
+    verb: apply
+    resource: replicasets
+    name: probe-rs
+  - cycle: 1
+    verb: apply
+    resource: pods
+    name: probe-pod
+  - cycle: 1
+    verb: create
+    resource: jobs
+    name: probe-init
+  - cycle: 1
+    verb: apply
+    resource: cronjobs
+    name: probe-cron
+  - cycle: 1
+    verb: apply
+    resource: services
+    name: probe-svc
+  - cycle: 1
+    verb: apply
+    resource: ingresses
+    name: probe-ing
+  - cycle: 1
+    verb: apply
+    resource: horizontalpodautoscalers
+    name: probe-hpa
+  - cycle: 1
+    verb: apply
+    resource: poddisruptionbudgets
+    name: probe-pdb
+  - cycle: 1
+    verb: apply
+    resource: persistentvolumes
+    name: probe-pv
+  - cycle: 1
+    verb: create
+    resource: persistentvolumeclaims
+    name: probe-pvc

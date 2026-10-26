@@ -1,0 +1,52 @@
+ops:
+  # API Workloads
+  - cycle: 1
+    verb: apply
+    resource: deployments
+    name: acme-api
+  - cycle: 1
+    verb: apply
+    resource: statefulsets
+    name: acme-api-sts
+  - cycle: 1
+    verb: apply
+    resource: replicasets
+    name: acme-api-rs
+  - cycle: 1
+    verb: apply
+    resource: pods
+    name: acme-api-pod
+  - cycle: 1
+    verb: create
+    resource: jobs
+    name: acme-api-job
+  - cycle: 1
+    verb: apply
+    resource: cronjobs
+    name: acme-api-cron
+  
+  # Worker Workloads
+  - cycle: 1
+    verb: apply
+    resource: deployments
+    name: acme-worker
+  - cycle: 1
+    verb: apply
+    resource: statefulsets
+    name: acme-worker-sts
+  - cycle: 1
+    verb: apply
+    resource: replicasets
+    name: acme-worker-rs
+  - cycle: 1
+    verb: apply
+    resource: pods
+    name: acme-worker-pod
+  - cycle: 1
+    verb: create
+    resource: jobs
+    name: acme-worker-job
+  - cycle: 1
+    verb: apply
+    resource: cronjobs
+    name: acme-worker-cron

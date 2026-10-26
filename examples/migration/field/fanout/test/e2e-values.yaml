@@ -1,0 +1,7 @@
+gateway:
+  replicaCount: 1 # to capture the logs correctly
+  migration:
+    enabled: true
+  extraEnv:
+    - name: DEV_TOKEN
+      value: dev-token

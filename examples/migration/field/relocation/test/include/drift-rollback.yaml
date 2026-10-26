@@ -1,0 +1,80 @@
+expect:
+  # --- Drift → rollback → re-migrate, in one namespace ---
+  - name: Patch platform-06 after migration to create drift
+    timeout: 30s
+    kubectl:
+      patch:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          type: merge
+          patch: '{"spec":{"scaling":{"min":6}}}'
+
+  - name: Rollback dry-run recognizes logLevel but skips drifted replicas
+    timeout: 30s
+    commands:
+      - run: inrun migrate rollback -f ../../blueprint.yaml --name api-server --namespace platform-06 --dry-run -ojson
+        json:
+        - path: .totals.migrated
+          equals: 1
+        - path: .totals.drifted
+          equals: 1
+        - path: .kinds[0].crs[0].fields
+          contains: logLevel
+        - path: .kinds[0].crs[0].fields
+          notContains: replicas
+
+  - name: Rollback restores logLevel and keeps the edit on scaling.min
+    timeout: 30s
+    commands:
+      - run: inrun migrate rollback -f ../../blueprint.yaml --name api-server --namespace platform-06 -ojson
+        exitCode: 0
+  
+  - name: Post-rollback spec — logLevel back at old path, scaling.min  still 6
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.logLevel
+          equals: "info"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.scaling.min
+          equals: "6"
+
+  - name: Snapshot retains the skipped replicas entry
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: '.metadata.annotations.inrun\.dev/migrate-field-snapshot'
+          jsonPath: .replicas.before.replicas
+          equals: "4"
+
+  - name: Re-migrate platform-06 so every CR is new-form before the final CRD
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --name api-server --namespace platform-06 -ojson
+        jsonPath: .totals.migrated
+        equals: "1"
+
+  - name: Post-remigrate spec — logLevel nested again, scaling.min still 6
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.observability.logging.level
+          equals: "info"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-06
+          field: .spec.scaling.min
+          equals: "6"
+

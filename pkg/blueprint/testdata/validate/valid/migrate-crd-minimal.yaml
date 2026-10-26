@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: migrate-valid-minimal
+  version: 0.1.0
+  description: Minimal CR migration — destination named, no selection, no prune.
+spec:
+  crds:
+    appconfig:
+      crdFile: ../crd.yaml
+      migrate:
+        to:
+          apiVersion: example.inrun.dev/v2
+          kind: Config

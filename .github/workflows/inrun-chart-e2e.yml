@@ -1,0 +1,62 @@
+# ── E2E: Inrun Helm chart ────────────────────────────────────────────
+# Installs the chart into a kind cluster via inrun e2e and asserts infrastructure.
+# Can be triggered manually or called from release-helm after metadata update.
+name: Inrun Chart E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to test (applies chart metadata before e2e)'
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Image tag to test (applies chart metadata before e2e)'
+        required: false
+        type: string
+      repository:
+        description: 'GitHub repository (owner/name) for image registry'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      inrun:
+        description: 'Shorthand for inrun (used in chart name)'
+        required: false
+        type: string
+        default: 'inrun'
+
+jobs:
+  inrun-chart:
+    name: E2E — Inrun chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        if: ${{ inputs.image_tag != '' }}
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Apply chart metadata
+        if: ${{ inputs.image_tag != '' }}
+        run: |
+          INRUN="${{ inputs.inrun || 'inrun' }}"
+          REPO="${{ inputs.repository || github.repository }}"
+          TAG="${{ inputs.image_tag }}"
+          yq eval ".appVersion = \"${TAG}\"" -i charts/${INRUN}/Chart.yaml
+          yq eval ".runtime.image.tag = \"${TAG}\"" -i charts/${INRUN}/values.yaml
+          yq eval ".runtime.image.repository = \"ghcr.io/${REPO}\"" -i charts/${INRUN}/values.yaml
+          yq eval ".gateway.image.tag = \"${TAG}\"" -i charts/${INRUN}/values.yaml
+          yq eval ".gateway.image.repository = \"ghcr.io/${REPO}-gateway\"" -i charts/${INRUN}/values.yaml
+          yq eval ".console.image.tag = \"${TAG}\"" -i charts/${INRUN}/values.yaml
+          yq eval ".console.image.repository = \"ghcr.io/${REPO}-console\"" -i charts/${INRUN}/values.yaml
+
+      - name: Run chart e2e
+        uses: intentd/inrun-action@v1
+        with:
+          working-directory: charts/inrun
+          e2e: "true"

@@ -1,0 +1,47 @@
+expect:
+  - name: Admission warns on direct kubectl apply (isDirectApply)
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: payments-api-direct
+            namespace: team-payments
+          spec:
+            workloadType: app
+            team: team-payments
+            environment: staging
+            repoURL: https://github.com/myorg/payments-api
+            targetRevision: main
+            targetNamespace: team-payments
+          EOF
+        exitCode: 0
+        contains: "direct apply detected"
+
+  - name: isDirectApply warn skipped when serve-target annotation present
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - inline: |
+            apiVersion: gateway.fixture.inrun.dev/v1alpha1
+            kind: PlatformResource
+            metadata:
+              name: payments-api-gateway
+              namespace: team-payments
+              annotations:
+                inrun.dev/serve-target: apifixture
+            spec:
+              workloadType: app
+              team: team-payments
+              environment: staging
+              repoURL: https://github.com/myorg/payments-api
+              targetRevision: main
+              targetNamespace: team-payments
+    resources:
+      - kind: PlatformResource
+        name: payments-api-gateway
+        namespace: team-payments

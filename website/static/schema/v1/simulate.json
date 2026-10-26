@@ -1,0 +1,569 @@
+{
+  "$defs": {
+    "SetupApplyEntry": {
+      "anyOf": [
+        {
+          "description": "Path to a manifest",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "SetupApplyEntry is a single manifest to kubectl-apply during setup.",
+          "properties": {
+            "path": {
+              "description": "Path is the YAML file path to kubectl-apply.",
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "wait": {
+              "description": "Wait blocks after this apply until all listed resources satisfy their conditions.",
+              "items": {
+                "$ref": "#/$defs/SetupWait"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "SetupApplyEntry is a single manifest to kubectl-apply during setup."
+    },
+    "SetupConfig": {
+      "anyOf": [
+        {
+          "description": "Shorthand for apply",
+          "items": {
+            "description": "Path to a manifest",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": false,
+          "description": "SetupConfig declares prerequisite resources to apply before Inrun starts.",
+          "properties": {
+            "apply": {
+              "description": "Apply is an ordered list of manifests to kubectl-apply.\nEach entry is either a plain path string or a {path, wait} struct.\nApplied first, before helm installs, after the CRD is installed.",
+              "items": {
+                "$ref": "#/$defs/SetupApplyEntry"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "helm": {
+              "description": "Helm is an ordered list of Helm charts to install before Inrun starts.\nExecuted as helm upgrade --install — not rendered for Blueprint extraction.",
+              "items": {
+                "$ref": "#/$defs/SetupHelmInstall"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "wait": {
+              "description": "Wait blocks until all listed resources exist and satisfy conditions.\nRuns after all apply and helm steps. Use per-entry wait for ordered checks.",
+              "items": {
+                "$ref": "#/$defs/SetupWait"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "SetupConfig declares prerequisite resources to apply before Inrun starts."
+    },
+    "SetupHelmInstall": {
+      "additionalProperties": false,
+      "description": "SetupHelmInstall installs a Helm chart as a real release into the cluster.",
+      "properties": {
+        "chart": {
+          "description": "Chart is the chart name within the repository, or a local path (e.g. ./).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "createNamespace": {
+          "description": "CreateNamespace passes --create-namespace to helm.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the release. Defaults to \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "release": {
+          "description": "Release is the Helm release name. Defaults to the chart name when empty.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "repo": {
+          "description": "Repo is the Helm repository URL. Omit for local chart paths.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "valueFiles": {
+          "description": "ValueFiles is an ordered list of values files (local paths or URLs).",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "values": {
+          "description": "Values are inline key-value overrides, equivalent to helm --set.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version pins the chart version. Leave empty for latest or local charts.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "wait": {
+          "description": "Wait blocks after this helm install until all listed resources satisfy conditions.",
+          "items": {
+            "$ref": "#/$defs/SetupWait"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SetupWait": {
+      "additionalProperties": false,
+      "description": "SetupWait describes a single resource to wait for before the operator starts.",
+      "properties": {
+        "kind": {
+          "description": "Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the exact resource name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace to look in. Omit for cluster-scoped resources.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ready": {
+          "description": "Ready waits for an available/ready condition, not just existence.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "Timeout is a Go duration string. Default: \"30s\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Simulate": {
+      "additionalProperties": false,
+      "description": "Simulate is the schema for simulate.yaml.",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion — inrun.dev/v1.",
+          "enum": [
+            "inrun.dev/v1"
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "imports": {
+          "description": "Imports — other simulate files to run, each as its own test. A file\nwith imports and no spec only runs those.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "kind": {
+          "const": "Simulate",
+          "description": "Kind — Simulate.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Metadata — the simulation's name and description."
+        },
+        "spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Spec — the Blueprint, the CR and what the reconcile must produce."
+        }
+      },
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "SimulateExpect": {
+      "additionalProperties": false,
+      "description": "SimulateExpect declares what the reconciler must produce.",
+      "properties": {
+        "absent": {
+          "description": "ops that must NOT appear",
+          "items": {
+            "$ref": "#/$defs/SimulateOpRule"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "crds": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SimulateExpect"
+          },
+          "description": "CRDs — expectations for one CRD of a multi-CRD Blueprint, by name.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "noErrors": {
+          "description": "NoErrors — no reconcile may return an error.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ops": {
+          "description": "Ops — writes that must appear.",
+          "items": {
+            "$ref": "#/$defs/SimulateOpRule"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "steady": {
+          "description": "Steady — true: the reconcile must settle, a cycle after the first making\nno writes or repeating the previous cycle's.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "steadyAt": {
+          "description": "result.SteadyAt must be ≤ this",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SimulateMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Description — what the simulation checks.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name — shown in the results.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SimulateOpRule": {
+      "additionalProperties": false,
+      "description": "SimulateOpRule asserts that at least one recorded op in the given cycle matches all non-empty fields.",
+      "properties": {
+        "count": {
+          "description": "0 = at least 1",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cycle": {
+          "description": "Cycle — the reconcile cycle the op must appear in, from 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "include": {
+          "description": "path to a file with an ops: list",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "optional: match a specific resource name",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "resource": {
+          "description": "deployments | statefulsets | etc.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "verb": {
+          "description": "apply | create | update | patch | delete",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SimulateSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "blueprint": {
+          "description": "Blueprint — the Blueprint (or Stack) file, relative to this one.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cr": {
+          "description": "CR — the CR to reconcile, a file relative to this one.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "crFiles": {
+          "description": "CRFiles — several CR files, reconciled together.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "crd": {
+          "description": "CRD — a CRD manifest for --envtest to install. Default: the Blueprint's\ncrdFile entries.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "crdFiles": {
+          "description": "CRDFiles — several CRD manifests for --envtest.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cycles": {
+          "description": "default 10 when unset",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "expect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulateExpect"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "nil = op-print only"
+        },
+        "intent": {
+          "description": "Intent is a serve intent file (JSON or YAML) to build the CR from, the\nway the gateway and inrun serve play do. Used instead of cr/crFiles.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "setup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SetupConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Setup — manifests applied before the CR, after the Blueprint's own\nsetup: what the test needs in the cluster, such as the CR's\nNamespace. Paths relative to this file, as a list or setup.apply;\nsimulate applies them only, so helm and wait are rejected."
+        },
+        "skipExternal": {
+          "description": "SkipExternal — answer external calls with an empty 200 instead of\nmaking them.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "serve target to use for reconciliation",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "token": {
+          "description": "Token is the gateway token the intent is sent with; required with Intent.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/simulate.json",
+  "$ref": "#/$defs/Simulate",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun Simulate"
+}

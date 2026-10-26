@@ -1,0 +1,47 @@
+expect:
+  # At reconcile time, healthCheck has fires.reconcile: false — it is never
+  # called by the reconciler. The bad healthCheckUrl is irrelevant. Only
+  # configFetch runs, and it always returns 200. The CR passes.
+  - name: bad health URL accepted by reconciler (healthCheck skipped)
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      apply:
+        - file: ./cr-bad-health.yaml
+      get:
+        - kind: WebApp
+          name: my-app-degraded
+          namespace: default
+          field: .status.phase
+          equals: "Active"
+
+  - name: Deployment created despite bad healthCheckUrl
+    after: cr-applied
+    timeout: 60s
+    resources:
+      - kind: Deployment
+        name: my-app-degraded
+        namespace: default
+        ready: true
+
+  - name: admissionOnlyRan is empty — healthCheck never called by reconciler
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app-degraded
+          namespace: default
+          field: .status.admissionOnlyRan
+          notExists: true
+
+  - name: configFetch ran and drove phase
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app-degraded
+          namespace: default
+          field: .status.configFetchStatus
+          equals: "200"

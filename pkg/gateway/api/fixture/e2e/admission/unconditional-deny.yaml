@@ -1,0 +1,37 @@
+expect:
+  - name: Admission blocks missing spec.team
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: no-team-resource
+            namespace: team-payments
+          spec:
+            workloadType: app
+            environment: staging
+          EOF
+        exitCode: 1
+        contains: "spec.team is required"
+
+  - name: Admission blocks invalid workloadType
+    after: cr-applied
+    timeout: 30s
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: invalid-type
+            namespace: team-payments
+          spec:
+            workloadType: unknown-type
+            team: team-payments
+            environment: staging
+          EOF
+        exitCode: 1
+        contains: "must be one of: app, cert, monitoring"

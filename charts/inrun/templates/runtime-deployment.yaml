@@ -1,0 +1,171 @@
+{{- if .Values.runtime.enabled }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inrun.fullname" . }}-runtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: runtime
+    inrun.dev/component: runtime
+spec:
+  replicas: {{ .Values.runtime.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: runtime
+  template:
+    metadata:
+      labels:
+        {{- include "inrun.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: runtime
+        {{- with .Values.runtime.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.runtime.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.runtime.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.runtime.serviceAccount | default "inrun" }}
+      securityContext:
+        {{- toYaml .Values.runtime.podSecurityContext | nindent 8 }}
+
+      containers:
+        - name: runtime
+          image: {{ include "inrun.runtimeImage" . }}
+          imagePullPolicy: {{ .Values.runtime.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.runtime.securityContext | nindent 12 }}
+
+          args:
+            - --file
+            - {{ .Values.runtime.blueprint.mountPath }}/{{ .Values.runtime.blueprint.configMapKey }}
+
+          env:
+            - name: LOG_LEVEL
+              value: {{ .Values.runtime.config.logLevel | quote }}
+            - name: INRUN_PORT
+              value: {{ .Values.runtime.server.httpPort | quote }}
+            - name: SRV_READ_TIMEOUT
+              value: {{ .Values.runtime.server.readTimeout | quote }}
+            - name: SRV_WRITE_TIMEOUT
+              value: {{ .Values.runtime.server.writeTimeout | quote }}
+            - name: DEFAULT_WORKERS
+              value: {{ .Values.runtime.config.defaultWorkers | quote }}
+            - name: DEFAULT_RESYNC
+              value: {{ .Values.runtime.config.defaultResync | quote }}
+            - name: QUEUE_DEPTH
+              value: {{ .Values.runtime.config.maxDepth | quote }}
+            - name: INRUN_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: INRUN_ENV
+              value: {{ .Values.runtime.config.environment | quote }}
+            - name: FAILURE_THRESHOLD
+              value: {{ .Values.runtime.config.failureThreshold | quote }}
+            {{- if .Values.runtime.gatewayEndpoint }}
+            - name: INRUN_GATEWAY_ENDPOINT
+              value: {{ .Values.runtime.gatewayEndpoint | quote }}
+            {{- end }}
+            {{- if .Values.runtime.leaderElection.enabled }}
+            - name: LEADER_ELECTION
+              value: "true"
+            - name: LEASE_DURATION
+              value: {{ .Values.runtime.leaderElection.leaseDuration | quote }}
+            - name: RENEW_DEADLINE
+              value: {{ .Values.runtime.leaderElection.renewDeadline | quote }}
+            - name: RETRY_PERIOD
+              value: {{ .Values.runtime.leaderElection.retryPeriod | quote }}
+            {{- end }}
+            {{- with .Values.runtime.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- with .Values.runtime.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.runtime.server.httpPort }}
+              protocol: TCP
+
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: http
+            initialDelaySeconds: {{ .Values.runtime.startupProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.runtime.startupProbe.periodSeconds | default 10 }}
+            failureThreshold: {{ .Values.runtime.startupProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.runtime.startupProbe.timeoutSeconds | default 1 }}
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.runtime.livenessProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.runtime.livenessProbe.periodSeconds | default 10 }}
+            failureThreshold: {{ .Values.runtime.livenessProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.runtime.livenessProbe.timeoutSeconds | default 1 }}
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.runtime.readinessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.runtime.readinessProbe.periodSeconds | default 5 }}
+            failureThreshold: {{ .Values.runtime.readinessProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.runtime.readinessProbe.timeoutSeconds | default 1 }}
+
+          resources:
+            {{- toYaml .Values.runtime.resources | nindent 12 }}
+
+          volumeMounts:
+            - name: blueprint
+              mountPath: {{ .Values.runtime.blueprint.mountPath }}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.runtime.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      volumes:
+        - name: blueprint
+          configMap:
+            name: {{ include "inrun.blueprintConfigMapName" . }}
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.runtime.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.runtime.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.runtime.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.runtime.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.runtime.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+{{- end }}

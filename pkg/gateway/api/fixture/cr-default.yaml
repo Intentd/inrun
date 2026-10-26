@@ -1,0 +1,15 @@
+# Default CR — happy path apply.
+# Tests: required fields present, enum valid, app workload type.
+# Apply with: POST /api/v1/apply
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: payments-api
+  namespace: team-payments
+spec:
+  workloadType: app
+  team: team-payments
+  environment: staging
+  repoURL: https://github.com/myorg/payments
+  targetRevision: main
+  targetNamespace: team-payments

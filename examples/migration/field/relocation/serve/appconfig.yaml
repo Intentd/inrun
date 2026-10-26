@@ -1,0 +1,17 @@
+fields:
+  image:
+    description: The container image to deploy
+
+  # replicas moved from spec.replicas (flat int) to spec.scaling.min (nested).
+  # path: redirects the write target; migrate.from names where the old value lives.
+  replicas:
+    path: scaling.min
+    migrate:
+      from: replicas
+
+  # logLevel moved from spec.logLevel to spec.observability.logging.level —
+  # two levels deep. Same pattern: path: for the write, migrate.from for the read.
+  logLevel:
+    path: observability.logging.level
+    migrate:
+      from: logLevel

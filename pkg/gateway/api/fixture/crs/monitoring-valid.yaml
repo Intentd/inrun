@@ -1,0 +1,13 @@
+# Happy path monitoring workload — all required fields present, no rules fire.
+# The deny or (repoURL) is satisfied; no production warn since environment=staging.
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: platform-monitor
+  namespace: team-platform
+spec:
+  workloadType: monitoring
+  team: team-platform
+  environment: staging
+  repoURL: https://github.com/myorg/platform
+  scrapeInterval: 30s

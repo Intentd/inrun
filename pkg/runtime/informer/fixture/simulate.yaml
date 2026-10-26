@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: informer-probe-simulate
+  description: >
+    Runs both namespace scenarios: CR in allowed namespace (team-a) produces
+    a ConfigMap; CR in restricted namespace (team-b) produces nothing.
+
+imports:
+  - simulate/approved.yaml
+  - simulate/restricted.yaml

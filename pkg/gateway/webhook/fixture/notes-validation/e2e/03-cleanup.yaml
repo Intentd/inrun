@@ -1,0 +1,21 @@
+expect:
+  - name: cleanup DeploymentRequest created during business hours
+    after: cr-deleted
+    timeout: 60s
+    when:
+      - field: "{{ inBusinessHours }}"
+        equals: "true"
+    kubectl:
+      delete:
+        - kind: DeploymentRequest
+          name: my-app
+          namespace: default
+
+  - name: no DeploymentRequest remains after cleanup
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: DeploymentRequest
+        name: my-app
+        namespace: default
+        count: 0

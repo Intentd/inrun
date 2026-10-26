@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: reconciler-probe-e2e
+  description: >
+    Living integration fixture for all reconciler resource types.
+    One ReconcilerProbe CR triggers every onCreate block — namespace, serviceaccount,
+    configmap, secret, service, cronjob, job, deployment (basic + premium conditional).
+    When you add a new resource type, add a block to blueprint.yaml and an assertion
+    to e2e/01-resources.yaml.
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-suite.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-reconciler-probe
+    reuse: false
+
+  expect:
+    - include: ./e2e/01-resources.yaml
+    - name: CR with zero replicas rejected by admission
+      after: cr-applied
+      timeout: 30s
+      commands:
+        - run: kubectl apply -f cr-rejected.yaml
+          exitCode: 1
+          contains: "replicas must be at least 1"
+    - include: ./e2e/03-status.yaml
+    - include: ./e2e/04-cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: ReconcilerProbe
+          name: probe
+      describe:
+        - kind: Deployment
+          name: probe-app
+          namespace: probe-ns
+        - kind: StatefulSet
+          name: probe-sts
+          namespace: probe-ns
+      events:
+        - kind: Deployment
+          name: probe-app
+          namespace: probe-ns
+    commands:
+      - kubectl get all -n probe-ns
+      - kubectl get clusterrole probe-cr -o yaml
+      - kubectl get pv probe-pv -o yaml
+      - kubectl get reconcilerprobe probe -o yaml

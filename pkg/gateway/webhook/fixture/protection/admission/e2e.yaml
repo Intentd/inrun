@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+# https://inrun.dev/docs/reference/schema/e2e/
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: admission-webhooks-e2e
+  description: Verify admission webhooks accept valid CRs and reject invalid ones at apply time
+
+spec:
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr-valid.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Valid CR accepted — deployment created
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: Deployment
+          name: my-platform-platform
+          namespace: default
+          ready: true
+
+    - name: Invalid CR rejected by webhook
+      after: cr-applied
+      timeout: 30s
+      commands:
+        - run: kubectl apply -f ./cr-bad.yaml
+          exitCode: 1
+          contains: "denied the request"
+
+    - name: Deployment removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          name: my-platform-platform
+          namespace: default
+          count: 0
