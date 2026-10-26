@@ -29,7 +29,7 @@ func BuildNamespace(in map[string]interface{}, owner domain.Object) (map[string]
 
 	spec := namespaces.Spec{Name: f.Name}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := namespaces.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "Namespace")
 	if err != nil {

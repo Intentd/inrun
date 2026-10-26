@@ -2,6 +2,7 @@ package simulate
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 
 	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
@@ -85,8 +86,11 @@ func enqueued(ctx context.Context, deps reconcile.Deps, in reconcile.Input) bool
 	}, in.GVK, raw, nil)
 }
 
-// compile-time check that *FakeKubeclient satisfies loopKube.
-var _ loopKube = (*FakeKubeclient)(nil)
+// Op is one recorded operation of the fake client.
+type Op = kubefake.Op
+
+// compile-time check that *kubefake.Kubeclient satisfies loopKube.
+var _ loopKube = (*kubefake.Kubeclient)(nil)
 
 // compile-time check that cache.SharedIndexInformer is accessible from cache.
 var _ cache.SharedIndexInformer = (*fakeInformer)(nil)

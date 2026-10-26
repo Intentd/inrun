@@ -1,28 +1,38 @@
-# Contributing to Inrun
+# Contributing
 
-Inrun is the Kubernetes operator runtime. Operators are described as YAML — the runtime, gateway, and console turn those descriptions into running reconciliation loops, webhook servers, and an observable UI.
+Inrun is young and built by very few people, so any help moves it forward: a bug report, a confusing doc page pointed out, an example, a fix. You don't need to know the codebase to help.
 
-This section is for people who want to extend, improve, or fix Inrun itself.
+## Ways to help
 
----
+- **Try it and tell us what broke.** Work through [Learning Inrun](../getting-started/02-learning-inrun.md) and open an [issue](https://github.com/intentd/inrun/issues) for anything that failed, surprised you or took too long to understand.
+- **Improve the docs.** If a page left you guessing, a PR that fixes it is welcome, however small.
+- **Add an example.** A Blueprint for something you run, with its `test/simulate.yaml`, teaches more than a page of prose. The existing packs under `examples/` show the layout.
+- **Fix or build something.** Issues labelled `good first issue` are a place  to start; for anything bigger, open an issue or a [discussion](https://github.com/intentd/inrun/discussions) first so we can agree on the shape before you write it.
 
-## Where to go first
+## Setting up
 
-If you are new to the codebase, the best entry point is understanding how the project is laid out and which binary owns what. Start here:
+Go 1.26 or later, Docker and kind for the end-to-end tests.
 
-→ [Codebase map](codebase-map.md) — which packages belong to the runtime, gateway, console, and shared layer; where to read and where to start
+```bash
+git clone https://github.com/intentd/inrun && cd inrun
+```
 
-Once oriented, pick the area you want to work in:
+```bash
+make test
+```
 
-| Area | Guide |
-|------|-------|
-| Add a new resource type | [Inrun resources](contributing-resources.md) |
-| Improve the console UI | [console](contributing-console.md) |
-| Add or improve an example pack | [examples](contributing-examples.md) |
+`make inrun` builds the CLI (it regenerates the function list and the generated
+docs first). Every example can be checked with `inrun simulate` from its
+directory, and end to end with `inrun e2e`.
 
----
+## Pull requests
 
-## Build and test commands
+1. Branch from `develop` and open the PR against `develop`.
+2. Run `make test`; for behaviour changes, also `inrun simulate` and `inrun e2e` on the example that covers it.
+3. Keep the PR to one change, with a short description of what and why.
+4. Commit messages are one plain sentence saying what changed ("Add a DaemonSet resource"), with detail in the body when it helps.
+
+## Make targets
 
 | Command | What it does |
 |---------|-------------|
@@ -34,14 +44,11 @@ Once oriented, pick the area you want to work in:
 | `make test-coverage` | HTML coverage report written to `coverage.html` |
 | `make docs` | Start Hugo dev server at `localhost:8090` (requires `make hugo-install` once) |
 
-> **`go build ./...` is not a substitute for `make inrun`.** The build step runs `hack/generate-notes` first — skipping it leaves `pkg/note/list_generated.go` stale, which breaks `inrun notes`.
+`gofmt` is enforced by CI. Comments explain why, not what.
 
-## General contribution workflow
+## Conduct and security
 
-1. Fork the repository and create a branch from `main`.
-2. Read the guide for the area you are changing.
-3. Run `make inrun` after any Go changes.
-4. Run `make test-race` to confirm nothing is broken.
-5. Open a pull request with a short description of what and why.
-
-Questions? Open a [GitHub Discussion](https://github.com/intentd/inrun/discussions).
+This project follows the [Code of Conduct](https://github.com/intentd/inrun/blob/main/CODE_OF_CONDUCT.md).
+Report a vulnerability privately, as described in
+[SECURITY.md](https://github.com/intentd/inrun/blob/main/SECURITY.md), not in
+an issue.

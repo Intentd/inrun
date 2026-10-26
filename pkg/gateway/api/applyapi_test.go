@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"github.com/intentd/inrun/pkg/util/httpapi"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -238,7 +238,7 @@ func TestResourcesHandler_Permissions(t *testing.T) {
 	scheme.AddKnownTypeWithName(appGVK, &unstructured.Unstructured{})
 	scheme.AddKnownTypeWithName(appGVK.GroupVersion().WithKind("AppList"), &unstructured.UnstructuredList{})
 
-	kube := simulate.NewFakeKubeclient(scheme)
+	kube := kubefake.New(scheme)
 	h := ExportedResourcesHandler(kube, bp, types.KELFunctionRegistry{})
 
 	cases := []struct {
@@ -393,7 +393,7 @@ func TestApplyHandler_Permissions(t *testing.T) {
 	// kube.DynamicClient() to distinguish create vs update before deciding
 	// whether the token is allowed, even for a token that will be denied
 	// outright regardless of operation.
-	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
+	kube := kubefake.New(runtime.NewScheme())
 	h := ExportedApplyHandler(kube, bp, types.KELFunctionRegistry{})
 
 	t.Run("unknown token denied before SSA", func(t *testing.T) {

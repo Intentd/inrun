@@ -57,7 +57,7 @@ kubectl get cronjobs.demo.inrun.dev -A
 
 Expected output — `SCHEDULE` shows the flat cron string:
 
-```
+```text
 NAMESPACE    NAME         SCHEDULE        IMAGE                  AGE
 team-alpha   db-backup    0 2 * * 1-5     postgres:16-alpine     5s
 team-beta    cache-flush  */15 * * * *    redis:7-alpine         5s
@@ -126,7 +126,7 @@ inrun migrate
 
 Run it again to confirm idempotency — CRs already in the new form are skipped:
 
-```
+```text
 ◆  CronJob  3 CRs
   –  team-alpha/db-backup    (already migrated)
   –  team-beta/cache-flush   (already migrated)

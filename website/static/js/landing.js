@@ -20,40 +20,34 @@ const S = { os: 'mac', mt: 'brew' };
 
 function qsContent(os, mt) {
 
-  if (mt === 'helm') return `<pre><span class="c"># Add the Orkestra Helm repo</span>
-<span class="pr">$ </span><span class="kw">helm repo add</span> <span class="s">orkestra https://orkspace.github.io/orkestra</span>
+  if (mt === 'helm') return `<pre><span class="c"># Add the Inrun Helm repo</span>
+<span class="pr">$ </span><span class="kw">helm repo add</span> <span class="s">inrun https://intentd.github.io/inrun</span>
 <span class="pr">$ </span><span class="kw">helm repo update</span>
 
-<span class="c"># Deploy runtime + Control Center into your cluster</span>
-<span class="pr">$ </span><span class="kw">helm upgrade --install</span> <span class="s">orkestra orkestra/orkestra \\
-    --namespace orkestra-system \\
+<span class="c"># Runtime, gateway and console in your cluster</span>
+<span class="pr">$ </span><span class="kw">helm upgrade --install</span> <span class="s">inrun inrun/inrun \\
+    --namespace inrun-system \\
     --create-namespace</span>
 
 <span class="c"># Verify</span>
-<span class="pr">$ </span><span class="kw">kubectl get pods</span> <span class="s">-n orkestra-system</span></pre>`;
+<span class="pr">$ </span><span class="kw">kubectl get pods</span> <span class="s">-n inrun-system</span></pre>`;
 
-  if (mt === 'brew') return `<pre><span class="c"># Install ork CLI + Control Center</span>
-<span class="pr">$ </span><span class="kw">brew install</span> <span class="s">orkspace/tap/ork orkspace/tap/orkcc</span>
+  const install = mt === 'brew'
+    ? `<span class="c"># Install the inrun CLI and the console</span>
+<span class="pr">$ </span><span class="kw">brew install</span> <span class="s">intentd/tap/inrun intentd/tap/inrun-console</span>`
+    : `<span class="c"># Install the inrun CLI and the console</span>
+<span class="pr">$ </span><span class="kw">curl -sSL</span> <span class="s">https://get.inrun.dev</span> | bash`;
 
-<span class="c"># Verify</span>
-<span class="pr">$ </span><span class="kw">ork version</span>
+  return `<pre>${install}
 
-<span class="c"># Scaffold and run</span>
-<span class="pr">$ </span><span class="kw">ork init</span>
-<span class="pr">$ </span><span class="kw">ork run</span>
+<span class="c"># Scaffold a Blueprint, a CRD and a CR</span>
+<span class="pr">$ </span><span class="kw">inrun init</span> <span class="s">my-app</span> && cd my-app
 
-<span class="c"># Open the Control Center</span>
-<span class="pr">$ </span><span class="kw">ork control</span>  <span class="c"># → http://localhost:8081</span></pre>`;
+<span class="c"># Check it with no cluster</span>
+<span class="pr">$ </span><span class="kw">inrun simulate</span>
 
-  if (mt === 'curl') return `<pre><span class="pr">$ </span><span class="kw">curl -sSL</span> <span class="s">https://get.orkestra.sh</span> | bash
-
-<span class="c"># Verify</span>
-<span class="pr">$ </span><span class="kw">ork version</span>
-
-<span class="c"># Scaffold and run</span>
-<span class="pr">$ </span><span class="kw">ork init</span>
-<span class="pr">$ </span><span class="kw">ork run</span></pre>`;
-
+<span class="c"># Run it (--dev creates a kind cluster if none is reachable)</span>
+<span class="pr">$ </span><span class="kw">inrun</span> <span class="s">--dev --apply-cr</span></pre>`;
 }
 
 function qs(key, val, el) {
@@ -74,7 +68,7 @@ function qs(key, val, el) {
 function renderQS() {
   document.getElementById('qs-out').innerHTML = qsContent(S.os, S.mt);
   document.getElementById('qs-label').textContent = S.os === 'mac' ? 'zsh' : 'bash';
-  document.getElementById('qs-note').textContent = 'ork init · ork run · ork control';
+  document.getElementById('qs-note').textContent = 'inrun init · inrun simulate · inrun --dev';
 }
 
 /* ── Code tabs ───────────────────────────────────────────────── */
@@ -108,7 +102,8 @@ const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" s
 const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
 function copycmd(btn) {
-  navigator.clipboard?.writeText('brew install orkspace/tap/ork').then(() => {
+  const text = btn.parentElement.querySelector('.cmd')?.textContent.trim() ?? '';
+  navigator.clipboard?.writeText(text).then(() => {
     btn.innerHTML = CHECK_ICON;
     btn.style.color = 'var(--intent)';
     setTimeout(() => {
@@ -119,11 +114,11 @@ function copycmd(btn) {
 }
 
 /* ── Latest release ──────────────────────────────────────────── */
-fetch('https://api.github.com/repos/orkspace/orkestra/releases/latest')
+fetch('https://api.github.com/repos/intentd/inrun/releases/latest')
   .then((r) => r.ok ? r.json() : null)
   .then((d) => {
     if (d?.tag_name) {
-      const el = document.getElementById('ork-version');
+      const el = document.getElementById('inrun-version');
       if (el) el.textContent = d.tag_name;
     }
   })

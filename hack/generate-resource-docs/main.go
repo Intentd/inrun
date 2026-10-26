@@ -1,6 +1,6 @@
 // hack/generate-resource-docs/main.go
 //
-// Generates docs/reference/schema/06-resources/<kind>.md from the
+// Generates docs/reference/schema/resources/<kind>.md from the
 // *TemplateSource structs in pkg/types/types_<kind>.go — the user-facing
 // schema for onCreate/onReconcile/onDelete resource declarations.
 //
@@ -81,7 +81,7 @@ type fieldInfo struct {
 }
 
 func main() {
-	outDir := "docs/reference/schema/06-resources"
+	outDir := "docs/reference/schema/resources"
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		fatalf("creating output dir: %v", err)
 	}

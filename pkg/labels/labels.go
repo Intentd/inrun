@@ -118,9 +118,9 @@ const (
 	// reconcile loops to determine whether a resource should be updated or deleted.
 	InrunOwner = "inrun-owner"
 
-	// OwnerUID holds the UID of the CR a reconciler's Result applied a child
-	// for. Unlike InrunOwner it is unique across kinds and namespaces, so
-	// pruning can tell this CR's children from another's with the same name.
+	// OwnerUID holds the UID of the CR a child belongs to, whoever wrote it.
+	// Unlike InrunOwner it is unique across kinds and namespaces: cleanup,
+	// prune and the final sweep find a CR's children by it.
 	OwnerUID = "inrun.dev/owner-uid"
 
 	// InrunServeTarget records the effective serve surface (alias → target)
@@ -242,20 +242,21 @@ func EffectiveOwnerKey(ownerName string, ownerAnnotations map[string]string) str
 	return ownerName
 }
 
-// StampInrunLabels stamps all Inrun system ownership labels onto lbls.
-// Consolidates the managed, owner, and serve-target labels into one call so
-// every child resource is stamped consistently from its build* function.
-// ownerAnnotations may be nil (e.g. direct kubectl apply — no serve-target set).
-//
-// InrunOwner encodes the surface identity via EffectiveOwnerKey so that
-// resources from different serve surfaces carry distinct labels. This enables
-// precise orphan detection when a CR switches targets.
-func StampInrunLabels(lbls map[string]string, ownerName string, ownerAnnotations map[string]string) map[string]string {
+// StampInrunLabels stamps Inrun's ownership labels for a child of owner onto
+// lbls: managed, the owner's UID (OwnerUID: how Inrun finds and deletes the
+// child, unique across namespaces and kinds), the readable owner key
+// (InrunOwner: name, or name.target from a serve surface) and the serve
+// target. Every child, from templates, hooks or a Result, is stamped here.
+func StampInrunLabels(lbls map[string]string, owner metav1.Object) map[string]string {
 	if lbls == nil {
 		lbls = make(map[string]string)
 	}
+	ownerAnnotations := owner.GetAnnotations()
 	lbls[ManagedKey] = ManagedValue
-	lbls[InrunOwner] = EffectiveOwnerKey(ownerName, ownerAnnotations)
+	lbls[InrunOwner] = EffectiveOwnerKey(owner.GetName(), ownerAnnotations)
+	if uid := owner.GetUID(); uid != "" {
+		lbls[OwnerUID] = string(uid)
+	}
 	if ownerAnnotations != nil {
 		target := ownerAnnotations[AnnotationServeAlias]
 		if target == "" {
@@ -268,11 +269,13 @@ func StampInrunLabels(lbls map[string]string, ownerName string, ownerAnnotations
 	return lbls
 }
 
-// OwnedBy reports whether obj carries owner's Inrun owner label: whether
-// Inrun may delete it as owner's. Pass it to a resource's DeleteIfOwned.
+// OwnedBy reports whether obj carries owner's UID label: whether Inrun may
+// delete it as owner's. The UID, not the name, so a CR never matches another
+// CR's children of the same name in another namespace. Pass it to a resource's
+// DeleteIfOwned.
 func OwnedBy(owner domain.Object) func(metav1.Object) bool {
-	key := EffectiveOwnerKey(owner.GetName(), owner.GetAnnotations())
+	uid := string(owner.GetUID())
 	return func(obj metav1.Object) bool {
-		return obj.GetLabels()[InrunOwner] == key
+		return uid != "" && obj.GetLabels()[OwnerUID] == uid
 	}
 }

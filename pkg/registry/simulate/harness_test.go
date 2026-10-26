@@ -2,6 +2,7 @@ package simulate
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -171,7 +172,7 @@ func TestListKindsForSeeds_IncludesSeededCRD(t *testing.T) {
 		Group: "demo.inrun.dev", Version: "v1alpha1", Kind: "Website",
 	})
 
-	got := listKindsForSeeds(clientgoscheme.Scheme, []runtime.Object{u})
+	got := kubefake.ListKindsForSeeds(clientgoscheme.Scheme, []runtime.Object{u})
 
 	gvr := schema.GroupVersionResource{
 		Group: "demo.inrun.dev", Version: "v1alpha1", Resource: "websites",
@@ -277,7 +278,7 @@ func TestExtractMetaName_Garbage(t *testing.T) {
 }
 
 func TestPatchStatus_PersistsOnTheObject(t *testing.T) {
-	f := NewFakeKubeclient(runtime.NewScheme())
+	f := kubefake.New(runtime.NewScheme())
 	obj := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "storage.demo.inrun.dev/v1alpha1", "kind": "Volume",
 		"metadata": map[string]interface{}{"name": "data", "namespace": "default"},

@@ -95,3 +95,13 @@ func presetLimitRange(name string, limits []kwtypes.LimitRangeItem, reg presets.
 	}
 	return out
 }
+
+// presetProbes fills each probe's timings from its preset; an unknown preset
+// is logged and the probes left unset.
+func presetProbes(p *kwtypes.ProbesConfig, reg presets.Registry) *kwtypes.ProbesConfig {
+	out, err := presets.ExpandProbes(p, reg)
+	if err != nil {
+		logger.Warn().Err(err).Msg("skipping probes")
+	}
+	return out
+}

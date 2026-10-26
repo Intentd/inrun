@@ -2,12 +2,12 @@ package housekeeper
 
 import (
 	"fmt"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
@@ -51,7 +51,7 @@ spec:
 
 // newTestHousekeeper returns a Housekeeper on a fake clientset, trusting a
 // certificate file in a temp dir.
-func newTestHousekeeper(t *testing.T, strictMode bool, objects ...runtime.Object) (*Housekeeper, *fake.Clientset) {
+func newTestHousekeeper(t *testing.T, strictMode bool, objects ...runtime.Object) (*Housekeeper, *kubefake.Clientset) {
 	t.Helper()
 	strict := "false"
 	if strictMode {
@@ -69,6 +69,6 @@ func newTestHousekeeper(t *testing.T, strictMode bool, objects ...runtime.Object
 	cfg := config.NewDefaultConfig()
 	cfg.Security().Webhooks.TLSCert = certFile
 
-	client := fake.NewClientset(objects...)
+	client := kubefake.NewClientset(objects...)
 	return New(client, bp, cfg), client
 }

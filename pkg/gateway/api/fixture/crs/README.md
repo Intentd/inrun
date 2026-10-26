@@ -18,7 +18,7 @@ Each file is a minimal `PlatformResource` CR targeting one specific rule or comb
 
 ## Rules being tested
 
-```
+```text
 deny  — spec.team exists                        (unconditional)
 deny  — spec.workloadType in app,cert,monitoring (unconditional)
 deny  — spec.environment in staging,production   (unconditional)

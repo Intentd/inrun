@@ -2,8 +2,8 @@ package simulate
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"io"
 	"net/http"
 	"strings"
@@ -137,28 +137,25 @@ func Run(ctx context.Context, bp *blueprint.Blueprint, crdName string, cr *unstr
 	for _, existing := range opts.ExistingInstances {
 		dynamicObjects = append(dynamicObjects, existing)
 	}
-	fakeKube := NewFakeKubeclient(scheme, dynamicObjects...)
-	setup, err := setupObjects(&crdEntry)
+	fakeKube := kubefake.New(scheme, dynamicObjects...)
+	objs, err := setupObjects(&crdEntry)
 	if err != nil {
 		return nil, err
 	}
-	if err := fakeKube.Seed(setup...); err != nil {
+	if err := fakeKube.Seed(objs...); err != nil {
 		return nil, err
 	}
 
 	// For typed CRDs, the indexer must hold the concrete Go type — not
 	// *unstructured.Unstructured — so that constructor type-assertions
 	// (raw.(*MyType)) and hook BindToObjectHooks closures succeed.
-	// Convert via JSON round-trip: unstructured.Object → JSON → typed struct.
 	seedObj := interface{}(cr)
 
 	if objFactory, ok := types.ObjectRegistry[gvk]; ok {
-		typed := objFactory()
-		if jsonBytes, err := json.Marshal(cr.Object); err == nil {
-			if json.Unmarshal(jsonBytes, typed) == nil {
-				if domObj, ok := typed.(domain.Object); ok {
-					seedObj = domObj
-				}
+		if _, isObj := objFactory().(domain.Object); isObj {
+			newObj := func() domain.Object { return objFactory().(domain.Object) }
+			if typed, err := domain.ToTypedWith(domain.Object(cr), newObj); err == nil {
+				seedObj = typed
 			}
 		}
 	}

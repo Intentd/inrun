@@ -88,6 +88,6 @@ into cluster resources. Neither needs a cluster to do its job locally.
 
 Together they cover the full delivery loop without a cluster:
 
-```
+```text
 intent file  →  inrun serve play  →  CR  →  inrun simulate  →  child resources
 ```

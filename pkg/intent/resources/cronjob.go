@@ -55,7 +55,7 @@ func BuildCronJob(in map[string]interface{}, owner domain.Object) (map[string]in
 		spec.ConcurrencyPolicy = resolveConcurrencyPolicy(f.ConcurrencyPolicy)
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := cronjobs.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "batch/v1", "CronJob")

@@ -6,7 +6,7 @@ replace github.com/intentd/inrun => ../../../..
 
 require (
 	github.com/intentd/inrun v0.0.0
-	github.com/intentd/kubewright v0.1.2
+	github.com/intentd/kubewright v0.1.3
 	k8s.io/apimachinery v0.37.1
 )
 

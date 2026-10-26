@@ -105,7 +105,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Name:      obj.Name + "-sa",
 		Namespace: ns,
 	}, obj)
-	if _, err := serviceaccounts.Create(ctx, kube.Clientset(), obj, saSpec); err != nil {
+	if _, err := serviceaccounts.Create(ctx, kube.Clientset(), obj, saSpec, kubeclient.ApplyOptions(kube, nil)); err != nil {
 		return domain.Result{}, fmt.Errorf("serviceaccount: %w", err)
 	}
 
@@ -248,7 +248,7 @@ func onReconcile(ctx context.Context, req domain.Request, obj *rpv1alpha1.Resour
 		Image:     "alpine:3.19",
 		Command:   []string{"/bin/sh", "-c", "echo probe-job-ok"},
 	}, 3, obj, reg)
-	if _, err := jobs.Create(ctx, kube.Clientset(), obj, jobSpec); err != nil {
+	if _, err := jobs.Create(ctx, kube.Clientset(), obj, jobSpec, kubeclient.ApplyOptions(kube, nil)); err != nil {
 		return domain.Result{}, fmt.Errorf("job: %w", err)
 	}
 

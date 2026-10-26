@@ -83,18 +83,77 @@ func Prune(
 	return pruned, nil
 }
 
-// DeleteChildren deletes every child a Result applied for owner, in any
-// namespace and cluster-scoped ones included, except kinds in keep. The runtime
-// calls it once a finalizing reconcile is done: owner references cover only
-// same-namespace children, so the rest would outlive the CR.
-func DeleteChildren(
+// PruneChildren deletes every child of owner, whoever wrote it (a Result,
+// templates, hooks): every object of the kinds in gvrs carrying owner's UID
+// label, in any namespace and cluster-scoped ones included, except kinds in
+// keep and deletion-protected objects. The runtime calls it once a finalizing
+// reconcile is done: owner references cover only same-namespace children, so
+// the rest would outlive the CR.
+func PruneChildren(
 	ctx context.Context,
 	dyn dynamic.Interface,
 	owner domain.Object,
-	managed []domain.ManagedResource,
+	gvrs []schema.GroupVersionResource,
 	keep []string,
 ) ([]Pruned, error) {
-	return Prune(ctx, dyn, owner, managed, &types.PruneConfig{Enabled: true, AllowEmpty: true, Keep: keep}, nil)
+	if owner.GetUID() == "" {
+		return nil, nil
+	}
+	return PruneOwned(ctx, dyn, labels.OwnerUID+"="+string(owner.GetUID()), gvrs, keep)
+}
+
+// PruneOwned deletes every object of the kinds in gvrs that matches the
+// label selector, in any namespace and cluster-scoped ones included, except
+// kinds in keep and deletion-protected objects. The selector must name an
+// owner (labels.OwnerUID); an empty one deletes nothing.
+func PruneOwned(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	selector string,
+	gvrs []schema.GroupVersionResource,
+	keep []string,
+) ([]Pruned, error) {
+	if !strings.Contains(selector, labels.OwnerUID+"=") {
+		return nil, nil
+	}
+	kept := make(map[string]bool, len(keep))
+	for _, k := range keep {
+		kept[children.KindName(k)] = true
+		kept[strings.ToLower(k)] = true
+	}
+	background := metav1.DeletePropagationBackground
+	var deleted []Pruned
+	for _, gvr := range gvrs {
+		if kept[strings.ToLower(gvr.Resource)] {
+			continue
+		}
+		list, err := dyn.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{LabelSelector: selector})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				continue // the kind isn't served here
+			}
+			return deleted, fmt.Errorf("list %s: %w", gvr.Resource, err)
+		}
+		for i := range list.Items {
+			item := &list.Items[i]
+			if kept[children.KindName(item.GetKind())] || item.GetLabels()[labels.DeletionProtectionLabel] == "true" {
+				continue
+			}
+			err := dyn.Resource(gvr).Namespace(item.GetNamespace()).Delete(ctx, item.GetName(),
+				metav1.DeleteOptions{PropagationPolicy: &background})
+			if err != nil && !apierrors.IsNotFound(err) {
+				return deleted, fmt.Errorf("delete %s %s/%s: %w", item.GetKind(), item.GetNamespace(), item.GetName(), err)
+			}
+			deleted = append(deleted, Pruned{Kind: item.GetKind(), Namespace: item.GetNamespace(), Name: item.GetName()})
+		}
+	}
+	return deleted, nil
+}
+
+// ManagedGVRs resolves managed resources to the resources to list, without
+// duplicates.
+func ManagedGVRs(managed []domain.ManagedResource) []schema.GroupVersionResource {
+	return pruneGVRs(managed, nil)
 }
 
 // pruneGVRs resolves the managed kinds to list, without duplicates and

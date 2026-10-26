@@ -28,12 +28,12 @@ generate-functions:
 generate-e2e-example:
 	@echo "Generating e2e complete example doc..."
 	@bash scripts/generate-e2e-example.sh
-	@echo "✅ docs/reference/schema/04-e2e/08-complete-example.md updated"
+	@echo "✅ docs/reference/schema/e2e/complete-example.md updated"
 
 generate-resource-docs:
 	@echo "Generating resource schema docs..."
 	go run ./hack/generate-resource-docs
-	@echo "✅ docs/reference/schema/06-resources/*.md updated"
+	@echo "✅ docs/reference/schema/resources/*.md updated"
 
 inrun: generate-functions generate-e2e-example generate-resource-docs
 	@echo "Building Inrun..."

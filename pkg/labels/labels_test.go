@@ -6,6 +6,9 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 )
 
 func TestWithDeletionProtection(t *testing.T) {
@@ -64,4 +67,31 @@ func TestCheckReserved(t *testing.T) {
 			assert.Contains(t, err.Error(), tc.bad)
 		})
 	}
+}
+
+func owner(ns, name, uid string) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetNamespace(ns)
+	u.SetName(name)
+	u.SetUID(k8stypes.UID(uid))
+	return u
+}
+
+func TestStampInrunLabels_OwnerUID(t *testing.T) {
+	got := labels.StampInrunLabels(nil, owner("team", "app", "uid-1"))
+	assert.Equal(t, "uid-1", got[labels.OwnerUID])
+	assert.Equal(t, "app", got[labels.InrunOwner])
+	assert.Equal(t, labels.ManagedValue, got[labels.ManagedKey])
+}
+
+// Two CRs with the same name in different namespaces never match each
+// other's children.
+func TestOwnedBy_ByUID(t *testing.T) {
+	a, b := owner("team-a", "app", "uid-a"), owner("team-b", "app", "uid-b")
+	child := &unstructured.Unstructured{}
+	child.SetLabels(labels.StampInrunLabels(nil, a))
+
+	assert.True(t, labels.OwnedBy(a)(child))
+	assert.False(t, labels.OwnedBy(b)(child), "same name, other namespace")
+	assert.False(t, labels.OwnedBy(owner("team-a", "app", ""))(child), "an owner without a UID owns nothing")
 }

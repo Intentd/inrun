@@ -23,7 +23,7 @@ type EventRecorder interface {
 
 // Interface is the interface every registry function depends on.
 // *Kubeclient satisfies this with real clients.
-// *simulate.FakeKubeclient satisfies this with k8s.io/client-go/kubernetes/fake.
+// *kubefake.Kubeclient (pkg/kubeclient/kubefake) satisfies it in memory.
 type Interface interface {
 	Clientset() kubernetes.Interface
 	DynamicClient() dynamic.Interface

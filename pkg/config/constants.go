@@ -7,8 +7,8 @@ const (
 	InrunOperator = "inrun-operator"
 
 	// SSA field managers
-	FieldManagerRuntime = "inrun-runtime"
-	FieldManagerGateway = "inrun-gateway"
+	FieldManagerTemplates = "inrun-templates"
+	FieldManagerGateway   = "inrun-gateway"
 
 	// Environment
 	DevShort     = "dev"

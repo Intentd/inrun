@@ -31,7 +31,7 @@ import (
 // When generation is NOT needed:
 //
 //	Dynamic template CRDs (only onCreate/onReconcile/onDelete declared)
-//	  generic.Reconciler.runTemplateReconcile() reads the Blueprint's operatorBox:Config
+//	  generic.Reconciler.runTemplates() reads the Blueprint's operatorBox:Config
 //	  directly at runtime and calls the InrunRegistry functions itself.
 //	  No generated file. No inrun generate registry. Just inrun.
 func TypeRegistry(crds map[string]types.CRDEntry, dryRun bool) (bool, error) {
@@ -94,7 +94,7 @@ func TypeRegistry(crds map[string]types.CRDEntry, dryRun bool) (bool, error) {
 		// so addHooks() can wire it at startup.
 		//
 		// This is NOT needed for declarative template CRDs — those are handled
-		// at runtime by generic.Reconciler.runTemplateReconcile() with no
+		// at runtime by generic.Reconciler.runTemplates() with no
 		// registration required.
 		if crd.DefaultReconcile() && crd.Box().Reconcile != nil && crd.Box().Reconcile.Hooks != nil {
 			h := crd.Box().Reconcile.Hooks

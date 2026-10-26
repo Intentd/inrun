@@ -237,7 +237,7 @@ func IngressSpec(src types.IngressTemplateSource, owner domain.Object) ingresses
 		}
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -266,7 +266,7 @@ func NetworkPolicySpec(src types.NetworkPolicyTemplateSource, owner domain.Objec
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -320,6 +320,6 @@ func ServiceSpec(src types.ServiceTemplateSource, owner domain.Object) services.
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

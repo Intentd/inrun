@@ -44,7 +44,7 @@ import "text/template"
 // What does NOT get registered here:
 //
 //	Dynamic template CRDs (onCreate/onReconcile/onDelete blocks)
-//	  These are handled entirely at runtime by generic.Reconciler.runTemplateReconcile().
+//	  These are handled entirely at runtime by generic.Reconciler.runTemplates().
 //	  No registration needed. No generated file needed. inrun generate registry
 //	  is not required for pure dynamic operators.
 var registryTemplate = template.Must(template.New("registry").Parse(`// pkg/typeregistry/zz_generated_typeregistry.go

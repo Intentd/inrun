@@ -48,7 +48,7 @@ func BuildService(in map[string]interface{}, owner domain.Object) (map[string]in
 		Selector:   map[string]string{labels.InrunOwner: owner.GetName()},
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := services.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "Service")
 	if err != nil {

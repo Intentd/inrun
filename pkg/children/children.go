@@ -22,7 +22,7 @@ import (
 //	# Plural — all resources of this type, by name
 //	{{ (index .children.deployments "my-site-api").status.readyReplicas }}
 //
-// ReadChildren is called after runTemplateReconcile — child resources exist
+// ReadChildren is called after runTemplates — child resources exist
 // at this point. Missing status fields resolve to "" (missingkey=zero),
 // which is correct eventual consistency behaviour for newly created resources.
 //

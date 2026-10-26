@@ -2,26 +2,15 @@ package prepare
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	fakedynamic "k8s.io/client-go/dynamic/fake"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// dynamicOnly is a kubeclient.Interface whose only working method is
-// DynamicClient, which is all runMutation uses.
-type dynamicOnly struct {
-	kubeclient.Interface
-	dyn dynamic.Interface
-}
-
-func (d dynamicOnly) DynamicClient() dynamic.Interface { return d.dyn }
 
 // The mutation rules generated for serve labels land on the labels, including
 // keys with dots and slashes: a default fills an absent label, an override
@@ -30,14 +19,14 @@ func TestRunMutation_ServeLabelDefaultAndOverride(t *testing.T) {
 	cr := newWebsite("default", "site", "example.com")
 	cr.SetLabels(map[string]string{"tier": "silver"})
 
-	dyn := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme(), cr)
+	kube := kubefake.New(runtime.NewScheme(), cr)
 	crd := types.CRDEntry{Serve: &types.ServeConfig{Labels: map[string]types.ServeFieldConfig{
 		"app.kubernetes.io/name": {Default: "web"},
 		"tier":                   {Override: "gold"},
 	}}}
 	rules := crd.ServeFieldMutationRules()
 
-	res, err := runMutation(context.Background(), dynamicOnly{dyn: dyn}, cr,
+	res, err := runMutation(context.Background(), kube, cr,
 		template.NewResolverFromMap(cr.Object), &types.MutationConfig{Rules: rules}, websiteGVR(), "Website")
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +35,7 @@ func TestRunMutation_ServeLabelDefaultAndOverride(t *testing.T) {
 		t.Fatalf("applied %d changes, want 2: %+v", res.Applied, res.Changes)
 	}
 
-	got, err := dyn.Resource(websiteGVR()).Namespace("default").Get(context.Background(), "site", metav1.GetOptions{})
+	got, err := kube.DynamicClient().Resource(websiteGVR()).Namespace("default").Get(context.Background(), "site", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

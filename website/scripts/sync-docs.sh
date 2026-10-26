@@ -9,7 +9,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$(realpath "$SCRIPT_DIR/../../docs")"
 DST_DIR="$SCRIPT_DIR/../content/docs"
 BLOG_DIR="$SCRIPT_DIR/../content/blog"
-PUB_DIR="$SCRIPT_DIR/../content/publications"
 
 if [[ ! -d "$SRC_DIR" ]]; then
   echo "ERROR: docs source not found at $SRC_DIR" >&2
@@ -254,17 +253,17 @@ sync_file() {
 
 # ── Clean destinations ────────────────────────────────────────────────────────
 # Wipe and recreate docs so stale files from deleted pages are removed.
-# For blog and publications, preserve the manually maintained _index.md.
+# For the blog, preserve the manually maintained _index.md.
 
 echo "Cleaning content/docs ..."
 rm -rf "${DST_DIR:?}"
 mkdir -p "$DST_DIR"
 
-echo "Cleaning content/blog (preserving _index.md) ..."
-find "${BLOG_DIR:?}" -name '*.md' ! -name '_index.md' -delete 2>/dev/null || true
-
-echo "Cleaning content/publications (preserving _index.md) ..."
-find "${PUB_DIR:?}" -name '*.md' ! -name '_index.md' -delete 2>/dev/null || true
+# Only clear the blog when there is a source to sync it from.
+if [[ -d "$SRC_DIR/blog" ]]; then
+  echo "Cleaning content/blog (preserving _index.md) ..."
+  find "${BLOG_DIR:?}" -name '*.md' ! -name '_index.md' -delete 2>/dev/null || true
+fi
 
 # ── Sync docs ─────────────────────────────────────────────────────────────────
 
@@ -274,8 +273,8 @@ weight=1
 find "$SRC_DIR" -name '*.md' | sort | while read -r src_file; do
   rel_path="${src_file#$SRC_DIR/}"
 
-  # Blog and publications are synced separately below
-  if [[ "$rel_path" == blog/* ]] || [[ "$rel_path" == publications/* ]]; then
+  # The blog is synced separately below
+  if [[ "$rel_path" == blog/* ]]; then
     continue
   fi
 
@@ -307,6 +306,7 @@ done
 
 # ── Sync blog ─────────────────────────────────────────────────────────────────
 
+if [[ -d "$SRC_DIR/blog" ]]; then
 echo "Syncing blog: $SRC_DIR/blog → $BLOG_DIR"
 
 weight=1
@@ -316,18 +316,7 @@ find "$SRC_DIR/blog" -name '*.md' 2>/dev/null | sort | while read -r src_file; d
   ((weight++)) || true
   echo "  blog: $(basename "$src_file")"
 done
-
-# ── Sync publications ─────────────────────────────────────────────────────────
-
-echo "Syncing publications: $SRC_DIR/publications → $PUB_DIR"
-
-weight=1
-find "$SRC_DIR/publications" -name '*.md' 2>/dev/null | sort | while read -r src_file; do
-  dst_file="$PUB_DIR/$(basename "$src_file" | sed 's/^[0-9][0-9]*-//')"
-  sync_file "$src_file" "$dst_file" "$weight" "$src_file"
-  ((weight++)) || true
-  echo "  pub: $(basename "$src_file")"
-done
+fi
 
 # ── Generate changelog pages ──────────────────────────────────────────────────
 # Reads CHANGELOG.md from the repo root, splits on ## v* headers, and writes

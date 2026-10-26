@@ -7,7 +7,7 @@
 // resource-specific run_*.go function is called — each run_*.go function
 // receives an already-expanded slice and is unaware of forEach.
 //
-// Expansion sequence in runTemplateReconcile:
+// Expansion sequence in runTemplates:
 //
 //	deployments := ExpandForEachDeployments(resolver, t.Deployments)
 //	runDeployments(ctx, kube, resolver, obj, deployments, update)

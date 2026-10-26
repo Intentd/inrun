@@ -3,9 +3,9 @@ package kind
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/migrate/core"
 	"github.com/intentd/inrun/pkg/types"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,8 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
-	fakedynamic "k8s.io/client-go/dynamic/fake"
-	k8stesting "k8s.io/client-go/testing"
 )
 
 var (
@@ -27,11 +25,11 @@ var (
 	dstGVR = schema.GroupVersionResource{Group: "new.io", Version: "v1", Resource: "news"}
 )
 
-// fakeKube is the part of kubeclient.Interface the kind migrator uses,
-// backed by a fake dynamic client. Calling anything else panics.
+// fakeKube is the shared fake client with the kind migrator's dynamic client
+// and mapper swapped in, so the tests can shape what the "server" stores.
 type fakeKube struct {
-	kubeclient.Interface
-	dyn    *fakedynamic.FakeDynamicClient
+	*kubefake.Kubeclient
+	dyn    *kubefake.Dynamic
 	mapper meta.RESTMapper
 	// shape, when set, changes what the "server" stores on apply, to
 	// simulate defaulting or schema pruning.
@@ -43,19 +41,19 @@ func newFakeKube(objs ...*unstructured.Unstructured) *fakeKube {
 	for i, o := range objs {
 		seed[i] = o
 	}
-	dyn := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+	dyn := kubefake.NewDynamic(runtime.NewScheme(),
 		map[schema.GroupVersionResource]string{srcGVR: "OldList", dstGVR: "NewList"}, seed...)
 
 	mapper := meta.NewDefaultRESTMapper(nil)
 	mapper.Add(srcGVK, meta.RESTScopeNamespace)
 	mapper.Add(dstGVK, meta.RESTScopeNamespace)
 
-	f := &fakeKube{dyn: dyn, mapper: mapper}
+	f := &fakeKube{Kubeclient: kubefake.New(runtime.NewScheme()), dyn: dyn, mapper: mapper}
 	tracker := dyn.Tracker()
 
 	// Server-side apply: store the object (create or replace), honour dry-run.
-	dyn.PrependReactor("patch", "*", func(a k8stesting.Action) (bool, runtime.Object, error) {
-		pa := a.(k8stesting.PatchActionImpl)
+	dyn.PrependReactor("patch", "*", func(a kubefake.Action) (bool, runtime.Object, error) {
+		pa := a.(kubefake.PatchActionImpl)
 		if pa.GetPatchType() != k8stypes.ApplyPatchType {
 			return false, nil, nil
 		}
@@ -76,8 +74,8 @@ func newFakeKube(objs ...*unstructured.Unstructured) *fakeKube {
 		return true, u, tracker.Update(gvr, u, pa.GetNamespace())
 	})
 	// Delete: honour preconditions like the API server, then dry-run.
-	dyn.PrependReactor("delete", "*", func(a k8stesting.Action) (bool, runtime.Object, error) {
-		da := a.(k8stesting.DeleteActionImpl)
+	dyn.PrependReactor("delete", "*", func(a kubefake.Action) (bool, runtime.Object, error) {
+		da := a.(kubefake.DeleteActionImpl)
 		opts := da.GetDeleteOptions()
 		if p := opts.Preconditions; p != nil && p.ResourceVersion != nil {
 			cur, err := tracker.Get(da.GetResource(), da.GetNamespace(), da.GetName())
@@ -87,8 +85,8 @@ func newFakeKube(objs ...*unstructured.Unstructured) *fakeKube {
 		}
 		return len(opts.DryRun) > 0, nil, nil
 	})
-	dyn.PrependReactor("create", "*", func(a k8stesting.Action) (bool, runtime.Object, error) {
-		ca := a.(k8stesting.CreateActionImpl)
+	dyn.PrependReactor("create", "*", func(a kubefake.Action) (bool, runtime.Object, error) {
+		ca := a.(kubefake.CreateActionImpl)
 		if len(ca.GetCreateOptions().DryRun) > 0 {
 			return true, ca.GetObject(), nil
 		}

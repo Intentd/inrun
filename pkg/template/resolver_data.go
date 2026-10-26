@@ -137,7 +137,7 @@ func (r *Resolver) WithItemAndValue(key interface{}, value interface{}, as strin
 //	{{ .external.healthCheck.body }}      → response body (first 4KB)
 //	{{ .external.healthCheck.error }}     → error message if call failed
 //
-// Resource declarations that follow in runTemplateReconcile can gate on these:
+// Resource declarations that follow in runTemplates can gate on these:
 //
 //	when:
 //	  - field: external.healthCheck.status

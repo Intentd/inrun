@@ -46,7 +46,7 @@ func TestApplyOptions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ApplyOptions(tt.client, tt.resource)
 			assert.Equal(t, tt.want, got.Force)
-			assert.Equal(t, config.FieldManagerRuntime, got.FieldManager)
+			assert.Equal(t, config.FieldManagerTemplates, got.FieldManager)
 		})
 	}
 }

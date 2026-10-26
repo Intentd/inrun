@@ -2,48 +2,18 @@ nav:
   - title: Getting Started
     section: getting-started
     url: /docs/getting-started/
-  - title: Orkestra Foundations
-    section: foundations
-    url: /docs/foundations/
-  - title: Architecture
-    page: true
-    url: /architecture/
-  - title: Orkestra Core
-    section: orkestra-core
-    url: /docs/orkestra-core/
-  - title: Orkestra Registry
-    section: orkestra-registry
-    url: /docs/orkestra-registry/
-  - title: Guides
-    section: guides
-    url: /docs/guides/
   - title: Concepts
     section: concepts
     url: /docs/concepts/
   - title: Reference
     section: reference
     url: /docs/reference/
-  - title: Deploying
-    url: /docs/deploying/
-    page: true
-  - title: Security
-    section: security
-    url: /docs/security/
-  - title: FAQs
-    section: faqs
-    url: /docs/faqs/
   - title: Roadmap
     url: /docs/roadmap/
     page: true
   - title: Changelog
     section: changelog
     url: /docs/changelog/
-  - title: Support
-    url: /docs/support/
-    page: true
   - title: Contributing
     section: contributing
     url: /docs/contributing/
-  - title: Known Issues
-    section: known-issues
-    url: /docs/known-issues/

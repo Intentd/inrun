@@ -111,7 +111,7 @@ func PVCSpec(src types.PVCTemplateSource, owner domain.Object) pvcs.Spec {
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -140,6 +140,6 @@ func PVSpec(src types.PVTemplateSource, owner domain.Object) pvs.Spec {
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

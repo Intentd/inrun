@@ -283,7 +283,7 @@ type E2ESpec struct {
 	//
 	// Use this when your operator, Helm chart, or any Kubernetes workload is
 	// installed via setup.helm or is already present in the cluster.
-	// See docs/reference/schema/04-e2e/05-custom-target.md.
+	// See the custom target in docs/reference/schema/e2e/complete-example.md.
 	Custom *E2ECustomConfig `yaml:"custom,omitempty"`
 
 	// Init uses an example pack — for Inrun's own CI.

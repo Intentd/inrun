@@ -51,7 +51,7 @@ func BuildCustomResource(in map[string]interface{}, owner domain.Object) (map[st
 		Spec:       f.Spec,
 	}
 
-	spec.Metadata.Labels = labels.StampInrunLabels(spec.Metadata.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Metadata.Labels = labels.StampInrunLabels(spec.Metadata.Labels, owner)
 	u := customresources.Build(owner, spec)
 	if err := applyMetaOverrides(u.Object, f.Labels, f.Annotations); err != nil {
 		return nil, fmt.Errorf("custom intent: %w", err)

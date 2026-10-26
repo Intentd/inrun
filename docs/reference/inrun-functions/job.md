@@ -52,7 +52,7 @@ Read Jobs and CronJobs: whether a Job succeeded, failed or is running, and when 
 {{ cronJobNextScheduleTime .cronjob }}  → "2026-05-19T11:00:00Z"
 ```
 
-See also: [`nextCron`](../time/#nextcron), [`cronJobLastScheduleTime`](#cronjoblastscheduletime)
+See also: [`nextCron`](time.md#nextcron), [`cronJobLastScheduleTime`](#cronjoblastscheduletime)
 
 ### jobActive
 

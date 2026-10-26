@@ -50,7 +50,7 @@ func BuildJob(in map[string]interface{}, owner domain.Object) (map[string]interf
 		BackoffLimit: backoffLimit,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := jobs.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "batch/v1", "Job")

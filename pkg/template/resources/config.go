@@ -255,7 +255,7 @@ func ConfigMapSpec(src types.ConfigMapTemplateSource, owner domain.Object) confi
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -277,7 +277,7 @@ func NamespaceSpec(src types.NamespaceTemplateSource, owner domain.Object) names
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -308,7 +308,7 @@ func SecretSpec(src types.SecretTemplateSource, owner domain.Object) secrets.Spe
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -330,6 +330,6 @@ func ServiceAccountSpec(src types.ServiceAccountTemplateSource, owner domain.Obj
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -48,7 +48,7 @@ func appRequestBlueprint(serveName string) *blueprint.Blueprint {
 }
 
 func TestApplyHandler_MissingName_Rejected(t *testing.T) {
-	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
+	kube := kubefake.New(runtime.NewScheme())
 	h := applyHandler(kube, &ClusterRegistry{}, appRequestBlueprint(""))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/apply", bytes.NewReader(appRequestBody("")))
 	rr := httptest.NewRecorder()
@@ -73,7 +73,7 @@ func TestApplyHandler_MissingName_Rejected(t *testing.T) {
 }
 
 func TestApplyHandler_NameSupplied_NotRejected(t *testing.T) {
-	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
+	kube := kubefake.New(runtime.NewScheme())
 	h := applyHandler(kube, &ClusterRegistry{}, appRequestBlueprint(""))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/apply", bytes.NewReader(appRequestBody("payments-api")))
 	rr := httptest.NewRecorder()
@@ -90,7 +90,7 @@ func TestApplyHandler_NameSupplied_NotRejected(t *testing.T) {
 }
 
 func TestApplyHandler_SerbeName_ResolvesWithoutClientName(t *testing.T) {
-	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
+	kube := kubefake.New(runtime.NewScheme())
 	h := applyHandler(kube, &ClusterRegistry{}, appRequestBlueprint("resolved-name"))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/apply", bytes.NewReader(appRequestBody("")))
 	rr := httptest.NewRecorder()

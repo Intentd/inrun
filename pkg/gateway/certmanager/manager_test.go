@@ -2,17 +2,17 @@ package certmanager_test
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
-func newManager(t *testing.T) (certmanager.Manager, *fake.Clientset) {
+func newManager(t *testing.T) (certmanager.Manager, *kubefake.Clientset) {
 	t.Helper()
-	cs := fake.NewClientset()
+	cs := kubefake.NewClientset()
 	return certmanager.New(cs), cs
 }
 
@@ -63,7 +63,7 @@ func TestEnsureCertificate_UpdatesExisting(t *testing.T) {
 		},
 		Type: corev1.SecretTypeTLS,
 	}
-	cs := fake.NewClientset(existing)
+	cs := kubefake.NewClientset(existing)
 	mgr := certmanager.New(cs)
 
 	spec := certmanager.CertificateSpec{
@@ -90,7 +90,7 @@ func TestDeleteCertificateAndSecret(t *testing.T) {
 			Namespace: "inrun-system",
 		},
 	}
-	cs := fake.NewClientset(existing)
+	cs := kubefake.NewClientset(existing)
 	mgr := certmanager.New(cs)
 
 	if err := mgr.DeleteCertificateAndSecret(ctx, "inrun-system", certmanager.DefaultTLSSecretName); err != nil {

@@ -29,7 +29,7 @@ before anything enters the `operatorBox`.
 When validation blocks, the CR status shows the original template expression
 as the field name — not the resolved value — so the message is readable:
 
-```
+```text
 field "{{ inBusinessHours }}": deployments are only allowed during business hours (got "false")
 ```
 

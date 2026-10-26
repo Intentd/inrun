@@ -101,13 +101,13 @@ func RunCustomResources(
 		// Create is a no-op if the resource already exists (idempotent OnCreate).
 		// Update always corrects drift — delete drift (recreate) and spec drift.
 		if update {
-			res, err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, protectionLabel(labelMgr, shouldProtect))
+			res, err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict), protectionLabel(labelMgr, shouldProtect))
 			if err != nil {
 				return fmt.Errorf("custom[%d].update: %w", i, err)
 			}
 			logResult("custom resource", spec.Metadata.Name, spec.Metadata.Namespace, owner, res)
 		} else {
-			res, err := customresources.Create(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, protectionLabel(labelMgr, shouldProtect))
+			res, err := customresources.Create(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict), protectionLabel(labelMgr, shouldProtect))
 			if err != nil {
 				return fmt.Errorf("custom[%d].create: %w", i, err)
 			}
@@ -115,7 +115,7 @@ func RunCustomResources(
 
 			// reconcile: true
 			if src.Reconcile {
-				res, err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, protectionLabel(labelMgr, shouldProtect))
+				res, err := customresources.Apply(ctx, kube.DynamicClient(), kube.RESTMapper(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict), protectionLabel(labelMgr, shouldProtect))
 				if err != nil {
 					return fmt.Errorf("custom[%d].reconcile: %w", i, err)
 				}

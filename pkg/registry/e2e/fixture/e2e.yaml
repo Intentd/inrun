@@ -1,5 +1,5 @@
 # https://inrun.dev/docs/reference/schema/e2e/
-# This file is the source of truth for docs/reference/schema/04-e2e/08-complete-example.md
+# This file is the source of truth for docs/reference/schema/e2e/complete-example.md
 # Run `make inrun` to regenerate that page after any change here.
 apiVersion: inrun.dev/v1
 kind: E2E

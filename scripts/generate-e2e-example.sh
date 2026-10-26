@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generates docs/reference/schema/04-e2e/08-complete-example.md
+# Generates docs/reference/schema/e2e/complete-example.md
 # from pkg/registry/e2e/fixture/e2e.yaml.
 #
 # Run via: make generate-e2e-example
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 FIXTURE="pkg/registry/e2e/fixture/e2e.yaml"
-OUT="docs/reference/schema/04-e2e/08-complete-example.md"
+OUT="docs/reference/schema/e2e/complete-example.md"
 
 if [ ! -f "$FIXTURE" ]; then
   echo "generate-e2e-example: $FIXTURE not found" >&2
@@ -69,7 +69,7 @@ instructions on running this fixture and the rule for adding new subcommands.
 
 ---
 
-→ Back: [07-kubectl.md](07-kubectl.md) | [Schema index](index.md)
+→ Back: [Testing](../../../concepts/06-testing.md) | [Schema index](../index.md)
 FOOTER
 
 echo "generate-e2e-example: wrote $OUT"

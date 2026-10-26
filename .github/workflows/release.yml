@@ -57,6 +57,9 @@ jobs:
   release:
     name: Sign and Release
     uses: ./.github/workflows/sign-and-release.yml
+    permissions:
+      contents: write
+      id-token: write
     needs: [prepare, build, image, examples]
     secrets: inherit
     with:

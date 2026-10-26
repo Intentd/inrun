@@ -35,7 +35,7 @@ func BuildConfigMap(in map[string]interface{}, owner domain.Object) (map[string]
 	spec := configmaps.Spec{Name: f.Name, Namespace: namespace}
 
 	spec.Data = f.Data
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := configmaps.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "ConfigMap")
 	if err != nil {

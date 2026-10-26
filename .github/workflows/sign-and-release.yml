@@ -57,6 +57,9 @@ jobs:
   release:
     name: Sign and Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -69,55 +72,32 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - name: Import GPG signing key
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: |
-          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
-          FINGERPRINT=$(gpg --list-secret-keys --with-colons releases@${{ inputs.inrun }}.io \
-            | grep '^fpr' \
-            | head -1 \
-            | cut -d: -f10)
-          echo "${FINGERPRINT}:6:" | gpg --import-ownertrust
-          echo "✅ GPG key imported: ${FINGERPRINT}"
-
-      - name: Sign tarballs (and ZIPs if present)
-        env:
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: |
-          cd dist
-          for archive in inrun_*.tar.gz inrun-console_*.tar.gz; do
-            gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --pinentry-mode loopback --armor --detach-sign "${archive}"
-            echo "✅ Signed: ${archive}"
-          done
-          for zip in inrun_*.zip inrun-console_*.zip; do
-            [ -f "$zip" ] || continue
-            gpg --batch --yes --passphrase "${GPG_PASSPHRASE}" --pinentry-mode loopback --armor --detach-sign "${zip}"
-            echo "✅ Signed: ${zip}"
-          done
-
-      - name: Export public key
-        run: |
-          gpg --armor --export releases@${{ inputs.inrun }}.io > dist/${{ inputs.inrun }}-public-key.asc
-          echo "✅ Public key exported"
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4
 
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum inrun_*.tar.gz inrun-console_*.tar.gz inrun_*.zip inrun-console_*.zip 2>/dev/null | grep -v "No such file" > checksums.txt
+          sha256sum inrun_*.tar.gz inrun-console_*.tar.gz inrun_*.zip inrun-console_*.zip examples_*.tar.gz 2>/dev/null | grep -v "No such file" > checksums.txt
           echo "✅ Checksums generated"
 
-      - name: Verify signatures
+      # Keyless: cosign signs with this workflow's GitHub OIDC identity, so
+      # there is no key to keep. The bundle carries the signature and the
+      # certificate; every archive is covered through checksums.txt.
+      - name: Sign checksums
         run: |
           cd dist
-          for archive in inrun_*.tar.gz inrun-console_*.tar.gz; do
-            gpg --verify "${archive}.asc" "${archive}" && echo "✅ Verified: ${archive}" || { echo "❌ Failed: ${archive}"; exit 1; }
-          done
-          for zip in inrun_*.zip inrun-console_*.zip; do
-            [ -f "$zip" ] || continue
-            gpg --verify "${zip}.asc" "${zip}" && echo "✅ Verified: ${zip}" || { echo "❌ Failed: ${zip}"; exit 1; }
-          done
+          cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
+          echo "✅ Signed: checksums.txt"
+
+      - name: Verify signature and checksums
+        run: |
+          cd dist
+          cosign verify-blob checksums.txt \
+            --bundle checksums.txt.sigstore.json \
+            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/sign-and-release.yml@${{ github.ref }}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          sha256sum -c checksums.txt
 
       - name: Extract changelog
         run: |
@@ -185,35 +165,25 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             dist/inrun_linux_amd64.tar.gz
-            dist/inrun_linux_amd64.tar.gz.asc
             dist/inrun_linux_arm64.tar.gz
-            dist/inrun_linux_arm64.tar.gz.asc
             dist/inrun_darwin_amd64.tar.gz
-            dist/inrun_darwin_amd64.tar.gz.asc
             dist/inrun_darwin_arm64.tar.gz
-            dist/inrun_darwin_arm64.tar.gz.asc
             dist/inrun_windows_amd64.tar.gz
-            dist/inrun_windows_amd64.tar.gz.asc
             dist/inrun_windows_amd64.zip
-            dist/inrun_windows_amd64.zip.asc
             dist/inrun-console_linux_amd64.tar.gz
-            dist/inrun-console_linux_amd64.tar.gz.asc
             dist/inrun-console_linux_arm64.tar.gz
-            dist/inrun-console_linux_arm64.tar.gz.asc
             dist/inrun-console_darwin_amd64.tar.gz
-            dist/inrun-console_darwin_amd64.tar.gz.asc
             dist/inrun-console_darwin_arm64.tar.gz
-            dist/inrun-console_darwin_arm64.tar.gz.asc
             dist/inrun-console_windows_amd64.tar.gz
-            dist/inrun-console_windows_amd64.tar.gz.asc
             dist/inrun-console_windows_amd64.zip
-            dist/inrun-console_windows_amd64.zip.asc
             dist/checksums.txt
-            dist/${{ inputs.inrun }}-public-key.asc
+            dist/checksums.txt.sigstore.json
             dist/examples_declarative_${{ github.ref_name }}.tar.gz
             dist/examples_remote_${{ github.ref_name }}.tar.gz
             dist/examples_typed_${{ github.ref_name }}.tar.gz
             dist/examples_intent_${{ github.ref_name }}.tar.gz
+            dist/examples_migration_${{ github.ref_name }}.tar.gz
+            dist/examples_registry_${{ github.ref_name }}.tar.gz
           fail_on_unmatched_files: true
       
       - name: Upload checksums as artifact

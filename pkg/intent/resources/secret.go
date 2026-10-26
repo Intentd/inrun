@@ -52,7 +52,7 @@ func BuildSecret(in map[string]interface{}, owner domain.Object) (map[string]int
 
 	spec.Data = data
 	spec.StringData = f.StringData
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := secrets.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "Secret")
 	if err != nil {

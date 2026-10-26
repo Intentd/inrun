@@ -3902,3 +3902,14 @@ html.no-transition .sidebar-l4section-pages {
     font-size: 1.5rem;
   }
 }
+
+/* Wordmark (layouts/partials/wordmark.html): dark by default, light with data-theme="light" */
+.wordmark { display: block; flex-shrink: 0; }
+.wordmark .wm-tile { fill: #6366f1; }
+.wordmark .wm-line { fill: none; stroke: #ffffff; stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+.wordmark .wm-head { fill: #ffffff; }
+.wordmark .wm-in   { fill: #818cf8; }
+.wordmark .wm-run  { fill: #eef2ff; }
+:root[data-theme="light"] .wordmark .wm-tile { fill: #4f46e5; }
+:root[data-theme="light"] .wordmark .wm-in   { fill: #4f46e5; }
+:root[data-theme="light"] .wordmark .wm-run  { fill: #1e1b4b; }

@@ -20,7 +20,7 @@ lifecycle:
 
 `inrun validate` shows what consumers will see:
 
-```
+```text
 ⚠  DEPRECATION WARNING
   End of life in 97 days (2027-01-31).
   WebService adds nothing deployment-stack doesn't. Use deployment-stack directly.
@@ -45,7 +45,7 @@ inrun push . --overwrite
 inrun webservice:v0.1.0
 ```
 
-```
+```text
 ✗ ⚠ This blueprint is deprecated and cannot start without explicit acknowledgement.
   End of life in 97 days (2027-01-31).
   WebService adds nothing deployment-stack doesn't. Use deployment-stack directly.
@@ -73,7 +73,7 @@ inrun validate -f stack.yaml
 
 It warns, and says how to acknowledge it:
 
-```
+```text
   To acknowledge this import, add it to lifecycle.accept.patterns in your Stack.
 ```
 
@@ -102,7 +102,7 @@ inrun inspect webservice:v0.1.0 --view cr.yaml | kubectl apply -f -
 kubectl get webservice orders -o jsonpath='{.status.phase} {.status.endpoint}'
 ```
 
-```
+```text
 Running http://orders-svc.default.svc.cluster.local
 ```
 

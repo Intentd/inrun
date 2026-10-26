@@ -127,7 +127,7 @@ kubectl get secret inrun-apply-token -n inrun-system
 
 The gateway logs will show:
 
-```
+```text
 housekeeper: gateway API token secret missing — will reload
 housekeeper: gateway API tokens reloaded
 ```

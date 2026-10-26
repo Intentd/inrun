@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/google/uuid v1.6.0
 	github.com/intentd/kel v0.1.2
-	github.com/intentd/kubewright v0.1.2
+	github.com/intentd/kubewright v0.1.3
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
 	github.com/opencontainers/go-digest v1.0.0

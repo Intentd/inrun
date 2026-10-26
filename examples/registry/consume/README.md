@@ -12,7 +12,7 @@ inrun patterns
 Public patterns need no login. If this fails with `denied` or `unauthorized`, an old login to ghcr.io is getting
 in the way: `docker logout ghcr.io`, or log in again.
 
-```
+```text
    NAME              LATEST  KIND       E2E  TAGS                    DESCRIPTION
    deployment-stack  v0.1.0  Blueprint  ✓    deployment, service...  A declarative application d...
    postgres          v0.1.0  Blueprint  ✓    postgres, database,...  A declarative PostgreSQL de...
@@ -26,7 +26,7 @@ in the way: `docker logout ghcr.io`, or log in again.
 inrun inspect deployment-stack:v0.1.0
 ```
 
-```
+```text
   Simulate:    ✓ Verified · 9 assertions · 730ms · tested 5d ago
   E2E:         ✓ Verified · 6 assertions · 22s · tested 5d ago
 
@@ -72,7 +72,7 @@ In another terminal:
 kubectl get deploy,svc,hpa,pdb -n default
 ```
 
-```
+```text
 deployment.apps/my-app   2/2     2            2           48s
 service/my-app-svc   ClusterIP   10.96.41.112   <none>        80/TCP    48s
 horizontalpodautoscaler.autoscaling/my-app-hpa   Deployment/my-app   cpu: <unknown>/70%   2         5         2          48s

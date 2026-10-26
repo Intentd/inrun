@@ -57,7 +57,7 @@ func BuildIngress(in map[string]interface{}, owner domain.Object) (map[string]in
 		IngressClass: f.IngressClass,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := ingresses.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "networking.k8s.io/v1", "Ingress")

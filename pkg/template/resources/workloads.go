@@ -650,7 +650,7 @@ func CronJobSpec(src types.CronJobTemplateSource, owner domain.Object, reg *type
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -669,8 +669,7 @@ func DeploymentSpec(src types.DeploymentTemplateSource, owner domain.Object, reg
 		Labels:          make(map[string]string),
 		Annotations:     make(map[string]string),
 		EnvFrom:         src.EnvFrom,
-		Probes:          src.Probes,
-		Presets:         reg.All(),
+		Probes:          presetProbes(src.Probes, reg.All()),
 		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
 		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Command:         src.Command,
@@ -710,7 +709,7 @@ func DeploymentSpec(src types.DeploymentTemplateSource, owner domain.Object, reg
 
 	// Inrun system labels — always added
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	return spec
 }
@@ -747,7 +746,7 @@ func JobSpec(src types.JobTemplateSource, backoffLimit int, owner domain.Object,
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -774,8 +773,7 @@ func PodSpec(src types.PodTemplateSource, owner domain.Object, reg *types.Preset
 	spec.Image = src.Image
 	spec.Namespace = src.Namespace
 	spec.Resources = src.Resources
-	spec.Probes = src.Probes
-	spec.Presets = reg.All()
+	spec.Probes = presetProbes(src.Probes, reg.All())
 	spec.SecurityContext = presetContainerSecurity(src.SecurityContext, reg.All())
 	spec.PodSecurity = presetPodSecurity(src.PodSecurity, reg.All())
 	spec.Volumes = src.Volumes
@@ -795,7 +793,7 @@ func PodSpec(src types.PodTemplateSource, owner domain.Object, reg *types.Preset
 
 	// System labels — always present
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -810,8 +808,7 @@ func ReplicaSetSpec(src types.ReplicaSetTemplateSource, owner domain.Object, reg
 		Labels:          make(map[string]string),
 		Annotations:     make(map[string]string),
 		EnvFrom:         src.EnvFrom,
-		Probes:          src.Probes,
-		Presets:         reg.All(),
+		Probes:          presetProbes(src.Probes, reg.All()),
 		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
 		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Volumes:         src.Volumes,
@@ -846,7 +843,7 @@ func ReplicaSetSpec(src types.ReplicaSetTemplateSource, owner domain.Object, reg
 
 	spec.RollingUpdate = presetRollingUpdate(src.RollingUpdate, reg.All())
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	return spec
 }
@@ -865,8 +862,7 @@ func StatefulSetSpec(src types.StatefulSetTemplateSource, owner domain.Object, r
 		Env:             src.Env,
 		EnvFrom:         src.EnvFrom,
 		Resources:       presetResources(src.Resources, reg.All()),
-		Probes:          src.Probes,
-		Presets:         reg.All(),
+		Probes:          presetProbes(src.Probes, reg.All()),
 		SecurityContext: presetContainerSecurity(src.SecurityContext, reg.All()),
 		PodSecurity:     presetPodSecurity(src.PodSecurity, reg.All()),
 		Volumes:         src.Volumes,
@@ -918,7 +914,7 @@ func StatefulSetSpec(src types.StatefulSetTemplateSource, owner domain.Object, r
 
 	spec.RollingUpdate = presetRollingUpdate(src.RollingUpdate, reg.All())
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	return spec
 }

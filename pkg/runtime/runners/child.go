@@ -33,7 +33,7 @@ type child[S, Spec any] struct {
 	resolve func(*template.Resolver, S) (S, error)
 	spec    func(S, domain.Object, *types.PresetRegistry) Spec
 
-	create func(context.Context, kubernetes.Interface, kwtypes.Owner, Spec) (kwtypes.Result, error)
+	create func(context.Context, kubernetes.Interface, kwtypes.Owner, Spec, kwtypes.Options) (kwtypes.Result, error)
 	// apply is nil for kinds that are only ever created (Namespace, ServiceAccount).
 	apply func(context.Context, kubernetes.Interface, kwtypes.Owner, Spec, kwtypes.Options) (kwtypes.Result, error)
 	// deleteIfOwned removes an entry's object once its conditions stop
@@ -182,7 +182,7 @@ func (k child[S, Spec]) write(ctx context.Context, kube kubeclient.Interface, ow
 		if apply {
 			res, err = k.apply(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, e.ForceConflict))
 		} else {
-			res, err = k.create(ctx, kube.Clientset(), owner, spec)
+			res, err = k.create(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, e.ForceConflict))
 		}
 		if err != nil {
 			return fmt.Errorf("%s[%d].%s: %w", k.field, i, step, err)
@@ -226,7 +226,7 @@ func (k child[S, Spec]) writeToNamespaces(ctx context.Context, kube kubeclient.I
 			step = "update"
 			res, err = k.apply(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, e.ForceConflict))
 		} else {
-			res, err = k.create(ctx, kube.Clientset(), owner, nsSpec)
+			res, err = k.create(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, e.ForceConflict))
 		}
 		if err != nil {
 			return fmt.Errorf("%s[%d].%s namespace=%s: %w", k.field, i, step, ns, err)

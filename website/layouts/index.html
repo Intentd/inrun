@@ -9,24 +9,22 @@
 <nav>
   <div class="nav-inner">
     <a class="nav-logo" href="/">
-      <img src="/img/logo.png" alt="Orkestra" width="28" height="28">
-      Orkestra
+      {{ partial "wordmark.html" 28 }}
     </a>
 
     <div class="nav-links">
       <a class="nav-link" href="/docs/" title="Browse the documentation">Docs</a>
-      <a class="nav-link" href="/docs/concepts/" title="Explore core concepts">Concepts</a>
-      <a class="nav-link" href="/blog/" title="Read the Orkestra blog">Blog</a>
-      <a class="nav-link" href="/publications/" title="Research and publications">Publications</a>
+      <a class="nav-link" href="/docs/concepts/" title="How Inrun works">Concepts</a>
+      <a class="nav-link" href="/blog/" title="Read the Inrun blog">Blog</a>
     </div>
 
     <div class="nav-right">
       <div id="docsearch"></div>
-      <a class="btn btn-ghost" href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="View Orkestra on GitHub" style="padding:7px 13px;font-size:13px;">
+      <a class="btn btn-ghost" href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="Inrun on GitHub" style="padding:7px 13px;font-size:13px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         GitHub
       </a>
-      <a class="btn btn-primary" href="/docs/getting-started/" title="Start building your first operator" style="padding:7px 13px;font-size:13px;">Get Started</a>
+      <a class="btn btn-primary" href="/docs/getting-started/" title="Install Inrun and reconcile your first resource" style="padding:7px 13px;font-size:13px;">Get Started</a>
     </div>
   </div>
 </nav>
@@ -36,22 +34,21 @@
   <div class="hero-inner">
     <div class="hero-badge" data-reveal>
       <span class="badge-dot"></span>
-      <a id="ork-version-link" href="{{ .Site.Params.github }}/releases" target="_blank" rel="noopener" title="View releases on GitHub" style="color:inherit;text-decoration:none;"><span id="ork-version">{{ .Site.Params.version }}</span> · open source · early access</a>
+      <a href="{{ .Site.Params.github }}/releases" target="_blank" rel="noopener" title="Releases on GitHub" style="color:inherit;text-decoration:none;"><span id="inrun-version">{{ .Site.Params.version }}</span> · open source · Apache 2.0</a>
     </div>
 
-    <h1 data-reveal data-delay="1">Kubernetes operators<br><span class="dim">without the <s style="text-decoration-thickness:1px;text-decoration-color:rgba(255,255,255,0.25);">infrastructure</s></span></h1>
+    <h1 data-reveal data-delay="1">Run intents<br><span class="dim">on Kubernetes</span></h1>
 
     <p class="hero-sub" data-reveal data-delay="2">
-      <strong>Reconciliation, security, and intent delivery</strong> — as runtime services.<br>
-      You declare behavior; Orkestra runs it.<br>
-      <s style="text-decoration-thickness:1px;text-decoration-color:rgba(255,255,255,0.35);">No boilerplate. No scaffolding. No ceremony.</s><br>
-      Keep your existing <a href="/docs/guides/migration/" target="_blank" title="Migrate an existing reconciler" style="color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;text-decoration:none;">Reconcile()</a> — or point to <a href="/docs/concepts/reconciler-model/remote-reconciler/" target="_blank" title="Remote reconciler — any HTTP server in any language" style="color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;text-decoration:none;">an HTTP server in any language</a>.
+      Kubernetes reconciliation is battle-tested and free, but using it has meant writing an operator.<br>
+      Inrun opens it to anything that takes a request and returns a response: a template, a service in any language, an API you already run, or Go.<br>
+      Callers send an <strong>intent</strong> in their own words and read back a <strong>view</strong>. You bring the decision; Inrun brings the machinery.
     </p>
 
     <div class="hero-actions" data-reveal data-delay="3">
-      <a class="btn btn-primary btn-lg" href="/docs/getting-started/" title="Start building your first operator">Get Started →</a>
-      <a class="btn btn-outline btn-lg" href="/docs/" title="Browse the full documentation">Read the Docs</a>
-      <a class="btn btn-ghost btn-lg" href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="Star Orkestra on GitHub">
+      <a class="btn btn-primary btn-lg" href="/docs/getting-started/" title="Install Inrun and reconcile your first resource">Get Started →</a>
+      <a class="btn btn-outline btn-lg" href="/docs/concepts/" title="How Inrun works">How it works</a>
+      <a class="btn btn-ghost btn-lg" href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="Star Inrun on GitHub">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         Star on GitHub
       </a>
@@ -59,7 +56,7 @@
 
     <div class="hero-install" data-reveal data-delay="4">
       <span class="p">$</span>
-      <span class="cmd">brew install <span class="pkg">orkspace/tap/ork</span></span>
+      <span class="cmd">brew install <span class="pkg">intentd/tap/inrun</span></span>
       <button class="copy-btn" onclick="copycmd(this)" title="Copy to clipboard">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       </button>
@@ -67,23 +64,23 @@
   </div>
 </section>
 
-<!-- THREE RUNTIME SERVICES ─────────────────────────────────────── -->
+<!-- THE LOOP ───────────────────────────────────────────────────── -->
 <div class="runtime-services">
   <div class="rs-grid">
     <div class="rs-item" data-reveal>
-      <div class="rs-kw" style="color:var(--observe)">Reconciliation</div>
-      <div class="rs-title">as a runtime service</div>
-      <p class="rs-desc">Informers, workqueues, workers, leader election, retries, finalizers, drift correction, status patching, panic recovery — provided unconditionally to every CRD in your Katalog. You own the declaration. Orkestra owns the loop.</p>
+      <div class="rs-kw" style="color:var(--intent)">Intent in</div>
+      <div class="rs-title">through the gateway</div>
+      <p class="rs-desc">Callers send JSON or YAML in the field names the Blueprint declares, with a token. The gateway checks it against the CRD's admission rules and builds the custom resource. No caller sees a CRD schema.</p>
     </div>
     <div class="rs-item" data-reveal data-delay="2">
-      <div class="rs-kw" style="color:var(--execute)">Security</div>
-      <div class="rs-title">as a runtime service</div>
-      <p class="rs-desc">Admission webhooks, validation rules, mutation rules, RBAC generation, TLS management, deletion protection, namespace isolation, pod security — derived from your declarations. The default posture is the safe one.</p>
+      <div class="rs-kw" style="color:var(--observe)">Reconcile</div>
+      <div class="rs-title">one contract, any reconciler</div>
+      <p class="rs-desc">Templates, a service you already run, or Go: every reconciler gets the same request and returns the same Result. Inrun runs the informers, queues, retries, finalizers, status and every write.</p>
     </div>
     <div class="rs-item" data-reveal data-delay="4">
-      <div class="rs-kw" style="color:var(--intent)">Intent Delivery</div>
-      <div class="rs-title">as a runtime service</div>
-      <p class="rs-desc">CR construction, caller interfaces, field routing, value translation, schema evolution — any caller submits flat intent in their own vocabulary. The gateway translates, validates, stamps provenance, and delivers. No caller sees a CRD schema.</p>
+      <div class="rs-kw" style="color:var(--execute)">View out</div>
+      <div class="rs-title">only what the Blueprint declares</div>
+      <p class="rs-desc">The caller polls the gateway and reads a view: the fields <code style="font-family:var(--mono);font-size:12px;">serve.view</code> declares, not the whole object. The custom resource never has to leave the cluster.</p>
     </div>
   </div>
 </div>
@@ -93,9 +90,9 @@
   <div class="qs-wrap">
     <div data-reveal>
       <span class="label" style="color:var(--observe)">Quick Start</span>
-      <h2 style="margin-bottom:14px;">From CRD to running operator</h2>
+      <h2 style="margin-bottom:14px;">Reconciling in a minute</h2>
       <p class="sub" style="max-width:380px;">
-        Two binaries: <code style="font-family:var(--mono);font-size:13px;">ork</code> is the operator CLI. <code style="font-family:var(--mono);font-size:13px;">orkcc</code> is the Control Center.
+        <code style="font-family:var(--mono);font-size:13px;">inrun init</code> scaffolds a Blueprint, a CRD and a CR. <code style="font-family:var(--mono);font-size:13px;">inrun simulate</code> checks it with no cluster; <code style="font-family:var(--mono);font-size:13px;">--dev</code> creates a kind cluster to run it on.
       </p>
 
       <div class="qs-selectors">
@@ -116,7 +113,7 @@
         </div>
       </div>
 
-      <div class="qs-note" id="qs-note">ork init · ork run</div>
+      <div class="qs-note" id="qs-note">inrun init · inrun simulate · inrun --dev</div>
     </div>
 
     <div class="cw" data-reveal data-delay="2">
@@ -131,185 +128,216 @@
   </div>
 </section>
 
-<!-- SUPER-OPERATOR ───────────────────────────────────────────────── -->
+<!-- THREE WAYS TO RECONCILE ─────────────────────────────────────── -->
 <section class="super w">
   <div class="super-split">
     <div data-reveal>
-      <span class="label" style="color:var(--execute)">Super-operator model</span>
-      <h2 style="margin-bottom:14px;">Your CRD doesn't get a shim. It gets everything.</h2>
+      <span class="label" style="color:var(--execute)">Reconcilers</span>
+      <h2 style="margin-bottom:14px;">Write only the decision</h2>
       <p class="sub" style="max-width:440px;margin-bottom:24px;">
-        Traditionally, your operator has whatever you built into it. If you forgot metrics, there are no metrics.
-        In Orkestra, the runtime provides the full stack unconditionally to every CRD in your Katalog.
+        A reconciler decides what a resource should become. Watching, queueing, retrying, applying, pruning, status, events and deletion belong to the runtime. Pick the reconciler per CRD, or per serve target; the CRD's API stays the same.
       </p>
-      <button class="inc-trigger" onclick="openIncModal()">
-        What every CRD gets for free
+      <a class="inc-trigger" href="/docs/concepts/reconcilers/" style="text-decoration:none;">
+        The reconciler contract
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
+      </a>
     </div>
 
     <div class="cw" data-reveal data-delay="2">
       <div class="cw-tabs">
-        <button class="cw-tab on" onclick="switchTab('panel-yaml',this)">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          New operator
-        </button>
-        <button class="cw-tab" onclick="switchTab('panel-migrate',this)">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          From controller-runtime
-        </button>
-        <button class="cw-tab" onclick="switchTab('panel-remote',this)">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          Remote server
-        </button>
-        <span class="cw-badge"><s>Infrastructure</s> removed</span>
+        <button class="cw-tab on" onclick="switchTab('panel-yaml',this)">Declarative</button>
+        <button class="cw-tab" onclick="switchTab('panel-remote',this)">Remote</button>
+        <button class="cw-tab" onclick="switchTab('panel-typed',this)">Typed</button>
       </div>
 
       <div class="cw-panel" id="panel-yaml">
         <div class="cw-panel-hd">
-          <span class="cw-fname">hello-website/katalog.yaml</span>
-          <span class="cw-pill">Complete operator · No Go required</span>
+          <span class="cw-fname">blueprint.yaml</span>
+          <span class="cw-pill">A complete reconciler · No code</span>
         </div>
         <div class="cb">
-<pre><span class="k">apiVersion</span>: <span class="s">orkestra.orkspace.io/v1</span>
-<span class="k">kind</span>: <span class="t">Katalog</span>
+<pre><span class="k">apiVersion</span>: <span class="s">inrun.dev/v1</span>
+<span class="k">kind</span>: <span class="t">Blueprint</span>
 <span class="k">metadata</span>:
   <span class="k">name</span>: <span class="s">hello-website</span>
-
 <span class="k">spec</span>:
   <span class="k">crds</span>:
     <span class="k">website</span>:
-      <span class="k">crdFile</span>: <span class="s">my-website.yaml</span>
+      <span class="k">crdFile</span>: <span class="s">./manifests/crd.yaml</span>
       <span class="k">operatorBox</span>:
         <span class="k">reconcile</span>:
           <span class="k">onCreate</span>:
             <span class="k">deployments</span>:
-              - <span class="k">image</span>:    <span class="s">"&#123;&#123; .spec.image &#125;&#125;"</span>
-                <span class="k">replicas</span>: <span class="s">"&#123;&#123; .spec.replicas &#125;&#125;"</span>
-                <span class="k">reconcile</span>: <span class="v">true</span></pre>
-        </div>
-      </div>
-
-      <div class="cw-panel" id="panel-migrate" hidden>
-        <div class="cw-panel-hd">
-          <span class="cw-fname">webapp_reconciler.go</span>
-          <span class="cw-pill">Reconcile untouched · Two lines added</span>
-        </div>
-        <div class="cb">
-<pre><span class="c">// Your Reconcile method: completely untouched.</span>
-<span class="c">// Same signature. Same body. Same r.Get, r.Status().Update().</span>
-
-<span class="t">func</span> (r *WebAppReconciler) <span class="k">Reconcile</span>(
-  ctx context.Context,
-  req ctrl.Request,
-) (ctrl.Result, error) {
-  <span class="c">// ... your logic, unchanged ...</span>
-  <span class="kw">return</span> ctrl.Result{}, nil
-}
-
-<span class="c">// Two lines replace SetupWithManager, Scheme, and main.go.</span>
-
-<span class="t">func</span> <span class="k">NewWebAppReconciler</span>(kube kubeclient.Interface) domain.Reconciler {
-  <span class="kw">return</span> domain.<span class="k">ReconcilerFrom</span>(&amp;WebAppReconciler{
-    Client: orkadapter.<span class="k">ToClient</span>(kube),
-  })
-}</pre>
+              - <span class="k">name</span>:  <span class="s">"&#123;&#123; .metadata.name &#125;&#125;"</span>
+                <span class="k">image</span>: <span class="s">"&#123;&#123; .spec.image &#125;&#125;"</span>
+        <span class="k">emit</span>:
+          <span class="k">status</span>:
+            <span class="k">fields</span>:
+              - <span class="k">path</span>: <span class="s">phase</span>
+                <span class="k">value</span>: <span class="s">Running</span></pre>
         </div>
       </div>
 
       <div class="cw-panel" id="panel-remote" hidden>
         <div class="cw-panel-hd">
-          <span class="cw-fname">katalog.yaml</span>
-          <span class="cw-pill">Any language · No binary · No cluster access</span>
+          <span class="cw-fname">POST /reconcile</span>
+          <span class="cw-pill">Any language · One route on a service you run</span>
         </div>
         <div class="cb">
-<pre><span class="c"># The reconciler is any HTTP server — bash, Python, Go, Rust.</span>
-<span class="c"># It receives the CR as JSON and returns resources + status.</span>
-<span class="c"># No kubeconfig. No SDK. No Kubernetes knowledge required.</span>
+<pre><span class="c">// Inrun sends, once per reconcile:</span>
+{ <span class="k">"key"</span>: <span class="s">"default/my-webapp"</span>,
+  <span class="k">"object"</span>: { ... },
+  <span class="k">"args"</span>: { <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span>, <span class="k">"replicas"</span>: <span class="v">2</span> } }
 
-<span class="k">operatorBox</span>:
-  <span class="k">reconcile</span>:
-    <span class="k">default</span>: <span class="v">false</span>
-    <span class="k">remote</span>:
-      <span class="k">endpoint</span>: <span class="s">"http://my-service/reconcile"</span>
-      <span class="k">timeout</span>:  <span class="s">15s</span>
-      <span class="k">auth</span>:
-        <span class="k">secretRef</span>:
-          <span class="k">name</span>: <span class="s">reconciler-token</span>
-          <span class="k">key</span>:  <span class="s">token</span>
-      <span class="k">managedResources</span>:
-        - <span class="k">group</span>:  <span class="s">apps</span>
-          <span class="k">plural</span>: <span class="s">deployments</span>
+<span class="c">// Your service answers; Inrun does every write:</span>
+{ <span class="k">"result"</span>: <span class="s">"ok"</span>,
+  <span class="k">"status"</span>: { <span class="k">"phase"</span>: <span class="s">"Running"</span> },
+  <span class="k">"resources"</span>: [
+    { <span class="k">"type"</span>: <span class="s">"deployment"</span>,
+      <span class="k">"fields"</span>: { <span class="k">"name"</span>: <span class="s">"my-webapp"</span>, <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span> } } ] }</pre>
+        </div>
+      </div>
 
-<span class="c"># Orkestra owns: queue · backoff · SSA apply · owner refs</span>
-<span class="c">#                RBAC · health · events · annotation stamping</span>
-<span class="c"># The server owns: everything else.</span></pre>
+      <div class="cw-panel" id="panel-typed" hidden>
+        <div class="cw-panel-hd">
+          <span class="cw-fname">reconciler.go</span>
+          <span class="cw-pill">Go, compiled into your inrun</span>
+        </div>
+        <div class="cb">
+<pre><span class="kw">func</span> (r *<span class="t">JobRunner</span>) <span class="k">Reconcile</span>(ctx context.Context, req domain.Request) (domain.Result, <span class="t">error</span>) {
+  job := req.Object
+  <span class="kw">if</span> req.Finalizing() {
+    <span class="kw">return</span> domain.Result{}, r.release(ctx, job)
+  }
+  <span class="kw">return</span> domain.Result{
+    Status:    <span class="kw">map</span>[<span class="t">string</span>]any{<span class="s">"phase"</span>: <span class="s">"Running"</span>},
+    Resources: r.desired(job, req.Args()),
+  }, <span class="v">nil</span>
+}
+
+<span class="c">// Or keep an existing controller-runtime Reconcile unchanged.</span></pre>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- INCLUDED MODAL ──────────────────────────────────────────────── -->
-<div class="modal-overlay" id="incModal" onclick="closeIncModal(event)">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-label="What every CRD gets for free">
-    <div class="modal-hd">
-      <div>
-        <div class="label" style="color:var(--execute);margin-bottom:6px;">Super-operator model</div>
-        <h3 class="modal-title">What every CRD gets for free</h3>
+<!-- GATEWAY ─────────────────────────────────────────────────────── -->
+<section class="gateway w">
+  <div class="gw-split">
+    <div data-reveal>
+      <a href="/docs/concepts/gateway/" class="label" style="color:var(--intent);text-decoration:none;">Gateway</a>
+      <h2 style="margin-bottom:14px;">Callers never touch Kubernetes</h2>
+      <p class="sub" style="max-width:420px;margin-bottom:18px;">
+        Add <code style="font-family:var(--mono);font-size:13px;">serve</code> to a CRD and the gateway accepts intents for it: the fields a caller may send, the tokens that may send them, and the view they read back. The reconciler never reads the CR either: the Blueprint maps between the two sides.
+      </p>
+      <div class="caller-list">
+        <div class="caller-item"><span class="caller-dot" style="background:var(--observe)"></span>A CI pipeline</div>
+        <div class="caller-item"><span class="caller-dot" style="background:var(--execute)"></span>A frontend form</div>
+        <div class="caller-item"><span class="caller-dot" style="background:var(--intent)"></span>The console</div>
+        <div class="caller-item"><span class="caller-dot" style="background:var(--resource)"></span>curl</div>
       </div>
-      <button class="modal-close" onclick="closeIncModal()" aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
     </div>
-    <div class="inc-grid">
-      <div class="inc-card"><div class="inc-name">Isolated informer</div><div class="inc-sub">Per-CRD watch stream + in-memory cache. Zero-cost reads.</div></div>
-      <div class="inc-card"><div class="inc-name">Worker pool</div><div class="inc-sub">Configurable concurrency via <code style="font-size:11px;color:var(--observe)">workers:</code>. Autoscales at runtime.</div></div>
-      <div class="inc-card"><div class="inc-name">Health tracking</div><div class="inc-sub"><code style="font-size:11px;color:var(--observe)">pending → healthy → degraded</code> per operatorBox.</div></div>
-      <div class="inc-card"><div class="inc-name">Drift correction</div><div class="inc-sub">Child resource changes re-enqueue the parent CR automatically.</div></div>
-      <div class="inc-card"><div class="inc-name">Finalizer management</div><div class="inc-sub">Finalizers added and removed. <code style="font-size:11px;color:var(--observe)">onDelete:</code> runs before removal.</div></div>
-      <div class="inc-card"><div class="inc-name">Owner references</div><div class="inc-sub">All children carry owner refs. Cascade deletion is free.</div></div>
-      <div class="inc-card"><div class="inc-name">Prometheus metrics</div><div class="inc-sub">Duration, error rate, queue depth — GVK-labeled, per CRD.</div></div>
-      <div class="inc-card"><div class="inc-name">Live HTTP API</div><div class="inc-sub"><code style="font-size:11px;color:var(--observe)">/katalog/{crd}/health</code> — workers, queue, CR list.</div></div>
-      <div class="inc-card"><div class="inc-name">Leader election</div><div class="inc-sub">One Konductor. Workers stay consistent across restarts.</div></div>
+
+    <div class="cw" data-reveal data-delay="2">
+      <div class="cw-tabs">
+        <button class="cw-tab on" onclick="switchTab('panel-intent',this)">Intent in</button>
+        <button class="cw-tab" onclick="switchTab('panel-view',this)">View out</button>
+      </div>
+      <div class="cw-panel" id="panel-intent">
+        <div class="cw-panel-hd">
+          <span class="cw-fname">POST /api/v1/apply</span>
+          <span class="cw-pill">The caller's own field names</span>
+        </div>
+        <div class="cb">
+<pre>{ <span class="k">"target"</span>: <span class="s">"website"</span>,
+  <span class="k">"name"</span>: <span class="s">"hello-intent"</span>,
+  <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span>,
+  <span class="k">"replicas"</span>: <span class="v">2</span> }
+
+<span class="c">// → 202, and a URL to poll</span></pre>
+        </div>
+      </div>
+      <div class="cw-panel" id="panel-view" hidden>
+        <div class="cw-panel-hd">
+          <span class="cw-fname">GET /api/v1/resources/website/default/hello-intent</span>
+          <span class="cw-pill">Only what serve.view declares</span>
+        </div>
+        <div class="cb">
+<pre>{ <span class="k">"name"</span>: <span class="s">"hello-intent"</span>,
+  <span class="k">"image"</span>: <span class="s">"nginx:1.27"</span>,
+  <span class="k">"phase"</span>: <span class="s">"Running"</span>,
+  <span class="k">"endpoint"</span>: <span class="s">"hello-intent.default.svc.cluster.local"</span> }</pre>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<!-- CONTROL CENTER ──────────────────────────────────────────────── -->
+<!-- WHAT IS DIFFERENT ──────────────────────────────────────────── -->
+<section class="components w">
+  <span class="label" style="color:var(--observe)" data-reveal>Why Inrun</span>
+  <h2 style="margin-bottom:14px;" data-reveal>What comes with it</h2>
+  <div class="comp-grid">
+    <div class="comp-card" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">Kubernetes as a backend</div>
+      <h3>State that keeps itself true</h3>
+      <p>A custom resource can be a durable state machine: Kubernetes stores it, Inrun retries it until the decision holds, and cleans it up when it's done. Nothing has to be a Deployment.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">Shared as patterns</div>
+      <h3>Blueprints with their proof</h3>
+      <p><code style="font-family:var(--mono);font-size:12px;">inrun push</code> publishes a Blueprint to any OCI registry with its simulate and e2e results; <code style="font-family:var(--mono);font-size:12px;">inrun inspect</code> shows them before anyone runs it.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">The schema can change</div>
+      <h3>Under live data</h3>
+      <p><code style="font-family:var(--mono);font-size:12px;">migrate.from</code> moves fields to new paths and <code style="font-family:var(--mono);font-size:12px;">migrate.to</code> moves resources to a new CRD, with rollback, while callers keep sending the same intents.</p>
+    </div>
+    <div class="comp-card" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">No CRDs of its own</div>
+      <h3>Your CRDs, a Blueprint file</h3>
+      <p>The Blueprint is a ConfigMap in the cluster. Remove Inrun and nothing of Inrun's is left in your API server.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">Writes are fenced</div>
+      <h3>Only what the Blueprint allows</h3>
+      <p>Inrun does every write, only for kinds a CRD declares, with RBAC generated from the Blueprint.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">Deletion waits</div>
+      <h3>For your reconciler, with a bound</h3>
+      <p>Every CR carries Inrun's finalizer. Your reconciler finishes its cleanup first; a timeout keeps it from hanging forever.</p>
+    </div>
+    <div class="comp-card" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">Tested before a cluster</div>
+      <h3>simulate, envtest, e2e</h3>
+      <p><code style="font-family:var(--mono);font-size:12px;">inrun simulate</code> runs the runtime's own reconcile pass in memory; <code style="font-family:var(--mono);font-size:12px;">inrun e2e</code> checks the same example on kind.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">Per serve target</div>
+      <h3>One CRD, several reconcilers</h3>
+      <p>Templates for one target, a remote service or Go for another. The caller picks the target; the API stays one CRD.</p>
+    </div>
+    <div class="comp-card" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">Kubernetes-aware templates</div>
+      <h3>Functions</h3>
+      <p>Pod readiness, job completion, quantities, cron, semver and more, as functions in every template, plus your own.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONSOLE ──────────────────────────────────────────────────────── -->
 <section class="cc-section w">
   <div class="cc-inner">
     <div class="cc-copy" data-reveal>
-      <span class="label" style="color:var(--observe)">Built-in observability</span>
-      <h2 style="margin-bottom:14px;">One dashboard for every Orkestra runtime</h2>
+      <a href="/docs/concepts/console/" class="label" style="color:var(--observe);text-decoration:none;">Console</a>
+      <h2 style="margin-bottom:14px;">See every CRD, worker and resource</h2>
       <p class="sub" style="max-width:400px;margin-bottom:28px;">
-        The moment you run <code style="font-family:var(--mono);font-size:13px;">ork run</code>, a live dashboard starts on <code style="font-family:var(--mono);font-size:13px;">:8081</code> — showing every CRD, worker, queue depth, and reconcile event. No extra setup.
+        The console reads each runtime's <code style="font-family:var(--mono);font-size:13px;">/blueprint</code> API: CRDs, how each is reconciled, worker pools, queues, CRs and their status. It creates resources through the gateway, the same path as an intent.
       </p>
-      <div class="cc-feats">
-        <div class="cc-feat">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--observe)" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          <div>
-            <div class="cc-feat-title">Multi-runtime aggregation</div>
-            <div class="cc-feat-desc">Monitor every Orkestra instance — across clusters, namespaces, or environments — from a single Control Center.</div>
-          </div>
-        </div>
-        <div class="cc-feat">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--observe)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          <div>
-            <div class="cc-feat-title">Per-CRD drill-down</div>
-            <div class="cc-feat-desc">Click any CRD to see worker pool depth, queue pressure, admission stats, and live CR instances.</div>
-          </div>
-        </div>
-        <div class="cc-feat">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--observe)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <div>
-            <div class="cc-feat-title">Zero configuration</div>
-            <div class="cc-feat-desc">Built into the <code style="font-family:var(--mono);font-size:12px;">ork</code> CLI. Launch with <code style="font-family:var(--mono);font-size:12px;">ork control</code> — no additional binary or Helm chart.</div>
-          </div>
-        </div>
-      </div>
       <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
-        <a class="btn btn-primary" href="{{ .Site.Params.controlcenter }}" target="_blank" rel="noopener" title="Open the live Control Center demo">Live Control Center ↗</a>
-        <a class="btn btn-ghost" href="/docs/" title="Browse the full documentation">Read the docs →</a>
+        <a class="btn btn-ghost" href="/docs/getting-started/learning-inrun/" title="Learning Inrun">Try it in Learning Inrun →</a>
       </div>
     </div>
 
@@ -321,7 +349,7 @@
         </div>
         <div class="cc-mock-body">
           <div class="cc-mock-sidebar">
-            <div class="cc-mock-logo">⬡ <span>Control Center</span></div>
+            <div class="cc-mock-logo">⬡ <span>Console</span></div>
             <div class="cc-mock-nav on">platform-operator</div>
             <div class="cc-mock-nav">infra-operator</div>
             <div class="cc-mock-nav">database-operator</div>
@@ -350,115 +378,28 @@
   </div>
 </section>
 
-<!-- GATEWAY / SERVE ─────────────────────────────────────────────── -->
-<section class="gateway w">
-  <div class="gw-split">
-    <div data-reveal>
-      <a href="/docs/concepts/self-service/" class="label" title="Learn about the gateway and serve layer" style="color:var(--intent);text-decoration:none;">Gateway &amp; Serve layer</a>
-      <h2 style="margin-bottom:14px;">Any caller. Any vocabulary. One operator.</h2>
-      <p class="sub" style="max-width:420px;margin-bottom:18px;">
-        Add <a href="/docs/concepts/self-service/" target="_blank" title="Learn about the serve field" style="color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;text-decoration:none;">serve: true</a> to a CRD entry. Your operator instantly surfaces a token-scoped API. Callers submit flat intent in their own vocabulary. Orkestra translates, validates, stamps provenance, and applies.
-      </p>
-      <p style="font-size:14px;color:var(--text2);line-height:1.65;max-width:420px;margin-bottom:24px;">
-        When the CRD schema changes — a field moves, a structure deepens — update one line in the serve declaration. Callers notice nothing.
-      </p>
-      <div class="caller-list">
-        <div class="caller-item"><span class="caller-dot" style="background:var(--observe)"></span>CI pipeline (token)</div>
-        <div class="caller-item"><span class="caller-dot" style="background:var(--execute)"></span>Slack command</div>
-        <div class="caller-item"><span class="caller-dot" style="background:var(--intent)"></span>Browser form (Control Center)</div>
-        <div class="caller-item"><span class="caller-dot" style="background:var(--resource)"></span>GitHub webhook</div>
-        <div class="caller-item"><span class="caller-dot" style="background:var(--observe)"></span>curl / HTTP</div>
-        <div class="caller-item"><span class="caller-dot" style="background:var(--katalog)"></span>PagerDuty / cron</div>
-      </div>
-    </div>
-
-    <div class="cw" data-reveal data-delay="2">
-      <div class="cw-bar">
-        <span class="cw-dot" style="background:#FF5F57"></span>
-        <span class="cw-dot" style="background:#FEBC2E"></span>
-        <span class="cw-dot" style="background:#28C840"></span>
-        <span class="cw-name">intent → cluster</span>
-      </div>
-      <div class="cb">
-<pre><span class="c"># What the caller submits (flat, no Kubernetes)</span>
-<span class="k">target</span>:      <span class="s">app</span>
-<span class="k">name</span>:        <span class="s">payments-api</span>
-<span class="k">repository</span>:  <span class="s">myorg/payments-api</span>
-<span class="k">environment</span>: <span class="s">staging</span>
-<span class="k">team</span>:        <span class="s">payments</span>
-<span class="k">replicas</span>:    <span class="v">2</span>
-
-<span class="c"># What Orkestra builds and applies</span>
-<span class="k">apiVersion</span>: <span class="s">platform.myco.io/v1</span>
-<span class="k">kind</span>:       <span class="t">App</span>
-<span class="k">metadata</span>:
-  <span class="k">name</span>:      <span class="s">payments-api</span>
-  <span class="k">namespace</span>: <span class="s">team-payments-staging</span>
-  <span class="k">annotations</span>:
-    <span class="k">orkestra.sh/target</span>:  <span class="s">app</span>
-    <span class="k">orkestra.sh/source</span>:  <span class="s">github-actions</span>
-    <span class="k">orkestra.sh/subject</span>: <span class="s">repo:myorg/payments:ref:main</span>
-<span class="k">spec</span>:
-  <span class="k">source.repository</span>: <span class="s">myorg/payments-api</span>
-  <span class="k">environment</span>: <span class="s">staging</span>
-  <span class="k">replicas</span>:    <span class="v">2</span></pre>
-      </div>
-    </div>
-  </div>
 </section>
 
-<!-- REGISTRY ────────────────────────────────────────────────────── -->
-<div class="registry">
-  <div class="w" style="padding-block: 72px;">
-    <div class="reg-inner">
-      <div data-reveal>
-        <a href="/docs/orkestra-registry/" class="label" title="Browse the Orkestra Registry" style="color:var(--katalog);text-decoration:none;">Pattern registry</a>
-        <h2 style="margin-bottom:14px;">Distribute behavior, not binaries</h2>
-        <p class="sub" style="margin-bottom:16px;max-width:420px;">
-          The Orkestra Registry distributes operator patterns as OCI artifacts. A Katalog pulled at <code style="font-family:var(--mono);font-size:13px;">postgres:v14</code> behaves identically in every environment. Uses your existing <code style="font-family:var(--mono);font-size:13px;">docker login</code>. See <a href="/docs/deploying/" style="color:var(--observe)">production deployment →</a>
-        </p>
-        <p style="font-size:14px;color:var(--text2);line-height:1.65;max-width:420px;margin-bottom:20px;">
-          Every pattern ships with a declarative E2E test that gates publication. You do not push a pattern without proof it works.
-        </p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <code style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;color:var(--observe)">ork pull postgres:v14</code>
-          <code style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;color:var(--observe)">ork push my-operator:v1 .</code>
-          <code style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;color:var(--observe)">ork patterns</code>
-        </div>
-      </div>
-
-      <div class="reg-kinds" data-reveal data-delay="2">
-        <a class="reg-kind" href="/docs/orkestra-registry/katalogs/" title="A complete operator declaration — one CRD or many"><span class="rk-badge" style="background:rgba(245,158,11,.1);color:var(--katalog)">Katalog</span><span class="rk-desc">A complete operator declaration — one CRD or many, with all behaviors and tests</span></a>
-        <a class="reg-kind" href="/docs/orkestra-registry/motifs/" title="Reusable resource primitives imported into any Katalog"><span class="rk-badge" style="background:rgba(168,124,248,.1);color:var(--execute)">Motif</span><span class="rk-desc">Reusable resource primitive — resources, profiles, notes — imported into any Katalog</span></a>
-        <a class="reg-kind" href="/docs/orkestra-registry/komposers/" title="Assemble multiple Katalogs into a control plane"><span class="rk-badge" style="background:rgba(52,188,250,.1);color:var(--observe)">Komposer</span><span class="rk-desc">A platform declaration — assembles multiple Katalogs into a control plane</span></a>
-        <a class="reg-kind" href="/docs/orkestra-registry/simulate/" title="Declarative reconciler assertions — no cluster, no Docker"><span class="rk-badge" style="background:rgba(52,201,106,.1);color:var(--intent)">Simulate</span><span class="rk-desc">Declarative reconciler assertions — sub-second, no cluster, no Docker</span></a>
-        <a class="reg-kind" href="/docs/orkestra-registry/e2e/" title="Declarative cluster tests that gate publication"><span class="rk-badge" style="background:rgba(248,113,113,.1);color:var(--red)">E2E</span><span class="rk-desc">Declarative cluster tests that gate publication — one YAML file per scenario</span></a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- THREE CORE COMPONENTS ──────────────────────────────────────── -->
+<!-- COMPONENTS ─────────────────────────────────────────────────────── -->
 <section class="components w">
-  <a href="/docs/orkestra-core/" class="label" title="Learn about the three core components" style="color:var(--observe);text-decoration:none;" data-reveal>Orkestra Core</a>
-  <h2 style="margin-bottom:14px;" data-reveal>Three independent components</h2>
-  <p class="sub" style="max-width:520px;" data-reveal>No shared database. No shared cache. No direct in-process calls. Run them on the same pod or entirely separate deployments.</p>
-
+  <span class="label" style="color:var(--observe)" data-reveal>Components</span>
+  <h2 style="margin-bottom:14px;" data-reveal>Three processes, one CLI</h2>
+  <p class="sub" style="max-width:520px;" data-reveal><code style="font-family:var(--mono);font-size:13px;">inrun</code> runs them on your machine; the Helm chart runs them as Deployments.</p>
   <div class="comp-grid">
-    <a class="comp-card" href="/docs/orkestra-core/runtime/" title="The reconciliation engine — informers, queues, workers, lifecycle" data-reveal>
-      <div class="comp-label" style="color:var(--observe)">ork run</div>
+    <a class="comp-card" href="/docs/concepts/runtime/" data-reveal>
+      <div class="comp-label" style="color:var(--observe)">runtime</div>
       <h3>Runtime</h3>
-      <p>The reconciliation engine. Watches Kubernetes resources, runs operator logic, manages resource lifecycle, exposes the <code style="font-family:var(--mono);font-size:12px;">/katalog</code> API.</p>
+      <p>Watches your CRDs and their children, runs each reconcile pass, applies the Result, and exposes <code style="font-family:var(--mono);font-size:12px;">/blueprint</code>. Leader-elected.</p>
     </a>
-    <a class="comp-card" href="/docs/orkestra-core/gateway/" title="Stateless admission and intent delivery server" data-reveal data-delay="2">
-      <div class="comp-label" style="color:var(--execute)">ork gate</div>
+    <a class="comp-card" href="/docs/concepts/gateway/" data-reveal data-delay="2">
+      <div class="comp-label" style="color:var(--execute)">gateway</div>
       <h3>Gateway</h3>
-      <p>Serves admission and conversion webhooks, handles notifications, validates and delivers intent. Stateless, multi-replica. No reconciliation logic.</p>
+      <p>Takes intents and returns views, and serves the admission and conversion webhooks over TLS. Stateless, several replicas.</p>
     </a>
-    <a class="comp-card" href="/docs/orkestra-core/controlcenter/" title="Live dashboard for every Orkestra runtime" data-reveal data-delay="4">
-      <div class="comp-label" style="color:var(--intent)">ork control</div>
-      <h3>Control Center</h3>
-      <p>Connects to one or more runtimes, reads their <code style="font-family:var(--mono);font-size:12px;">/katalog</code> APIs, and renders a live view of every operator, CRD, worker, and CR in your fleet.</p>
+    <a class="comp-card" href="/docs/concepts/console/" data-reveal data-delay="4">
+      <div class="comp-label" style="color:var(--intent)">console</div>
+      <h3>Console</h3>
+      <p>A live view of one or more runtimes, and a form that sends intents through the gateway.</p>
     </a>
   </div>
 </section>
@@ -467,22 +408,12 @@
 <section class="community">
   <div class="w">
     <span class="label" style="color:var(--observe)" data-reveal>Community</span>
-    <h2 style="max-width:460px;margin:0 auto;text-align:center;" data-reveal>Everyone welcome!</h2>
-    <p style="font-size:17px;color:var(--text2);font-weight:300;max-width:400px;margin:12px auto 0;text-align:center;line-height:1.65;" data-reveal>Open source. Apache 2.0. Built in the open.</p>
-
+    <h2 style="max-width:460px;margin:0 auto;text-align:center;" data-reveal>Any help is welcome</h2>
+    <p style="font-size:17px;color:var(--text2);font-weight:300;max-width:440px;margin:12px auto 0;text-align:center;line-height:1.65;" data-reveal>A bug report, a docs fix, an example. Built in the open, Apache 2.0.</p>
     <div class="com-actions" data-reveal>
-      <a class="btn btn-primary btn-com" href="https://discord.gg/RQMEYykq3" target="_blank" rel="noopener" title="Join the Orkestra Discord community">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-        Discord
-      </a>
-      <a class="btn btn-ghost btn-com" href="https://join.slack.com/t/orkspace-group/shared_invite/zt-42i4idb0h-WYUF6JryDFMkky95ZJWHBg" target="_blank" rel="noopener" title="Join the Orkestra Slack workspace">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
-        Slack
-      </a>
-      <a class="btn btn-ghost btn-com" href="https://github.com/orkspace/orkestra/discussions" target="_blank" rel="noopener" title="Join GitHub Discussions">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        Discussions
-      </a>
+      <a class="btn btn-primary btn-com" href="{{ .Site.Params.github }}/discussions" target="_blank" rel="noopener" title="GitHub Discussions">Discussions</a>
+      <a class="btn btn-ghost btn-com" href="{{ .Site.Params.github }}/issues" target="_blank" rel="noopener" title="GitHub issues">Issues</a>
+      <a class="btn btn-ghost btn-com" href="/docs/contributing/" title="How to contribute">Contributing</a>
     </div>
   </div>
 </section>
@@ -490,64 +421,29 @@
 <!-- RESOURCES ────────────────────────────────────────────────────── -->
 <section class="resources w">
   <span class="label" style="color:var(--observe)" data-reveal>Learn</span>
-  <h2 style="margin-bottom:0;" data-reveal>From the blog</h2>
-
+  <h2 style="margin-bottom:0;" data-reveal>Start here</h2>
   <div class="res-grid">
-    <a class="res-card" href="/blog/your-crd-is-enough/" title="Why reconciliation is a data problem, not a programming problem" data-reveal>
-      <div class="res-head"><span class="res-icon">📄</span><span class="res-arrow">→</span></div>
-      <h3>Your CRD Is Enough</h3>
-      <p>Why reconciliation is a data problem, not a programming problem — and how the Katalog completes the promise Kubernetes made in 2017.</p>
+    <a class="res-card" href="/docs/getting-started/learning-inrun/" data-reveal>
+      <div class="res-head"><span class="res-icon">→</span><span class="res-arrow">→</span></div>
+      <h3>Learning Inrun</h3>
+      <p>Your first reconciled resource with <code style="font-family:var(--mono);font-size:12px;">inrun init</code>, then six example packs in order: declarative, remote, typed, intent, migration, registry.</p>
     </a>
-    <a class="res-card" href="/blog/why-i-built-this/" title="The story behind the super-operator model" data-reveal data-delay="2">
-      <div class="res-head"><span class="res-icon">🎹</span><span class="res-arrow">→</span></div>
+    <a class="res-card" href="/blog/why-i-built-this/" data-reveal data-delay="2">
+      <div class="res-head"><span class="res-icon">✎</span><span class="res-arrow">→</span></div>
       <h3>Why I Built This</h3>
-      <p>A missed interview, a wall of boilerplate, and a pattern that kept repeating. The story behind the super-operator model and the music metaphor.</p>
+      <p>A missed interview, a wall of boilerplate, and a pattern that kept repeating, until the project turned out to be an intent runner.</p>
     </a>
-  </div>
-</section>
-
-<!-- ECOSYSTEM ────────────────────────────────────────────────────── -->
-<section class="ecosystem w" data-reveal>
-  <div class="eco-lbl">CLI &amp; Ecosystem</div>
-  <div class="eco-tags">
-    <a class="eco-tag" href="/docs/reference/cli/run/" title="Start the Orkestra runtime">ork run</a>
-    <a class="eco-tag" href="/docs/reference/cli/gate/" title="Start the gateway server">ork gate</a>
-    <a class="eco-tag" href="/docs/reference/cli/control/" title="Launch the Control Center">ork control</a>
-    <a class="eco-tag" href="/docs/reference/cli/validate/" title="Validate your Katalog">ork validate</a>
-    <a class="eco-tag" href="/docs/reference/cli/simulate/" title="Run declarative reconciler assertions">ork simulate</a>
-    <a class="eco-tag" href="/docs/reference/cli/e2e/" title="Run declarative cluster tests">ork e2e</a>
-    <a class="eco-tag" href="/docs/reference/cli/proxy/" title="Expose Orkestra services locally">ork proxy</a>
-    <a class="eco-tag" href="/docs/reference/cli/migrate/" title="Migrate an existing reconciler">ork migrate</a>
-    <a class="eco-tag" href="/docs/reference/cli/patterns/" title="Browse operator patterns">ork patterns</a>
-    <a class="eco-tag" href="/docs/reference/cli/push/" title="Publish a pattern to the registry">ork push</a>
-    <a class="eco-tag" href="/docs/reference/cli/pull/" title="Pull a pattern from the registry">ork pull</a>
-    <a class="eco-tag" href="/docs/reference/cli/token/" title="Manage serve tokens">ork token</a>
-    <a class="eco-tag" href="/docs/concepts/reconciler-model/remote-reconciler/" title="Any HTTP server as a Kubernetes operator">Remote Reconciler</a>
-    <a class="eco-tag" href="/docs/concepts/reconciler-model/" title="The reconciliation controller and execution model">Reconciler Model</a>
-    <a class="eco-tag" href="/docs/concepts/execution-model/" title="How reconciliation tasks are scheduled and executed">Execution Model</a>
-    <a class="eco-tag" href="/docs/concepts/operator-of-operators/" title="Compose operators into higher-order control planes">Operator of Operators</a>
-    <a class="eco-tag" href="/docs/concepts/self-service/" title="Token-scoped API surface for any caller">Self-Service</a>
-    <a class="eco-tag" href="/docs/concepts/lifecycle/" title="Resource lifecycle — onCreate, onUpdate, onDelete">Lifecycle</a>
-    <a class="eco-tag" href="/docs/concepts/reusability/" title="Share behavior across Katalogs with Motifs">Reusability</a>
-    <a class="eco-tag" href="/docs/concepts/operatorbox/" title="The per-CRD behavior declaration">OperatorBox</a>
-    <a class="eco-tag" href="/docs/concepts/profiles/" title="Reusable behavior templates">Profiles</a>
-    <a class="eco-tag" href="/docs/concepts/reconciler-model/kordinator/" title="Dependency health state machine">Kordinator</a>
-    <a class="eco-tag" href="/docs/orkestra-core/controlcenter/" title="Control Center docs">Control Center</a>
-    <a class="eco-tag" href="/docs/concepts/operator-autoscaler/" title="Automatic worker pool scaling">Operator Autoscaler</a>
-    <a class="eco-tag" href="/docs/concepts/workload-autoscaler/" title="Autoscale workloads driven by operator state">Workload Autoscaler</a>
-    <a class="eco-tag" href="/docs/concepts/operatorbox/external/" title="Integrate external systems via declared protocols">External Protocols</a>
   </div>
 </section>
 
 <!-- FOOTER ──────────────────────────────────────────────────────── -->
 <footer class="landing-footer">
   <div class="foot">
-    <span class="foot-copy">© {{ now.Year }} Orkestra · Apache 2.0 · Kubernetes operators without the infrastructure</span>
+    <span class="foot-copy">© {{ now.Year }} Inrun · Apache 2.0 · Run intents on Kubernetes</span>
     <ul class="foot-links">
-      <li><a href="/docs/" title="Browse the documentation">Docs</a></li>
-      <li><a href="{{ .Site.Params.github }}" target="_blank" rel="noopener" title="View Orkestra on GitHub">GitHub</a></li>
-      <li><a href="https://discord.gg/RQMEYykq3" target="_blank" rel="noopener" title="Join the Discord community">Discord</a></li>
-      <li><a href="/blog/" title="Read the Orkestra blog">Blog</a></li>
+      <li><a href="/docs/">Docs</a></li>
+      <li><a href="{{ .Site.Params.github }}" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/blog/">Blog</a></li>
     </ul>
   </div>
 </footer>

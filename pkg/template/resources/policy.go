@@ -295,7 +295,7 @@ func HPASpec(src types.HPATemplateSource, owner domain.Object, reg *types.Preset
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -317,7 +317,7 @@ func LimitRangeSpec(src types.LimitRangeTemplateSource, owner domain.Object, reg
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -352,7 +352,7 @@ func PDBSpec(src types.PDBTemplateSource, owner domain.Object, reg *types.Preset
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -374,6 +374,6 @@ func ResourceQuotaSpec(src types.ResourceQuotaTemplateSource, owner domain.Objec
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

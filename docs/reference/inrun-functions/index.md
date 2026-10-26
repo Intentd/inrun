@@ -2,7 +2,7 @@
 
 Inrun's functions are pure transformation functions available in every `{{ }}` expression across a Blueprint — status fields, `when:` conditions, resource names, `onCreate`, `onReconcile`, mutation rules, conversion paths. They are the vocabulary of declarative operator behavior. Most come from [KEL](https://github.com/intentd/kel), the Kubernetes Expression Library; Inrun adds a few of its own.
 
-**Contract:** pure (same input → same output), safe (nil/empty input never panics), stateless (no I/O, no side effects). Use blueprint `external` block or [hooks](../../concepts/typed-operators/01-hooks.md) for anything requiring external calls.
+**Contract:** pure (same input → same output), safe (nil/empty input never panics), stateless (no I/O, no side effects). Use blueprint `external` block or [hooks](../../concepts/02-reconcilers.md) for anything requiring external calls.
 
 ---
 

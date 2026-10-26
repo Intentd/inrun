@@ -2,9 +2,9 @@ package maintain
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -138,9 +138,10 @@ func TestRemoveFinalizer_OnlyTargetRemoved(t *testing.T) {
 
 // ── Finalize and ensureFinalizers ─────────────────────────────────────────────
 
-// patchRecorder records PatchFinalizers calls; nothing else is used.
+// patchRecorder records PatchFinalizers calls, and can fail them; the rest
+// is the shared fake client.
 type patchRecorder struct {
-	kubeclient.Interface
+	*kubefake.Kubeclient
 	calls int
 	got   []string
 	err   error
@@ -161,7 +162,7 @@ func cleanupBox() types.OperatorBoxConfig {
 func TestFinalize_RemovesOnlyInrunsFinalizers(t *testing.T) {
 	obj := &unstructured.Unstructured{}
 	obj.SetFinalizers([]string{labels.CleanupFinalizer, "other.io/finalizer"})
-	kube := &patchRecorder{}
+	kube := &patchRecorder{Kubeclient: kubefake.New(runtime.NewScheme())}
 
 	require.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
 	assert.Equal(t, 1, kube.calls)
@@ -171,7 +172,7 @@ func TestFinalize_RemovesOnlyInrunsFinalizers(t *testing.T) {
 func TestFinalize_NoPatchWithoutInrunsFinalizer(t *testing.T) {
 	obj := &unstructured.Unstructured{}
 	obj.SetFinalizers([]string{"other.io/finalizer"})
-	kube := &patchRecorder{}
+	kube := &patchRecorder{Kubeclient: kubefake.New(runtime.NewScheme())}
 
 	require.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
 	assert.Zero(t, kube.calls)
@@ -182,7 +183,7 @@ func TestEnsureFinalizers_SkipsObjectBeingDeleted(t *testing.T) {
 	now := metav1.Now()
 	obj.SetDeletionTimestamp(&now)
 	obj.SetFinalizers([]string{"other.io/finalizer"})
-	kube := &patchRecorder{}
+	kube := &patchRecorder{Kubeclient: kubefake.New(runtime.NewScheme())}
 
 	require.NoError(t, ensureFinalizers(context.Background(), Input{Kube: kube}, obj, cleanupBox()))
 	assert.Zero(t, kube.calls, "the API server refuses new finalizers on a deleting object")
@@ -192,7 +193,7 @@ func TestFinalize_AlreadyGoneIsDone(t *testing.T) {
 	obj := &unstructured.Unstructured{}
 	obj.SetName("gone")
 	obj.SetFinalizers([]string{labels.CleanupFinalizer})
-	kube := &patchRecorder{err: apierrors.NewNotFound(schema.GroupResource{Resource: "webapps"}, "gone")}
+	kube := &patchRecorder{Kubeclient: kubefake.New(runtime.NewScheme()), err: apierrors.NewNotFound(schema.GroupResource{Resource: "webapps"}, "gone")}
 
 	assert.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
 }

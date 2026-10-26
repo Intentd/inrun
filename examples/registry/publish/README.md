@@ -31,7 +31,7 @@ inrun validate
 inrun simulate
 ```
 
-```
+```text
   ✓ Steady state at cycle 3 in 2.37s
 
   ✓ steady
@@ -51,7 +51,7 @@ inrun simulate
 inrun e2e
 ```
 
-```
+```text
 E2E Results: webservice-e2e
 
   ✓ Running                                  (1.015s)

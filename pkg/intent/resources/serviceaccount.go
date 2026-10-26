@@ -30,7 +30,7 @@ func BuildServiceAccount(in map[string]interface{}, owner domain.Object) (map[st
 	namespace := resolveNamespace(owner, "")
 	spec := serviceaccounts.Spec{Name: f.Name, Namespace: namespace}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := serviceaccounts.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "ServiceAccount")
 	if err != nil {

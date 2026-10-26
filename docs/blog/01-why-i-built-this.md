@@ -44,6 +44,8 @@ That insight was the whole thing. You don't write a new reconciler for each CRD.
 
 That is what the Katalog is: a description of operator behaviour. And that is what the runtime is: the single thing that reads Katalogs and runs them.
 
+The first version was still Go. One runtime with a registry of typed reconcilers: the scaffolding was shared, but every behaviour was still a program. A few days later the description became YAML, and the Go stayed, for the logic YAML should not try to express. That is why Inrun still runs Go reconcilers beside declarative ones. It began with them.
+
 ---
 
 I called it Orkestra. An orchestra takes distinct instruments and plays them together, and that is how I saw it then: many operators, each described in its own Katalog, one runtime playing them all. The rest of the vocabulary followed the music, and for a while it fit.
@@ -80,7 +82,7 @@ So I let the service be the reconciler. The runtime calls one endpoint on a serv
 
 That was the day the whole loop was in front of me at once.
 
-An intent comes in through the gateway, in the caller's words. Kubernetes stores it and keeps it true. The runtime reconciles it — from a Katalog when the behaviour can be declared, or by calling your service when the logic already lives there. The result goes back out through the gateway, again in the caller's words. The person who asked never touches Kubernetes. The team who answers never writes an operator. Kubernetes stays in the middle, doing what it is good at.
+An intent comes in through the gateway, in the caller's words. Kubernetes stores it and keeps it true. The runtime reconciles it — from a Blueprint when the behaviour can be declared, or by calling your service when the logic already lives there. The result goes back out through the gateway, again in the caller's words. The person who asked never touches Kubernetes. The team who answers never writes an operator. Kubernetes stays in the middle, doing what it is good at.
 
 I had been writing the word *intent* across several posts for months. The project had been an **in**tent **run**ner for a long time. I just hadn't named it that.
 

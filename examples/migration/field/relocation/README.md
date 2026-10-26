@@ -240,7 +240,7 @@ kubectl get appconfig api-server -n platform-09 -o jsonpath='{.spec}' | jq
 inrun migrate
 ```
 
-```
+```text
 ◆  AppConfig  10 CRs
   –  platform-01/api-server  (already migrated)
   –  platform-02/api-server  (already migrated)
@@ -265,7 +265,7 @@ Assuming an error occured during the migration and you want to rollback, you can
 inrun migrate rollback --dry-run
 ```
 
-```
+```text
 ⟳  inrun migrate rollback  [dry-run]
   blueprint: blueprint.yaml
 
@@ -333,7 +333,7 @@ Dry run its rollback:
 inrun migrate rollback --name api-server --namespace platform-06 --dry-run
 ```
 
-```
+```text
 ⟳  inrun migrate rollback  [dry-run]
   blueprint: blueprint.yaml
   namespace: platform-06
@@ -455,7 +455,7 @@ inrun migrate rollback --name api-server --namespace platform-07 --dry-run --ver
 # replace verbose with -ojson for machine-readable output
 ```
 
-```
+```text
 ◆  AppConfig  1 CR
   ✓ platform-07/api-server  would roll back: replicas, logLevel
     spec:

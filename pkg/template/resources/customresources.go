@@ -116,6 +116,6 @@ func CustomResourceSpec(src types.CustomResourceTemplateSource, owner domain.Obj
 		spec.Metadata.Name = ownerName + "-custom"
 	}
 
-	spec.Metadata.Labels = labels.StampInrunLabels(maps.Clone(spec.Metadata.Labels), owner.GetName(), owner.GetAnnotations())
+	spec.Metadata.Labels = labels.StampInrunLabels(maps.Clone(spec.Metadata.Labels), owner)
 	return spec
 }

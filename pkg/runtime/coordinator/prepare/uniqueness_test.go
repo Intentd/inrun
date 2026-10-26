@@ -2,13 +2,13 @@ package prepare
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	fakedynamic "k8s.io/client-go/dynamic/fake"
 )
 
 // fakeDynamicProvider satisfies dynamicClientProvider for tests.
@@ -42,7 +42,7 @@ func newFakeProvider(t *testing.T, objs ...runtime.Object) *fakeDynamicProvider 
 	gvrToListKind := map[schema.GroupVersionResource]string{
 		websiteGVR(): "WebsiteList",
 	}
-	dyn := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind, objs...)
+	dyn := kubefake.NewDynamic(scheme, gvrToListKind, objs...)
 	return &fakeDynamicProvider{dyn: dyn}
 }
 

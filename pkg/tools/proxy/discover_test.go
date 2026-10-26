@@ -2,6 +2,7 @@ package proxy_test
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/tools/proxy"
@@ -9,11 +10,10 @@ import (
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestFindService_Found(t *testing.T) {
-	cs := fake.NewSimpleClientset(&corev1.Service{
+	cs := kubefake.NewClientset(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "inrun-runtime",
 			Namespace: "inrun-system",
@@ -37,7 +37,7 @@ func TestFindService_Found(t *testing.T) {
 }
 
 func TestFindService_NotDeployed(t *testing.T) {
-	cs := fake.NewSimpleClientset()
+	cs := kubefake.NewClientset()
 
 	svc, err := proxy.FindService(context.Background(), cs, "inrun-system", proxy.ComponentGateway)
 	if err != nil {
@@ -49,7 +49,7 @@ func TestFindService_NotDeployed(t *testing.T) {
 }
 
 func TestFindService_NoPorts(t *testing.T) {
-	cs := fake.NewSimpleClientset(&corev1.Service{
+	cs := kubefake.NewClientset(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "inrun-console",
 			Namespace: "inrun-system",
@@ -67,7 +67,7 @@ func TestFindService_NoPorts(t *testing.T) {
 }
 
 func TestResolvePod_ReturnsRunningPod(t *testing.T) {
-	cs := fake.NewSimpleClientset(
+	cs := kubefake.NewClientset(
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{Name: "inrun-runtime", Namespace: "inrun-system"},
 			Spec:       corev1.ServiceSpec{Selector: map[string]string{"app": "inrun-runtime"}},
@@ -92,7 +92,7 @@ func TestResolvePod_ReturnsRunningPod(t *testing.T) {
 }
 
 func TestResolvePod_NoRunningPod(t *testing.T) {
-	cs := fake.NewSimpleClientset(
+	cs := kubefake.NewClientset(
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{Name: "inrun-runtime", Namespace: "inrun-system"},
 			Spec:       corev1.ServiceSpec{Selector: map[string]string{"app": "inrun-runtime"}},
@@ -109,7 +109,7 @@ func TestResolvePod_NoRunningPod(t *testing.T) {
 }
 
 func TestResolvePod_NoSelector(t *testing.T) {
-	cs := fake.NewSimpleClientset(&corev1.Service{
+	cs := kubefake.NewClientset(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "inrun-runtime", Namespace: "inrun-system"},
 	})
 
@@ -120,7 +120,7 @@ func TestResolvePod_NoSelector(t *testing.T) {
 
 func TestResolveRuntimePod_ReturnsHolder(t *testing.T) {
 	holder := "inrun-runtime-def"
-	cs := fake.NewSimpleClientset(&coordinationv1.Lease{
+	cs := kubefake.NewClientset(&coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{Name: types.LeaderLeaseName, Namespace: "inrun-system"},
 		Spec:       coordinationv1.LeaseSpec{HolderIdentity: &holder},
 	})
@@ -135,7 +135,7 @@ func TestResolveRuntimePod_ReturnsHolder(t *testing.T) {
 }
 
 func TestResolveRuntimePod_NoHolder(t *testing.T) {
-	cs := fake.NewSimpleClientset(&coordinationv1.Lease{
+	cs := kubefake.NewClientset(&coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{Name: types.LeaderLeaseName, Namespace: "inrun-system"},
 	})
 
@@ -145,7 +145,7 @@ func TestResolveRuntimePod_NoHolder(t *testing.T) {
 }
 
 func TestResolveRuntimePod_MissingLease(t *testing.T) {
-	cs := fake.NewSimpleClientset()
+	cs := kubefake.NewClientset()
 
 	if _, err := proxy.ResolveRuntimePod(context.Background(), cs, "inrun-system"); err == nil {
 		t.Fatal("expected error — lease does not exist")

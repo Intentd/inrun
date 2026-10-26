@@ -5,7 +5,7 @@
 <title>{{ if .IsHome }}{{ .Site.Title }} — {{ .Site.Params.description }}{{ else }}{{ .Title }} — {{ .Site.Title }}{{ end }}</title>
 
 <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}">
-<meta name="author" content="Orkestra">
+<meta name="author" content="Inrun">
 
 <!-- Open Graph -->
 <meta property="og:type" content="{{ if .IsHome }}website{{ else }}article{{ end }}">
@@ -19,7 +19,7 @@
 <meta name="twitter:description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}">
 
 <!-- Favicon -->
-<link rel="icon" type="image/png" href="/img/fav.png">
+<link rel="icon" type="image/svg+xml" href="/img/inrun-mark.svg">
 
 {{ if .IsHome }}
 <!-- Landing page fonts -->

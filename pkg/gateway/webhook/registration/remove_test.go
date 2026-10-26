@@ -2,16 +2,16 @@ package registration
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestRemoveValidatingWebhook_RemovesExisting(t *testing.T) {
 	ctx := context.Background()
-	client := fake.NewClientset(
+	client := kubefake.NewClientset(
 		&admissionv1.ValidatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "inrun-admission-validation",
@@ -35,7 +35,7 @@ func TestRemoveValidatingWebhook_RemovesExisting(t *testing.T) {
 
 func TestRemoveValidatingWebhook_NoErrorWhenNotFound(t *testing.T) {
 	ctx := context.Background()
-	client := fake.NewClientset()
+	client := kubefake.NewClientset()
 
 	err := RemoveValidatingWebhook(ctx, client, "inrun-admission-validation")
 	if err != nil {
@@ -45,7 +45,7 @@ func TestRemoveValidatingWebhook_NoErrorWhenNotFound(t *testing.T) {
 
 func TestRemoveMutatingWebhook_RemovesExisting(t *testing.T) {
 	ctx := context.Background()
-	client := fake.NewClientset(
+	client := kubefake.NewClientset(
 		&admissionv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "inrun-admission-mutation",
@@ -69,7 +69,7 @@ func TestRemoveMutatingWebhook_RemovesExisting(t *testing.T) {
 
 func TestRemoveMutatingWebhook_NoErrorWhenNotFound(t *testing.T) {
 	ctx := context.Background()
-	client := fake.NewClientset()
+	client := kubefake.NewClientset()
 
 	err := removeMutatingWebhook(ctx, client, "inrun-admission-mutation")
 	if err != nil {

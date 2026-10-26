@@ -69,7 +69,7 @@ func RunJobs(
 		spec := resources.JobSpec(resolved, resolved.BackoffLimit, owner, resolver.Presets())
 
 		// Jobs are always creates — no update semantics
-		res, err := jobs.Create(ctx, kube.Clientset(), owner, spec)
+		res, err := jobs.Create(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, nil))
 		if err != nil {
 			return fmt.Errorf("jobs[%d].create: %w", i, err)
 		}
@@ -121,7 +121,7 @@ func RunDeleteJobs(
 
 		spec := resources.JobSpec(resolved, resolved.BackoffLimit, owner, resolver.Presets())
 
-		res, err := jobs.CreateForDelete(ctx, kube.Clientset(), owner, spec)
+		res, err := jobs.CreateForDelete(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, nil))
 		if err != nil {
 			return fmt.Errorf("delete-jobs[%d].create: %w", i, err)
 		}

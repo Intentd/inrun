@@ -8,7 +8,7 @@ The unit tests in `pkg/registry/e2e/` verify the runner and validator logic in i
 
 **Rule: when you add a new `kubectl:` subcommand to the DSL, you must add at least one checkpoint to `e2e.yaml` that exercises it.**
 
-`e2e.yaml` is also the source for `documentation/reference/schema/04-e2e/08-complete-example.md`. Run `make inrun` after any change here to keep the doc page in sync.
+`e2e.yaml` is also the source for `docs/reference/schema/e2e/complete-example.md`. Run `make inrun` after any change here to keep the doc page in sync.
 
 ---
 
@@ -73,4 +73,4 @@ The `E2EProbe` CRD creates one `Deployment` and one `Service` per CR. Two CRs ar
 3. Add a checkpoint to `e2e.yaml` that exercises it
 4. Add the subcommand to the `onFailure:` block in `e2e.yaml`
 5. Update the table above
-6. Update `documentation/reference/schema/04-e2e/07-kubectl.md` with the field reference
+6. Run `make inrun` to regenerate `docs/reference/schema/e2e/complete-example.md`

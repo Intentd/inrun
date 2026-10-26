@@ -31,7 +31,7 @@ Work with five-field cron expressions (minute hour day-of-month month day-of-wee
 {{ cronDescribe "*/15 * * * *" }}  → "Every 15 minutes"
 ```
 
-See also: [`cronValid`](#cronvalid), [`nextCron`](../time/#nextcron)
+See also: [`cronValid`](#cronvalid), [`nextCron`](time.md#nextcron)
 
 ### cronDom
 

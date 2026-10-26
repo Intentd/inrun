@@ -28,10 +28,8 @@ type Result struct {
 	// Resources are Kubernetes objects to apply with server-side apply, in full
 	// form (apiVersion, kind, metadata, …) or intent form ({"type", "fields"}).
 	// Each must be declared in the CRD's managedResources. Objects in the CR's
-	// namespace get the CR as owner.
-	//
-	// 	Limitation:
-	// 	  Not yet pruned: dropping a resource from the list does not delete it.
+	// namespace get the CR as owner. With reconcile.prune enabled, a resource
+	// dropped from a later Result is deleted.
 	Resources []map[string]interface{}
 
 	// Labels and Annotations are set on the CR itself with server-side apply.

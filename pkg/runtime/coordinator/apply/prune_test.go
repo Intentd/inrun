@@ -2,6 +2,7 @@ package apply
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"sort"
 	"testing"
 
@@ -11,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	dynfake "k8s.io/client-go/dynamic/fake"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/labels"
@@ -50,15 +50,15 @@ func child(apiVersion, kind, ns, name, uid string, byInrun bool, extra map[strin
 	return u
 }
 
-func pruneClient(objs ...runtime.Object) *dynfake.FakeDynamicClient {
-	return dynfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
+func pruneClient(objs ...runtime.Object) *kubefake.Dynamic {
+	return kubefake.NewDynamic(runtime.NewScheme(), map[schema.GroupVersionResource]string{
 		deployGVR: "DeploymentList",
 		svcGVR:    "ServiceList",
 		pvcGVR:    "PersistentVolumeClaimList",
 	}, objs...)
 }
 
-func names(t *testing.T, dyn *dynfake.FakeDynamicClient, gvr schema.GroupVersionResource) []string {
+func names(t *testing.T, dyn *kubefake.Dynamic, gvr schema.GroupVersionResource) []string {
 	t.Helper()
 	list, err := dyn.Resource(gvr).Namespace("").List(context.Background(), metav1.ListOptions{})
 	require.NoError(t, err)
@@ -74,7 +74,7 @@ func TestPrune(t *testing.T) {
 	owner := ownerObj("app", "default") // UID "test-uid"
 	keepDeploy := child("apps/v1", "Deployment", "default", "app", "test-uid", true, nil)
 
-	fixture := func() *dynfake.FakeDynamicClient {
+	fixture := func() *kubefake.Dynamic {
 		return pruneClient(
 			keepDeploy.DeepCopy(),
 			child("apps/v1", "Deployment", "default", "old", "test-uid", true, nil),           // dropped from the Result
@@ -127,4 +127,46 @@ func TestPrune(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, pruned, 4) // app, old, old-svc, data
 	})
+}
+
+// The final sweep takes every child carrying the owner's UID, whoever wrote
+// it (a template child has no inrun-reconciler field manager), in any
+// namespace, but not another owner's, a kept kind or a protected object.
+func TestPruneChildren_EveryChildOfTheOwner(t *testing.T) {
+	protected := map[string]string{labels.DeletionProtectionLabel: "true"}
+	dyn := pruneClient(
+		child("apps/v1", "Deployment", "team", "from-result", "uid-1", true, nil),
+		child("apps/v1", "Deployment", "other-ns", "from-template", "uid-1", false, nil),
+		child("v1", "PersistentVolumeClaim", "team", "data", "uid-1", false, nil),
+		child("v1", "Service", "team", "protected", "uid-1", false, protected),
+		child("apps/v1", "Deployment", "team", "someone-elses", "uid-2", true, nil),
+	)
+	owner := &unstructured.Unstructured{}
+	owner.SetUID("uid-1")
+
+	deleted, err := PruneChildren(context.Background(), dyn, owner,
+		[]schema.GroupVersionResource{deployGVR, svcGVR, pvcGVR}, []string{"persistentvolumeclaim"})
+	require.NoError(t, err)
+	assert.Len(t, deleted, 2)
+	assert.Equal(t, []string{"someone-elses"}, names(t, dyn, deployGVR))
+	assert.Equal(t, []string{"data"}, names(t, dyn, pvcGVR), "kept kind")
+	assert.Equal(t, []string{"protected"}, names(t, dyn, svcGVR), "deletion-protected")
+}
+
+// The surface sweep narrows the owner's children to one serve target.
+func TestPruneOwned_SurfaceSelector(t *testing.T) {
+	prev := map[string]string{labels.InrunServeTarget: "small"}
+	cur := map[string]string{labels.InrunServeTarget: "large"}
+	dyn := pruneClient(
+		child("apps/v1", "Deployment", "team", "old", "uid-1", false, prev),
+		child("apps/v1", "Deployment", "team", "new", "uid-1", false, cur),
+	)
+	sel := labels.OwnerUID + "=uid-1," + labels.InrunServeTarget + "=small"
+	_, err := PruneOwned(context.Background(), dyn, sel, []schema.GroupVersionResource{deployGVR}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"new"}, names(t, dyn, deployGVR))
+
+	_, err = PruneOwned(context.Background(), dyn, labels.InrunServeTarget+"=large", []schema.GroupVersionResource{deployGVR}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"new"}, names(t, dyn, deployGVR), "a selector without an owner deletes nothing")
 }

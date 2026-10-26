@@ -53,7 +53,7 @@ func BuildStatefulSet(in map[string]interface{}, owner domain.Object) (map[strin
 		ServiceName: f.ServiceName,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
 	obj := statefulsets.Build(owner, spec)
 

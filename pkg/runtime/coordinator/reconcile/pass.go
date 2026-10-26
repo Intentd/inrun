@@ -149,7 +149,7 @@ func Run(ctx context.Context, d Deps, in Input) Outcome {
 			}
 			// Children owner references cannot reach go before the finalizer.
 			// After a timeout the CR is released even if this fails.
-			if _, err := deleteChildren(ctx, d.Kube, entry.CRD, prepared); err != nil {
+			if _, err := pruneChildren(ctx, d.Kube, entry.CRD, prepared); err != nil {
 				if done {
 					reconcileErr = fmt.Errorf("deleting children: %w", err)
 				} else {

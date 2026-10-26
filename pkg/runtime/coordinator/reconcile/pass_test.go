@@ -2,13 +2,13 @@ package reconcile_test
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"testing"
 	"time"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
@@ -51,7 +51,7 @@ func passFixture(t *testing.T) (reconcile.Deps, contract.RegistryEntry) {
 	}}
 	require.NoError(t, inf.GetIndexer().Add(obj))
 
-	deps := reconcile.Deps{Kube: simulate.NewFakeKubeclient(runtime.NewScheme()), Event: event.Discard(), Blueprint: bp}
+	deps := reconcile.Deps{Kube: kubefake.New(runtime.NewScheme()), Event: event.Discard(), Blueprint: bp}
 	return deps, contract.RegistryEntry{CRD: crd, Informer: inf}
 }
 
@@ -110,7 +110,7 @@ func finalizingFixture(t *testing.T, requeue *types.RequeueConfig, waiting strin
 	inf := cache.NewSharedIndexInformer(&cache.ListWatch{}, &unstructured.Unstructured{}, 0, cache.Indexers{})
 	require.NoError(t, inf.GetIndexer().Add(obj))
 
-	kube := simulate.NewFakeKubeclient(runtime.NewScheme())
+	kube := kubefake.New(runtime.NewScheme())
 	require.NoError(t, kube.Seed(obj.DeepCopy()))
 	return reconcile.Deps{Kube: kube, Event: event.Discard(), Blueprint: bp}, contract.RegistryEntry{CRD: crd, Informer: inf}
 }

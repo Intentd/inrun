@@ -21,7 +21,6 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
@@ -55,9 +54,6 @@ type Kubeclient struct {
 	// indexerFor is a closure that returns the cache.Indexer for a GVK, injected by
 	// the runtime so ToClient can use ByIndex for field-selector queries. Nil when not wired.
 	indexerFor func(schema.GroupVersionKind) cache.Indexer
-
-	// Testing
-	FakeClientset kubernetes.Interface
 }
 
 // Compile check — *Kubeclient must satisfy this.
@@ -229,11 +225,6 @@ func (k *Kubeclient) Scheme() *runtime.Scheme { return k.scheme }
 
 // ApiextensionsClient returns the apiextensions clientset for CRD operations.
 func (k *Kubeclient) ApiextensionsClient() apiextclientset.Interface { return k.apiext }
-
-// New fake client
-func NewFakeClientset() kubernetes.Interface {
-	return fake.NewClientset()
-}
 
 // WithInformer returns a copy of this Interface with the primary CRD informer
 // attached. Called by the runtime before invoking a constructor function.

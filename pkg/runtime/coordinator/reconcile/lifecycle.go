@@ -2,7 +2,6 @@ package reconcile
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/intentd/inrun/domain"
@@ -11,35 +10,43 @@ import (
 	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
-	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
-	"github.com/intentd/inrun/pkg/runtime/runners"
-	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/apply/templates"
 	"github.com/intentd/inrun/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // Lifecycle steps the runtime runs for every reconciler kind. A reconciler
 // decides what its CR needs; when a CR's children go is Inrun's job.
 
-// deleteChildren removes the children owner references cannot reach once a
-// finalizing reconcile is done: every child a Result applied for the CR (any
-// namespace, cluster-scoped included, except prune.keep kinds) and the
-// cluster-scoped children its templates declare.
-func deleteChildren(ctx context.Context, kube kubeclient.Interface, crd types.CRDEntry, prepared *domain.PreparedRequest) ([]apply.Pruned, error) {
+// pruneChildren removes a CR's children once a finalizing reconcile is
+// done: every object carrying its UID label (labels.OwnerUID), whoever wrote
+// it, in any namespace and cluster-scoped ones included, except prune.keep
+// kinds. Owner references reach only same-namespace children; this reaches
+// the rest.
+func pruneChildren(ctx context.Context, kube kubeclient.Interface, crd types.CRDEntry, prepared *domain.PreparedRequest) ([]apply.Pruned, error) {
 	var keep []string
 	if p := crd.EffectivePrune(prepared.Target); p != nil {
 		keep = p.Keep
 	}
-	deleted, err := apply.DeleteChildren(ctx, kube.DynamicClient(), prepared.Object, crd.AllManagedResources(), keep)
-	if err != nil {
-		return deleted, err
+	return apply.PruneChildren(ctx, kube.DynamicClient(), prepared.Object, childKinds(kube, crd), keep)
+}
+
+// childKinds are the kinds a CR's children can be: the managed kinds a
+// Result may return, and the kinds the CRD's templates write.
+func childKinds(kube kubeclient.Interface, crd types.CRDEntry) []schema.GroupVersionResource {
+	gvrs := apply.ManagedGVRs(crd.AllManagedResources())
+	seen := make(map[schema.GroupVersionResource]bool, len(gvrs))
+	for _, g := range gvrs {
+		seen[g] = true
 	}
-	if resolver, ok := prepared.Context.(*template.Resolver); ok {
-		if err := runners.DeleteOwnedClusterScopedResources(ctx, kube, resolver, prepared.Object, prepare.BoxFrom(prepared)); err != nil {
-			return deleted, fmt.Errorf("cluster-scoped children: %w", err)
+	for _, g := range templates.Kinds(crd, kube.RESTMapper()) {
+		if !seen[g] {
+			seen[g] = true
+			gvrs = append(gvrs, g)
 		}
 	}
-	return deleted, nil
+	return gvrs
 }
 
 // sweepPreviousSurface deletes what a CR's previous serve target created once
@@ -57,15 +64,9 @@ func sweepPreviousSurface(ctx context.Context, kube kubeclient.Interface, crd ty
 		return nil
 	}
 
-	if prev != "" {
-		key := labels.EffectiveOwnerKey(obj.GetName(), map[string]string{labels.AnnotationServeAlias: prev})
-		if err := runners.SweepOwnedNamespacedResources(ctx, kube, key, obj.GetNamespace()); err != nil {
-			return err
-		}
-		if err := runners.SweepOwnedClusterScopedResources(ctx, kube, key); err != nil {
-			return err
-		}
-		if err := runners.SweepOwnedManagedResources(ctx, kube.DynamicClient(), crd.AllManagedResources(), key); err != nil {
+	if prev != "" && obj.GetUID() != "" {
+		selector := labels.OwnerUID + "=" + string(obj.GetUID()) + "," + labels.InrunServeTarget + "=" + prev
+		if _, err := apply.PruneOwned(ctx, kube.DynamicClient(), selector, childKinds(kube, crd), nil); err != nil {
 			return err
 		}
 	}

@@ -97,7 +97,8 @@ func renderPage(d kel.DomainInfo, reg kel.Registry) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s\n\n", d.Title)
 	if d.Intro != "" {
-		b.WriteString(d.Intro + "\n\n")
+		b.WriteString(d.Intro)
+		b.WriteString("\n\n")
 	}
 
 	b.WriteString("## Reference\n\n| Function | Description |\n|----------|-------------|\n")
@@ -120,13 +121,14 @@ func renderPage(d kel.DomainInfo, reg kel.Registry) string {
 }
 
 // link points at a function's section, on another page when it is in
-// another domain.
+// another domain. Links name the .md file so they work on GitHub; the
+// website's sync-docs.sh rewrites them to its own URLs.
 func link(name, domain string, reg kel.Registry) string {
 	f, ok := reg.Get(name)
 	if !ok || f.Domain == domain {
 		return fmt.Sprintf("[`%s`](#%s)", name, strings.ToLower(name))
 	}
-	return fmt.Sprintf("[`%s`](../%s/#%s)", name, f.Domain, strings.ToLower(name))
+	return fmt.Sprintf("[`%s`](%s.md#%s)", name, f.Domain, strings.ToLower(name))
 }
 
 // codeNames sets the function's name in code where the description starts

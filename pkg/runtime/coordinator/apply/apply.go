@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/intentd/inrun/domain"
@@ -91,13 +90,12 @@ func apply(
 		return nil, targetErr
 	}
 
-	ownerRefs := kwtypes.OwnerReferences(owner)
 	blueprintName := owner.GetAnnotations()[labels.AnnotationManagedBy]
 	since := managedSince(owner)
 
 	applied := make([]*unstructured.Unstructured, 0, len(targets))
 	for i, rr := range targets {
-		if err := applyOne(ctx, kube, rr, owner, ownerRefs, blueprintName, since); err != nil {
+		if err := applyOne(ctx, kube, rr, owner, blueprintName, since); err != nil {
 			return nil, fmt.Errorf("resources[%d] %q: apply failed: %w", i, rr.obj.GetName(), err)
 		}
 		applied = append(applied, rr.obj)
@@ -172,7 +170,6 @@ func applyOne(
 	kube kubeclient.Interface,
 	rr resource,
 	owner domain.Object,
-	ownerRefs []metav1.OwnerReference,
 	blueprintName string,
 	since string,
 ) error {
@@ -194,16 +191,14 @@ func applyOne(
 	// The same ownership labels as declarative children: the console finds a
 	// CR's children by them, and the surface sweep uses them on target changes.
 	// The owner UID label lets Prune find exactly this CR's children.
-	lbls := labels.StampInrunLabels(u.GetLabels(), owner.GetName(), owner.GetAnnotations())
-	if uid := owner.GetUID(); uid != "" {
-		lbls[labels.OwnerUID] = string(uid)
-	}
-	u.SetLabels(lbls)
+	u.SetLabels(labels.StampInrunLabels(u.GetLabels(), owner))
 	labels.NewManager(labels.Config{}).EnsureManagedAnnotations(u, blueprintName)
 
-	// Owner reference: same namespace only.
-	if ns := u.GetNamespace(); ns != "" && ns == owner.GetNamespace() {
-		u.SetOwnerReferences(ownerRefs)
+	// Owner reference, wherever Kubernetes honours one: a namespaced owner
+	// owns only children in its own namespace (kwtypes.CanOwn). The rest are
+	// found by the owner-UID label, for prune and the finalize sweep.
+	if refs := kwtypes.OwnerReferences(owner, u.GetNamespace()); refs != nil {
+		u.SetOwnerReferences(refs)
 	}
 
 	_, err := resapply.Object(ctx, kube.DynamicClient(), kube.RESTMapper(), u, kwtypes.Options{

@@ -79,9 +79,11 @@ func (k *Kubeclient) Create(ctx context.Context, obj domain.Object, opts metav1.
 	return err
 }
 
-// ApplyOptions returns how the runtime writes a child resource with
-// server-side apply: as Inrun's field manager, forcing conflicts as the
-// resource says (resourceForce), else as the CRD says, else true.
+// ApplyOptions returns how a reconciler writes a child resource itself, with
+// kubewright's Create or Apply: as the inrun-templates field manager (the
+// templates, and Go hooks that write children directly), forcing conflicts as
+// the resource says (resourceForce), else as the CRD says, else true. A
+// Result's children are applied as inrun-reconciler instead.
 func ApplyOptions(c Interface, resourceForce *bool) kwtypes.Options {
 	force := true
 	switch {
@@ -90,7 +92,7 @@ func ApplyOptions(c Interface, resourceForce *bool) kwtypes.Options {
 	case c != nil && c.ForceConflict() != nil:
 		force = *c.ForceConflict()
 	}
-	return kwtypes.Options{FieldManager: config.FieldManagerRuntime, Force: force}
+	return kwtypes.Options{FieldManager: config.FieldManagerTemplates, Force: force}
 }
 
 // Update updates obj in the cluster.

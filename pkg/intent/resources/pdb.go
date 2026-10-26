@@ -39,7 +39,7 @@ func BuildPDB(in map[string]interface{}, owner domain.Object) (map[string]interf
 		MaxUnavailable: f.MaxUnavailable,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	obj := pdbs.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "policy/v1", "PodDisruptionBudget")
 	if err != nil {

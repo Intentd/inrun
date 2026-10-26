@@ -86,7 +86,7 @@ jobs:
           echo "| Console binaries | $(icon ${{ inputs.build_result }}) ${{ inputs.build_result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Example packs | $(icon ${{ inputs.examples_result }}) ${{ inputs.examples_result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Container images | $(icon ${{ inputs.image_result }}) ${{ inputs.image_result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| GPG signing + GitHub Release | $(icon ${{ inputs.release_result }}) ${{ inputs.release_result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Keyless signing + GitHub Release | $(icon ${{ inputs.release_result }}) ${{ inputs.release_result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Helm chart | $(icon ${{ inputs.helm_result }}) ${{ inputs.helm_result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Homebrew formulas | $(icon ${{ inputs.homebrew_result }}) ${{ inputs.homebrew_result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Windows packages | 📦 Download from [GitHub Releases](https://github.com/${REPO}/releases/tag/${TAG}) |" >> "$GITHUB_STEP_SUMMARY"

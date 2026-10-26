@@ -223,7 +223,7 @@ func RunSecrets(
 					}
 					logResult("secret", nsSpec.Name, nsSpec.Namespace, owner, res)
 				} else {
-					res, err := secrets.Create(ctx, kube.Clientset(), owner, nsSpec)
+					res, err := secrets.Create(ctx, kube.Clientset(), owner, nsSpec, kubeclient.ApplyOptions(kube, src.ForceConflict))
 					if err != nil {
 						return fmt.Errorf("secrets[%d].create namespace=%s: %w", i, targetNs, err)
 					}
@@ -240,7 +240,7 @@ func RunSecrets(
 			}
 			logResult("secret", spec.Name, spec.Namespace, owner, res)
 		} else {
-			res, err := secrets.Create(ctx, kube.Clientset(), owner, spec)
+			res, err := secrets.Create(ctx, kube.Clientset(), owner, spec, kubeclient.ApplyOptions(kube, src.ForceConflict))
 			if err != nil {
 				return fmt.Errorf("secrets[%d].create: %w", i, err)
 			}
@@ -340,7 +340,7 @@ func createTLSSecret(
 				"inrun-owner":                  owner.GetName(),
 				"app.kubernetes.io/managed-by": "inrun",
 			},
-			OwnerReferences: kwtypes.OwnerReferences(owner),
+			OwnerReferences: kwtypes.OwnerReferences(owner, namespace),
 		},
 		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{

@@ -2,6 +2,7 @@ package registration
 
 import (
 	"context"
+	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/intentd/inrun/pkg/types"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
@@ -43,7 +43,7 @@ func TestRegisterAdmissionWebhooks_CreatesValidatingAndMutating(t *testing.T) {
 		TLSCertFile:      tmpCert,
 	}
 
-	client := fake.NewClientset()
+	client := kubefake.NewClientset()
 
 	// Register
 	if err := RegisterAdmissionWebhooks(ctx, client, reg, opts); err != nil {

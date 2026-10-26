@@ -15,16 +15,16 @@ enableGitInfo = true
     startLevel = 2
 
 [params]
-  description = "Kubernetes operators without the infrastructure."
-  github = "https://github.com/inrundev/inrun"
+  description = "Kubernetes reconciliation for anything"
+  github = "https://github.com/intentd/inrun"
   controlcenter = "https://cc.inrun.dev"
-  version = "v1"
+  version = "v0.1.0"
   docsBase = "/docs/"
 
   [params.algolia]
-    appId = "IDBZPZV9Q6"
-    searchKey = "6eadbb67e7c72aaaa5309e17c4e1e9ad"
-    indexName = "Orkestra Documentaion"
+    appId = "YOAX6JEP1X"
+    searchKey = "94c49f1d0b110455e3331c4fbd10a027"
+    indexName = "inrun"
 
 [menu]
   [[menu.main]]
@@ -39,11 +39,18 @@ enableGitInfo = true
     name = "Blog"
     url = "/blog/"
     weight = 3
-  [[menu.main]]
-    name = "Publications"
-    url = "/publications/"
-    weight = 4
 
 [caches]
   [caches.images]
     dir = ':cacheDir/images'
+
+# The brand files live once, in docs/assets; the site mounts them as
+# assets/brand (the default assets mount is listed again because declaring
+# any mount replaces the defaults).
+[module]
+  [[module.mounts]]
+    source = "assets"
+    target = "assets"
+  [[module.mounts]]
+    source = "../docs/assets"
+    target = "assets/brand"

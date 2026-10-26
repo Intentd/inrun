@@ -19,7 +19,7 @@ inrun init --list
 
 Every example has the same layout:
 
-```
+```text
 blueprint.yaml      the operator; inrun, validate and generate read it
 manifests/        what is applied to the cluster: the CRD, a CR, setup objects
 test/             simulate.yaml, e2e.yaml and their values; found by inrun simulate and inrun e2e

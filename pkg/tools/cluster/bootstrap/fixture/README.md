@@ -18,7 +18,7 @@ inrun clusters bootstrap --validate fixture/cluster-config.yaml
 ```
 
 Expected:
-```
+```text
 ✓ bootstrap config valid (2 clusters)
   staging  →  kind-inrun-bt-2
   prod     →  kind-inrun-bt-3

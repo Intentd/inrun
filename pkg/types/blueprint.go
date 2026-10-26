@@ -546,8 +546,10 @@ func (a *StackAccept) Accepts(name, author string) bool {
 }
 
 // BlueprintLifecycle is the top-level policy block for a Blueprint. It governs
-// maturity signals, deprecation, and compatibility gates. The runtime ignores
-// this field — it is read only by tooling (inrun validate, inrun push, inrun inspect).
+// maturity signals, deprecation, and compatibility gates. The CLI reads it:
+// inrun validate, push and inspect show it, and inrun and inrun gate run refuse
+// to start a deprecated Blueprint unless a Stack accepts it
+// (CheckDeprecationPolicy). The runtime in a cluster does not read it.
 type BlueprintLifecycle struct {
 	Maturity      LifecycleMaturity     `yaml:"maturity,omitempty"      json:"maturity,omitempty"`
 	Deprecation   *BlueprintDeprecation `yaml:"deprecation,omitempty"   json:"deprecation,omitempty"`

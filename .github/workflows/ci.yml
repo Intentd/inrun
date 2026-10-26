@@ -71,10 +71,10 @@ jobs:
       - name: Run resource docs generator
         run: make generate-resource-docs
 
-      - name: Check for uncommitted changes (docs/reference/schema/06-resources)
+      - name: Check for uncommitted changes (docs/reference/schema/resources)
         run: |
-          if ! git diff --quiet docs/reference/schema/06-resources/; then
-            echo "❌ docs/reference/schema/06-resources/ is out of date."
+          if ! git diff --quiet docs/reference/schema/resources/; then
+            echo "❌ docs/reference/schema/resources/ is out of date."
             echo "Run 'make generate-resource-docs' locally and commit the changes."
             exit 1
           else

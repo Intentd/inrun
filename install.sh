@@ -5,33 +5,39 @@
 #   curl -sSL https://get.inrun.dev | bash
 #
 # Environment variables:
-#   INRUN_VERSION         — pin a specific version tag (default: latest release)
-#   INRUN_INSTALL_DIR     — install directory (default: ~/.inrun/bin)
-#   INRUN_SKIP_CONSOLE         — skip Console binary (default: false)
-#   INRUN_SKIP_COMPLETION — skip shell completion setup (default: false)
+#   INRUN_VERSION           — pin a specific version tag (default: latest release)
+#   INRUN_INSTALL_DIR       — install directory (default: ~/.inrun/bin)
+#   INRUN_SKIP_CONSOLE      — skip the console binary (default: false)
+#   INRUN_SKIP_COMPLETION   — skip shell completion setup (default: false)
+#   INRUN_REQUIRE_SIGNATURE — fail when cosign is not installed (default: false)
+#
+# Verification: checksums.txt is signed keyless with cosign by the release
+# workflow. With cosign installed, the installer checks that signature, then
+# every archive against checksums.txt. Without it, only the checksums are
+# checked.
 #
 # 1. Add the binary name to BINARIES.
 # 2. If it should be skippable, add a case entry in component_skipped().
 # That is the only change needed — download URL, checksum, and extraction
 # all follow the same convention automatically.
 #
-
 set -euo pipefail
 
 # Config
-
 REPO="intentd/inrun"
 INSTALL_DIR="${INRUN_INSTALL_DIR:-${HOME}/.inrun/bin}"
 VERSION="${INRUN_VERSION:-}"
 SKIP_CC="${INRUN_SKIP_CONSOLE:-false}"
 SKIP_COMPLETION="${INRUN_SKIP_COMPLETION:-false}"
+REQUIRE_SIGNATURE="${INRUN_REQUIRE_SIGNATURE:-false}"
+CERT_IDENTITY_PREFIX="https://github.com/${REPO}/.github/workflows/sign-and-release.yml@refs/tags/"
+OIDC_ISSUER="https://token.actions.githubusercontent.com"
 
 # All Inrun CLI binaries, in install order.
 # To add a new binary, append it here.
 BINARIES=("inrun" "inrun-console")
 
 # Colours
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -46,19 +52,10 @@ error()   { echo -e "${RED}[inrun]${RESET} $*" >&2; }
 fatal()   { error "$*"; exit 1; }
 
 # Banner
-
-echo -e "${BOLD}"
-cat <<'EOF'
-   ___       _              _
-  / _ \ _  _| |___ _ _  ___| |_ _ _ __ _
- | (_) | || | / -_) ' \/ -_)  _| '_/ _` |
-  \___/ \_,_|_\___|_||_\___|\__|_| \__,_|
-          O R K E S T R A
-EOF
-echo -e "${RESET}"
+echo -e "${BOLD}Inrun${RESET} installer"
+echo
 
 # Dependencies
-
 check_deps() {
     for cmd in curl tar grep sed; do
         command -v "${cmd}" >/dev/null 2>&1 \
@@ -67,7 +64,6 @@ check_deps() {
 }
 
 # Platform detection
-
 detect_platform() {
     local os arch
 
@@ -87,7 +83,6 @@ detect_platform() {
 }
 
 # Version resolution
-
 resolve_version() {
     if [[ -n "${VERSION}" ]]; then
         echo "${VERSION}"
@@ -111,7 +106,6 @@ resolve_version() {
 # Component skip rules
 # Returns 0 (true) when the binary should be skipped.
 # Add a case entry here when a new binary needs a skip flag.
-
 component_skipped() {
     local binary="$1"
     case "${binary}" in
@@ -123,7 +117,6 @@ component_skipped() {
 # Checksum verification
 # Uses -c (POSIX short form) which works on GNU coreutils, BusyBox, and macOS.
 # --check is GNU-only and fails on BusyBox (Alpine/CI containers).
-
 verify_checksum() {
     local archive="$1"
     local checksums_file="$2"
@@ -135,16 +128,47 @@ verify_checksum() {
         grep "${archive}" "${checksums_file}" | shasum -a 256 -c \
             || fatal "Checksum verification failed for ${archive}"
     else
-        warn "No checksum tool found (sha256sum / shasum) — skipping verification"
+        fatal "No checksum tool found (sha256sum / shasum)"
     fi
 }
 
-# Single component installer
+# Signature verification
+# Fetches checksums.txt and its cosign bundle once, and checks the signature
+# was made by Inrun's release workflow for this tag.
+fetch_checksums() {
+    local version="$1"
+    local dir="$2"
+    local base="https://github.com/${REPO}/releases/download/${version}"
 
+    curl -sSfL "${base}/checksums.txt" -o "${dir}/checksums.txt" \
+        || fatal "checksums.txt not found for ${version}"
+
+    if ! command -v cosign >/dev/null 2>&1; then
+        if [[ "${REQUIRE_SIGNATURE}" == "true" ]]; then
+            fatal "cosign not found and INRUN_REQUIRE_SIGNATURE=true. Install cosign: https://docs.sigstore.dev/cosign/system_config/installation/"
+        fi
+        warn "cosign not found: checking checksums only, not their signature"
+        return 0
+    fi
+
+    curl -sSfL "${base}/checksums.txt.sigstore.json" -o "${dir}/checksums.txt.sigstore.json" \
+        || fatal "Signature bundle not found for ${version}"
+
+    info "Verifying the release signature..."
+    cosign verify-blob "${dir}/checksums.txt" \
+        --bundle "${dir}/checksums.txt.sigstore.json" \
+        --certificate-identity "${CERT_IDENTITY_PREFIX}${version}" \
+        --certificate-oidc-issuer "${OIDC_ISSUER}" >/dev/null 2>&1 \
+        || fatal "Signature verification failed for checksums.txt (${version})"
+    success "Signature verified"
+}
+
+# Single component installer
 install_component() {
     local binary="$1"
     local platform="$2"
     local version="$3"
+    local checksums="$4"
 
     if component_skipped "${binary}"; then
         info "Skipping ${binary} (disabled by flag)"
@@ -153,7 +177,6 @@ install_component() {
 
     local archive="${binary}_${platform}.tar.gz"
     local download_url="https://github.com/${REPO}/releases/download/${version}/${archive}"
-    local checksum_url="https://github.com/${REPO}/releases/download/${version}/checksums.txt"
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
@@ -166,12 +189,8 @@ install_component() {
         return 0
     fi
 
-    if curl -sSfL "${checksum_url}" -o "${tmp_dir}/checksums.txt" 2>/dev/null; then
-        info "Verifying checksum..."
-        (cd "${tmp_dir}" && verify_checksum "${archive}" "checksums.txt")
-    else
-        warn "No checksums.txt found for ${version} — skipping verification"
-    fi
+    info "Verifying checksum..."
+    (cd "${tmp_dir}" && verify_checksum "${archive}" "${checksums}")
 
     info "Extracting ${archive}..."
     tar -xzf "${tmp_dir}/${archive}" -C "${tmp_dir}"
@@ -189,7 +208,6 @@ install_component() {
 
 # PATH setup
 # Adds INSTALL_DIR to PATH in the user's shell profile if not already present.
-
 setup_path() {
     local export_line="export PATH=\"${INSTALL_DIR}:\$PATH\""
 
@@ -223,7 +241,6 @@ setup_path() {
 }
 
 # Shell completion
-
 install_completion() {
     if [[ "${SKIP_COMPLETION}" == "true" ]]; then
         info "Skipping shell completion (INRUN_SKIP_COMPLETION=true)"
@@ -253,8 +270,8 @@ install_completion() {
         zsh)
             local dir="${HOME}/.zsh/completions"
             mkdir -p "${dir}"
-            info "Installing zsh completion → ${dir}/_ork"
-            "${INSTALL_DIR}/inrun" completion zsh > "${dir}/_ork" 2>/dev/null || true
+            info "Installing zsh completion → ${dir}/_inrun"
+            "${INSTALL_DIR}/inrun" completion zsh > "${dir}/_inrun" 2>/dev/null || true
 
             local rc="${ZDOTDIR:-${HOME}}/.zshrc"
             local fpath_line="fpath=(${dir} \$fpath)"
@@ -304,21 +321,20 @@ print_summary() {
 
     echo
     echo -e "  ${BOLD}Get started:${RESET}"
-    echo -e "    inrun init my-operator             Scaffold a new operator"
-    echo -e "    inrun validate     Validate a Blueprint"
-    echo -e "    inrun           Start the operator runtime"
-    echo -e "    inrun push name:v1 ./dir  Push a pattern to the registry"
+    echo -e "    inrun init my-app            Scaffold a Blueprint, a CRD and a CR"
+    echo -e "    inrun validate               Validate a Blueprint"
+    echo -e "    inrun                        Run the runtime against your cluster"
+    echo -e "    inrun push name:v1 ./dir     Push a pattern to the registry"
     echo
     echo -e "  ${BOLD}Console:${RESET}"
     echo -e "    inrun console                Start the web UI (port 8081)"
     echo
     echo -e "  ${BOLD}Documentation:${RESET}"
-    echo -e "    https://github.com/${REPO}"
+    echo -e "    https://inrun.dev/docs/"
     echo
 }
 
 # Main
-
 main() {
     check_deps
 
@@ -330,8 +346,14 @@ main() {
     info "Install directory: ${INSTALL_DIR}"
     echo
 
+    local verify_dir
+    verify_dir=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '${verify_dir}'" EXIT
+    fetch_checksums "${version}" "${verify_dir}"
+
     for binary in "${BINARIES[@]}"; do
-        install_component "${binary}" "${platform}" "${version}"
+        install_component "${binary}" "${platform}" "${version}" "${verify_dir}/checksums.txt"
     done
 
     setup_path

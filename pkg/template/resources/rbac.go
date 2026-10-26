@@ -206,7 +206,7 @@ func ClusterRoleBindingSpec(src types.ClusterRoleBindingTemplateSource, owner do
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -236,7 +236,7 @@ func ClusterRoleSpec(src types.ClusterRoleTemplateSource, owner domain.Object) c
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -276,7 +276,7 @@ func RoleBindingSpec(src types.RoleBindingTemplateSource, owner domain.Object) r
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -307,6 +307,6 @@ func RoleSpec(src types.RoleTemplateSource, owner domain.Object) roles.Spec {
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner.GetName(), owner.GetAnnotations())
+	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
