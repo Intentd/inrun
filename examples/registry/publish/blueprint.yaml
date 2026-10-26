@@ -1,0 +1,39 @@
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: webservice
+  version: v0.1.0
+  description: >
+    A team's web service: one container behind a Service, autoscaled, with
+    the team's defaults. Built on the published deployment-stack module.
+  author: myorg
+  license: Apache-2.0
+  tags:
+    - web
+    - stateless
+
+spec:
+  crds:
+    webservice:
+      crdFile: ./manifests/crd.yaml
+      operatorBox:
+        reconcile:
+          workers: 2
+          resync: 1m
+          imports:
+            - module: oci://ghcr.io/intentd/registry/patterns/modules/deployment-stack:v0.1.0
+              with:
+                name: '{{ .metadata.name }}'
+                namespace: '{{ .metadata.namespace }}'
+                image: '{{ .spec.image }}'
+                port: '{{ .spec.port | default "8080" }}'
+                replicas: '{{ .spec.replicas | default "2" }}'
+                maxReplicas: "4"
+                resourcePreset: small
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Running"
+              - path: endpoint
+                value: "http://{{ .metadata.name }}-svc.{{ .metadata.namespace }}.svc.cluster.local"

@@ -165,39 +165,10 @@ func (c *Client) Push(ctx context.Context, ref *Ref, dir string, opts PushOption
 	return manifestDesc.Digest.String(), nil
 }
 
-// Pull fetches an pattern from the registry into the local cache.
-// Returns the cache directory path.
+// Pull fetches a pattern from the registry into the local cache and returns
+// the cache directory. See Fetch.
 func (c *Client) Pull(ctx context.Context, ref *Ref, refresh bool) (string, error) {
-	cacheDir, err := ref.CachePath()
-	if err != nil {
-		return "", err
-	}
-
-	if !refresh && ref.IsCached() {
-		return cacheDir, nil
-	}
-
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		return "", fmt.Errorf("creating cache dir: %w", err)
-	}
-
-	store, err := file.New(cacheDir)
-	if err != nil {
-		return "", fmt.Errorf("creating file store: %w", err)
-	}
-	defer store.Close()
-
-	repo, err := c.remoteRepo(ref)
-	if err != nil {
-		return "", err
-	}
-
-	if _, err := oras.Copy(ctx, repo, ref.Tag, store, ref.Tag, oras.DefaultCopyOptions); err != nil {
-		os.RemoveAll(cacheDir)
-		return "", fmt.Errorf("pulling: %w", err)
-	}
-
-	return cacheDir, nil
+	return Fetch(ctx, ref, refresh, nil)
 }
 
 // Published returns the digest ref's tag points to in the registry, or ""

@@ -4,6 +4,7 @@ package registry
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -159,6 +160,9 @@ var inspectCmd = &cobra.Command{
 				fileMap[f.Name] = f
 				available = append(available, f.Name)
 			}
+			// The files print as one YAML stream ("---" between them) so the output
+			// can be piped to kubectl apply -f -. Problems go to stderr, out of the stream.
+			printed := 0
 			for _, name := range strings.Split(viewArg, ",") {
 				name = strings.TrimSpace(name)
 				// cr.yaml finds manifests/cr.yaml, e2e.yaml finds test/e2e.yaml.
@@ -167,16 +171,20 @@ var inspectCmd = &cobra.Command{
 				}
 				f, ok := fileMap[name]
 				if !ok {
-					fmt.Printf("  %s %q not in artifact (available: %s)\n", cmdutil.WarningMark(), name, strings.Join(available, ", "))
+					fmt.Fprintf(os.Stderr, "  %s %q not in artifact (available: %s)\n", cmdutil.WarningMark(), name, strings.Join(available, ", "))
 					continue
 				}
-				fmt.Printf("# ── %s ──\n", name)
 				data, err := client.ViewFile(cmd.Context(), ref, f)
 				if err != nil {
-					fmt.Printf("  error: %v\n", err)
+					fmt.Fprintf(os.Stderr, "  error reading %s: %v\n", name, err)
 					continue
 				}
-				fmt.Println(string(data))
+				if printed > 0 {
+					fmt.Println("---")
+				}
+				fmt.Printf("# ── %s ──\n", name)
+				fmt.Println(strings.TrimRight(string(data), "\n"))
+				printed++
 			}
 			return nil
 		}

@@ -25,11 +25,6 @@ import (
 	"github.com/intentd/inrun/pkg/logger"
 	pkgregistry "github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
-	"oras.land/oras-go/v2"
-	"oras.land/oras-go/v2/content/file"
-	"oras.land/oras-go/v2/registry/remote"
-	orasauth "oras.land/oras-go/v2/registry/remote/auth"
-	"oras.land/oras-go/v2/registry/remote/credentials"
 )
 
 const orasPullTimeout = 2 * time.Minute
@@ -136,7 +131,9 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 				cleanURL, version, doc.Kind,
 			)
 		}
-		entries, err := m.loadBlueprint(sourcePath, doc)
+		// The real path, not the display label: relative crdFile, crFiles and
+		// module paths resolve against the pattern's directory.
+		entries, err := m.loadBlueprint(sourceFile, doc)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +148,7 @@ func (m *Merger) loadRegistrySource(src types.RegistrySource) (map[string]types.
 				cleanURL, version, doc.Kind,
 			)
 		}
-		entries, err := m.loadStack(sourcePath, doc)
+		entries, err := m.loadStack(sourceFile, doc)
 		if err != nil {
 			return nil, err
 		}
@@ -175,13 +172,23 @@ func stampRegistryRef(entries map[string]types.CRDEntry, ref string) {
 	}
 }
 
-// pullPattern fetches a registry pattern to a temp directory.
-// Returns the temp dir path and a cleanup function.
+// pullPattern returns the directory of a registry pattern and a cleanup
+// function: the local cache for OCI (cleanup is a no-op), a temp dir for Git.
 func (m *Merger) pullPattern(
 	url, version string,
 	oci bool,
 	auth *fileio.FileAuth,
 ) (tmpDir string, cleanup func(), err error) {
+	// OCI patterns load from the local cache, which outlives this call: the
+	// pattern's relative files (manifests/crd.yaml, ...) are read after loading.
+	if oci {
+		dir, err := fetchOCI(url, version, auth)
+		if err != nil {
+			return "", nil, err
+		}
+		return dir, noopCleanup, nil
+	}
+
 	tmpDir, err = os.MkdirTemp("", "inrun-registry-*")
 	if err != nil {
 		return "", nil, fmt.Errorf("creating temp dir: %w", err)
@@ -189,13 +196,7 @@ func (m *Merger) pullPattern(
 
 	cleanup = func() { os.RemoveAll(tmpDir) }
 
-	if oci {
-		err = m.pullOCIPattern(url, version, tmpDir, auth)
-	} else {
-		err = m.pullGitPattern(url, version, tmpDir, auth)
-	}
-
-	if err != nil {
+	if err = m.pullGitPattern(url, version, tmpDir, auth); err != nil {
 		cleanup()
 		return "", nil, err
 	}
@@ -205,127 +206,38 @@ func (m *Merger) pullPattern(
 
 // ── OCI pull ──────────────────────────────────────────────────────────────────
 
-func (m *Merger) pullOCIPattern(url, version, tmpDir string, auth *fileio.FileAuth) error {
+// fetchOCI returns the local cache directory of an OCI pattern or module,
+// pulling it first when needed. registry.Fetch is the one place artifacts are
+// fetched; this only adapts an import's auth block.
+func fetchOCI(url, version string, auth *fileio.FileAuth) (string, error) {
 	ociRef := strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "http://")
 	ociRef = strings.TrimSuffix(ociRef, "/")
-	ociRef = fmt.Sprintf("%s:%s", ociRef, version)
-
-	// Serve from local cache when available — avoids a network round-trip on
-	// every inrun validate/template/simulate after inrun pull.
-	if pkgRef, err := pkgregistry.Resolve(ociRef); err == nil {
-		if cacheDir, err := pkgRef.CachePath(); err == nil && pkgRef.IsCached() {
-			logger.Debug().
-				Str("ref", ociRef).
-				Str("cache", cacheDir).
-				Msg("registry: serving OCI artifact from local cache")
-			return copyPatternFilesFromCache(cacheDir, tmpDir)
-		}
-	}
-
-	logger.Debug().
-		Str("ref", ociRef).
-		Str("dst", tmpDir).
-		Msg("registry: pulling OCI artifact with ORAS Go library")
-
-	if err := orasPull(ociRef, tmpDir, auth); err != nil {
-		return fmt.Errorf("OCI pull %q: %w", ociRef, err)
-	}
-
-	logger.Debug().
-		Str("ref", ociRef).
-		Str("dst", tmpDir).
-		Msg("registry: OCI artifact pulled successfully")
-
-	return nil
-}
-
-// copyPatternFilesFromCache copies the known pattern files from a cache
-// directory into a temp directory for the merger to process.
-func copyPatternFilesFromCache(cacheDir, tmpDir string) error {
-	entries, err := os.ReadDir(cacheDir)
+	ref, err := pkgregistry.Resolve(fmt.Sprintf("%s:%s", ociRef, version))
 	if err != nil {
-		return fmt.Errorf("reading cache dir %s: %w", cacheDir, err)
+		return "", fmt.Errorf("OCI reference %q: %w", ociRef, err)
 	}
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		data, err := readLocal(filepath.Join(cacheDir, e.Name()))
-		if err != nil {
-			return fmt.Errorf("reading cached file %s: %w", e.Name(), err)
-		}
-		if err := os.WriteFile(filepath.Join(tmpDir, e.Name()), data, 0644); err != nil {
-			return fmt.Errorf("writing %s to temp dir: %w", e.Name(), err)
-		}
-	}
-	return nil
-}
-
-func orasPull(ref, dst string, auth *fileio.FileAuth) error {
 	ctx, cancel := context.WithTimeout(context.Background(), orasPullTimeout)
 	defer cancel()
+	return pkgregistry.Fetch(ctx, ref, false, registryCredentials(auth))
+}
 
-	repoName, reference, ok := strings.Cut(ref, ":")
-	if !ok || reference == "" {
-		return fmt.Errorf("invalid OCI reference %q: missing tag or digest", ref)
+// registryCredentials converts an import's auth block. Nil means the Docker
+// credential store; a block without usable credentials pulls anonymously.
+func registryCredentials(a *fileio.FileAuth) *pkgregistry.Credentials {
+	if a == nil {
+		return nil
 	}
-
-	repo, err := remote.NewRepository(repoName)
-	if err != nil {
-		return fmt.Errorf("creating repository for %q: %w", repoName, err)
-	}
-
-	if auth != nil {
-		repo.Client = &orasauth.Client{
-			ClientID: "inrun",
-			Credential: func(ctx context.Context, registry string) (orasauth.Credential, error) {
-				switch strings.ToLower(auth.Type) {
-				case "basic":
-					if auth.Username != "" && auth.Password != "" {
-						return orasauth.Credential{
-							Username: auth.Username,
-							Password: auth.Password,
-						}, nil
-					}
-				case "bearer", "github":
-					if auth.BearerToken != "" {
-						return orasauth.Credential{
-							RefreshToken: auth.BearerToken,
-						}, nil
-					}
-				}
-				return orasauth.EmptyCredential, nil
-			},
+	switch strings.ToLower(a.Type) {
+	case "basic":
+		if a.Username != "" && a.Password != "" {
+			return &pkgregistry.Credentials{Username: a.Username, Password: a.Password}
 		}
-	} else {
-		// No explicit auth — fall back to Docker credential store (~/.docker/config.json).
-		// This mirrors pkg/registry.Client.remoteRepo so `inrun pull -f`
-		// and `inrun pull <url>` use the same credential source.
-		if store, err := credentials.NewStoreFromDocker(credentials.StoreOptions{}); err == nil {
-			repo.Client = &orasauth.Client{
-				ClientID:   "inrun",
-				Cache:      orasauth.DefaultCache,
-				Credential: credentials.Credential(store),
-			}
+	case "bearer", "github":
+		if a.BearerToken != "" {
+			return &pkgregistry.Credentials{Token: a.BearerToken}
 		}
 	}
-
-	store, err := file.New(dst)
-	if err != nil {
-		return fmt.Errorf("creating file store: %w", err)
-	}
-	defer store.Close()
-
-	_, err = oras.Copy(ctx,
-		repo, reference,
-		store, "",
-		oras.DefaultCopyOptions,
-	)
-	if err != nil {
-		return fmt.Errorf("pulling OCI artifact %q: %w", ref, err)
-	}
-
-	return nil
+	return &pkgregistry.Credentials{}
 }
 
 // ── Git pull ──────────────────────────────────────────────────────────────────

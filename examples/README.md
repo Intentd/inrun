@@ -4,7 +4,7 @@ The intent loop, from the reconciler side and from the caller side. Each pack
 is embedded in the CLI:
 
 ```bash
-inrun init my-operator --pack declarative    # or remote, typed, intent, migration
+inrun init my-operator --pack declarative    # or remote, typed, intent, migration, registry
 inrun init --list
 ```
 
@@ -15,6 +15,7 @@ inrun init --list
 | `typed` | [reconcilers/typed](reconcilers/typed/) | Go hooks, a constructor, and a controller-runtime drop-in |
 | `intent` | [intent](intent/) | Intent in through the gateway, view out |
 | `migration` | [migration](migration/) | Change the CRD under live CRs: move fields, or move CRs to another CRD |
+| `registry` | [registry](registry/) | Share operators as patterns: consume one, publish your own, deprecate it |
 
 Every example has the same layout:
 

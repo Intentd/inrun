@@ -38,9 +38,9 @@ Declarative, remote and typed reconcilers take the same request and return the s
 
 ## What comes with it
 
-- **Operators as data.** A Blueprint is the operator. It's versioned and published to an OCI registry, carrying its own simulate and e2e results and the tests that produced them. `inrun inspect` shows them before you install anything; `inrun e2e` runs them again on a kind cluster it brings and tears down, so checking the claim needs nothing but Docker.
-- **Callers apart from the schema.** Callers send intents; the CRD stays an internal detail. When a field moves, `migrate.from` brings stored resources to the new shape with the same mapping the gateway applies, and callers never notice.
-- **Kubernetes as a backend.** A reconciler doesn't have to create anything: the custom resource can be a durable state machine, cleaned up when it's done.
+- **Operators as data.** A Blueprint is the operator. It's versioned and published to an OCI registry, carrying its own simulate and e2e results and the tests that produced them. `inrun inspect` shows them before you install anything; `inrun e2e` runs them again on a kind cluster it brings and tears down, so checking the claim needs nothing but Docker. See [examples/registry](examples/registry/).
+- **Callers apart from the schema.** Callers send intents; the CRD stays an internal detail. When a field moves, `migrate.from` brings stored resources to the new shape with the same mapping the gateway applies; when the CRD itself changes (a new kind, group or scope), `migrate.to` moves them to it. Either way, callers never notice. See [examples/migration](examples/migration/).
+- **Kubernetes as a backend.** A reconciler doesn't have to create anything: the custom resource can be a durable state machine, cleaned up when it's done. See [examples/reconcilers/remote/existing-service-ids](examples/reconcilers/remote/existing-service-ids/).
 
 ## Install
 
@@ -83,6 +83,8 @@ inrun init --pack declarative   # Start here: operators declared in a Blueprint,
 inrun init --pack remote        # A reconciler in any language, called over HTTP, including an existing service
 inrun init --pack typed         # Go: hooks, a constructor, and a controller-runtime drop-in
 inrun init --pack intent        # Intent in through the gateway, view out
+inrun init --pack migration     # Change the CRD under live CRs: move fields, or move CRs to another CRD
+inrun init --pack registry      # Share operators as patterns: consume one, publish your own, deprecate it
 ```
 
 `inrun init --list` shows them all. Each pack is a folder of examples; for any of them:

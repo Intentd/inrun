@@ -1,0 +1,8 @@
+apiVersion: platform.example.com/v1
+kind: WebService
+metadata:
+  name: orders
+  namespace: default
+spec:
+  image: nginx:1.27
+  port: 80

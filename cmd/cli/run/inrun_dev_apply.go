@@ -48,6 +48,9 @@ func ensureClusterReady(dev bool) error {
 		if err := cluster.EnsureDependencies(); err != nil {
 			return fmt.Errorf("installing dependencies: %w", err)
 		}
+		if cluster.ClusterReachable() {
+			return nil
+		}
 
 		fmt.Println("\n  Cannot reach a Kubernetes cluster.")
 		fmt.Printf("  Creating local Kind cluster '%s'...\n", cluster.KindClusterName)
@@ -59,7 +62,7 @@ func ensureClusterReady(dev bool) error {
 		return nil
 	}
 
-	// non-dev mode
+	// non --dev mode
 	if cluster.ClusterReachable() {
 		return nil
 	}

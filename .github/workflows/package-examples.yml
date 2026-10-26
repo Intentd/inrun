@@ -27,7 +27,7 @@ jobs:
           mkdir -p dist/examples
           TAG="${{ github.ref_name }}"
 
-          for pack in reconcilers/declarative reconcilers/remote reconcilers/typed intent migration; do
+          for pack in reconcilers/declarative reconcilers/remote reconcilers/typed intent migration registry; do
             tar -czf "dist/examples_$(basename $pack)_${TAG}.tar.gz" -C "examples/$pack" .
           done
 
@@ -53,6 +53,8 @@ jobs:
           echo "| Remote | A reconciler in any language over HTTP | \`examples_remote_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Typed | Go hooks, constructor, controller-runtime drop-in | \`examples_typed_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Intent | Intent in through the gateway, view out | \`examples_intent_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Migration | Change the CRD under live CRs | \`examples_migration_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry | Consume, publish and deprecate patterns | \`examples_registry_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Download from the release assets or run:**" >> "$GITHUB_STEP_SUMMARY"
           echo '```bash' >> "$GITHUB_STEP_SUMMARY"

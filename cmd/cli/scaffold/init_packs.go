@@ -53,6 +53,13 @@ var Packs = map[string]Pack{
 		First:       "field/relocation",
 		Order:       5,
 	},
+	"registry": {
+		Name:        "registry",
+		Description: "Share operators as patterns: consume one, publish your own, deprecate it.",
+		Path:        "registry",
+		First:       "consume",
+		Order:       6,
+	},
 }
 
 func GetPack(name string) (Pack, bool) {

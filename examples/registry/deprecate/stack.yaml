@@ -1,0 +1,17 @@
+apiVersion: inrun.dev/v1
+kind: Stack
+metadata:
+  name: orders-team
+  description: >
+    A team that runs the webservice pattern. After the pattern is deprecated,
+    this Stack keeps running it only by accepting that on purpose.
+
+imports:
+  registry:
+    - url: oci://ghcr.io/<you>/patterns/webservice:v0.1.0   # your INRUN_REGISTRY
+
+# Uncomment after reading the deprecation notice:
+# lifecycle:
+#   accept:
+#     patterns:
+#       - name: webservice
