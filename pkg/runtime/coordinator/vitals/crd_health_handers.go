@@ -1,0 +1,900 @@
+// pkg/runtime/coordinator/vitals/crd_health_handlers.go
+package vitals
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/intentd/inrun/pkg/runtimeapi"
+
+	"github.com/intentd/inrun/pkg/util/httpapi"
+	"github.com/intentd/inrun/pkg/util/version"
+
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/config"
+	"github.com/intentd/inrun/pkg/runtime/autoscaler"
+	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
+	"github.com/intentd/inrun/pkg/types"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/tools/cache"
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRD Health Response
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CRDHealthResponse struct {
+	Name                     string                      `json:"name"`
+	State                    string                      `json:"state"` // "not started", "pending", "started", "healthy", "degraded"
+	Status                   int                         `json:"status"`
+	IsLeader                 bool                        `json:"isLeader"`
+	Healthy                  bool                        `json:"healthy"`
+	Started                  bool                        `json:"started"`
+	Pending                  bool                        `json:"pending"`
+	StartedAt                string                      `json:"startedAt"`
+	Uptime                   string                      `json:"uptime"`
+	QueueDepth               int                         `json:"queueDepth"`
+	ErrorRate                float64                     `json:"errorRate"`
+	ConsecutiveFails         int64                       `json:"consecutiveFails"`
+	TotalReconciles          int64                       `json:"totalReconciles"`
+	ResourceCount            int                         `json:"resourceCount"`
+	LastError                string                      `json:"lastError"`
+	LastReconcile            string                      `json:"lastReconcile"`
+	HasUnhealthyDependencies bool                        `json:"hasUnhealthyDependencies"`
+	Dependencies             map[string]DependencyStatus `json:"dependencies,omitempty"`
+	Missing                  bool                        `json:"missing,omitempty"`
+	Gated                    bool                        `json:"gated,omitempty"`
+	GatedReason              string                      `json:"gatedReason,omitempty"`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRD Health Handler
+// Returns the live health status of a single CRD reconciler.
+// This endpoint is used by:
+//   - /blueprint/<crd>/health
+//   - dashboards
+//   - readiness/liveness checks
+//   - operator self‑diagnostics
+//
+// The handler exposes:
+//   - health state (healthy/degraded)
+//   - startup state
+//   - uptime
+//   - reconcile counters
+//   - last error
+//   - last reconcile timestamp
+//
+// ─────────────────────────────────────────────────────────────────────────────
+func BuildCRDHealthHandler(
+	crd types.CRDEntry,
+	cfg *config.Config,
+	inf cache.SharedIndexInformer,
+	h *CRDHealth,
+	o *RuntimeHealth,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		state, status := h.StateAndStatus()
+		v := resolveCRDDisplayValues(crd, cfg, inf)
+
+		response := CRDHealthResponse{
+			Name:                     crd.Name,
+			State:                    state,
+			Status:                   status,
+			IsLeader:                 o.IsLeader(),
+			Healthy:                  h.IsHealthy(),
+			Started:                  h.Started(),
+			Pending:                  h.Pending(),
+			StartedAt:                h.StartedAt(),
+			Uptime:                   h.Uptime(),
+			QueueDepth:               h.QueueDepth(crd.GVKString()),
+			ErrorRate:                h.ErrorRatePercent(),
+			ConsecutiveFails:         h.ConsecutiveFails(),
+			TotalReconciles:          h.TotalReconciles(),
+			ResourceCount:            v.resourceCount,
+			LastError:                h.LastError(),
+			LastReconcile:            h.LastReconcile(),
+			Dependencies:             h.GetDependencyStatuses(),
+			HasUnhealthyDependencies: h.HasUnhealthyDependencies(),
+			Missing:                  h.IsMissing(),
+			Gated:                    h.IsGated(),
+			GatedReason:              h.GatedReason(),
+		}
+
+		httpapi.WriteJSON(w, status, response)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRD Info Response
+// ─────────────────────────────────────────────────────────────────────────────
+type WorkerStats struct {
+	Workers           int32             `json:"workers"`
+	WorkersActive     int32             `json:"workersActive"`
+	WorkersIdle       int32             `json:"workersIdle"`
+	WorkersProcessing int32             `json:"workersProcessing"`
+	WorkerDetails     map[string]string `json:"workerDetails,omitempty"`
+}
+
+type CRDInfoResponse struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Mode        string `json:"mode"`
+	GVK         string `json:"gvk"`
+	GVR         string `json:"gvr"`
+	// Target is the identifier callers use against the Gateway API and schema
+	// API (serve.target, or the lowercased kind when unset). Empty when serve is
+	// not enabled for this CRD.
+	Target            string                 `json:"target,omitempty"`
+	Aliases           []string               `json:"aliases,omitempty"`
+	Namespaced        bool                   `json:"namespaced"`
+	Namespace         string                 `json:"namespace"`
+	DependsOn         []string               `json:"dependsOn,omitempty"`
+	IsLeader          bool                   `json:"isLeader"`
+	Workers           int                    `json:"workers"`
+	WorkersActive     int32                  `json:"workersActive"`
+	WorkersIdle       int32                  `json:"workersIdle"`
+	WorkersProcessing int32                  `json:"workersProcessing"`
+	WorkerDetails     map[string]string      `json:"workerDetails,omitempty"`
+	WorkersSource     string                 `json:"workersSource"`
+	Resync            string                 `json:"resync"`
+	ResyncSource      string                 `json:"resyncSource"`
+	QueueDepth        int                    `json:"queueDepth"`
+	MaxDepth          int                    `json:"maxDepth"`
+	MaxDepthSource    string                 `json:"maxDepthSource"`
+	ResourceCount     int                    `json:"resourceCount"`
+	TotalReconciles   int64                  `json:"totalReconciles"`
+	OperatorBox       OperatorBoxInfo        `json:"operatorBox"`
+	Healthy           bool                   `json:"healthy"`
+	Started           bool                   `json:"started"`
+	Pending           bool                   `json:"pending"`
+	ErrorRate         float64                `json:"errorRate"`
+	RBAC              RBACInfo               `json:"rbac,omitempty"`
+	AutoscalerEnabled bool                   `json:"autoscalerEnabled,omitempty"`
+	AutoscalerWorkers *autoscaler.WorkerInfo `json:"autoscalerWorkers,omitempty"`
+	// Metrics is the live AutoMetrics map for this operatorbox.
+	// Populated only when autoscale: is declared. Used by cross-binary autoscale
+	// conditions via the source.endpoint HTTP fallback — the remote autoscaler
+	// calls this endpoint and reads "metrics.*" fields from the response.
+	Metrics     map[string]interface{} `json:"metrics,omitempty"`
+	Gated       bool                   `json:"gated,omitempty"`
+	GatedReason string                 `json:"gatedReason,omitempty"`
+}
+
+type OperatorBoxInfo struct {
+	// Type is the reconciler kind: declarative, hooks, constructor or remote.
+	Type string `json:"type"`
+	// Targets lists serve targets reconciled by another kind than Type.
+	Targets     map[string]string      `json:"targets,omitempty"`
+	Finalizers  FinalizersInfo         `json:"finalizers"`
+	Hooks       HooksInfo              `json:"hooks"`
+	Constructor ConstructorInfo        `json:"constructor"`
+	Templates   map[string]interface{} `json:"templates,omitempty"`
+}
+
+type FinalizersInfo struct {
+	Source string   `json:"source"`
+	Values []string `json:"values"`
+}
+
+type HooksInfo struct {
+	Configured bool   `json:"configured"`
+	Source     string `json:"source,omitempty"`
+	Location   string `json:"location,omitempty"`
+	Function   string `json:"function,omitempty"`
+}
+
+type ConstructorInfo struct {
+	Configured bool   `json:"configured"`
+	Source     string `json:"source,omitempty"`
+	Location   string `json:"location,omitempty"`
+	Function   string `json:"function,omitempty"`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRD Info Handler
+// Returns static + dynamic metadata about a CRD:
+//   - GVK/GVR
+//   - mode (dynamic/typed)
+//   - workers, resync, queue depth (with source: default or configured)
+//   - reconciler configuration (hooks, finalizers, constructor)
+//   - resource count from informer
+//   - health summary
+//
+// This endpoint powers:
+//   - /blueprint/<crd>
+//   - dashboards
+//   - operator introspection
+//
+// ─────────────────────────────────────────────────────────────────────────────
+func BuildCRDInfoHandler(
+	crd types.CRDEntry,
+	rbac []rbacv1.PolicyRule,
+	cfg *config.Config,
+	inf cache.SharedIndexInformer,
+	h *CRDHealth,
+	o *RuntimeHealth,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		v := resolveCRDDisplayValues(crd, cfg, inf)
+
+		// Always expose live metrics so any CRD can be observed via cross.*.metrics.*
+		// by a sibling in a different binary — the observed CRD does not need to
+		// declare autoscale: itself. AutoMetrics is initialised for every reconciler.
+		autoMetrics := h.GetAutoMetrics()
+
+		// When autoscaler is enabled, use WorkerInfo as the authoritative source
+		// for all worker and queue fields — the legacy health counters only track
+		// the initial configured pool and go negative when extra workers spawn.
+		wi := h.GetWorkerInfo()
+		workers := v.workers
+		workersActive := h.GetActiveWorkers()
+		workersIdle := h.GetIdleWorkers()
+		workersProcessing := h.GetProcessingWorkers()
+		workersSource := v.workersSource
+		queueDepth := h.QueueDepth(crd.GVKString())
+		maxDepth := v.maxDepth
+		maxDepthSource := v.maxDepthSource
+		resync := v.resync
+		resyncSource := v.resyncSource
+
+		autoscalerSource := "autoscaler"
+		if wi != nil {
+			// workers — wi is always authoritative: legacy counters go negative when
+			// autoscale spawns extra goroutines beyond the initial configured pool.
+			workers = wi.Configured
+			workersActive = int32(wi.Effective)
+			workersIdle = int32(wi.Idle)
+			workersProcessing = int32(wi.InFlight)
+			queueDepth = int(wi.QueueDepth)
+
+			// queue limit and resync — only override when autoscaler is actively
+			// applying an override. Baseline values come from resolveCRDDisplayValues
+			// which includes the config default fallback (e.g. 100 queue depth).
+			if wi.OverrideActive {
+				maxDepth = int(wi.QueueDepthEffective)
+				resync = wi.ResyncEffective
+
+				maxDepthSource = autoscalerSource
+				resyncSource = autoscalerSource
+				workersSource = autoscalerSource
+			}
+		}
+
+		response := CRDInfoResponse{
+			Name:              crd.Name,
+			Description:       crd.Description,
+			Mode:              crd.Mode.String(),
+			GVK:               crd.GVKString(),
+			GVR:               crd.GroupVersionResource.String(),
+			Target:            crd.ServeTargetOrEmpty(),
+			Aliases:           crd.AliasNames(),
+			Namespaced:        crd.IsNamespaced(),
+			Namespace:         crd.Namespace,
+			DependsOn:         crd.DependsOn.Names(),
+			IsLeader:          o.IsLeader(),
+			Workers:           workers,
+			WorkersActive:     workersActive,
+			WorkersIdle:       workersIdle,
+			WorkersProcessing: workersProcessing,
+			WorkerDetails:     h.GetWorkerStates(),
+			WorkersSource:     workersSource,
+			Resync:            resync,
+			ResyncSource:      resyncSource,
+			QueueDepth:        queueDepth,
+			MaxDepth:          maxDepth,
+			MaxDepthSource:    maxDepthSource,
+			ResourceCount:     v.resourceCount,
+			TotalReconciles:   h.TotalReconciles(),
+			OperatorBox:       operatorBoxInfoStruct(crd),
+			Healthy:           h.IsHealthy(),
+			Started:           h.Started(),
+			Pending:           h.Pending(),
+			ErrorRate:         h.ErrorRatePercent(),
+			RBAC:              toRBACInfo(rbac),
+			AutoscalerEnabled: crd.AutoscaleEnabled(),
+			AutoscalerWorkers: wi,
+			Metrics:           autoMetrics,
+			Gated:             h.IsGated(),
+			GatedReason:       h.GatedReason(),
+		}
+
+		httpapi.WriteJSON(w, http.StatusOK, response)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Blueprint Response
+// ─────────────────────────────────────────────────────────────────────────────
+
+// BlueprintNamespaceSummary groups CRDs that share the same blueprint namespace.
+// Namespaces are declared in blueprint.metadata.namespace — "default" when not set.
+type BlueprintNamespaceSummary struct {
+	CRDs         []string     `json:"crds"`
+	StatusCounts StatusCounts `json:"statusCounts"`
+	Healthy      bool         `json:"healthy"`
+	Description  string       `json:"description,omitempty"`
+	Version      string       `json:"version,omitempty"`
+	Workers      int          `json:"workers"`
+	Resources    int          `json:"resources"`
+}
+
+type BlueprintResponse struct {
+	CRDs               []CRDSummaryResponse `json:"crds"`
+	Total              int                  `json:"total"`
+	TotalEnabled       int                  `json:"totalEnabled"`
+	InrunReady         bool                 `json:"InrunReady"`
+	IsLeader           bool                 `json:"isLeader"`
+	DeletionProtection bool                 `json:"deletionProtection"`
+	Healthy            bool                 `json:"healthy"`
+	Status             int                  `json:"status"`
+	DegradedReason     string               `json:"degradedReason,omitempty"`
+	StatusCounts       StatusCounts         `json:"statusCounts"`
+	Name               string               `json:"name,omitempty"`
+	Version            string               `json:"version,omitempty"`
+	Author             string               `json:"author,omitempty"`
+	Description        string               `json:"description,omitempty"`
+	License            string               `json:"license,omitempty"`
+	RuntimeVersion     string               `json:"runtimeVersion,omitempty"`
+	ClusterName        string               `json:"clusterName,omitempty"`
+	// Namespaces groups CRDs by blueprint namespace. Always present — at minimum
+	// contains "default" when no blueprint declares an explicit namespace.
+	Namespaces map[string]BlueprintNamespaceSummary `json:"namespaces,omitempty"`
+	// GatewayEndpoint is the HTTP base URL of the companion gateway process.
+	// Set via INRUN_GATEWAY_ENDPOINT on the runtime. The console reads
+	// this field and fetches gateway:/blueprint to merge per-CRD webhook stats.
+	// Empty when no gateway is paired with this runtime.
+	GatewayEndpoint string `json:"gatewayEndpoint,omitempty"`
+}
+
+type CRDSummaryResponse struct {
+	Name                     string             `json:"name"`
+	Description              string             `json:"description"`
+	Mode                     string             `json:"mode"`
+	GVK                      string             `json:"gvk"`
+	GVR                      string             `json:"gvr"`
+	Namespaced               bool               `json:"namespaced"`
+	Namespace                string             `json:"namespace"`
+	CrossAccess              bool               `json:"crossAccess"`
+	DependsOn                []string           `json:"dependsOn,omitempty"`
+	HasUnhealthyDependencies bool               `json:"hasUnhealthyDependencies"`
+	Workers                  int                `json:"workers"`
+	WorkersSource            string             `json:"workersSource"`
+	WorkersActive            int32              `json:"workersActive"`
+	Resync                   string             `json:"resync"`
+	ResyncSource             string             `json:"resyncSource"`
+	QueueDepth               int                `json:"queueDepth"`
+	MaxDepth                 int                `json:"maxDepth"`
+	MaxDepthSource           string             `json:"maxDepthSource"`
+	ResourceCount            int                `json:"resourceCount"`
+	OperatorBox              OperatorBoxSummary `json:"operatorBox"`
+	Healthy                  bool               `json:"healthy"`
+	State                    string             `json:"state"`
+	Started                  bool               `json:"started"`
+	Pending                  bool               `json:"pending"`
+	StartedAt                string             `json:"startedAt"`
+	Uptime                   string             `json:"uptime"`
+	ErrorRate                float64            `json:"errorRate"`
+	Endpoints                EndpointInfo       `json:"endpoints"`
+	RBACCount                int                `json:"rbacCount,omitempty"`
+	DeletionProtection       bool               `json:"deletionProtection"`
+	BlueprintNamespace       string             `json:"blueprintNamespace,omitempty"`
+	ServeEnabled             bool               `json:"serveEnabled,omitempty"`
+	RequireServeName         bool               `json:"requireServeName,omitempty"`
+	// Target is the identifier callers use against the Gateway API and schema
+	// API (serve.target, or the lowercased kind when unset). Empty when serve is
+	// not enabled for this CRD.
+	Target      string   `json:"target,omitempty"`
+	Aliases     []string `json:"aliases,omitempty"`
+	Gated       bool     `json:"gated,omitempty"`
+	GatedReason string   `json:"gatedReason,omitempty"`
+}
+
+type OperatorBoxSummary struct {
+	Type           string `json:"type"`
+	HasTemplates   bool   `json:"hasTemplates,omitempty"`
+	HasHooks       bool   `json:"hasHooks,omitempty"`
+	HasConstructor bool   `json:"hasConstructor,omitempty"`
+}
+
+type EndpointInfo struct {
+	Health        string `json:"health"`
+	Info          string `json:"info"`
+	HealthEnabled bool   `json:"healthEnabled"`
+	InfoEnabled   bool   `json:"infoEnabled"`
+}
+
+type StatusCounts struct {
+	Healthy  int `json:"healthy"`
+	Degraded int `json:"degraded"`
+	Started  int `json:"started"`
+	Pending  int `json:"pending"`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Blueprint Handler
+// Returns a full list of CRDs in the running operator, including:
+//   - metadata (GVK, mode, namespace, dependencies)
+//   - resolved operational values (workers, resync, queue depth)
+//   - reconciler configuration summary
+//   - health summary (uptime, error rate, startedAt)
+//   - per‑CRD endpoints (/health, /info)
+//
+// This is the top‑level endpoint for dashboards and operator UIs.
+// ─────────────────────────────────────────────────────────────────────────────
+func BuildBlueprintHandler(
+	bp *blueprint.Blueprint,
+	cfg *config.Config,
+	reg contract.RuntimeResourceBlueprint,
+	healthMap map[string]*CRDHealth,
+	o *RuntimeHealth,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		crds := make([]CRDSummaryResponse, 0)
+		statusCounts := StatusCounts{}
+		namespaces := make(map[string]BlueprintNamespaceSummary)
+		deletionProtectedCRDs := bp.DeletionProtectedCRDNames()
+
+		for _, crd := range bp.Enabled() {
+			gvk := crd.GVKString()
+			h := healthMap[gvk]
+
+			entry, ok := reg.Get(gvk)
+			var inf cache.SharedIndexInformer
+			if ok {
+				inf = entry.Informer
+			}
+
+			v := resolveCRDDisplayValues(crd, cfg, inf)
+
+			isStarted := h.Started()
+			isPending := h.Pending()
+			isHealthy := h.IsHealthy()
+
+			var state string
+
+			switch {
+			case !isStarted && !isPending:
+				state = "not started"
+				statusCounts.Pending++
+			case isPending:
+				state = "pending"
+				statusCounts.Pending++
+			case isStarted && !isHealthy:
+				state = "degraded"
+				statusCounts.Degraded++
+			case isHealthy && h.IsGated():
+				state = "gated"
+				statusCounts.Healthy++
+			case isHealthy:
+				state = "healthy"
+				statusCounts.Healthy++
+			default:
+				state = "pending"
+				statusCounts.Pending++
+			}
+
+			box := crd.OperatorBox
+			crds = append(crds, CRDSummaryResponse{
+				Name:                     crd.Name,
+				State:                    state,
+				HasUnhealthyDependencies: h.HasUnhealthyDependencies(),
+				Description:              crd.Description,
+				Mode:                     crd.Mode.String(),
+				GVK:                      gvk,
+				GVR:                      crd.GroupVersionResource.String(),
+				Namespaced:               crd.IsNamespaced(),
+				Namespace:                crd.Namespace,
+				DependsOn:                crd.DependsOn.Names(),
+				Workers:                  v.workers,
+				WorkersSource:            v.workersSource,
+				WorkersActive:            h.GetActiveWorkers(),
+				Resync:                   v.resync,
+				ResyncSource:             v.resyncSource,
+				QueueDepth:               h.QueueDepth(gvk),
+				MaxDepth:                 v.maxDepth,
+				MaxDepthSource:           v.maxDepthSource,
+				RBACCount:                toRBACInfo(bp.RBACRulesForCRD(crd)).TotalRules,
+				ResourceCount:            v.resourceCount,
+				DeletionProtection:       isCRDProtected(deletionProtectedCRDs, crd.APITypes.Plural, crd.APITypes.Group),
+				OperatorBox: OperatorBoxSummary{
+					Type:           "generic",
+					HasTemplates:   box.EffectiveOnCreate() != nil,
+					HasHooks:       crd.HasHooks(),
+					HasConstructor: crd.HasConstructor(),
+				},
+				Healthy:            isHealthy,
+				Started:            isStarted,
+				Pending:            isPending,
+				StartedAt:          h.StartedAt(),
+				Uptime:             h.Uptime(),
+				ErrorRate:          h.ErrorRatePercent(),
+				Gated:              h.IsGated(),
+				GatedReason:        h.GatedReason(),
+				CrossAccess:        crd.CrossAccessEnabled(),
+				BlueprintNamespace: crd.BlueprintNamespace,
+				ServeEnabled:       crd.ServeEnabled(),
+				RequireServeName:   crd.RequireServeName(),
+				Target:             crd.ServeTargetOrEmpty(),
+				Aliases:            crd.AliasNames(),
+				Endpoints: EndpointInfo{
+					Health:        runtimeapi.HealthPath(strings.ToLower(crd.Name)),
+					Info:          runtimeapi.CRDPath(strings.ToLower(crd.Name)),
+					HealthEnabled: crd.Endpoints.IsHealthEnabled(),
+					InfoEnabled:   crd.Endpoints.IsInfoEnabled(),
+				},
+			})
+
+			// Build namespace grouping for the Console.
+			ns := crd.BlueprintNamespace
+			if ns == "" {
+				ns = "default"
+			}
+			nsSummary := namespaces[ns]
+			nsSummary.CRDs = append(nsSummary.CRDs, crd.Name)
+			switch {
+			case isHealthy:
+				nsSummary.StatusCounts.Healthy++
+			case isStarted && !isHealthy:
+				nsSummary.StatusCounts.Degraded++
+			default:
+				nsSummary.StatusCounts.Pending++
+			}
+			nsSummary.Healthy = nsSummary.StatusCounts.Degraded == 0
+			nsSummary.Workers += v.workers
+			nsSummary.Resources += v.resourceCount
+			if nsSummary.Description == "" {
+				nsSummary.Description = crd.BlueprintDescription
+			}
+			if nsSummary.Version == "" {
+				nsSummary.Version = crd.BlueprintVersion
+			}
+			namespaces[ns] = nsSummary
+		}
+
+		healthy := statusCounts.Degraded == 0
+		status := http.StatusOK
+		degradedReason := ""
+
+		if !healthy {
+			status = http.StatusServiceUnavailable
+			var parts []string
+			if statusCounts.Degraded > 0 {
+				parts = append(parts, fmt.Sprintf("%d degraded", statusCounts.Degraded))
+			}
+			if statusCounts.Pending > 0 {
+				parts = append(parts, fmt.Sprintf("%d pending", statusCounts.Pending))
+			}
+			if statusCounts.Started > 0 {
+				parts = append(parts, fmt.Sprintf("%d started", statusCounts.Started))
+			}
+			degradedReason = strings.Join(parts, ", ")
+		}
+
+		deletionProtection := bp.DeletionProtectionActive()
+
+		httpapi.WriteJSON(w, status, BlueprintResponse{
+			CRDs:               crds,
+			Total:              len(bp.All()),
+			TotalEnabled:       len(bp.Enabled()),
+			InrunReady:         o.IsInrunReady(),
+			IsLeader:           o.IsLeader(),
+			DeletionProtection: deletionProtection,
+			Healthy:            status == http.StatusOK, // workaround. TODO: standard from crd_health
+			Status:             status,
+			DegradedReason:     degradedReason,
+			StatusCounts:       statusCounts,
+			Name:               bp.Meta().Name,
+			Version:            bp.Meta().Version,
+			Author:             bp.Meta().Author,
+			License:            bp.Meta().License,
+			Description:        bp.Meta().Description,
+			RuntimeVersion:     version.Short(),
+			ClusterName:        bp.ClusterName(),
+			Namespaces:         namespaces,
+			GatewayEndpoint:    bp.GatewayEndpoint(),
+		})
+	}
+}
+
+// isCRDProtected returns true when the CRD identified by (plural, group) is
+// present in the protected names set built from the Blueprint at startup.
+// Returns false when the set is nil (deletion protection not enabled) or when
+// the CRD is not managed by this operator.
+func isCRDProtected(protected map[string]struct{}, plural, group string) bool {
+	if protected == nil {
+		return false
+	}
+	_, ok := protected[plural+"."+group]
+	return ok
+}
+
+// Helper function to convert to struct-based reconciler info
+func operatorBoxInfoStruct(crd types.CRDEntry) OperatorBoxInfo {
+	box := crd.OperatorBox
+
+	var targets map[string]string
+	for name, kind := range crd.TargetReconcilerKinds() {
+		if targets == nil {
+			targets = make(map[string]string)
+		}
+		targets[name] = string(kind)
+	}
+
+	// What the runtime applies to every CR: inrun.dev/cleanup plus
+	// runtime.finalizers.names, or nothing with runtime.finalizers.remove.
+	finalizersInfo := FinalizersInfo{Source: "runtime", Values: box.EffectiveFinalizers()}
+	if box.EffectiveRemoveFinalizers() {
+		finalizersInfo = FinalizersInfo{Source: "remove", Values: []string{}}
+	}
+	if finalizersInfo.Values == nil {
+		finalizersInfo.Values = []string{}
+	}
+
+	hooksInfo := HooksInfo{Configured: false}
+	if r := box.Reconcile; r != nil && r.Hooks != nil {
+		hooksInfo = HooksInfo{
+			Configured: true,
+			Source:     "yaml",
+			Location:   r.Hooks.Location,
+			Function:   r.Hooks.Function,
+		}
+	} else if _, ok := crd.HookFactory(); ok {
+		hooksInfo = HooksInfo{
+			Configured: true,
+			Source:     "go",
+		}
+	}
+
+	constructorInfo := ConstructorInfo{Configured: false}
+	if r := box.Reconcile; r != nil && r.ConstructorDecl != nil {
+		constructorInfo = ConstructorInfo{
+			Configured: true,
+			Source:     "yaml",
+			Location:   r.ConstructorDecl.Location,
+			Function:   r.ConstructorDecl.Function,
+		}
+	} else if crd.HasConstructor() {
+		constructorInfo = ConstructorInfo{
+			Configured: true,
+			Source:     "go",
+		}
+	}
+
+	result := OperatorBoxInfo{
+		Type:        string(crd.ReconcilerKind()),
+		Targets:     targets,
+		Finalizers:  finalizersInfo,
+		Hooks:       hooksInfo,
+		Constructor: constructorInfo,
+	}
+
+	hasTemplates := (box.EffectiveOnCreate() != nil || box.EffectiveOnReconcile() != nil || box.EffectiveOnDelete() != nil)
+	if r := box.Reconcile; r != nil {
+		hasTemplates = hasTemplates || r.OnCreate != nil || r.OnReconcile != nil || r.OnDelete != nil
+	}
+	if hasTemplates {
+		result.Templates = make(map[string]interface{})
+		// Resolve templates: reconcile block first (new), then flat fields (legacy).
+		onCreate := box.EffectiveOnCreate()
+		onReconcile := box.EffectiveOnReconcile()
+		onDelete := box.EffectiveOnDelete()
+		if r := box.Reconcile; r != nil {
+			if r.OnCreate != nil {
+				onCreate = r.OnCreate
+			}
+			if r.OnReconcile != nil {
+				onReconcile = r.OnReconcile
+			}
+			if r.OnDelete != nil {
+				onDelete = r.OnDelete
+			}
+		}
+		if onCreate != nil {
+			summary := templateSummary(onCreate)
+			if hasAutoReconcile(onCreate) {
+				result.Templates["onReconcile"] = map[string]interface{}{
+					"source": "auto",
+					"from":   "onCreate[reconcile:true]",
+				}
+			}
+			result.Templates["onCreate"] = summary
+		}
+		if onReconcile != nil {
+			result.Templates["onReconcile"] = templateSummary(onReconcile)
+		}
+		if onDelete != nil {
+			result.Templates["onDelete"] = templateSummary(onDelete)
+		}
+	}
+
+	return result
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// templateSummary
+// Produces a compact summary of declarative templates for a CRD.
+// Only counts are returned — not full templates — to keep API responses small.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func templateSummary(t *types.HookTemplates) map[string]interface{} {
+	if t == nil {
+		return map[string]interface{}{}
+	}
+
+	summary := map[string]interface{}{}
+
+	if len(t.Deployments) > 0 {
+		summary["deployments"] = len(t.Deployments)
+	}
+	if len(t.StatefulSets) > 0 {
+		summary["statefulSets"] = len(t.StatefulSets)
+	}
+	if len(t.ReplicaSets) > 0 {
+		summary["replicaSets"] = len(t.ReplicaSets)
+	}
+	if len(t.Services) > 0 {
+		summary["services"] = len(t.Services)
+	}
+	if len(t.Pods) > 0 {
+		summary["pods"] = len(t.Pods)
+	}
+	if len(t.Jobs) > 0 {
+		summary["jobs"] = len(t.Jobs)
+	}
+	if len(t.CronJobs) > 0 {
+		summary["cronJobs"] = len(t.CronJobs)
+	}
+	if len(t.ConfigMaps) > 0 {
+		summary["configMaps"] = len(t.ConfigMaps)
+	}
+	if len(t.ServiceAccounts) > 0 {
+		summary["serviceAccounts"] = len(t.ServiceAccounts)
+	}
+	if len(t.Secrets) > 0 {
+		summary["secrets"] = len(t.Secrets)
+	}
+	if len(t.PersistentVolumes) > 0 {
+		summary["persistentVolumes"] = len(t.PersistentVolumes)
+	}
+	if len(t.PersistentVolumeClaims) > 0 {
+		summary["persistentVolumeClaims"] = len(t.PersistentVolumeClaims)
+	}
+	if len(t.Roles) > 0 {
+		summary["roles"] = len(t.Roles)
+	}
+	if len(t.RoleBindings) > 0 {
+		summary["roleBindings"] = len(t.RoleBindings)
+	}
+	if len(t.ClusterRoles) > 0 {
+		summary["clusterRoles"] = len(t.ClusterRoles)
+	}
+	if len(t.ClusterRoleBindings) > 0 {
+		summary["clusterRoleBindings"] = len(t.ClusterRoleBindings)
+	}
+	if len(t.Ingresses) > 0 {
+		summary["ingresses"] = len(t.Ingresses)
+	}
+	if len(t.NetworkPolicies) > 0 {
+		summary["networkPolicies"] = len(t.NetworkPolicies)
+	}
+	if len(t.PodDisruptionBudgets) > 0 {
+		summary["podDisruptionBudgets"] = len(t.PodDisruptionBudgets)
+	}
+	if len(t.LimitRanges) > 0 {
+		summary["limitRanges"] = len(t.LimitRanges)
+	}
+	if len(t.ResourceQuotas) > 0 {
+		summary["resourceQuotas"] = len(t.ResourceQuotas)
+	}
+	if len(t.CustomResource) > 0 {
+		summary["customResource"] = len(t.CustomResource)
+	}
+	if len(t.HorizontalPodAutoscalers) > 0 {
+		summary["horizontalPodAutoscalers"] = len(t.HorizontalPodAutoscalers)
+	}
+
+	return summary
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// resolveCRDDisplayValues
+// Resolves operational values for a CRD, including:
+//   - workers (configured or default)
+//   - resync period (configured or default)
+//   - queue depth (configured or default)
+//   - resource count from informer
+//
+// This ensures the API always shows the *effective* values the operator uses.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type crdDisplayValues struct {
+	resync         string
+	resyncSource   string
+	workers        int
+	workersSource  string
+	maxDepth       int
+	maxDepthSource string
+	resourceCount  int
+}
+
+func resolveCRDDisplayValues(
+	crd types.CRDEntry,
+	cfg *config.Config,
+	inf cache.SharedIndexInformer,
+) crdDisplayValues {
+	box := crd.OperatorBox
+
+	effectiveReconcile := box.Reconcile
+	maxDepth := 0
+	if effectiveReconcile != nil && effectiveReconcile.Queue.MaxDepth != 0 {
+		maxDepth = effectiveReconcile.Queue.MaxDepth
+	}
+	maxDepthSource := "configured"
+	if maxDepth == 0 {
+		maxDepth = cfg.Blueprint().DefaultQueueDepth()
+		maxDepthSource = "default"
+	}
+
+	// Resync
+	var resyncDuration types.Duration
+	if effectiveReconcile != nil && effectiveReconcile.Resync.Duration != 0 {
+		resyncDuration = effectiveReconcile.Resync
+	}
+	resync := resyncDuration.String()
+	resyncSource := "configured"
+	if resyncDuration.Duration == 0 {
+		resyncSource = "default"
+		resync = cfg.Blueprint().DefaultResync().String()
+	}
+
+	// Workers
+	workers := 0
+	if effectiveReconcile != nil && effectiveReconcile.Workers != 0 {
+		workers = effectiveReconcile.Workers
+	}
+	workersSource := "configured"
+	if workers == 0 {
+		workers = cfg.Blueprint().DefaultWorkers()
+		workersSource = "default"
+	}
+
+	// Resource count from informer
+	resourceCount := 0
+	if inf != nil {
+		resourceCount = len(inf.GetStore().List())
+	}
+
+	return crdDisplayValues{
+		resync:         resync,
+		resyncSource:   resyncSource,
+		workers:        workers,
+		workersSource:  workersSource,
+		maxDepth:       maxDepth,
+		maxDepthSource: maxDepthSource,
+		resourceCount:  resourceCount,
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// hasAutoReconcile
+// Returns true if any declarative template has `reconcile: true`,
+// meaning onCreate implicitly triggers onReconcile.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func hasAutoReconcile(t *types.HookTemplates) bool {
+	if t == nil {
+		return false
+	}
+	for _, d := range t.Deployments {
+		if d.Reconcile {
+			return true
+		}
+	}
+	for _, s := range t.Services {
+		if s.Reconcile {
+			return true
+		}
+	}
+	return false
+}

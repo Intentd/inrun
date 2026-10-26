@@ -1,0 +1,58 @@
+# Runtime ingress policy
+{{- if .Values.runtime.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "inrun.fullname" . }}-runtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: runtime
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: runtime
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: {{ .Values.runtime.server.httpPort }}
+          protocol: TCP
+      {{- if .Values.runtime.networkPolicy.ingressFrom }}
+      from:
+        {{- toYaml .Values.runtime.networkPolicy.ingressFrom | nindent 8 }}
+      {{- end }}
+  egress:
+    # Allow all egress — Inrun must reach the Kubernetes API server
+    # and any remote Blueprint sources (URLs, Helm repos)
+    - {}
+{{- end }}
+---
+# Console ingress policy
+{{- if and .Values.console.networkPolicy.enabled .Values.console.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "inrun.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: console
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: {{ .Values.console.config.port }}
+          protocol: TCP
+      {{- if .Values.console.networkPolicy.ingressFrom }}
+      from:
+        {{- toYaml .Values.console.networkPolicy.ingressFrom | nindent 8 }}
+      {{- end }}
+{{- end }}

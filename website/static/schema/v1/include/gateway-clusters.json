@@ -1,0 +1,123 @@
+{
+  "$defs": {
+    "GatewayClusterConfig": {
+      "additionalProperties": false,
+      "description": "GatewayClusterConfig holds the connection details for one registered remote cluster.",
+      "properties": {
+        "caRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "CARef locates a Kubernetes Secret whose data key holds the cluster's CA\ncertificate (PEM, base64-encoded). Used together with TokenRef to verify\nthe API server's TLS certificate.\nMust be paired with TokenRef. Mutually exclusive with SecretRef."
+        },
+        "endpoint": {
+          "description": "Endpoint is the Kubernetes API server URL for this cluster.\nExample: https://prod.internal:6443",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "insecure": {
+          "description": "Insecure skips TLS verification when connecting to this cluster.\nOnly valid with TokenRef (kubeconfig manages TLS settings internally).\nUse only in local development — never in production.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SecretRef locates a Kubernetes Secret whose data key holds a kubeconfig.\nMutually exclusive with TokenRef + CARef.\nThe kubeconfig may use any auth method internally (token, client cert,\nexec plugin, OIDC). Use this when you already manage kubeconfigs."
+        },
+        "tokenRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "TokenRef locates a Kubernetes Secret whose data key holds a bearer token\n(typically a service account token) for this cluster.\nMust be paired with CARef. Mutually exclusive with SecretRef.\nThis is the ArgoCD credential pattern — prefer it when you want explicit\nleast-privilege service account scoping rather than a full kubeconfig."
+        }
+      },
+      "type": "object"
+    },
+    "GatewayClustersInclude": {
+      "additionalProperties": false,
+      "description": "GatewayClustersInclude is the file gateway.clusters.include names: clusters the inline ones override by name.",
+      "properties": {
+        "clusters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/GatewayClusterConfig"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "KubernetesSecretRef": {
+      "additionalProperties": false,
+      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "properties": {
+        "key": {
+          "description": "Key is the data key within the Secret whose value is the token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Kubernetes Secret name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "rotateAfter": {
+          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/gateway-clusters.json",
+  "$ref": "#/$defs/GatewayClustersInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: gateway-clusters"
+}

@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: assertions-e2e
+  description: Every assertion form on one step's output — inline, text and json.
+
+spec:
+  cluster:
+    provider: none
+
+  expect:
+    - name: Inline — one comparison
+      commands:
+        - run: echo "2 CRDs valid (0 built-in, 2 custom)"
+          assert:
+            contains: "2 CRDs valid"
+
+    - name: Text — several comparisons on one output, all must hold
+      commands:
+        - run: |
+            echo "2 CRDs valid (0 built-in, 2 custom)"
+            echo "warning: sources with the same name in different namespaces will fail as collisions"
+          assert:
+            text:
+              - contains: "2 CRDs valid (0 built-in, 2 custom)"
+              - contains: "will fail as collisions"
+              - notContains: "error"
+              - regex: '\(0 built-in, [0-9]+ custom\)'
+
+    - name: JSON — path-scoped comparisons on JSON output
+      commands:
+        - run: echo '{"totals":{"pruned":3,"failed":0},"kinds":[{"name":"AppConfig"}]}'
+          assert:
+            json:
+              - path: .totals.pruned
+                equals: "3"
+              - path: .totals.failed
+                equals: "0"
+              - path: .kinds[0].name
+                equals: AppConfig
+
+    - name: Together — inline, then text, then json, on the same output
+      commands:
+        - run: echo '{"status":"ok","count":2}'
+          assert:
+            contains: '"status":"ok"'
+            text:
+              - notContains: "error"
+              - regex: '"count":[0-9]+'
+            json:
+              - path: .count
+                greaterThan: "1"
+
+    - name: After an extractor — every form sees the extracted value
+      commands:
+        - run: echo '{"spec":{"image":"myapp/api:2.3.0"}}'
+          jsonPath: .spec.image
+          assert:
+            text:
+              - prefix: "myapp/"
+              - suffix: ":2.3.0"

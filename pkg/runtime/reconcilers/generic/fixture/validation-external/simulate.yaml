@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: validation-external-simulate
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr-bad-health.yaml
+  cycles: 3
+
+  # healthCheck is admission-only (fires.reconcile: false), so the bad URL
+  # does not stop the reconciler: the Deployment is still created.
+  expect:
+    noErrors: true
+    steady: true
+    ops:
+      - cycle: 1
+        verb: create
+        resource: deployments

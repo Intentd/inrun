@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/stack.json
+apiVersion: inrun.dev/v1
+kind: Stack
+metadata:
+  name: args-demo
+  description: >
+    Composes the hooks and constructor args examples into a single operator.
+    01-hooks: BlockchainApp — runtime injects args into hooks automatically.
+    02-constructor: BlockchainNode — constructor reads req.Args.
+
+imports:
+  files:
+    - 01-hooks/blueprint.yaml
+    - 02-constructor/blueprint.yaml
+    - 03-hooks-targets/blueprint.yaml
+    - 04-ctrlruntime/blueprint.yaml

@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: reconciler-probe-rbac
+  description: RBAC resources — ClusterRole, ClusterRoleBinding, ServiceAccount, Role, RoleBinding.
+
+resources:
+  clusterRoles:
+    - name: "{{ .metadata.name }}-cr"
+      rules:
+        - apiGroups: [""]
+          resources: ["namespaces"]
+          verbs: ["get", "list", "watch"]
+
+  clusterRoleBindings:
+    - name: "{{ .metadata.name }}-crb"
+      roleRef:
+        name: "{{ .metadata.name }}-cr"
+        kind: ClusterRole
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ .metadata.name }}-sa"
+          namespace: "{{ .metadata.name }}-ns"
+
+  serviceAccounts:
+    - name: "{{ .metadata.name }}-sa"
+      namespace: "{{ .metadata.name }}-ns"
+
+  roles:
+    - name: "{{ .metadata.name }}-role"
+      namespace: "{{ .metadata.name }}-ns"
+      rules:
+        - apiGroups: [""]
+          resources: ["configmaps", "secrets"]
+          verbs: ["get", "list", "watch"]
+
+  roleBindings:
+    - name: "{{ .metadata.name }}-rb"
+      namespace: "{{ .metadata.name }}-ns"
+      roleRef:
+        name: "{{ .metadata.name }}-role"
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ .metadata.name }}-sa"
+          namespace: "{{ .metadata.name }}-ns"

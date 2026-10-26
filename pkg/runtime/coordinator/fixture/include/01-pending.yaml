@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  - name: Runtime started — all CRDs pending, not yet installed
+    after: cr-applied
+    timeout: 120s
+    kubectl:
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/worker/health
+          jsonPath: .state
+          assert:
+            equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/component/health
+          jsonPath: .state
+          assert:
+            equals: pending
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .state
+          assert:
+            equals: pending

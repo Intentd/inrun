@@ -1,0 +1,9 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: DeploymentRequest
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  image: myorg/my-app:latest
+  replicas: 2
+  environment: production

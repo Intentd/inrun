@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: rename-e2e
+  description: >
+    AppConfig CRs move to a new CRD, NewConfig, under a running gateway.
+    Verifies that the gateway serves the destination CRD from startup, that
+    flat intents keep working before, during and after forward migration,
+    prune, rollback and clean without a restart, and that a full-CR request
+    using the old GVK is rejected throughout.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd-appconfig.yaml
+  valuesFiles:
+    - ./e2e-values.yaml
+  setup:
+    - ../manifests/crd-newconfig.yaml      # destination CRD — both must exist
+    - ../manifests/namespaces.yaml
+    - ../manifests/crs-appconfig.yaml      # 10 AppConfigs: web/batch/internal/none
+
+  runtime: 
+    enabled: false
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  env:
+    DEV_TOKEN: dev-token
+  expect:
+    # --- gateway is up, serving NewConfig, before any migration ---
+
+    - include: ./include/before-migration.yaml
+    - include: ./include/dry-run.yaml
+    - include: ./include/forward.yaml
+    - include: ./include/after-forward.yaml
+    - include: ./include/prune.yaml
+    - include: ./include/rollback.yaml
+    - include: ./include/clean.yaml
+    - include: ./include/existing-destinations.yaml
+
+  # Removes what the existing-destinations phase applied, whatever happened before it.
+  finally:
+    kubectl:
+      delete:
+        - file: ../manifests/existing-destinations.yaml
+          ignoreNotFound: true

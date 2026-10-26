@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+# Triggers: duplicate watch entry (same apiVersion + kind)
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-watch-duplicate
+  version: 0.1.0
+  description: watch declares the same resource twice.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        observe:
+          watch:
+            - apiVersion: apps/v1
+              kind: Deployment
+            - apiVersion: apps/v1
+              kind: Deployment
+

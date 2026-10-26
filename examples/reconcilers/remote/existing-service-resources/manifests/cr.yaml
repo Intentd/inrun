@@ -1,0 +1,7 @@
+apiVersion: storage.demo.inrun.dev/v1alpha1
+kind: Bucket
+metadata:
+  name: assets
+  namespace: default
+spec:
+  quotaGB: 20

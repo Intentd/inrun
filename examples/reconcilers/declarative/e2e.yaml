@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: declarative-suite
+  description: >
+    Suite for the declarative pack — hello website, ServiceAccount wiring,
+    Secret distribution, and ConfigMap distribution. Runs all four examples
+    in the same cluster.
+
+imports:
+  - ./01-hello-website/test/e2e.yaml
+  - ./02-with-serviceaccount/test/e2e.yaml
+  - ./03-secret-copy/test/e2e.yaml
+  - ./04-configmap-copy/test/e2e.yaml

@@ -1,0 +1,127 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Forward migration: the selected sources move, with spec and snapshot
+expect:
+  # The forward run reads each source as it is now, not as the dry run saw it.
+  - name: Edit platform-01 after the dry run
+    timeout: 30s
+    kubectl:
+      patch:
+        - kind: AppConfig
+          name: api-server
+          namespace: platform-01
+          patch: '{"spec":{"scaling":{"min":7}}}'
+
+  - name: Forward migration moves the selected sources
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -ojson
+        json:
+          - path: .totals.migrated
+            equals: 3
+          - path: .totals.pruned
+            equals: 0
+
+  - name: Platform-01 moved to NewConfig with its spec carried
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.scaling.min
+          equals: "7"   # the edit made after the dry run
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .spec.observability.logging.level
+          equals: "warn"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.labels.migrated-from
+          equals: "appconfig"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.labels.tier
+          equals: "web"
+
+  - name: Platform-02 moved to NewConfig with its spec carried
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .spec.scaling.min
+          equals: "6"
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-02
+          field: .metadata.labels.migrated-from
+          equals: "appconfig"
+    
+  - name: Platform-03 condition satisfies migration
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -n platform-03 --dry-run
+        contains: "would be migrated"
+
+  - name: Patch Platform-03 status to Pending
+    kubectl: 
+      patch:
+        - kind: AppConfig
+          name: api-server
+          namespace: platform-03
+          patch: '{"status":{"phase":"Pending"}}'
+
+  - name: Platform-03 is now Pending and was not selected
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-03
+          field: .status.phase
+          equals: "Pending"
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -n platform-03 --dry-run
+        contains: "not selected: migrate.selection when/or"
+
+  - name: Platform-04 is tier=batch and was not selected
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -n platform-04 --dry-run
+        contains: "0/0 would be migrated"
+
+  - name: Sources remain because prune is off
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.name
+          equals: api-server
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          field: .metadata.labels.migrated-from
+          equals: appconfig
+
+  - name: Destination snapshot names AppConfig as the source
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: newconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-01
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          json:
+            - path: .source.kind
+              equals: AppConfig
+            - path: .destination.kind
+              equals: NewConfig
+            - path: .pruned
+              equals: false
+
+  # --- intent still works after forward migration, no restart ---

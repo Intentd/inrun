@@ -1,0 +1,7 @@
+apiVersion: coordinator.inrun.dev/v1alpha1
+kind: Platform
+metadata:
+  name: main-platform
+  namespace: default
+spec:
+  workerRef: core-worker

@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: conditional-test
+
+inputs:
+  - name: image
+    required: true
+
+  - name: enableUI
+    default: "false"
+
+  - name: serviceUrl
+    default: "http://localhost:9999"
+
+resources:
+  external:
+    - name: healthCheck
+      url: "{{ .inputs.serviceUrl }}/health"
+      continueOnError: true
+      timeout: 5s
+
+  deployments:
+    # Static condition — field uses {{ .inputs.* }} so renderInputs substitutes
+    # it before condition evaluation. After substitution the field is "true" or
+    # "false" — a plain string the expander can compare immediately.
+    - name: "{{ .metadata.name }}-ui"
+      image: nginx:latest
+      when:
+        - field: "{{ .inputs.enableUI }}"
+          equals: "true"
+
+    # Runtime condition — field contains {{ }}, preserved for the reconciler.
+    - name: "{{ .metadata.name }}"
+      image: "{{ .inputs.image }}"
+      when:
+        - field: "{{ .spec.tier }}"
+          equals: "premium"

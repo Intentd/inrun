@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  - name: Status fields populated
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      get:
+        - kind: ReconcilerProbe
+          name: probe
+          field: .status.phase
+          assert:
+            equals: Premium
+        - kind: ReconcilerProbe
+          name: probe
+          field: .status.configReady
+          assert:
+            equals: "true"
+        - kind: ReconcilerProbe
+          name: probe
+          field: .status.secretCreated
+          assert:
+            equals: "true"

@@ -1,0 +1,6 @@
+target: doesnotexist
+name: my-service
+workloadType: app
+team: platform
+environment: staging
+repoURL: https://github.com/myorg/payments

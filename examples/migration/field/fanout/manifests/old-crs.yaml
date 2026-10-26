@@ -1,0 +1,26 @@
+apiVersion: demo.inrun.dev/v1
+kind: CronJob
+metadata:
+  name: db-backup
+  namespace: team-alpha
+spec:
+  schedule: "0 2 * * 1-5"
+  image: "postgres:16-alpine"
+---
+apiVersion: demo.inrun.dev/v1
+kind: CronJob
+metadata:
+  name: cache-flush
+  namespace: team-beta
+spec:
+  schedule: "*/15 * * * *"
+  image: "redis:7-alpine"
+---
+apiVersion: demo.inrun.dev/v1
+kind: CronJob
+metadata:
+  name: report-gen
+  namespace: team-gamma
+spec:
+  schedule: "0 8 * * 1"
+  image: "python:3.12-slim"

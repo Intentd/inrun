@@ -1,0 +1,14 @@
+apiVersion: test.inrun.dev/v1alpha1
+kind: Tenant
+metadata:
+  name: acme
+spec:
+  namespaces:
+    - acme-dev
+    - acme-staging
+  roles:
+    - developer
+    - reviewer
+  apps:
+    - api
+    - worker

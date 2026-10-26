@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-accept-on-blueprint
+  version: 1.0.0
+  description: Tests that lifecycle.accept is rejected on a Blueprint (Stack-only field).
+lifecycle:
+  accept:
+    patterns:
+      - name: some-deprecated-import
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml

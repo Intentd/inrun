@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Fixture: the runtime reconciles the fixture CR, and its API serves the result
+expect:
+  - name: Runtime reconciles fixture CR — Deployment and Service created
+    timeout: 90s
+    resources:
+      - kind: Deployment
+        name: hello-website
+        namespace: default
+        ready: true
+      - kind: Service
+        name: hello-website-svc
+        namespace: default
+
+  - name: Fixture CR rendered with correct configuration
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: Deployment
+          name: hello-website
+          namespace: default
+          field: spec.replicas
+          equals: "1"
+        - kind: Service
+          name: hello-website-svc
+          namespace: default
+          field: spec.ports[0].port
+          equals: "80"
+
+  - name: Runtime API responds with reconciled service
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - namespace: inrun-system
+          leaderElection:
+            lease: inrun-leader
+          port: 8080
+          path: /blueprint/website/health
+          jq: resourceCount
+          equals: "1"
+
+        - namespace: inrun-system
+          leaderElection:
+            lease: inrun-leader
+          port: 8080
+          path: /blueprint/website/health
+          jq: healthy
+          equals: "true"
+
+        - namespace: inrun-system
+          leaderElection:
+            lease: inrun-leader
+          port: 8080
+          path: /blueprint/website
+          contains: "Website CRD, GVK: demo.inrun.dev/v1alpha1, Kind=Website"

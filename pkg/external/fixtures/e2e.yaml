@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: external-fixtures-suite
+  description: >
+    Full suite for all external protocol fixtures: HTTP auth, Prometheus,
+    Redis, Postgres, MongoDB, and Kafka.
+
+imports:
+  - http-auth/e2e.yaml
+  - prometheus/e2e.yaml
+  - redis/e2e.yaml
+  - postgres/e2e.yaml
+  - mongo/e2e.yaml
+  - kafka/e2e.yaml

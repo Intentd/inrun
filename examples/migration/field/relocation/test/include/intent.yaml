@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Intent: flat caller intents land in the nested spec paths
+expect:
+  - name: Gateway accepts flat caller intent and writes nested spec paths
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer dev-token"
+            Content-Type: "application/json"
+          body: >-
+            {
+              "target": "my-api-server",
+              "image": "myapp/api:2.2.0",
+              "replicas": 3,
+              "logLevel": "info",
+            }
+          statusCode: 200
+
+  - name: Serve translation writes replicas to scaling.min
+    timeout: 60s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-09
+          field: .spec.scaling.min
+          equals: "3"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-09
+          field: .spec.observability.logging.level
+          equals: "info"
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-09
+          field: .spec.replicas
+          exists: false
+        - kind: appconfigs.demo.inrun.dev
+          name: api-server
+          namespace: platform-09
+          field: .spec.logLevel
+          exists: false

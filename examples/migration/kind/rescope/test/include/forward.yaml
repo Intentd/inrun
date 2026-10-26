@@ -1,0 +1,195 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Forward migration: namespaced sources become cluster-scoped destinations
+expect:
+  - name: Forward migration moves three resources and reports the collision
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -ojson || true
+        json:
+          - path: .totals.crs
+            equals: 4
+          - path: .totals.migrated
+            equals: 3
+      - run: inrun migrate -f ../../blueprint.yaml
+        contains: "destination payments is also the target of team-a/payments in this run"
+
+  - name: Cluster-scoped destinations contain the migrated specs
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          json:
+            - path: .spec.image
+              equals: myapp/payments:1.0.0
+            - path: .spec.scaling.min
+              equals: 6
+            - path: .spec.observability.logging.level
+              equals: info
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: search
+          json:
+            - path: .spec.image
+              equals: myapp/search:1.0.0
+            - path: .spec.scaling.min
+              equals: 3
+            - path: .spec.observability.logging.level
+              equals: warn
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: ledger
+          json:
+            - path: .spec.image
+              equals: myapp/ledger:1.0.0
+            - path: .spec.scaling.min
+              equals: 4
+            - path: .spec.observability.logging.level
+              equals: info
+
+  - name: Destination labels are preserved from the winning sources
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          json:
+            - path: .metadata.labels.app
+              equals: payments
+            - path: .metadata.labels.team
+              equals: team-a
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: search
+          json:
+            - path: .metadata.labels.app
+              equals: search
+            - path: .metadata.labels.team
+              equals: team-b
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: ledger
+          json:
+            - path: .metadata.labels.app
+              equals: ledger
+            - path: .metadata.labels.team
+              equals: team-d
+
+  - name: Destination status is carried from each source
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          field: .status.phase
+          equals: Ready
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: search
+          field: .status.phase
+          equals: Ready
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: ledger
+          field: .status.phase
+          equals: Ready
+
+  - name: Snapshot preserves source namespace labels and status
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          json:
+            - path: .source.metadata.name
+              equals: payments
+            - path: .source.metadata.namespace
+              equals: team-a
+            - path: .source.metadata.labels.app
+              equals: payments
+            - path: .source.metadata.labels.team
+              equals: team-a
+            - path: .source.status.phase
+              equals: Ready
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: search
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          json:
+            - path: .source.metadata.name
+              equals: search
+            - path: .source.metadata.namespace
+              equals: team-b
+            - path: .source.status.phase
+              equals: Ready
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: ledger
+          jsonPath: '.metadata.annotations.inrun\.dev/migrate-kind-snapshot'
+          json:
+            - path: .source.metadata.name
+              equals: ledger
+            - path: .source.metadata.namespace
+              equals: team-d
+            - path: .source.status.phase
+              equals: Ready
+
+  - name: All four namespaced sources remain because prune is disabled
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-a
+          field: .metadata.name
+          equals: payments
+        - kind: appconfigs.demo.inrun.dev
+          name: search
+          namespace: team-b
+          field: .metadata.name
+          equals: search
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-c
+          field: .metadata.name
+          equals: payments
+        - kind: appconfigs.demo.inrun.dev
+          name: ledger
+          namespace: team-d
+          field: .metadata.name
+          equals: ledger
+
+  - name: Collision source remains unchanged and was not overwritten
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-c
+          json:
+            - path: .spec.image
+              equals: myapp/payments:1.0.0
+            - path: .spec.scaling.min
+              equals: 2
+            - path: .spec.observability.logging.level
+              equals: debug
+            - path: .metadata.labels.team
+              equals: team-c
+            - path: .status.phase
+              equals: Pending
+        - kind: appconfigs.platform.demo.inrun.dev
+          name: payments
+          json:
+            - path: .metadata.labels.team
+              equals: team-a
+            - path: .spec.scaling.min
+              equals: 6
+
+  # --- idempotency ---
+
+  - name: Second migration does not recreate existing destinations
+    timeout: 60s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml -ojson || true
+        json:
+          - path: .totals.crs
+            equals: 4
+          - path: .totals.migrated
+            equals: 0
+      - run: inrun migrate -f ../../blueprint.yaml
+        contains: "destination payments is also the target of team-a/payments in this run"
+
+  # --- prune only successfully migrated namespaces ---

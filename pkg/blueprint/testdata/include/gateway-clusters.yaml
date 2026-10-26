@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/gateway-clusters.json
+clusters:
+  prod:
+    endpoint: https://prod.internal:6443
+    secretRef:
+      name: prod-credentials
+      key: kubeconfig
+  staging:
+    endpoint: https://staging.internal:6443
+    tokenRef:
+      name: staging-sa-token
+      key: token
+    caRef:
+      name: staging-ca
+      key: ca.crt

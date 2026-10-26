@@ -1,0 +1,56 @@
+baseURL = "https://inrun.dev/"
+languageCode = "en-us"
+title = "Inrun"
+enableGitInfo = true
+
+[markup]
+  [markup.highlight]
+    style = "dracula"
+    lineNos = false
+    codeFences = true
+  [markup.goldmark.renderer]
+    unsafe = true
+  [markup.tableOfContents]
+    endLevel = 3
+    startLevel = 2
+
+[params]
+  description = "Kubernetes reconciliation for anything"
+  github = "https://github.com/intentd/inrun"
+  console = "https://console.inrun.dev"
+  version = "v0.1.0"
+  docsBase = "/docs/"
+
+  [params.algolia]
+    appId = "YOAX6JEP1X"
+    searchKey = "94c49f1d0b110455e3331c4fbd10a027"
+    indexName = "inrun"
+
+[menu]
+  [[menu.main]]
+    name = "Docs"
+    url = "/docs/"
+    weight = 1
+  [[menu.main]]
+    name = "Reference"
+    url = "/docs/reference/"
+    weight = 2
+  [[menu.main]]
+    name = "Blog"
+    url = "/blog/"
+    weight = 3
+
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
+
+# The brand files live once, in docs/assets; the site mounts them as
+# assets/brand (the default assets mount is listed again because declaring
+# any mount replaces the defaults).
+[module]
+  [[module.mounts]]
+    source = "assets"
+    target = "assets"
+  [[module.mounts]]
+    source = "../docs/assets"
+    target = "assets/brand"

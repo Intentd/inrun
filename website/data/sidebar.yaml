@@ -1,0 +1,19 @@
+nav:
+  - title: Getting Started
+    section: getting-started
+    url: /docs/getting-started/
+  - title: Concepts
+    section: concepts
+    url: /docs/concepts/
+  - title: Reference
+    section: reference
+    url: /docs/reference/
+  - title: Roadmap
+    url: /docs/roadmap/
+    page: true
+  - title: Changelog
+    section: changelog
+    url: /docs/changelog/
+  - title: Contributing
+    section: contributing
+    url: /docs/contributing/

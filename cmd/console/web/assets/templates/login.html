@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Inrun Console</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="https://png.pngtree.com/png-clipart/20190619/original/pngtree-user-authentication-glyph-round-circle-multi-color-background-png-image_3982133.jpg">
+
+  <style>
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .box {
+      background: #161b22;
+      padding: 32px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.4);
+      box-sizing: border-box;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 20px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 14px;
+      border-radius: 4px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #e6edf3;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #238636;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .error {
+      background: #da3633;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Inrun Console</h1>
+
+    {{if .Error}}
+      <div class="error">{{.Error}}</div>
+    {{end}}
+
+    <form method="POST" action="/login">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: blockchainappwithtargets-v2-enabled
+  description: >
+    Run with: inrun simulate --dev-server
+
+    Routes through the "v2-enabled" target. featureEnabled is forced to "true"
+    via args — no live HTTP call needed. The enqueueGate blocks outside business
+    hours; during business hours the Deployment is created at spec.replicas (5).
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr.yaml
+  target: v2-enabled
+  cycles: 3
+
+  expect:
+    steady: true
+    noErrors: true
+    # enqueueGate on inBusinessHours means the deployment op only appears
+    # Mon–Fri 09:00–18:00 UTC — no ops assertion here to keep simulate deterministic

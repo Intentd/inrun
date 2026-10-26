@@ -1,0 +1,39 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: databases.demo.inrun.dev
+spec:
+  group: demo.inrun.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [engine, storage]
+              properties:
+                engine:
+                  type: string
+                  enum: [postgres, mysql]
+                version:
+                  type: string
+                storage:
+                  type: string
+                  description: Storage size e.g. "10Gi"
+                backup:
+                  type: boolean
+                  default: false
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  names:
+    kind: Database
+    plural: databases
+    singular: database
+  scope: Namespaced

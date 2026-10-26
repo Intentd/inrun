@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: onfailure-e2e
+  description: >
+    Exercises onFailure at spec and expectation level, and finally, with
+    provider: none. A suite has to fail for onFailure to run, so this one runs
+    failing.yaml through inrun e2e, expects it to fail, then checks what its
+    post blocks left in .marks and the warnings in its report.
+
+spec:
+  custom:
+    target: kubernetes
+  cluster:
+    provider: none
+
+  expect:
+    - name: the failing suite fails
+      timeout: 120s
+      commands:
+        - run: |
+            rm -f .marks .failing-report.json
+            inrun e2e -f failing.yaml --report=.failing-report.json
+          exitCode: 1
+
+    # Expectation onFailure only for the failing step, with the expectation's
+    # and the spec's env; finally after every step, failed or passed, and on
+    # past a failed operation; the spec onFailure once; the spec finally last.
+    - name: post blocks ran in order, with their env
+      timeout: 5s
+      commands:
+        - run: cat .marks
+          assert: 
+            equals: |-
+              expect onFailure from-expect from-spec
+              finally after a failure
+              finally after a pass
+              finally keeps going
+              spec onFailure from-spec
+              spec finally from-spec
+
+    - name: the failing step failed and nothing else did
+      timeout: 5s
+      commands:
+        - run: cat .failing-report.json
+          jsonPath: '.result.failed'
+          assert:
+            equals: "1"
+
+    - name: a broken finally is two warnings on a passing case
+      timeout: 5s
+      commands:
+        - run: cat .failing-report.json
+          jq: '.cases[] | select(.name == "passes despite a broken finally") | [.passed, (.warnings | length)] | map(tostring) | join(" ")'
+          assert:
+            equals: true 2
+      finally:
+        commands:
+          - run: rm -f .marks .failing-report.json

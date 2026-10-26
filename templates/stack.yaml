@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/stack.json
+apiVersion: inrun.dev/v1
+kind: Stack
+metadata:
+  name: <stack-name>
+  author: <your-name>
+  version: 0.1.0
+  description: <what this composition does>
+
+# ── Sources ──────────────────────────────────────────────────────────────────
+# Inrun merges all sources into one unified operator runtime.
+# Later sources win on name conflict — except spec.crds, which always wins.
+
+imports:
+  files:
+    - ./blueprint.yaml               # local Blueprint
+
+  # registry:                      # OCI registry (versioned, immutable)
+  #   - url: ghcr.io/intentd/registry/patterns/postgres@v1.0.0
+  #     oci: true
+
+  # helm:                          # Helm chart source
+  #   - repo: https://github.com/intentd/inrun.git
+  #     path: charts/examples/platform-blueprint
+  #     chart: platform-blueprint
+  #     version: main
+
+# ── Overrides ────────────────────────────────────────────────────────────────
+# Per-CRD tuning that wins over all sources.
+# Only override what you need — everything else is inherited from the source.
+
+spec:
+  crds:
+    <crd-name>:
+      operatorBox:
+        reconcile:
+          workers: 4
+          resync: 15s
+
+    # <other-crd>:
+    #   dependsOn:
+    #     <crd-name>:
+    #       condition: healthy     # or: started

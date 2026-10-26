@@ -1,0 +1,417 @@
+{
+  "$defs": {
+    "APIToken": {
+      "additionalProperties": false,
+      "description": "APIToken is one bearer token entry.",
+      "properties": {
+        "githubOIDC": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GitHubOIDC"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "GitHubOIDC authenticates callers via GitHub Actions OIDC tokens.\nNo secret is required — the gateway verifies the JWT signature against\nGitHub's public JWKS and matches the claims in the allow block."
+        },
+        "gitlabOIDC": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GitLabOIDC"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "GitLabOIDC authenticates callers via GitLab CI OIDC tokens."
+        },
+        "name": {
+          "description": "Name is a human-readable identifier used in logs and audit output.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "oidc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OIDCToken"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "OIDC authenticates callers via any OIDC-compliant identity provider.\nIssuer is required; the gateway discovers the JWKS URI via\n{issuer}/.well-known/openid-configuration."
+        },
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SecretRef reads the token value from a Kubernetes Secret at startup.\nIf the Secret does not exist, the gateway creates it with a generated\nuuidv4 token. If rotateAfter is set, the gateway rotates the token\nusing the same annotation-based rotation as pkg/runners."
+        },
+        "token": {
+          "description": "Token is an ${ENV_VAR} reference expanded at startup.\nSet the variable via extraEnv in the gateway and console Helm values.\nLiteral values are not accepted.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "vaultOIDC": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VaultOIDC"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "VaultOIDC authenticates callers via HashiCorp Vault OIDC tokens.\nThe caller authenticates to Vault first (via any Vault auth method), then\npresents a Vault-issued OIDC token to the gateway. No stored secret needed.\nThe gateway discovers the JWKS via {url}/v1/identity/oidc/.well-known/openid-configuration."
+        }
+      },
+      "type": "object"
+    },
+    "APITokens": {
+      "items": {
+        "$ref": "#/$defs/APIToken"
+      },
+      "type": "array"
+    },
+    "GatewayAuthInclude": {
+      "additionalProperties": false,
+      "description": "GatewayAuthInclude is the file gateway.api.auth.include names: tokens the inline ones override by name.",
+      "properties": {
+        "tokens": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/APITokens"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "GitHubOIDC": {
+      "additionalProperties": false,
+      "description": "GitHubOIDC configures authentication via GitHub Actions OIDC tokens.",
+      "properties": {
+        "allow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GitHubOIDCClaims"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Allow — the claims a token must carry. Each one set must match exactly."
+        }
+      },
+      "type": "object"
+    },
+    "GitHubOIDCClaims": {
+      "additionalProperties": false,
+      "description": "GitHubOIDCClaims declares which GitHub-issued claims must match.",
+      "properties": {
+        "environment": {
+          "description": "Environment — the environment claim: the job's deployment environment.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "jobWorkflowRef": {
+          "description": "JobWorkflowRef — the job_workflow_ref claim, e.g.\n\"intentd/inrun/.github/workflows/deploy.yml@refs/heads/main\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ref": {
+          "description": "Ref — the ref claim, e.g. \"refs/heads/main\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "repository": {
+          "description": "Repository — the repository claim, owner/name, e.g. \"intentd/inrun\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "repositoryOwner": {
+          "description": "RepositoryOwner — the repository_owner claim, e.g. \"intentd\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "workflow": {
+          "description": "Workflow — the workflow claim: the workflow's name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "GitLabOIDC": {
+      "additionalProperties": false,
+      "description": "GitLabOIDC configures authentication via GitLab CI OIDC tokens.",
+      "properties": {
+        "allow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GitLabOIDCClaims"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Allow — the claims a token must carry. Each one set must match exactly."
+        }
+      },
+      "type": "object"
+    },
+    "GitLabOIDCClaims": {
+      "additionalProperties": false,
+      "description": "GitLabOIDCClaims declares which GitLab-issued claims must match.",
+      "properties": {
+        "environment": {
+          "description": "Environment — the environment claim: the job's environment.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespacePath": {
+          "description": "NamespacePath — the namespace_path claim: the group or user, e.g. \"myorg\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "refProtected": {
+          "description": "RefProtected — the ref_protected claim: \"true\" for a protected branch or tag.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "KubernetesSecretRef": {
+      "additionalProperties": false,
+      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "properties": {
+        "key": {
+          "description": "Key is the data key within the Secret whose value is the token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Kubernetes Secret name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "rotateAfter": {
+          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "OIDCToken": {
+      "additionalProperties": false,
+      "description": "OIDCToken configures authentication via any OIDC-compliant identity provider.",
+      "properties": {
+        "allow": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Allow is a free-form map of claim name → required value.\nAll declared entries must match — unset keys are not checked.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "audience": {
+          "description": "Audience is the expected `aud` claim value.\nWhen empty, the audience check is skipped.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "issuer": {
+          "description": "Issuer is the OIDC provider's issuer URL. Required.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "VaultOIDC": {
+      "additionalProperties": false,
+      "description": "VaultOIDC configures authentication via HashiCorp Vault OIDC tokens.",
+      "properties": {
+        "allow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VaultOIDCClaims"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Allow declares which Vault identity claims must match.\nAll declared (non-Empty() fields must match — unset fields are not checked."
+        },
+        "audience": {
+          "description": "Audience is the expected aud claim value in the Vault-issued token.\nWhen empty, the audience check is skipped.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Vault namespace to scope the issuer to (Vault Enterprise only).\nWhen set, the effective issuer is {url}/v1/{namespace}.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "URL is the Vault server URL (e.g. https://vault.myorg.io). Required.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "VaultOIDCClaims": {
+      "additionalProperties": false,
+      "description": "VaultOIDCClaims declares which Vault-issued claims must match.",
+      "properties": {
+        "allow": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Allow is a free-form map of additional claim name → required value.\nUse for any claims configured via Vault's OIDC provider template.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "entityID": {
+          "description": "EntityID is the Vault entity ID (stable UUID for the entity).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "entityName": {
+          "description": "EntityName is the Vault entity name (identity/entity name).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Vault namespace the entity belongs to (Enterprise only).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/gateway-auth.json",
+  "$ref": "#/$defs/GatewayAuthInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: gateway-auth"
+}

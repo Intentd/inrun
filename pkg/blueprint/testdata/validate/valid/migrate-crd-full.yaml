@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: migrate-valid-full
+  version: 0.1.0
+  description: >
+    CR migration with selection, metadata overrides, and prune. Prune is
+    valid but produces a warning because it deletes source CRs.
+spec:
+  crds:
+    appconfig:
+      crdFile: ../crd.yaml
+      migrate:
+        to:
+          apiVersion: example.inrun.dev/v2
+          kind: Config
+          metadata:
+            preserveSource: false
+            labels:
+              migrated-from: appconfig
+              app.kubernetes.io/managed-by: migration
+            annotations:
+              example.io/migration-date: "2026-10-23"
+        selection:
+          namespaces:
+            - platform-01
+            - platform-02
+          selector: app=nginx
+          when:
+            - field: status.phase
+              equals: Ready
+        prune: true

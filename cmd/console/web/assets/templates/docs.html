@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation – Inrun Console</title>
+  <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
+  <link rel="stylesheet" href="/console/assets/static/css/inrun-docs.css">
+  <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+  <!-- Top nav -->
+  <nav class="inrun-nav">
+    <div class="inrun-nav-inner">
+      <a href="/console" class="inrun-nav-brand">
+        <img src="/console/assets/static/inrun-mark.svg" alt="Inrun" width="24" height="24">
+        <span>Inrun Console</span>
+      </a>
+      <div class="inrun-nav-links">
+        <a href="/console" class="inrun-nav-link">Dashboard</a>
+        <a href="/console/docs" class="inrun-nav-link active">Docs</a>
+        {{/* <a href="/console/metrics" class="inrun-nav-link">Metrics</a> */}}
+      </div>
+      <div class="inrun-nav-controls">
+        <a href="https://inrun.dev" target="_blank" rel="noopener" class="inrun-nav-link inrun-nav-link-sm">Official Docs</a>
+        <a href="https://github.com/intentd/inrun" target="_blank" rel="noopener" class="inrun-icon-link" title="GitHub">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        </a>
+        <button class="inrun-theme-btn" id="inrun-theme-toggle" title="Toggle theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="inrun-docs-layout">
+    <!-- Left sidebar -->
+    <aside class="inrun-sidebar" id="inrun-sidebar">
+      <div class="inrun-sidebar-inner">
+        {{ if .ConsoleVersion }}
+        <div class="inrun-sidebar-version">
+          <span class="inrun-version-badge">cc {{ .ConsoleVersion }}</span>
+        </div>
+        {{ end }}
+
+        {{ range .Blueprints }}
+        <div class="inrun-sidebar-group is-open">
+          <button class="inrun-sidebar-group-toggle">
+            <span>{{ .Name }}</span>
+            <svg class="inrun-toggle-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <ul class="inrun-sidebar-items">
+            {{ range .CRDs }}
+            <li class="inrun-sidebar-item">
+              <a href="/console/docs/{{ .BlueprintName }}/{{ .Name }}">{{ .Name }}</a>
+            </li>
+            {{ end }}
+          </ul>
+        </div>
+        {{ end }}
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <article class="inrun-docs-content">
+      <div class="inrun-doc-header">
+        <h1>Documentation</h1>
+        <p class="inrun-doc-description">
+          Live reference for your running Inrun operators. Select a CRD from the sidebar to view its documentation.
+        </p>
+      </div>
+
+      <div class="inrun-doc-body">
+        {{ if eq (len .Blueprints) 0 }}
+        <div class="inrun-callout inrun-callout-note">
+          <div class="inrun-callout-header">No runtimes connected</div>
+          <div class="inrun-callout-body">
+            <p>Once an Inrun runtime is reachable, CRD documentation will appear here.</p>
+          </div>
+        </div>
+        {{ else }}
+
+        {{ range .Blueprints }}
+        <h2>{{ .Name }}</h2>
+        {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
+        {{ if .Author }}<p><strong>Author:</strong> {{ .Author }}{{ if .Version }} &nbsp;·&nbsp; <strong>Version:</strong> <code>{{ .Version }}</code>{{ end }}</p>{{ end }}
+
+        <table>
+          <thead><tr><th>CRD</th><th>State</th></tr></thead>
+          <tbody>
+            {{ range .CRDs }}
+            <tr>
+              <td><a href="/console/docs/{{ .BlueprintName }}/{{ .Name }}"><code>{{ .Name }}</code></a></td>
+              <td><span class="inrun-state inrun-state-{{ .State }}">{{ .State }}</span></td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+
+        <hr>
+        {{ end }}
+
+        {{ end }}
+      </div>
+    </article>
+  </div>
+
+  <script src="/console/assets/static/js/inrun-docs.js"></script>
+</body>
+</html>

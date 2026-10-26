@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ .CRD.Name }} – Inrun Console</title>
+  <link rel="icon" type="image/svg+xml" href="/console/assets/static/inrun-mark.svg">
+  <link rel="stylesheet" href="/console/assets/static/css/style.css">
+  <script>(function(){var t=localStorage.getItem('console-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body class="console-root">
+
+  <!-- Sidebar -->
+  <aside class="console-sidebar" id="console-sidebar">
+    <div class="console-sidebar-logo">
+      <div class="console-sidebar-logo-row">
+        <a href="/console">
+          <img src="/console/assets/static/inrun-mark.svg" alt="Inrun" width="32" height="32">
+          <span>Inrun Console</span>
+        </a>
+        <button class="console-sidebar-toggle" id="console-sidebar-toggle" title="Collapse sidebar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+            <path d="M9 18l-6-6 6-6" opacity="0.4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <nav class="console-sidebar-nav">
+      <a href="/console" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        All Blueprints
+      </a>
+      <a href="/console/metrics" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Metrics
+      </a>
+      <div class="console-nav-section">Blueprint</div>
+      <a href="/console/blueprint/{{ .BlueprintName }}" class="console-nav-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        {{ .BlueprintName }}
+      </a>
+      <a href="/console/blueprint/{{ .BlueprintName }}/crd/{{ .CRD.Name }}" class="console-nav-item active">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        {{ .CRD.Name }}
+      </a>
+    </nav>
+    <div class="console-sidebar-footer">
+      <span class="console-refresh-dot" id="sse-dot" title="Live connection"></span>
+      <span class="console-refresh-label">Live</span>
+    </div>
+  </aside>
+  <div class="console-sidebar-overlay" id="console-overlay"></div>
+
+  <main class="console-main">
+    <div class="console-navbar">
+      <button class="console-mobile-toggle" id="console-mobile-toggle">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <nav class="console-breadcrumb">
+        <a href="/console">Console</a>
+        <span class="sep">›</span>
+        <a href="/console/blueprint/{{ .BlueprintName }}">{{ .BlueprintName }}</a>
+        <span class="sep">›</span>
+        <span class="current">{{ .CRD.Name }}</span>
+        <button class="console-btn console-btn-secondary" onclick="showJsonViewer('{{ .CRD.Name }}', 'raw')"
+                title="View CRD YAML" style="font-size:11px;padding:2px 8px;margin-left:4px">
+          View YAML
+        </button>
+        <span style="margin-left:8px">
+          {{- if .CRD.HasUnhealthyDependencies }}
+          <span class="console-badge console-badge-pending" data-tooltip="Unhealthy dependencies">
+            <span class="console-status-dot pending"></span>Dependency Issue
+          </span>
+
+          {{- else if eq .CRD.State "gated" }}
+          <span class="console-badge console-badge-gated" data-tooltip="{{ if .CRD.GatedReason }}{{ .CRD.GatedReason }}{{ else }}Pre-reconcile conditions not met{{ end }}">
+            <span class="console-status-dot gated"></span>Gated
+          </span>
+
+          {{- else if eq .CRD.State "healthy" }}
+          <span class="console-badge console-badge-healthy">
+            <span class="console-status-dot healthy"></span>Healthy
+          </span>
+
+          {{- else if eq .CRD.State "pending" }}
+          <span class="console-badge console-badge-pending">
+            <span class="console-status-dot pending"></span>Pending
+          </span>
+
+          {{- else if eq .CRD.State "started" }}
+          <span class="console-badge console-badge-started">
+            <span class="console-status-dot started"></span>Started
+          </span>
+
+          {{- else if eq .CRD.State "endpoints-disabled" }}
+          <span class="console-badge" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-muted)">
+            <span class="console-status-dot" style="background:var(--text-muted)"></span>Endpoints Disabled
+          </span>
+
+          {{- else }}
+          <span class="console-badge console-badge-degraded">
+            <span class="console-status-dot degraded"></span>Degraded
+          </span>
+          {{- end }}
+        </span>
+      </nav>
+      <div class="console-navbar-right">
+        <a href="/console/blueprint/{{ .BlueprintName }}/crd/{{ .CRD.Name }}/cr" class="console-btn console-btn-secondary" style="font-size:12px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Resources
+          <span class="console-badge" style="padding:1px 6px;font-size:10px;background:var(--bg-elevated);color:var(--text-muted)">{{ .CRD.ResourceCount }}</span>
+        </a>
+        <button class="console-theme-toggle" id="console-theme-toggle" title="Toggle theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="console-page">
+
+      {{- if eq .CRD.State "endpoints-disabled" }}
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center">
+        <div style="font-size:36px;margin-bottom:16px;opacity:0.4">⊘</div>
+        <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:8px">Endpoints disabled</div>
+        <div style="font-size:13px;color:var(--text-muted);max-width:400px">
+          All HTTP endpoints for this CRD have been disabled via <code style="font-size:11px;background:var(--bg-elevated);padding:1px 5px;border-radius:3px">endpoints: enabled: false</code> in the Blueprint.
+          The operator is running and reconciling normally — its API surface is intentionally hidden.
+        </div>
+      </div>
+      {{- else }}
+
+      <!-- Stats Grid -->
+      {{ $queuePercent := 0 }}
+      {{ if gt .CRD.MaxDepth 0 }}
+        {{ $queuePercent = div (mul .CRD.QueueDepth 100) .CRD.MaxDepth }}
+      {{ end }}
+
+      <div class="console-stats-grid mb-6" style="grid-template-columns:repeat(5,1fr)">
+        <div class="console-stat-card">
+          <div class="console-stat-label">Total Workers</div>
+          <div class="console-stat-value">{{ .CRD.Workers }}</div>
+          <div class="console-stat-sub">Source: {{ .CRD.WorkersSource }}</div>
+        </div>
+        <div class="console-stat-card">
+          <div class="console-stat-label">Processing</div>
+          <div class="console-stat-value" style="color:var(--color-started)">{{ .CRD.WorkersProcessing }}</div>
+          <div class="console-stat-sub">Actively reconciling</div>
+        </div>
+        <div class="console-stat-card">
+          <div class="console-stat-label">Idle</div>
+          <div class="console-stat-value">{{ .CRD.WorkersIdle }}</div>
+          <div class="console-stat-sub">Waiting for work</div>
+        </div>
+        <div class="console-stat-card">
+          <div class="console-stat-label">Queue</div>
+          <div class="console-stat-value font-mono">{{ .CRD.QueueDepth }}</div>
+          <div class="console-stat-sub">Limit: {{ .CRD.MaxDepth }}</div>
+        </div>
+        <div class="console-stat-card">
+          <div class="console-stat-label">Reconciles</div>
+          <div class="console-stat-value">{{ .CRD.TotalReconciles }}</div>
+          <div class="console-stat-sub">Error rate: {{ printf "%.1f" .CRD.ErrorRate }}%</div>
+        </div>
+      </div>
+
+      <!-- Worker Pool -->
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">Worker Pool</h2>
+          <div class="flex gap-3 text-xs" style="color:var(--text-muted)">
+            <span style="display:flex;align-items:center;gap:4px">
+              <span class="console-status-dot healthy"></span>Idle
+            </span>
+            <span style="display:flex;align-items:center;gap:4px">
+              <span class="console-status-dot started anim-pulse"></span>Processing
+            </span>
+            <span style="display:flex;align-items:center;gap:4px">
+              <span class="console-status-dot degraded"></span>Stopped
+            </span>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+            {{ .CRD.WorkersProcessing }} of {{ .CRD.WorkersActive }} workers actively processing
+            {{ if ne .CRD.WorkersActive .CRD.Workers }}<span style="font-style:italic">(scaled from {{ .CRD.Workers }})</span>{{ end }}
+          </div>
+          <div class="console-progress-bar-wrap" style="height:8px;margin-bottom:16px">
+            {{ if gt .CRD.WorkersActive 0 }}
+            <div class="console-progress-bar started" style="width:{{ div (mul .CRD.WorkersProcessing 100) .CRD.WorkersActive }}%"></div>
+            {{ end }}
+          </div>
+
+          <div class="console-worker-grid" id="workerGrid">
+            {{ $workers := .CRD.WorkerDetails }}
+            {{ $displayLimit := 10 }}
+            {{ $index := 0 }}
+            {{ range $workerID, $state := $workers }}
+              {{ if lt $index $displayLimit }}
+              <div class="console-worker-card worker-item {{ $state }}">
+                <span class="console-status-dot
+                  {{- if eq $state "idle" }} healthy
+                  {{- else if eq $state "processing" }} started anim-pulse
+                  {{- else }} degraded{{ end }}"></span>
+                <div class="console-worker-id" title="{{ $workerID }}">{{ truncate $workerID 30 }}</div>
+              </div>
+              {{ end }}
+              {{ $index = add $index 1 }}
+            {{ end }}
+          </div>
+
+          {{ if gt (len .CRD.WorkerDetails) 10 }}
+          <div id="moreWorkers" class="hidden" style="margin-top:12px">
+            <div class="console-worker-grid">
+              {{ $index2 := 0 }}
+              {{ range $workerID, $state := $workers }}
+                {{ if ge $index2 10 }}
+                <div class="console-worker-card worker-item {{ $state }}">
+                  <span class="console-status-dot
+                    {{- if eq $state "idle" }} healthy
+                    {{- else if eq $state "processing" }} started anim-pulse
+                    {{- else }} degraded{{ end }}"></span>
+                  <div class="console-worker-id" title="{{ $workerID }}">{{ truncate $workerID 30 }}</div>
+                </div>
+                {{ end }}
+                {{ $index2 = add $index2 1 }}
+              {{ end }}
+            </div>
+          </div>
+
+          <div style="text-align:center;margin-top:14px">
+            <button id="toggleWorkersBtn" class="console-btn console-btn-secondary">
+              <span id="toggleWorkersText">Show all {{ len .CRD.WorkerDetails }} workers</span>
+              <svg id="toggleIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
+          {{ end }}
+
+          {{ if gt .CRD.WorkersProcessing 0 }}
+          <div class="console-alert mt-3" style="background:rgba(59,130,246,0.08);border-color:var(--color-started-border);color:var(--color-started)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="anim-pulse"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span style="font-size:12px">{{ .CRD.WorkersProcessing }} worker(s) actively reconciling</span>
+          </div>
+          {{ else if eq .CRD.WorkersIdle .CRD.Workers }}
+          <div class="console-alert mt-3" style="background:var(--color-healthy-bg);border-color:var(--color-healthy-border);color:var(--color-healthy)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            <span style="font-size:12px">All workers idle — no pending reconciliations</span>
+          </div>
+          {{ end }}
+        </div>
+      </div>
+
+      <!-- Autoscaler Info — only shown when autoscale is declared -->
+      {{ if and .CRD.AutoscalerEnabled .CRD.AutoscalerWorkers }}
+      {{ $aw := .CRD.AutoscalerWorkers }}
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">
+            Autoscaler
+            {{ if $aw.OverrideActive }}
+            <span style="font-size:12px;font-weight:500;color:var(--color-started);margin-left:8px;background:rgba(234,179,8,0.1);padding:2px 8px;border-radius:9999px">Override Active</span>
+            {{ else }}
+            <span style="font-size:12px;font-weight:500;color:var(--text-muted);margin-left:8px">Baseline</span>
+            {{ end }}
+          </h2>
+          <button onclick="document.getElementById('autoscalerDetail').classList.toggle('hidden')" class="console-btn console-btn-secondary" style="font-size:12px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            Details
+          </button>
+        </div>
+
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div class="console-stats-grid" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:0">
+            <div style="text-align:center">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Configured</div>
+              <div style="font-size:22px;font-weight:600">{{ $aw.Configured }}</div>
+              <div style="font-size:11px;color:var(--text-muted)">baseline workers</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Effective</div>
+              <div style="font-size:22px;font-weight:600;{{ if $aw.OverrideActive }}color:var(--color-started){{ end }}">{{ $aw.Effective }}</div>
+              <div style="font-size:11px;color:var(--text-muted)">{{ if $aw.OverrideActive }}override{{ else }}= configured{{ end }}</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">In-Flight</div>
+              <div style="font-size:22px;font-weight:600;color:var(--color-started)">{{ $aw.InFlight }}</div>
+              <div style="font-size:11px;color:var(--text-muted)">reconciling now</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Busy</div>
+              <div style="font-size:22px;font-weight:600">{{ printf "%.0f" $aw.BusyPercent }}%</div>
+              <div style="font-size:11px;color:var(--text-muted)">utilization</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expanded autoscale config — hidden by default -->
+        <div id="autoscalerDetail" class="hidden" 
+            style="margin-top:8px;background:var(--bg-surface);border:1px solid var(--border);
+                    border-radius:var(--radius);padding:20px;font-size:13px">
+
+          <!-- Card grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+
+            <!-- Workers Card -->
+            <div style="background:var(--bg-elevated);border:1px solid var(--border);
+                        border-radius:var(--radius);padding:16px">
+              <div style="display:flex;align-items:center;gap:6px;
+                          font-size:11px;font-weight:600;text-transform:uppercase;
+                          letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px">
+                👷 Workers
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Now</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ $aw.OverrideWorkers }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Baseline</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ $aw.Configured }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Max</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ $aw.Max }}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Queue Card -->
+            <div style="background:var(--bg-elevated);border:1px solid var(--border);
+                        border-radius:var(--radius);padding:16px">
+              <div style="display:flex;align-items:center;gap:6px;
+                          font-size:11px;font-weight:600;text-transform:uppercase;
+                          letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px">
+                📥 Queue
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Depth</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ $aw.QueueDepth }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Limit</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ if gt .CRD.MaxDepth 0 }}{{ .CRD.MaxDepth }}{{ else }}∞{{ end }}
+                  </td>
+                </tr>
+                {{ if $aw.OverrideActive }}
+                <tr>
+                  <td style="color:var(--color-started);padding:3px 0">Override</td>
+                  <td style="text-align:right;font-weight:500;color:var(--color-started)">
+                    {{ $aw.QueueDepthEffective }}
+                  </td>
+                </tr>
+                {{ end }}
+              </table>
+            </div>
+
+            <!-- Resync Card -->
+            <div style="background:var(--bg-elevated);border:1px solid var(--border);
+                        border-radius:var(--radius);padding:16px">
+              <div style="display:flex;align-items:center;gap:6px;
+                          font-size:11px;font-weight:600;text-transform:uppercase;
+                          letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px">
+                🔁 Resync
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Now</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ $aw.ResyncEffective }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-muted);padding:3px 0">Baseline</td>
+                  <td style="text-align:right;font-weight:500">
+                    {{ $aw.ResyncConfigured }}
+                  </td>
+                </tr>
+                {{ if $aw.OverrideActive }}
+                <tr>
+                  <td style="color:var(--color-started);padding:3px 0">Override</td>
+                  <td style="text-align:right;font-weight:500;color:var(--color-started)">
+                    {{ $aw.ResyncEffective }}
+                  </td>
+                </tr>
+                {{ end }}
+              </table>
+            </div>
+
+          </div>
+        </div>
+        </div>
+      </div>
+      {{ end }}
+
+      <!-- Queue Visualization -->
+      <div class="console-section">
+        <h2 class="console-section-title">Queue Pressure</h2>
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div class="flex items-center justify-between mb-2">
+            <span style="font-size:12px;color:var(--text-muted)">Queue Depth</span>
+            <span class="font-mono" style="font-size:13px;color:var(--text-primary)">
+              {{ .CRD.QueueDepth }} / {{ .CRD.MaxDepth }}
+              {{ if gt $queuePercent 0 }}<span style="color:var(--text-muted);font-size:11px;margin-left:4px">({{ $queuePercent }}%)</span>{{ end }}
+            </span>
+          </div>
+          <div class="console-progress-bar-wrap" style="height:10px">
+            <div class="console-progress-bar{{ if gt $queuePercent 80 }} degraded{{ else if gt $queuePercent 50 }} pending{{ end }}"
+                 style="width:{{ min $queuePercent 100 }}%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Source: {{ .CRD.MaxDepthSource }}</div>
+          {{ if gt $queuePercent 80 }}
+          <div class="console-alert mt-3 console-alert-warn">
+            <span style="font-size:12px">High queue pressure — {{ .CRD.QueueDepth }} items waiting (max: {{ .CRD.MaxDepth }})</span>
+          </div>
+          {{ else if gt $queuePercent 50 }}
+          <div class="console-alert mt-3" style="background:var(--color-pending-bg);border-color:var(--color-pending-border);color:var(--color-pending)">
+            <span style="font-size:12px">Moderate queue pressure — {{ .CRD.QueueDepth }} items waiting</span>
+          </div>
+          {{ end }}
+        </div>
+      </div>
+
+      <!-- Runtime Health -->
+      <div class="console-section">
+        <h2 class="console-section-title">Runtime Health</h2>
+        {{- if .CRD.HealthEndpointDisabled }}
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:12px;color:var(--text-muted)">
+          <span style="font-size:18px;opacity:0.5">⊘</span>
+          <span style="font-size:13px">Health endpoint disabled — <code style="font-size:11px;background:var(--bg-elevated);padding:1px 5px;border-radius:3px">endpoints: health: false</code></span>
+        </div>
+        {{- else }}
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;font-size:13px;margin-bottom:16px">
+            <div>
+              <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px">Uptime</div>
+              <div style="font-weight:500">{{ .CRD.Uptime }}</div>
+            </div>
+            <div>
+              <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px">Started</div>
+              <div style="font-weight:500">{{ .CRD.StartedAgo }}</div>
+              <div class="font-mono text-muted" style="font-size:10px">{{ .CRD.StartedAt }}</div>
+            </div>
+            <div>
+              <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px">Last Reconcile</div>
+              <div style="font-weight:500">{{ .CRD.LastReconcileAgo }}</div>
+              <div class="font-mono text-muted" style="font-size:10px">{{ .CRD.LastReconcile }}</div>
+            </div>
+          </div>
+          {{ if gt .CRD.ConsecutiveFails 0 }}
+          <div class="console-alert" style="background:var(--color-pending-bg);border-color:var(--color-pending-border);color:var(--color-pending)">
+            <span style="font-size:12px">{{ .CRD.ConsecutiveFails }} consecutive failures</span>
+          </div>
+          {{ end }}
+          {{ if .CRD.LastError }}
+          <div class="console-alert" style="background:var(--color-degraded-bg);border-color:var(--color-degraded-border);color:var(--color-degraded);margin-top:8px">
+            <div>
+              <div style="font-weight:600;font-size:12px;margin-bottom:4px">Last Error</div>
+              <div class="font-mono break-all" style="font-size:11px">{{ .CRD.LastError }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        {{- end }}
+      </div>
+
+      <!-- Version Conversion -->
+      <div class="console-section">
+        <h2 class="console-section-title">Version Conversion</h2>
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          {{ if .CRD.Conversion }}
+            {{ if .CRD.Conversion.Enabled }}
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+              <div><div style="color:var(--text-muted);font-size:11px">Total Requests</div><div style="font-size:20px;font-weight:700">{{ .CRD.Conversion.Total }}</div></div>
+              <div><div style="color:var(--text-muted);font-size:11px">Success / Failure</div><div style="font-size:20px;font-weight:700">{{ .CRD.Conversion.Success }} / {{ .CRD.Conversion.Failures }}</div></div>
+              <div><div style="color:var(--text-muted);font-size:11px">Avg Latency</div><div style="font-size:20px;font-weight:700">{{ printf "%.2f" .CRD.Conversion.AvgLatencyMs }}ms</div></div>
+              <div><div style="color:var(--text-muted);font-size:11px">P95 Latency</div><div style="font-size:20px;font-weight:700">{{ printf "%.2f" .CRD.Conversion.P95LatencyMs }}ms</div></div>
+            </div>
+            {{ else }}
+            <div style="font-size:13px;color:var(--text-muted)">Conversion webhook not enabled. Set <span class="console-code">security.conversion.enabled: true</span> in the Blueprint to enable.</div>
+            {{ end }}
+          {{ else }}
+          <div style="font-size:13px;color:var(--text-muted)">Conversion webhook not enabled. Set <span class="console-code">security.conversion.enabled: true</span> in the Blueprint to enable.</div>
+          {{ end }}
+        </div>
+      </div>
+
+      <!-- Admission Webhooks -->
+      <div class="console-section">
+        <h2 class="console-section-title">Admission Webhooks</h2>
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          {{ if .CRD.Admission }}
+            {{ if .CRD.Admission.WebhooksEnabled }}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">Validation</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div><div style="color:var(--text-muted);font-size:11px">Total</div><div style="font-size:18px;font-weight:700">{{ .CRD.Admission.ValidationTotal }}</div></div>
+                  <div><div style="color:var(--text-muted);font-size:11px">Allowed / Denied</div><div style="font-size:18px;font-weight:700">{{ .CRD.Admission.ValidationAllowed }} / {{ .CRD.Admission.ValidationDenied }}</div></div>
+                  <div><div style="color:var(--text-muted);font-size:11px">Avg Latency</div><div style="font-weight:600">{{ printf "%.2f" .CRD.Admission.ValAvgLatencyMs }}ms</div></div>
+                  <div><div style="color:var(--text-muted);font-size:11px">P95 Latency</div><div style="font-weight:600">{{ printf "%.2f" .CRD.Admission.ValP95LatencyMs }}ms</div></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px">Mutation</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div><div style="color:var(--text-muted);font-size:11px">Total</div><div style="font-size:18px;font-weight:700">{{ .CRD.Admission.MutationTotal }}</div></div>
+                  <div><div style="color:var(--text-muted);font-size:11px">Applied / Skipped</div><div style="font-size:18px;font-weight:700">{{ .CRD.Admission.MutationApplied }} / {{ .CRD.Admission.MutationSkipped }}</div></div>
+                  <div><div style="color:var(--text-muted);font-size:11px">Avg Latency</div><div style="font-weight:600">{{ printf "%.2f" .CRD.Admission.MutAvgLatencyMs }}ms</div></div>
+                  <div><div style="color:var(--text-muted);font-size:11px">P95 Latency</div><div style="font-weight:600">{{ printf "%.2f" .CRD.Admission.MutP95LatencyMs }}ms</div></div>
+                </div>
+              </div>
+            </div>
+            {{ else }}
+            <div style="font-size:13px;color:var(--text-muted)">Admission webhooks not enabled. Set <span class="console-code">security.webhooks.admission.enabled: true</span> in the Blueprint to enable.</div>
+            {{ end }}
+          {{ else }}
+          <div style="font-size:13px;color:var(--text-muted)">Admission webhooks not enabled. Set <span class="console-code">security.webhooks.admission.enabled: true</span> in the Blueprint to enable.</div>
+          {{ end }}
+        </div>
+      </div>
+
+      <!-- Deletion Protection -->
+      <div class="console-section">
+        <h2 class="console-section-title">Deletion Protection</h2>
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          {{ if .CRD.DeletionProtection }}
+            {{ if .CRD.DeletionProtection.Enabled }}
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <span class="console-badge console-badge-healthy" style="gap:5px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Enabled
+              </span>
+              <span style="font-size:12px;color:var(--text-muted)">DELETE requests for this CRD are blocked by Inrun's admission webhook</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+              <div>
+                <div style="color:var(--text-muted);font-size:11px">Blocked Deletions</div>
+                <div style="font-size:20px;font-weight:700;color:var(--color-degraded)" title="{{ .CRD.DeletionProtection.Blocked }}">{{ formatNumber .CRD.DeletionProtection.Blocked }}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Since operator start</div>
+              </div>
+              <div>
+                <div style="color:var(--text-muted);font-size:11px">Webhook</div>
+                <div style="font-size:13px;font-weight:500;margin-top:4px">inrun-deletion-protection</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">failurePolicy: Fail</div>
+              </div>
+            </div>
+            {{ else }}
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-muted)">
+              <span class="console-badge console-badge-pending" style="gap:5px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                Disabled
+              </span>
+              Set <span class="console-code">security.deletionProtection.enabled: true</span> in the Blueprint to protect this CRD from deletion.
+            </div>
+            {{ end }}
+          {{ else }}
+          <div style="font-size:13px;color:var(--text-muted)">Deletion protection not configured. Set <span class="console-code">security.deletionProtection.enabled: true</span> in the Blueprint.</div>
+          {{ end }}
+        </div>
+      </div>
+
+      <!-- Namespace Protection — only shown when namespace rules are declared -->
+      {{ if .CRD.NamespaceProtection }}
+        {{ $np := .CRD.NamespaceProtection }}
+        {{ if $np.HasNamespaceRules }}
+          <div class="console-section">
+            <h2 class="console-section-title">Namespace Protection</h2>
+            <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                {{ if $np.Enabled }}
+                <span class="console-badge console-badge-healthy" style="gap:5px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  Active
+                </span>
+                <span style="font-size:12px;color:var(--text-muted)">failurePolicy: Fail — CREATE/UPDATE blocked in forbidden namespaces</span>
+                {{ else }}
+                <span class="console-badge console-badge-pending" style="gap:5px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  Rules declared, webhook not active
+                </span>
+                {{ end }}
+              </div>
+              <!-- Namespace rule lists -->
+              {{ if $np.AllowedNamespaces }}
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Allowed Namespaces</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  {{ range $np.AllowedNamespaces }}
+                  <span style="background:var(--color-healthy-bg,rgba(34,197,94,.12));color:var(--color-healthy);padding:2px 10px;border-radius:999px;font-size:12px;font-family:monospace">{{ . }}</span>
+                  {{ end }}
+                </div>
+              </div>
+              {{ end }}
+              {{ if $np.RestrictedNamespaces }}
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Restricted Namespaces</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  {{ range $np.RestrictedNamespaces }}
+                  <span style="background:var(--color-degraded-bg,rgba(239,68,68,.12));color:var(--color-degraded);padding:2px 10px;border-radius:999px;font-size:12px;font-family:monospace">{{ . }}</span>
+                  {{ end }}
+                </div>
+              </div>
+              {{ end }}
+              <!-- Admission counters (omitted when webhook not active) -->
+              {{ if $np.Enabled }}
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+                <div>
+                  <div style="display:flex;gap:24px;flex-wrap:wrap">
+                    <div>
+                      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Total Reviews</div>
+                      <div style="font-size:22px;font-weight:600">{{ $np.Total }}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Blocked</div>
+                      <div style="font-size:22px;font-weight:600;{{ if gt $np.Blocked 0 }}color:var(--color-degraded){{ end }}">{{ $np.Blocked }}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Allowed</div>
+                      <div style="font-size:22px;font-weight:600">{{ $np.Allowed }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div style="color:var(--text-muted);font-size:11px">Webhook</div>
+                  <div style="font-size:13px;font-weight:500;margin-top:4px">inrun-namespace-protection</div>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:2px">failurePolicy: Fail</div>
+                </div>
+              </div>
+              {{ end }}
+            </div>
+          </div>
+        {{ end }}
+      {{ end }}
+
+      <!-- Dependencies -->
+      {{ if .CRD.Dependencies }}
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">Dependencies</h2>
+          {{ if .CRD.HasUnhealthyDependencies }}
+          <span class="console-badge console-badge-degraded">Unhealthy Dependencies</span>
+          {{ end }}
+        </div>
+        <div class="console-card-grid">
+          {{ range $name, $dep := .CRD.Dependencies }}
+          <a href="/console/blueprint/{{ $.BlueprintName }}/crd/{{ $name }}" class="console-card" style="text-decoration:none">
+            <div class="console-card-body">
+              <div class="flex items-center justify-between mb-2">
+                <span style="font-weight:600;color:var(--text-primary)">{{ $name }}</span>
+                {{- if eq $dep.State "healthy" }}
+                <span class="console-badge console-badge-healthy">{{ $dep.State }}</span>
+                {{- else if eq $dep.State "started" }}
+                <span class="console-badge console-badge-started">{{ $dep.State }}</span>
+                {{- else if eq $dep.State "pending" }}
+                <span class="console-badge console-badge-pending">{{ $dep.State }}</span>
+                {{- else }}
+                <span class="console-badge console-badge-degraded">{{ $dep.State }}</span>
+                {{- end }}
+              </div>
+              <div class="text-xs text-muted mb-1">Acceptable Condition: <span class="font-mono">{{ $dep.AcceptableCondition }}</span></div>
+              <div class="text-xs text-muted mb-1">Dependency Condition: <span class="font-mono">{{ $dep.Condition }}</span></div>
+              <div class="text-xs {{ if $dep.Satisfied }}text-green{{ else }}text-red{{ end }}">
+                {{ if $dep.Satisfied }}Satisfied{{ else }}Not satisfied{{ end }}
+              </div>
+              {{ if $dep.LastCheck }}
+              <div class="text-xs text-muted mt-1">Last check: {{ $dep.LastCheck | formatTime }}</div>
+              {{ end }}
+            </div>
+          </a>
+          {{ end }}
+        </div>
+        {{ if .CRD.HasUnhealthyDependencies }}
+        <div class="console-alert console-alert-warn mt-3">
+          <span style="font-size:12px">This CRD has unhealthy dependencies. Some operations may fail or be degraded.</span>
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
+
+      <!-- RBAC Permissions -->
+      {{ if .CRD.RBAC }}
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">RBAC Permissions</h2>
+          <span class="console-badge" style="background:rgba(139,92,246,0.1);color:#8B5CF6;border-color:rgba(139,92,246,0.3)">{{ .CRD.RBAC.TotalRules }} rules</span>
+        </div>
+        <div class="console-table-wrap">
+          <table class="console-table">
+            <thead>
+              <tr>
+                <th>API Group</th>
+                <th>Resources</th>
+                <th>Verbs</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range .CRD.RBAC.Rules }}
+              <tr>
+                <td class="font-mono text-xs">
+                  {{ if .APIGroups }}{{ range .APIGroups }}{{ . }}{{ end }}{{ else }}<span class="text-muted">core</span>{{ end }}
+                </td>
+                <td>
+                  {{ range .Resources }}
+                  <span class="console-code" style="margin-right:4px;margin-bottom:2px;display:inline-block">{{ . }}</span>
+                  {{ end }}
+                </td>
+                <td style="font-size:12px">
+                  {{ range .Verbs }}
+                  <span style="margin-right:4px;{{ if eq . "delete" }}color:var(--color-degraded){{ else if eq . "create" }}color:var(--color-healthy){{ else if eq . "update" }}color:var(--color-pending){{ else }}color:var(--text-muted){{ end }}">{{ . }}</span>
+                  {{ end }}
+                </td>
+                <td class="text-xs text-muted">{{ .Description }}</td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {{ end }}
+
+      <!-- operatorBox: Configuration -->
+      {{- if .CRD.InfoEndpointDisabled }}
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">operatorBox</h2>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:12px;color:var(--text-muted)">
+          <span style="font-size:18px;opacity:0.5">⊘</span>
+          <span style="font-size:13px">Info endpoint disabled — <code style="font-size:11px;background:var(--bg-elevated);padding:1px 5px;border-radius:3px">endpoints: enabled: false</code></span>
+        </div>
+      </div>
+      {{- else }}
+      {{ $ob := .CRD.OperatorBox }}
+      {{ $obType   := mapGet $ob "type"        | asString }}
+      {{ $fins     := mapGet $ob "finalizers" }}
+      {{ $hooks    := mapGet $ob "hooks" }}
+      {{ $ctor     := mapGet $ob "constructor" }}
+      {{ $tmpls    := mapGet $ob "templates" }}
+      {{ $hookConf := mapGet $hooks "configured" | asBool }}
+      {{ $ctorConf := mapGet $ctor  "configured" | asBool }}
+      {{ $finVals  := mapGet $fins  "values"     | asSlice }}
+      {{ $finSrc   := mapGet $fins  "source"     | asString }}
+
+      <div class="console-section">
+        <div class="console-section-header">
+          <h2 class="console-section-title" style="margin:0">operatorBox</h2>
+          {{ if $tmpls }}
+          <button onclick="document.getElementById('obTemplates').classList.toggle('hidden')" class="console-btn console-btn-secondary" style="font-size:12px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            Templates
+          </button>
+          {{ end }}
+        </div>
+
+        <!-- Overview row -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+
+          <!-- Reconciler type + resync -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            {{ $kindLabel := "Declarative" }}
+            {{ if eq $obType "hooks" }}{{ $kindLabel = "Go hooks" }}{{ else if eq $obType "constructor" }}{{ $kindLabel = "Go constructor" }}{{ else if eq $obType "remote" }}{{ $kindLabel = "Remote" }}{{ end }}
+            {{ if eq $obType "declarative" }}
+            <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.1);color:var(--color-healthy);border:1px solid rgba(52,211,153,.25);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+              {{ $kindLabel }} reconciler
+            </span>
+            {{ else }}
+            <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(96,165,250,.1);color:var(--color-started);border:1px solid rgba(96,165,250,.25);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              {{ $kindLabel }} reconciler
+            </span>
+            {{ end }}
+            {{ with mapGet $ob "targets" }}
+            <span style="font-size:12px;color:var(--text-muted)">
+              Targets:{{ range $t, $k := . }} <span class="console-code" style="font-size:11px">{{ $t }}: {{ $k }}</span>{{ end }}
+            </span>
+            {{ end }}
+            <span style="font-size:12px;color:var(--text-muted)">
+              Resync: <span style="color:var(--text-secondary);font-weight:500">{{ .CRD.Resync }}</span>
+              <span style="color:var(--text-muted);font-size:11px">({{ .CRD.ResyncSource }})</span>
+            </span>
+          </div>
+
+          <!-- Feature chips -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+
+            <!-- Hooks -->
+            {{ if $hookConf }}
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-started)" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span style="font-weight:500">Hooks</span>
+              <span style="color:var(--text-muted)">{{ mapGet $hooks "source" | asString }}</span>
+              {{ if mapGet $hooks "function" | asString }}<span class="console-code" style="font-size:10px">{{ mapGet $hooks "function" | asString }}</span>{{ end }}
+            </div>
+            {{ else }}
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              No hooks
+            </div>
+            {{ end }}
+
+            <!-- Constructor -->
+            {{ if $ctorConf }}
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-started)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              <span style="font-weight:500">Constructor</span>
+              <span style="color:var(--text-muted)">{{ mapGet $ctor "source" | asString }}</span>
+            </div>
+            {{ end }}
+
+            <!-- Finalizers -->
+            {{ if $finVals }}
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-pending)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span style="font-weight:500">{{ len $finVals }} finalizer{{ if gt (len $finVals) 1 }}s{{ end }}</span>
+              <span style="color:var(--text-muted)">({{ $finSrc }})</span>
+            </div>
+            {{ else }}
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              Finalizers removed <span style="color:var(--text-muted)">(runtime.finalizers.remove)</span>
+            </div>
+            {{ end }}
+          </div>
+
+          <!-- Finalizer values (when set) -->
+          {{ if $finVals }}
+          <div style="font-size:12px;border-top:1px solid var(--border);padding-top:12px">
+            <span style="color:var(--text-muted);font-size:11px;margin-right:8px">Finalizers:</span>
+            {{ range $finVals }}
+            <span class="console-code" style="margin-right:6px;margin-bottom:4px;display:inline-block">{{ . }}</span>
+            {{ end }}
+          </div>
+          {{ end }}
+
+        </div>
+
+        <!-- Templates breakdown — hidden by default, toggled by button -->
+        {{ if $tmpls }}
+        <div id="obTemplates" class="hidden" style="margin-top:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px">Declared Templates</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+            {{ range $phase, $counts := asMap $tmpls }}
+            {{ $cm := asMap $counts }}
+            {{ if $cm }}
+            <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">{{ $phase }}</div>
+              {{ range $kind, $count := $cm }}
+              <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
+                <span style="color:var(--text-muted)">{{ $kind }}</span>
+                <span style="font-weight:600;color:var(--text-primary)">{{ $count }}</span>
+              </div>
+              {{ end }}
+            </div>
+            {{ else }}
+            <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:4px">{{ $phase }}</div>
+              <div style="font-size:11px;color:var(--text-muted)">{{ $counts }}</div>
+            </div>
+            {{ end }}
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+
+      </div>
+      {{- end }}
+      {{- end }}
+
+    </div>
+  </main>
+
+  <!-- CRD Config Popup -->
+  <div id="jsonViewerModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.55);backdrop-filter:blur(2px)">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px">
+      <div class="console-config-popup">
+        <!-- Popup Header -->
+        <div class="console-config-popup-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <!-- Tab pills -->
+            <div class="console-config-tabs">
+              <button id="rawViewBtn" class="console-config-tab active" onclick="switchTab('raw')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Your Config
+              </button>
+              <button id="enrichedViewBtn" class="console-config-tab" onclick="switchTab('enriched')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Inrun Enriched
+              </button>
+            </div>
+            <code class="console-config-title" id="jsonViewerTitle"></code>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button id="copyJsonBtn" class="console-config-action-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
+            <button id="closeJsonModalBtn" class="console-config-close-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <!-- Language bar -->
+        <div class="console-config-lang-bar">YAML</div>
+        <!-- Code body -->
+        <div class="console-config-body">
+          <pre id="jsonViewerContent" class="console-config-pre"></pre>
+        </div>
+        <!-- Footer hint -->
+        <div class="console-config-footer">
+          <span>📄 Your Config — exactly what you wrote in the Blueprint</span>
+          <span>⚡ Inrun Enriched — runtime-resolved values</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/console/assets/static/js/console.js"></script>
+  <script>
+    // JSON Viewer Modal
+    const jsonModal = document.getElementById('jsonViewerModal');
+    const jsonContent = document.getElementById('jsonViewerContent');
+    const jsonTitle = document.getElementById('jsonViewerTitle');
+    const rawViewBtn = document.getElementById('rawViewBtn');
+    const enrichedViewBtn = document.getElementById('enrichedViewBtn');
+    const copyJsonBtn = document.getElementById('copyJsonBtn');
+    const closeJsonModalBtn = document.getElementById('closeJsonModalBtn');
+
+    let currentCrdName = '';
+    let currentRawData = null;
+    let currentEnrichedData = null;
+    var currentView = 'raw';
+
+    /* ── JSON → YAML ─────────────────────────────────────────── */
+    function toYAML(obj, indent) {
+      indent = indent || 0;
+      var pad = '  '.repeat(indent);
+      if (obj === null) return 'null';
+      if (obj === true) return 'true';
+      if (obj === false) return 'false';
+      if (typeof obj === 'number') return String(obj);
+      if (typeof obj === 'string') {
+        if (/[\n:#{}\[\],&*?|<>=!%@`]/.test(obj) || obj === '' || /^\s|\s$/.test(obj))
+          return '"' + obj.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n') + '"';
+        return obj;
+      }
+      if (Array.isArray(obj)) {
+        if (!obj.length) return '[]';
+        return obj.map(function(v) {
+          var inner = toYAML(v, indent + 1);
+          if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+            var ls = inner.split('\n');
+            return pad + '- ' + ls[0].trimStart() + (ls.length > 1 ? '\n' + ls.slice(1).join('\n') : '');
+          }
+          return pad + '- ' + inner;
+        }).join('\n');
+      }
+      if (typeof obj === 'object') {
+        var keys = Object.keys(obj);
+        if (!keys.length) return '{}';
+        return keys.map(function(k) {
+          var v = obj[k];
+          var key = /[:#{}[\],&*?|<>=!%@`\s]/.test(k) ? '"'+k+'"' : k;
+          if (typeof v === 'object' && v !== null)
+            return pad + key + ':\n' + toYAML(v, indent + 1);
+          return pad + key + ': ' + toYAML(v, indent);
+        }).join('\n');
+      }
+      return String(obj);
+    }
+
+    /* ── YAML highlighter ────────────────────────────────────── */
+    function highlightYAML(yaml) {
+      var esc = yaml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return esc.split('\n').map(function(line) {
+        if (/^\s*#/.test(line)) return '<span style="color:#6B7280">'+line+'</span>';
+        var m = line.match(/^(\s*)([\w".-]+)(:)(\s*)(.*)?$/);
+        if (m) {
+          return m[1]+'<span style="color:#818CF8">'+m[2]+'</span><span style="color:#6B7280">:</span>'+m[4]+colorVal(m[5]||'');
+        }
+        var lm = line.match(/^(\s*)(-)(\s+)(.*)?$/);
+        if (lm) return lm[1]+'<span style="color:#6B7280">-</span>'+lm[3]+colorVal(lm[4]||'');
+        return line;
+      }).join('\n');
+    }
+
+    function colorVal(v) {
+      if (!v) return '';
+      if (v==='true'||v==='false') return '<span style="color:#F59E0B">'+v+'</span>';
+      if (v==='null') return '<span style="color:#6B7280">'+v+'</span>';
+      if (/^-?\d+(\.\d+)?$/.test(v)) return '<span style="color:#FB923C">'+v+'</span>';
+      if (/^"/.test(v)) return '<span style="color:#34D399">'+v+'</span>';
+      return '<span style="color:#E2E8F0">'+v+'</span>';
+    }
+
+    function renderYAML() {
+      var data = currentView === 'raw' ? currentRawData : currentEnrichedData;
+      if (!data) { jsonContent.textContent = 'No data available'; return; }
+      jsonContent.innerHTML = highlightYAML(toYAML(data, 0));
+    }
+
+    async function fetchCRDData(crdName) {
+      const [r, e] = await Promise.all([
+        fetch('/console/blueprint/{{ .BlueprintName }}/crd/' + crdName + '/raw'),
+        fetch('/console/blueprint/{{ .BlueprintName }}/crd/' + crdName + '/enriched')
+      ]);
+      if (r.ok) currentRawData = await r.json();
+      if (e.ok) currentEnrichedData = await e.json();
+    }
+
+    function switchTab(view) {
+      currentView = view;
+      rawViewBtn.classList.toggle('active', view === 'raw');
+      enrichedViewBtn.classList.toggle('active', view === 'enriched');
+      renderYAML();
+    }
+
+    async function showJsonViewer(crdName, view) {
+      currentCrdName = crdName;
+      currentView = view || 'raw';
+      jsonTitle.textContent = crdName;
+      jsonContent.textContent = 'Loading…';
+      jsonModal.style.display = 'block';
+      rawViewBtn.classList.toggle('active', currentView === 'raw');
+      enrichedViewBtn.classList.toggle('active', currentView === 'enriched');
+      await fetchCRDData(crdName);
+      renderYAML();
+    }
+
+    copyJsonBtn.addEventListener('click', function() {
+      var data = currentView === 'raw' ? currentRawData : currentEnrichedData;
+      if (!data) return;
+      navigator.clipboard.writeText(toYAML(data, 0)).then(function() {
+        copyJsonBtn.textContent = 'Copied!';
+        setTimeout(function(){ copyJsonBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy'; }, 2000);
+      });
+    });
+
+    // Close modal
+    closeJsonModalBtn.addEventListener('click', function() {
+      jsonModal.style.display = 'none';
+    });
+
+    jsonModal.addEventListener('click', function(e) {
+      if (e.target === jsonModal) jsonModal.style.display = 'none';
+    });
+
+    // Worker pool toggle
+    const toggleBtn = document.getElementById('toggleWorkersBtn');
+    const moreWorkers = document.getElementById('moreWorkers');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleWorkersText');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = moreWorkers.classList.contains('hidden');
+        if (isHidden) {
+          moreWorkers.classList.remove('hidden');
+          toggleIcon.style.transform = 'rotate(180deg)';
+          toggleText.textContent = 'Show fewer workers';
+        } else {
+          moreWorkers.classList.add('hidden');
+          toggleIcon.style.transform = 'rotate(0deg)';
+          toggleText.textContent = 'Show all {{ len .CRD.WorkerDetails }} workers';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

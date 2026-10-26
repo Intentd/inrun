@@ -1,0 +1,19 @@
+apiVersion: reconciler.inrun.dev/v1alpha1
+kind: ReconcilerSuite
+metadata:
+  name: probe-suite
+  namespace: default
+---
+apiVersion: reconciler.inrun.dev/v1alpha1
+kind: ReconcilerProbe
+metadata:
+  name: probe
+spec:
+  image: nginx:1.25
+  replicas: 1
+  port: 8080
+  tier: premium
+  schedule: "*/15 * * * *"
+  extraLabels:
+    - "team=platform"
+    - "env=ci"

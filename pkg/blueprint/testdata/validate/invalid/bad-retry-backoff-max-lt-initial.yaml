@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-retry-backoff-max-lt-initial
+  version: 0.1.0
+  description: Invalid retryBackoff — max less than initial.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      operatorBox:
+        reconcile:
+          queue:
+            retryBackoff:
+              initial: 30s
+              max: 1s

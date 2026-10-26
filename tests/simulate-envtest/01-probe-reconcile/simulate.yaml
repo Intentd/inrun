@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: probe-reconcile
+  description: >
+    Probe CR reconciled against a real API server.
+    Verifies Deployment is created on cycle 1 and the loop reaches steady state.
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../cr.yaml
+  crd: ../crd.yaml
+  cycles: 5
+
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: deployments
+        name: test-probe

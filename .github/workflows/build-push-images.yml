@@ -1,0 +1,320 @@
+name: Build and Push Images
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Container image tag (without v prefix)'
+        required: true
+        type: string
+      repository:
+        description: 'GitHub repository (owner/name) for image registry'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+
+jobs:
+  build-runtime:
+    name: Build and Push Runtime
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ inputs.repository }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.image_tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.image_tag }}
+            type=semver,pattern={{major}},value=${{ inputs.image_tag }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+
+      - name: Cache compiled Linux binaries
+        id: cache-binaries
+        uses: actions/cache@v5
+        with:
+          path: |
+            inrun-amd64
+            inrun-arm64
+          key: linux-binaries-runtime-${{ hashFiles('go.sum', '**/*.go', 'cmd/**/*.go') }}
+
+      - name: Build Linux binaries (if cache miss)
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-X github.com/intentd/inrun/pkg/util/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/pkg/util/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/pkg/util/version.Date=$DATE"
+          for arch in amd64 arm64; do
+            echo "Building inrun-$arch"
+            GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \
+              -tags runtime \
+              -trimpath \
+              -ldflags="-s -w $LDFLAGS" \
+              -o inrun-$arch ./cmd/inrun
+          done
+
+      - name: Build and push runtime image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ inputs.image_tag }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write image summary
+        run: |
+          echo "## Runtime Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`ghcr.io/${{ inputs.repository }}:${{ inputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  build-gateway:
+    name: Build and Push Gateway
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ inputs.repository }}-gateway
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.image_tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.image_tag }}
+            type=semver,pattern={{major}},value=${{ inputs.image_tag }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+
+      - name: Cache compiled Linux binaries
+        id: cache-binaries
+        uses: actions/cache@v5
+        with:
+          path: |
+            inrun-amd64
+            inrun-arm64
+          key: linux-binaries-gateway-${{ hashFiles('go.sum', '**/*.go', 'cmd/**/*.go') }}
+
+      - name: Build Linux binaries (if cache miss)
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-X github.com/intentd/inrun/pkg/util/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/pkg/util/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/pkg/util/version.Date=$DATE"
+          for arch in amd64 arm64; do
+            echo "Building inrun-gateway-$arch"
+            GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \
+              -tags gateway \
+              -trimpath \
+              -ldflags="-s -w $LDFLAGS" \
+              -o inrun-$arch ./cmd/inrun
+          done
+
+      - name: Build and push gateway image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ inputs.image_tag }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write image summary
+        run: |
+          echo "## Gateway Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`ghcr.io/${{ inputs.repository }}-gateway:${{ inputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  build-console:
+    name: Build and Push Console
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ inputs.repository }}-console
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.image_tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.image_tag }}
+            type=semver,pattern={{major}},value=${{ inputs.image_tag }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+
+      - name: Cache compiled Linux binaries
+        id: cache-binaries
+        uses: actions/cache@v5
+        with:
+          path: |
+            cmd/console/inrun-console-amd64
+            cmd/console/inrun-console-arm64
+          key: linux-binaries-console-${{ hashFiles('go.sum', 'cmd/console/**/*.go') }}
+
+      - name: Build Linux binaries (if cache miss)
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-X github.com/intentd/inrun/console/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/console/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/console/version.Date=$DATE"
+          cd ./cmd/console
+          for arch in amd64 arm64; do
+            echo "Building inrun-console-$arch"
+            GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \
+              -trimpath \
+              -ldflags="-s -w $LDFLAGS" \
+              -o inrun-console-$arch .
+          done
+
+      - name: Build and push console image
+        uses: docker/build-push-action@v7
+        with:
+          context: cmd/console
+          file: cmd/console/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ inputs.image_tag }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write image summary
+        run: |
+          echo "## Console Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`ghcr.io/${{ inputs.repository }}-console:${{ inputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  build-devserver:
+    name: Build and Push Dev Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ inputs.repository }}-dev-server
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.image_tag }}
+            type=raw,value=latest
+
+      - name: Cache compiled Linux binaries
+        id: cache-binaries
+        uses: actions/cache@v5
+        with:
+          path: |
+            inrun-amd64
+            inrun-arm64
+          key: linux-binaries-devserver-${{ hashFiles('go.sum', 'pkg/devserver/**/*.go', 'cmd/devserver/**/*.go') }}
+
+      - name: Build Linux binaries (if cache miss)
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-X github.com/intentd/inrun/pkg/util/version.Version=${{ github.ref_name }} -X github.com/intentd/inrun/pkg/util/version.Commit=${{ github.sha }} -X github.com/intentd/inrun/pkg/util/version.Date=$DATE"
+          for arch in amd64 arm64; do
+            echo "Building inrun-devserver-$arch"
+            GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build \
+              -trimpath \
+              -ldflags="-s -w $LDFLAGS" \
+              -o inrun-$arch ./cmd/devserver
+          done
+
+      - name: Build and push dev server image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write image summary
+        run: |
+          echo "## Dev Server Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`ghcr.io/${{ inputs.repository }}-dev-server:latest\`" >> "$GITHUB_STEP_SUMMARY"

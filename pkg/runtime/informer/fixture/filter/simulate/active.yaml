@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: filter-probe-active
+  description: spec.active true — filter passes, reconciler runs, ConfigMap created
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../crd.yaml
+  cr: ../cr-active.yaml
+  cycles: 2
+
+  expect:
+    steady: true
+    noErrors: true
+    crds:
+      filter-probe:
+        ops:
+          - cycle: 1
+            verb: create
+            resource: configmaps
+            name: probe-active-config

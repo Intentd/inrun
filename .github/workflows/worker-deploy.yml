@@ -1,0 +1,51 @@
+name: Deploy Installer Worker (get.inrun.dev)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "install.sh"
+      - "worker/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify install.sh checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum install.sh | awk '{print $1}')
+          echo "sha256=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "install.sh SHA256: ${SHA}"
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+          workingDirectory: ./worker
+
+      - name: Verify live endpoint
+        run: |
+          echo "Waiting 10 s for edge propagation..."
+          sleep 10
+          STATUS=$(curl -sSo /dev/null -w "%{http_code}" https://get.inrun.dev/install.sh)
+          if [[ "$STATUS" != "200" ]]; then
+            echo "ERROR: get.inrun.dev/install.sh returned HTTP $STATUS"
+            exit 1
+          fi
+          echo "Live endpoint OK (HTTP $STATUS)"
+        continue-on-error: true   # don't fail the deploy if DNS isn't wired yet

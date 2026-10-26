@@ -1,0 +1,6 @@
+clusters:
+  - name: staging
+    context: kind-inrun-bt-2
+
+  - name: prod
+    context: kind-inrun-bt-3

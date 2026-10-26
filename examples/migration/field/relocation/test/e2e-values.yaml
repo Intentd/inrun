@@ -1,0 +1,7 @@
+gateway:
+  replicaCount: 2 # the startup migration Lease: one gateway migrates, the other finds it done
+  migration:
+    enabled: true
+  extraEnv:
+    - name: DEV_TOKEN
+      value: dev-token

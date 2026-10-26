@@ -1,0 +1,4 @@
+runtime:
+  image:
+    repository: ghcr.io/intentd/inrun/pkg/kubeclient/fixture/02-constructor
+    tag: latest

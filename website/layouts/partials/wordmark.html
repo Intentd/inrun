@@ -1,0 +1,14 @@
+{{/* The wordmark from docs/assets/inrun-wordmark.svg (mounted as
+     assets/brand), inline so its colours follow the site's theme toggle
+     rather than the OS setting. Its own <style> is dropped and its classes
+     prefixed; the .wordmark rules in the site CSS colour it. Pass the
+     height in px. */}}
+{{ $h := . | default 28 }}
+{{ $w := mul (div (float $h) 48) 176 | math.Round }}
+{{ $svg := (resources.Get "brand/inrun-wordmark.svg").Content }}
+{{ $svg = replaceRE `(?s)<style>.*?</style>` "" $svg }}
+{{ $svg = replaceRE `(?s)<!--.*?-->` "" $svg }}
+{{ $svg = replaceRE `<title>.*?</title>` "" $svg }}
+{{ $svg = replaceRE `class="(tile|line|head|in|run)"` `class="wm-$1"` $svg }}
+{{ $svg = replaceRE `width="176" height="48"` (printf `class="wordmark" width="%v" height="%v"` $w $h) $svg }}
+{{ $svg | safeHTML }}

@@ -1,0 +1,21 @@
+{{ define "renderValue" }}
+  {{- $v := . -}}
+  {{- if eq (printf "%T" $v) "map[string]interface {}" }}
+    <div class="console-kv-map">
+      {{ range $k, $vv := $v }}
+        <div class="console-kv-row">
+          <span class="console-kv-key">{{ $k }}</span>
+          <span class="console-kv-value">{{ template "renderValue" $vv }}</span>
+        </div>
+      {{ end }}
+    </div>
+  {{- else if eq (printf "%T" $v) "[]interface {}" }}
+    <ul class="console-kv-list">
+      {{ range $vv := $v }}
+        <li>{{ template "renderValue" $vv }}</li>
+      {{ end }}
+    </ul>
+  {{- else }}
+    {{ $v }}
+  {{- end }}
+{{ end }}

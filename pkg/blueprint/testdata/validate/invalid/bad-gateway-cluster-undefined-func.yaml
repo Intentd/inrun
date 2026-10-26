@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-gateway-cluster-undefined-func
+  version: 1.0.0
+  description: Tests that a template calling an undefined function in serve.clusters fails validation.
+functions:
+  definitions:
+    - name: targetCluster
+      description: Resolves cluster name from request context.
+      expression: '{{ if eq .intent.env "prod" }}prod{{ else }}staging{{ end }}'
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        clusters:
+          - '{{ unknownFunc .intent.env }}'   # unknownFunc is not declared in notes.functions
+gateway:
+  enabled: true
+  api:
+    enabled: true
+  clusters:
+    prod:
+      endpoint: https://prod.internal:6443
+      secretRef:
+        name: prod-credentials
+        key: kubeconfig
+    staging:
+      endpoint: https://staging.internal:6443
+      secretRef:
+        name: staging-credentials
+        key: kubeconfig

@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: hello-website-e2e
+  description: Deploy a single nginx website and verify the deployment and service comes up and are cleaned up on delete
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: CR created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Website
+          name: hello-website
+          namespace: default
+
+    - name: Deployment created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Deployment
+          namespace: default
+          ready: true
+        - kind: Service
+          namespace: default
+
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          name: hello-website
+          namespace: default
+          count: 0
+        - kind: Service
+          name: hello-website-svc
+          namespace: default
+          count: 0
+        - kind: Website
+          name: hello-website
+          namespace: default
+          count: 0

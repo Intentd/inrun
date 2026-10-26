@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: plain-path
+  version: 1.0.0
+  description: A resource gated on a plain CR path and on an input.
+
+inputs:
+  - name: enabled
+    type: string
+    default: "true"
+
+resources:
+  configMaps:
+    # A plain path reads the CR: kept, its condition left for the reconciler.
+    - name: "{{ .metadata.name }}-app"
+      data:
+        kind: app
+      when:
+        - field: spec.workloadType
+          equals: app
+    # An input condition is decided at expansion; the plain path stays.
+    - name: "{{ .metadata.name }}-gated"
+      data:
+        kind: gated
+      when:
+        - field: "{{ .inputs.enabled }}"
+          equals: "true"
+        - field: spec.workloadType
+          equals: app

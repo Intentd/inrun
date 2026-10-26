@@ -1,0 +1,1951 @@
+/* ============================================================
+   Inrun Console – Design System
+   Harmonized with the Inrun brand palette
+   ============================================================ */
+
+/* ── CSS Custom Properties ─────────────────────────────────── */
+:root {
+  /* Dark theme (default) — Inrun brand palette */
+  --bg-base:       #0c0c14;
+  --bg-surface:    #111120;
+  --bg-elevated:   #181828;
+  --bg-hover:      #1e1e30;
+  --bg-code:       #0e0e1c;
+  --border:        #1e1e2e;
+  --border-subtle: #2a2a3e;
+  --text-primary:  #e8e8f8;
+  --text-secondary:#9898b8;
+  --text-muted:    #5a5a78;
+  --text-inverse:  #0c0c14;
+  --accent:        #7c3aed;
+  --accent-hover:  #a78bfa;
+  --accent-glow:   rgba(124, 58, 237, 0.15);
+
+  /* Status */
+  --color-healthy:  #34d399;
+  --color-pending:  #fbbf24;
+  --color-degraded: #f87171;
+  --color-started:  #60a5fa;
+  --color-gated:    #a78bfa;
+
+  --color-healthy-bg:  rgba(52, 211, 153, 0.1);
+  --color-pending-bg:  rgba(251, 191, 36, 0.1);
+  --color-degraded-bg: rgba(248, 113, 113, 0.1);
+  --color-started-bg:  rgba(96, 165, 250, 0.1);
+  --color-gated-bg:    rgba(167, 139, 250, 0.1);
+
+  --color-healthy-border:  rgba(52, 211, 153, 0.25);
+  --color-pending-border:  rgba(251, 191, 36, 0.25);
+  --color-degraded-border: rgba(248, 113, 113, 0.25);
+  --color-started-border:  rgba(96, 165, 250, 0.25);
+  --color-gated-border:    rgba(167, 139, 250, 0.25);
+
+  /* Sidebar */
+  --sidebar-width: 250px;
+  --sidebar-bg:    #08080f;
+  --sidebar-border:#1e1e2e;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Spacing */
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+
+  /* Transitions */
+  --transition: 0.15s ease;
+}
+
+[data-theme="light"] {
+  --bg-base:       #ffffff;
+  --bg-surface:    #f8f9fb;
+  --bg-elevated:   #f2f3f6;
+  --bg-hover:      #eef0f4;
+  --bg-code:       #f1f3f8;
+  --border:        #e5e7eb;
+  --border-subtle: #d1d5db;
+  --text-primary:  #111118;
+  --text-secondary:#4b5563;
+  --text-muted:    #9ca3af;
+  --text-inverse:  #ffffff;
+  --accent:        #6d28d9;
+  --accent-hover:  #7c3aed;
+  --accent-glow:   rgba(109, 40, 217, 0.08);
+
+  /* Sidebar stays dark */
+  --sidebar-bg:    #08080f;
+  --sidebar-border:#1e1e2e;
+}
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-hover); text-decoration: none; }
+a:hover { color: var(--accent); text-decoration: none; }
+
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* ── Layout – console-root ──────────────────────────────────────── */
+.console-root {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  background: var(--bg-base);
+}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+.console-sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 100;
+  transition: transform var(--transition);
+}
+
+.console-sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.console-sidebar-logo a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #e8e8f8;
+}
+
+.console-sidebar-logo img {
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.console-sidebar-logo span {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e8e8f8;
+}
+
+.console-sidebar-nav {
+  padding: 12px 8px;
+  flex: 1;
+}
+
+.console-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: #9898b8;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+
+.console-nav-item:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: #e8e8f8;
+  text-decoration: none;
+}
+
+.console-nav-item.active {
+  background: rgba(124, 58, 237, 0.18);
+  color: #a78bfa;
+  border-left: 2px solid #a78bfa;
+  padding-left: 8px;
+}
+
+.console-nav-section {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a5a78;
+  padding: 8px 10px 4px;
+  margin-top: 8px;
+}
+
+.console-sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.console-refresh-label {
+  font-size: 11px;
+  color: #5a5a78;
+}
+
+.console-version-label {
+  font-size: 10px;
+  color: #5a5a78;
+  margin-left: auto;
+  font-family: var(--font-mono);
+}
+
+/* ── Sidebar Collapse Toggle ───────────────────────────────── */
+.console-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  background: none;
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+  color: #9898b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+}
+.console-sidebar-toggle:hover {
+  background: rgba(124,58,237,0.1);
+  color: #e8e8f8;
+}
+.console-sidebar-toggle svg {
+  transition: transform 0.25s ease;
+}
+
+/* ── Collapsed sidebar ─────────────────────────────────────── */
+.console-sidebar {
+  transition: width 0.22s ease, min-width 0.22s ease;
+  overflow: hidden; /* prevent text bleed at all times */
+}
+
+.console-sidebar.collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+/* Logo row: stack vertically when collapsed so img + toggle fit in 56px */
+.console-sidebar.collapsed .console-sidebar-logo-row {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.console-sidebar.collapsed .console-sidebar-logo {
+  padding: 12px 0;
+}
+/* Hide the logo link text — only show the img */
+.console-sidebar.collapsed .console-sidebar-logo a span {
+  display: none;
+}
+.console-sidebar.collapsed .console-sidebar-logo a {
+  justify-content: center;
+}
+/* Toggle button: remove margin-left auto when stacked */
+.console-sidebar.collapsed .console-sidebar-toggle {
+  margin-left: 0;
+  transform: rotate(180deg);
+}
+
+/* Nav items: use font-size:0 to collapse plain text nodes;
+   SVGs use explicit width/height so they are unaffected */
+.console-sidebar.collapsed .console-nav-item {
+  justify-content: center;
+  padding: 10px 0;
+  font-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.console-sidebar.collapsed .console-nav-item svg {
+  flex-shrink: 0;
+}
+.console-sidebar.collapsed .console-nav-item.active {
+  border-left: none;
+  border-radius: var(--radius-sm);
+  padding-left: 0;
+}
+
+/* Section labels, live label, and version badge: hide completely */
+.console-sidebar.collapsed .console-nav-section,
+.console-sidebar.collapsed .console-refresh-label,
+.console-sidebar.collapsed .console-version-label {
+  display: none;
+}
+
+/* Footer: center the dot */
+.console-sidebar.collapsed .console-sidebar-footer {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.console-sidebar-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ── Navbar page title ─────────────────────────────────────── */
+.console-navbar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: 4px;
+}
+
+/* ── Grid / List toggle ────────────────────────────────────── */
+.console-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+.console-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.console-view-btn.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.console-view-btn:hover:not(.active) {
+  color: var(--text-secondary);
+}
+
+/* ── List view for CRD cards (blueprint.html) ────────────────── */
+.console-card-grid.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.console-card-grid.list-view .console-card {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 0;
+  box-shadow: none;
+  transform: none;
+}
+.console-card-grid.list-view .console-card:last-child {
+  border-bottom: none;
+}
+.console-card-grid.list-view .console-card:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--bg-elevated);
+}
+/* Name + badge + stats: expands to fill remaining row space */
+.console-card-grid.list-view .console-card-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  padding: 0;
+  border: none;
+}
+/* Title: fixed width */
+.console-card-grid.list-view .console-card-title {
+  font-size: 13px;
+  min-width: 140px;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Footer (View Details button): always visible, pushed right */
+.console-card-grid.list-view .console-card-footer {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+}
+/* Stats row expands to fill the middle */
+.console-card-grid.list-view .console-card-meta {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  flex: 1;
+  flex-wrap: nowrap;
+  margin: 0;
+}
+.console-card-grid.list-view .console-card-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  font-size: 12px;
+}
+.console-card-grid.list-view .console-card-row-label {
+  color: var(--text-muted);
+}
+/* Hide progress bars, desc, and version line in list mode */
+.console-card-grid.list-view .console-progress-bar-wrap,
+.console-card-grid.list-view .console-card-desc,
+.console-card-grid.list-view .text-red.text-xs,
+.console-card-grid.list-view .text-amber.text-xs {
+  display: none;
+}
+/* Hide the version div (direct child of card-body) in list mode */
+.console-card-grid.list-view .console-card-body > .font-mono {
+  display: none;
+}
+/* Button: stays compact */
+.console-card-grid.list-view .console-card-footer .console-btn {
+  width: auto;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* ── Grid view for resource table (cr_list.html) ───────────── */
+/* When .list-view is NOT present on #crCardGrid, show as card grid */
+#crCardGrid:not(.list-view) .console-table thead { display: none; }
+#crCardGrid:not(.list-view) .console-table { display: block; }
+#crCardGrid:not(.list-view) .console-table tbody {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 4px;
+}
+#crCardGrid:not(.list-view) .console-table tr {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+#crCardGrid:not(.list-view) .console-table tr:hover {
+  background: var(--bg-elevated);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+#crCardGrid:not(.list-view) .console-table td {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border: none;
+  font-size: 12px;
+}
+#crCardGrid:not(.list-view) .console-table td::before {
+  content: attr(data-label);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+#crCardGrid:not(.list-view) .console-table td.console-td-name {
+  font-size: 13px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  display: block; /* name spans full width */
+}
+#crCardGrid:not(.list-view) .console-table td.console-td-name::before {
+  display: none; /* no label for name */
+}
+
+/* ── Sidebar Overlay (mobile) ──────────────────────────────── */
+.console-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+
+/* ── Main Content ──────────────────────────────────────────── */
+.console-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Navbar ────────────────────────────────────────────────── */
+.console-navbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.console-navbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.console-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+/* ── Breadcrumb ────────────────────────────────────────────── */
+.console-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.console-breadcrumb a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.console-breadcrumb a:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.console-breadcrumb .sep {
+  color: var(--border);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.console-breadcrumb .current {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── Page Content ──────────────────────────────────────────── */
+.console-page {
+  padding: 24px;
+  flex: 1;
+}
+
+/* ── Section Title ─────────────────────────────────────────── */
+.console-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+/* ── Stats Grid ────────────────────────────────────────────── */
+.console-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.console-stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.console-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.console-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.console-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.console-stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Card Grid ─────────────────────────────────────────────── */
+.console-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
+.console-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.console-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  border-color: var(--accent);
+}
+
+.console-card-body {
+  padding: 18px;
+  flex: 1;
+}
+
+.console-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.console-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+.console-card-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.console-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.console-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.console-card-row-label { color: var(--text-muted); }
+.console-card-row-value { color: var(--text-primary); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* ── Filter dropdown ────────────────────────────────────────── */
+.console-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* --bg-card is not defined; force a solid background so the dropdown is opaque */
+  background: var(--bg-elevated) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.console-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.console-check-row:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ── Badges ────────────────────────────────────────────────── */
+.console-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.console-badge-healthy {
+  background: var(--color-healthy-bg);
+  color: var(--color-healthy);
+  border-color: var(--color-healthy-border);
+}
+
+.console-badge-pending {
+  background: var(--color-pending-bg);
+  color: var(--color-pending);
+  border-color: var(--color-pending-border);
+}
+
+.console-badge-degraded {
+  background: var(--color-degraded-bg);
+  color: var(--color-degraded);
+  border-color: var(--color-degraded-border);
+}
+
+.console-badge-started {
+  background: var(--color-started-bg);
+  color: var(--color-started);
+  border-color: var(--color-started-border);
+}
+
+.console-badge-gated {
+  background: var(--color-gated-bg);
+  color: var(--color-gated);
+  border-color: var(--color-gated-border);
+}
+
+/* ── Status Dot ────────────────────────────────────────────── */
+.console-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.console-status-dot.healthy  { background: var(--color-healthy); }
+.console-status-dot.pending  { background: var(--color-pending); }
+.console-status-dot.degraded { background: var(--color-degraded); }
+.console-status-dot.started  { background: var(--color-started); }
+.console-status-dot.gated    { background: var(--color-gated); }
+
+/* ── Refresh Dot (SSE indicator) ───────────────────────────── */
+.console-refresh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.console-refresh-dot.connected {
+  background: var(--color-healthy);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  70%  { box-shadow: 0 0 0 5px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+/* ── Progress Bar ──────────────────────────────────────────── */
+.console-progress-bar-wrap {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.console-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.console-progress-bar.healthy  { background: var(--color-healthy); }
+.console-progress-bar.pending  { background: var(--color-pending); }
+.console-progress-bar.degraded { background: var(--color-degraded); }
+.console-progress-bar.started  { background: var(--color-started); }
+
+/* ── Theme Toggle ──────────────────────────────────────────── */
+.console-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.console-theme-toggle:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-muted);
+}
+
+[data-theme="light"] .console-theme-toggle .icon-moon { display: none; }
+[data-theme="dark"]  .console-theme-toggle .icon-sun  { display: none; }
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.console-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+.console-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.console-btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  text-decoration: none;
+  color: #fff;
+}
+
+.console-btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.console-btn-secondary:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+/* ── Alert ─────────────────────────────────────────────────── */
+.console-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.console-alert-warn {
+  background: var(--color-pending-bg);
+  border-color: var(--color-pending-border);
+  color: var(--color-pending);
+}
+
+.console-alert-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.console-alert-text {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.console-disconnected-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-radius: 0;
+  margin: -24px -24px 20px;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  align-items: center;
+  font-size: 13px;
+  gap: 8px;
+}
+
+/* ── Empty State ───────────────────────────────────────────── */
+.console-empty-state {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 48px 24px;
+  text-align: center;
+  margin-top: 24px;
+}
+
+.console-empty-state-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.console-empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.console-empty-state-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ── Filter Bar ────────────────────────────────────────────── */
+.console-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.console-filter-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.console-filter-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.console-filter-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ── Search Input ──────────────────────────────────────────── */
+.console-search-input {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  width: 220px;
+}
+
+.console-search-input::placeholder { color: var(--text-muted); }
+.console-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Detail Grid ───────────────────────────────────────────── */
+.console-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.console-detail-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.console-detail-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.console-detail-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── Worker Grid ───────────────────────────────────────────── */
+.console-worker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.console-worker-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+  transition: transform var(--transition);
+}
+
+.console-worker-card:hover { transform: translateY(-1px); }
+
+.console-worker-card.idle       { border-color: var(--color-healthy-border); }
+.console-worker-card.processing { border-color: var(--color-started-border); background: var(--color-started-bg); }
+.console-worker-card.stopped    { border-color: var(--color-degraded-border); }
+
+.console-worker-id {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+/* ── Events List ───────────────────────────────────────────── */
+.console-events-list {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.console-event {
+  display: grid;
+  grid-template-columns: 80px 140px 1fr 60px 80px 120px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  transition: background var(--transition);
+}
+
+.console-event:last-child { border-bottom: none; }
+.console-event:hover { background: var(--bg-hover); }
+
+.console-event-header {
+  display: grid;
+  grid-template-columns: 80px 140px 1fr 60px 80px 120px;
+  padding: 8px 16px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.console-event-header span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Table ─────────────────────────────────────────────────── */
+.console-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.console-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.console-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.console-table tbody tr {
+  transition: background var(--transition);
+  cursor: pointer;
+}
+
+.console-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.console-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Table Container ───────────────────────────────────────── */
+.console-table-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* ── Info Card (blueprint info) ──────────────────────────────── */
+.console-info-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.console-info-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── Status Dashboard (4-panel) ────────────────────────────── */
+.console-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.console-status-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition);
+}
+
+.console-status-panel:hover { transform: translateY(-1px); }
+
+.console-status-panel.healthy  { border-color: var(--color-healthy-border); }
+.console-status-panel.started  { border-color: var(--color-started-border); }
+.console-status-panel.pending  { border-color: var(--color-pending-border); }
+.console-status-panel.degraded { border-color: var(--color-degraded-border); }
+
+.console-status-panel-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.console-status-panel.healthy  .console-status-panel-label { color: var(--color-healthy); }
+.console-status-panel.started  .console-status-panel-label { color: var(--color-started); }
+.console-status-panel.pending  .console-status-panel-label { color: var(--color-pending); }
+.console-status-panel.degraded .console-status-panel-label { color: var(--color-degraded); }
+
+.console-status-panel-value {
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.console-status-panel.healthy  .console-status-panel-value { color: var(--color-healthy); }
+.console-status-panel.started  .console-status-panel-value { color: var(--color-started); }
+.console-status-panel.pending  .console-status-panel-value { color: var(--color-pending); }
+.console-status-panel.degraded .console-status-panel-value { color: var(--color-degraded); }
+
+.console-status-panel-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Pagination ────────────────────────────────────────────── */
+.console-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.console-pagination-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.console-pagination-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.console-page-btn {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  min-width: 32px;
+  text-align: center;
+}
+
+.console-page-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.console-page-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.console-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Section ───────────────────────────────────────────────── */
+.console-section {
+  margin-bottom: 28px;
+}
+
+.console-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+/* ── Inline Code ───────────────────────────────────────────── */
+.console-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--text-secondary);
+}
+
+/* ── CRD card hide states ──────────────────────────────────── */
+.crd-grid-item.hide { display: none !important; }
+.crd-grid-item.hide-for-pagination { display: none !important; }
+.resource-row.filtered-out { display: none !important; }
+
+/* ── Depends-on pill ───────────────────────────────────────── */
+.console-dep-pill {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Tooltip ───────────────────────────────────────────────── */
+[data-tooltip] { position: relative; cursor: default; }
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  /* top: 100%; */
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 200;
+  display: none;
+  pointer-events: none;
+  font-family: var(--font-mono);
+}
+[data-tooltip]:hover::before { opacity: 1; }
+[data-tooltip]:hover::after { display: block; }
+
+/* ── Collapsible details ───────────────────────────────────── */
+details { width: 100%; }
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+
+.console-details-summary {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: background var(--transition);
+}
+.console-details-summary:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ── Child group collapsible ───────────────────────────────── */
+.console-child-group > summary { list-style: none; }
+.console-child-group > summary::-webkit-details-marker { display: none; }
+.console-child-group .console-chevron { transition: transform 0.15s ease; flex-shrink: 0; }
+.console-child-group[open] .console-chevron { transform: rotate(180deg); }
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes fade-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.anim-spin { animation: spin 1s linear infinite; }
+.anim-bounce { animation: bounce 1.4s ease infinite; }
+.anim-pulse { animation: fade-pulse 1.8s ease infinite; }
+
+/* ── Utility ───────────────────────────────────────────────── */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-6 { margin-bottom: 24px; }
+.text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
+.font-mono { font-family: var(--font-mono); }
+.font-bold { font-weight: 700; }
+.font-medium { font-weight: 500; }
+.text-green  { color: var(--color-healthy); }
+.text-red    { color: var(--color-degraded); }
+.text-amber  { color: var(--color-pending); }
+.text-blue   { color: var(--color-started); }
+.text-muted  { color: var(--text-muted); }
+.text-primary { color: var(--text-primary); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hidden { display: none !important; }
+.w-full { width: 100%; }
+.break-all { word-break: break-all; }
+
+/* ── Divider ───────────────────────────────────────────────── */
+.console-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 16px 0;
+}
+
+/* ── Key-value table ───────────────────────────────────────── */
+.console-kv-table {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.console-kv-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+
+.console-kv-row:last-child { border-bottom: none; }
+
+.console-kv-key {
+  width: 220px;
+  min-width: 220px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 16px;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.console-kv-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* ── Metrics preview table ─────────────────────────────────── */
+.console-metrics-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.console-metrics-table th {
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+.console-metrics-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+.console-metrics-table tr:last-child td { border-bottom: none; }
+
+/* ── Mobile ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Sidebar: slide-in drawer on mobile */
+  .console-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 220px !important;
+    min-width: 220px !important;
+    transform: translateX(-100%);
+    z-index: 200;
+    transition: transform 0.25s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .console-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Never collapse on mobile — collapse toggle hidden */
+  .console-sidebar.collapsed {
+    width: 220px !important;
+    min-width: 220px !important;
+  }
+  .console-sidebar.collapsed .console-nav-item {
+    font-size: 13px !important;
+    justify-content: flex-start;
+    padding: 8px 10px;
+  }
+  .console-sidebar.collapsed .console-nav-section,
+  .console-sidebar.collapsed .console-refresh-label,
+  .console-sidebar.collapsed .console-version-label,
+  .console-sidebar.collapsed .console-sidebar-logo a span {
+    display: revert;
+  }
+  .console-sidebar.collapsed .console-sidebar-logo-row {
+    flex-direction: row;
+  }
+  .console-sidebar.collapsed .console-sidebar-logo {
+    padding: 20px 16px 16px;
+  }
+  .console-sidebar-toggle { display: none; }
+
+  .console-sidebar-overlay.open {
+    display: block;
+  }
+
+  .console-mobile-toggle {
+    display: flex;
+  }
+
+  /* Stats: always 2-col on tablet, override inline styles */
+  .console-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .console-status-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .console-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Card grid list view — single column on mobile */
+  .console-card-grid.list-view .console-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .console-card-grid.list-view .console-card-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .console-card-grid.list-view .console-card-footer {
+    align-self: stretch;
+  }
+  .console-card-grid.list-view .console-card-footer .console-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* cr_list grid view: single column on mobile */
+  #crCardGrid:not(.list-view) .console-table tbody {
+    grid-template-columns: 1fr;
+  }
+
+  .console-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .console-page {
+    padding: 16px;
+  }
+
+  /* Filter bar: wrap filter buttons */
+  .console-filter-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .console-filter-bar-end {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .console-search-input {
+    width: 100%;
+  }
+
+  /* Navbar: hide full breadcrumb, show only last crumb */
+  .console-breadcrumb a:not(:last-of-type),
+  .console-breadcrumb .sep:not(:last-of-type) {
+    display: none;
+  }
+
+  /* crd.html inline-grid sections → stack */
+  .console-section > div[style*="grid-template-columns:1fr 1fr"],
+  .console-section > div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small: 1-col stats */
+  .console-stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .console-status-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+/* ── Utility classes (avoid inline style in Go templates) ─── */
+.console-badge-neutral {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+.console-badge-icon {
+  gap: 4px;
+}
+.console-text-dim {
+  color: var(--border);
+}
+.console-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.console-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.console-header-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.console-filter-bar-end {
+  margin-left: auto;
+}
+.console-td-name {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.console-td-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Mobile: table → stacked cards (≤640px) ─────────────── */
+@media (max-width: 640px) {
+  .console-table-wrap {
+    overflow-x: visible;
+  }
+
+  .console-table,
+  .console-table thead,
+  .console-table tbody,
+  .console-table tr,
+  .console-table td,
+  .console-table th {
+    display: block;
+  }
+
+  .console-table thead {
+    display: none;
+  }
+
+  .console-table tr {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: var(--bg-surface);
+    cursor: pointer;
+  }
+
+  .console-table tr:hover {
+    background: var(--bg-elevated);
+  }
+
+  .console-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border: none;
+    font-size: 12px;
+    min-height: 24px;
+  }
+
+  .console-table td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-right: 12px;
+    min-width: 80px;
+  }
+
+  /* First cell (name) always full-width prominent */
+  .console-table td.console-td-name {
+    font-size: 13px;
+    font-weight: 600;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Stats grid single column on very small screens */
+  .console-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Filter bar wrap tightly */
+  .console-filter-bar {
+    gap: 6px;
+  }
+
+  .console-filter-bar .console-filter-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  /* Hide view toggle on mobile — always use card layout */
+  .console-view-toggle {
+    display: none;
+  }
+
+  /* Breadcrumb shorten */
+  .console-breadcrumb .sep + a:not(:last-child),
+  .console-breadcrumb a:not(:last-of-type) {
+    display: none;
+  }
+
+  /* crd.html multi-col grids → single col */
+  .console-section [style*="grid-template-columns:repeat(3"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .console-section [style*="grid-template-columns:repeat(4"] {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .console-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .console-page {
+    padding: 12px;
+  }
+}
+
+/* ── CRD / Blueprint config popup ─────────────────────────────── */
+.console-crumb-clickable {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition: background .15s, color .15s;
+}
+.console-crumb-clickable:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.console-blueprint-name-link:hover svg {
+  opacity: 0.8 !important;
+}
+
+.console-config-popup {
+  background: #0c0c14;
+  border: 1px solid #2a2a3e;
+  border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  max-width: 860px;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.console-config-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #111120;
+  border-bottom: 1px solid #1e1e2e;
+}
+
+.console-config-tabs {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid #2a2a3e;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.console-config-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: #5a5a78;
+  transition: background .15s, color .15s;
+}
+.console-config-tab:hover { color: #e8e8f8; }
+.console-config-tab.active {
+  background: #7c3aed;
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(124,58,237,0.4);
+}
+
+.console-config-title {
+  font-size: 11px;
+  color: #5a5a78;
+  font-family: var(--font-mono);
+  background: rgba(255,255,255,0.03);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #2a2a3e;
+}
+
+.console-config-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #9898b8;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.console-config-action-btn:hover { background: rgba(124,58,237,0.12); color: #e8e8f8; }
+
+.console-config-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #5a5a78;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.console-config-close-btn:hover { background: rgba(124,58,237,0.1); color: #e8e8f8; }
+
+.console-config-lang-bar {
+  padding: 5px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.25);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-mono, monospace);
+  user-select: none;
+}
+
+.console-config-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 24px;
+  background: var(--bg-code);
+}
+
+.console-config-pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  white-space: pre;
+}
+
+.console-config-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Copied */
+#ym-copyBtn {
+  transition: all 0.2s ease;
+}
+#ym-copyBtn.copied {
+  background: var(--color-healthy) !important;
+  color: var(--text-inverse) !important;
+}
+#ym-copyBtn:hover {
+  background: var(--color-healthy) !important;
+  color: var(--text-inverse) !important;
+}
+
+/* ── Docs ──────────────────────────────────────────────────── */
+.console-code-block {
+  display: block;
+  padding: 8px 12px;
+  background: var(--bg-code);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.console-sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  padding: 12px 12px 4px;
+}
+
+.console-nav-item-sub {
+  padding-left: 24px;
+  font-size: 12px;
+}

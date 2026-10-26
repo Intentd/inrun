@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: secret-distribution-sim
+  description: >
+    Copies the database-credentials Secret from platform into team-alpha and team-beta.
+    The setup seeds the source Secret and the namespaces, in memory and on
+    envtest, so the copy reads its source like it does on a cluster. The secret is 
+    absent in any other namespace like default.
+
+spec:
+  blueprint: ../blueprint.yaml
+  cr: ../manifests/cr.yaml
+  cycles: 1
+  setup:
+    - ../manifests/setup.yaml
+
+  expect:
+    steady: false
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: apply
+        resource: secrets
+        name: database-credentials
+        namespace: team-alpha
+      - cycle: 1
+        verb: apply
+        resource: secrets
+        name: database-credentials
+        namespace: team-beta
+    absent:
+      - cycle: 1
+        verb: apply
+        resource: secrets
+        name: database-credentials
+        namespace: default

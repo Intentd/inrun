@@ -1,0 +1,27 @@
+{{- if .Values.runtime.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inrun.fullname" . }}-runtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: runtime
+    inrun.dev/component: runtime
+  {{- with .Values.runtime.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.runtime.service.type }}
+  selector:
+    {{- include "inrun.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: runtime
+  ports:
+    - name: http
+      port: {{ .Values.runtime.server.httpPort }}
+      targetPort: http
+      protocol: TCP
+
+{{- end }}

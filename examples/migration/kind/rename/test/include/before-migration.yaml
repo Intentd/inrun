@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Before migration: the gateway runs on the old kind, and intents land in the new one
+expect:
+  - name: Gateway starts without --migrate and is healthy
+    timeout: 60s
+    resources:
+      - kind: deployments
+        name: inrun-gateway
+        namespace: inrun-system
+        ready: true
+
+  - name: Intent lands in NewConfig before any source has migrated
+    timeout: 60s
+    onFailure: 
+      stop: true
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${DEV_TOKEN}"
+            Content-Type: "application/json"
+          body: >-
+            {
+              "target":"my-api-server",
+              "image":"myapp/api:3.0.0",
+              "replicas":4,
+              "logLevel":"info"
+            }
+          statusCode: 200
+
+  - name: Gateway-created NewConfig exists while AppConfig sources still do
+    timeout: 30s
+    onFailure: 
+      stop: true
+    resources:
+      - kind: newconfigs.demo.inrun.dev
+        name: api-server-gateway
+        namespace: default
+
+  - name: Full-CR request with the old GVK is rejected
+    timeout: 30s
+    onFailure: 
+      stop: true
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer ${DEV_TOKEN}"
+            Content-Type: "application/yaml"
+          bodyFile: ../../manifests/cr-for-gateway.yaml
+          contains: '"error":"source CRD under migration"'
+
+  # --- forward migration, gateway stays up ---

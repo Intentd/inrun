@@ -1,0 +1,7 @@
+apiVersion: filter.inrun.dev/v1alpha1
+kind: FilterProbe
+metadata:
+  name: probe-active
+  namespace: default
+spec:
+  active: true

@@ -1,0 +1,10 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: Database
+metadata:
+  name: my-db
+  namespace: default
+spec:
+  engine: postgres
+  version: "14"
+  storage: 10Gi
+  backup: true    # triggers the optional backup CronJob in the hook

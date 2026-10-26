@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: hooks-e2e
+  description: Exercise typed Go hooks — verify pre/post reconcile hooks fire and the operator deployment comes up
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  expect:
+    - name: Database statefulSet and Cronjob created
+      after: cr-applied
+      timeout: 90s
+      resources:
+        - kind: StatefulSet
+          namespace: default
+          ready: true
+        - kind: Cronjob
+          name: my-db-backup
+          namespace: default
+
+    - name: Deployment and Cronjob removed on delete
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: StatefulSet
+          namespace: default
+          count: 0
+        - kind: Cronjob
+          namespace: default
+          name: my-db-backup
+          count: 0

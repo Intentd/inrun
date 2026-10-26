@@ -1,0 +1,9 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: DeploymentRequest
+metadata:
+  name: bad-image-app
+  namespace: default
+spec:
+  image: docker.io/my-app:latest   # not from myorg/ — always denied by image rule
+  replicas: 2
+  environment: production

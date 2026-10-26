@@ -1,0 +1,94 @@
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: events-pipeline
+  namespace: demo-05
+spec:
+  source: kafka-events
+  sink: postgres-warehouse
+  batchSize: "500"
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Dataset
+metadata:
+  name: user-events
+  namespace: demo-05
+spec:
+  format: parquet
+  location: s3://demo-bucket/user-events
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Schema
+metadata:
+  name: events-schema
+  namespace: demo-05
+spec:
+  version: v2
+  compatibility: BACKWARD
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Transform
+metadata:
+  name: enrich-events
+  namespace: demo-05
+spec:
+  image: python:3.12-slim
+  workers: "2"
+  type: enrichment
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Sink
+metadata:
+  name: postgres-warehouse
+  namespace: demo-05
+spec:
+  target: postgresql://warehouse.demo-05.svc:5432/events
+  format: json
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Source
+metadata:
+  name: kafka-events
+  namespace: demo-05
+spec:
+  endpoint: kafka.demo-05.svc:9092
+  pollInterval: 500ms
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: DataJob
+metadata:
+  name: backfill-job
+  namespace: demo-05
+spec:
+  image: python:3.12-slim
+  parallelism: "3"
+  timeout: 2h
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Schedule
+metadata:
+  name: nightly-sync
+  namespace: demo-05
+spec:
+  cron: "0 2 * * *"
+  target: events-pipeline
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Alert
+metadata:
+  name: pipeline-lag-alert
+  namespace: demo-05
+spec:
+  severity: warning
+  condition: "lag > 10000"
+  channel: "#data-ops"
+---
+apiVersion: data.demo.inrun.dev/v1alpha1
+kind: Dashboard
+metadata:
+  name: pipeline-overview
+  namespace: demo-05
+spec:
+  title: Pipeline Overview
+  refreshInterval: 30s
+  panelCount: "6"

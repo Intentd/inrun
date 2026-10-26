@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/simulate-ops-rule.json
+ops:
+  - cycle: 1
+    verb: apply
+    resource: persistentvolumes
+    name: acme-api-pv
+  - cycle: 1
+    verb: create
+    resource: persistentvolumeclaims
+    name: acme-acme-dev-pvc  
+  - cycle: 1
+    verb: apply
+    resource: persistentvolumes
+    name: acme-worker-pv
+  - cycle: 1
+    verb: create
+    resource: persistentvolumeclaims
+    name: acme-acme-staging-pvc

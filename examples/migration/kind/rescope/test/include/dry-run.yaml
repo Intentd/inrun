@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Dry run: what moves, and the collision it reports
+expect:
+  - name: Dry-run migrates three resources and reports the duplicate name
+    timeout: 30s
+    commands:
+      - run: inrun migrate -f ../../blueprint.yaml --dry-run -ojson || true
+        assert: 
+          json:
+            - path: .totals.crs
+              equals: 4
+            - path: .totals.migrated
+              equals: 3
+      - run: inrun migrate -f ../../blueprint.yaml --dry-run
+        contains: "destination payments is also the target of team-a/payments in this run"
+
+  - name: Dry-run leaves all source resources untouched
+    timeout: 30s
+    kubectl:
+      get:
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-a
+          assert: 
+            json:
+              - path: .spec.image
+                equals: myapp/payments:1.0.0
+              - path: .spec.scaling.min
+                equals: 6
+              - path: .spec.observability.logging.level
+                equals: info
+        - kind: appconfigs.demo.inrun.dev
+          name: search
+          namespace: team-b
+          assert: 
+            json:
+              - path: .spec.image
+                equals: myapp/search:1.0.0
+              - path: .spec.scaling.min
+                equals: 3
+              - path: .spec.observability.logging.level
+                equals: warn
+        - kind: appconfigs.demo.inrun.dev
+          name: payments
+          namespace: team-c
+          assert: 
+            json:
+              - path: .spec.image
+                equals: myapp/payments:1.0.0
+              - path: .spec.scaling.min
+                equals: 2
+              - path: .spec.observability.logging.level
+                equals: debug
+        - kind: appconfigs.demo.inrun.dev
+          name: ledger
+          namespace: team-d
+          assert: 
+            json:
+              - path: .spec.image
+                equals: myapp/ledger:1.0.0
+              - path: .spec.scaling.min
+                equals: 4
+              - path: .spec.observability.logging.level
+                equals: info
+
+  - name: Dry-run creates no cluster-scoped destinations
+    timeout: 30s
+    resources:
+      - kind: appconfigs.platform.demo.inrun.dev
+        count: 0
+
+  # --- forward migration ---

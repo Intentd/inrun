@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: secret-distribution
+  author: intentd
+  version: 0.1.0
+  tags:
+    - secret
+    - security
+    - namespace
+  description: >
+    Demonstrates built-in kind enrichment and cross-namespace secret distribution.
+    Inrun watches the SecretDistribution CRD and copies a named Secret
+    from a source namespace into every target namespace declared in the CR.
+
+spec:
+  crds:
+    secret-distribution:
+      namespaced: false
+
+      apiTypes:
+        group: demo.inrun.dev
+        version: v1alpha1
+        kind: SecretDistribution
+        plural: secretdistributions
+
+      operatorBox:
+        reconcile:
+          onCreate:
+            secrets:
+              - name: "{{ .spec.secretName }}"
+                fromSecret: "{{ .spec.secretName }}"
+                fromNamespace: "{{ .spec.sourceNamespace }}"
+                toNamespaces:
+                  - "{{ .spec.targetNamespaces }}"
+                reconcile: true
+        emit:
+          status:
+            fields:
+              - path: phase
+                value: "Distributed"
+              - path: sourceSecret
+                value: "{{ .spec.secretName }}"
+              - path: sourceNamespace
+                value: "{{ .spec.sourceNamespace }}"
+

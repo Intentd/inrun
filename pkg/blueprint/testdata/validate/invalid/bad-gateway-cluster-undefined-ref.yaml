@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/blueprint.json
+apiVersion: inrun.dev/v1
+kind: Blueprint
+metadata:
+  name: bad-gateway-cluster-undefined-ref
+  version: 1.0.0
+  description: Tests that serve.cluster referencing an undefined cluster name fails validation.
+spec:
+  crds:
+    widget:
+      crdFile: ../crd.yaml
+      serve:
+        enabled: true
+        namespace: default
+        clusters:
+          - prod   # "prod" is not in gateway.clusters
+gateway:
+  enabled: true
+  api:
+    enabled: true
+  clusters:
+    staging:
+      endpoint: https://staging.internal:6443
+      secretRef:
+        name: staging-credentials
+        key: kubeconfig

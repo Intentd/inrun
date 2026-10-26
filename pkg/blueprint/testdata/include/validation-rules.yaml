@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/validation.json
+rules:
+  - field: spec.team
+    exists: true
+    message: "spec.team is required"
+    action: deny
+  - field: spec.environment
+    in: "staging,production"
+    message: "spec.environment must be staging or production"
+    action: deny

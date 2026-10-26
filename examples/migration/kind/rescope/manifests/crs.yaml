@@ -1,0 +1,73 @@
+# One AppConfig per team namespace. team-a and team-c both have "payments":
+# fine while namespaced, a collision once the CRD is cluster-scoped.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: payments
+  namespace: team-a
+  labels:
+    app: payments
+    team: team-a
+spec:
+  image: "myapp/payments:1.0.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "info"
+status:
+  phase: Ready
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: search
+  namespace: team-b
+  labels:
+    app: search
+    team: team-b
+spec:
+  image: "myapp/search:1.0.0"
+  scaling:
+    min: 3
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: payments
+  namespace: team-c
+  labels:
+    app: payments
+    team: team-c
+spec:
+  image: "myapp/payments:1.0.0"
+  scaling:
+    min: 2
+  observability:
+    logging:
+      level: "debug"
+status:
+  phase: Pending
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: ledger
+  namespace: team-d
+  labels:
+    app: ledger
+    team: team-d
+spec:
+  image: "myapp/ledger:1.0.0"
+  scaling:
+    min: 4
+  observability:
+    logging:
+      level: "info"
+status:
+  phase: Ready

@@ -1,0 +1,14 @@
+# Happy path: app workload, staging — all required fields present.
+# Exercises: no admission violations, no warn (staging skips productionApproval check).
+apiVersion: gateway.fixture.inrun.dev/v1alpha1
+kind: PlatformResource
+metadata:
+  name: payments-api
+  namespace: team-payments
+spec:
+  workloadType: app
+  team: team-payments
+  environment: staging
+  repoURL: https://github.com/myorg/payments-api
+  targetRevision: main
+  targetNamespace: team-payments

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Startup: the gateways run the migrations one at a time (a Lease); the first
+# does the work, the others find it done. Each pod's log is checked on its own.
+expect:
+  - name: Gateway runs exactly 8 migrations and skips one on startup without failure
+    timeout: 30s
+    kubectl:
+      logs:
+        # Only the gateway that held the Lease first migrated anything.
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 3m
+          pods: any
+          contains: '"kind":"AppConfig","migrated":8,"skipped":1,"excluded":0,"drifted":0,"pruned":0,"failed":0,'
+        # Every gateway's run failed nothing...
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 3m
+          pods: all
+          contains: '"failed":0,'
+        # ...and every gateway finished migrating before it served.
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 3m
+          pods: all
+          contains: "schema migration: complete"

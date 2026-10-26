@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Auth: every call to the reconciler carries the token
+expect:
+  - name: Reconciler logs show authenticated calls
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      logs:
+        - labelSelector: app=webapp-reconciler
+          namespace: default
+          contains: key=default/my-webapp

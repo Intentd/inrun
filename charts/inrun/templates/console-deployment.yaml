@@ -1,0 +1,135 @@
+{{- if .Values.console.enabled }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inrun.fullname" . }}-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "inrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+    inrun.dev/component: console
+spec:
+  replicas: {{ .Values.console.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "inrun.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: console
+  template:
+    metadata:
+      labels:
+        {{- include "inrun.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: console
+        {{- with .Values.console.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.console.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.console.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.console.serviceAccount | default "inrun-console" }}
+      securityContext:
+        {{- toYaml .Values.console.podSecurityContext | nindent 8 }}
+
+      containers:
+        - name: console
+          image: {{ include "inrun.consoleImage" . }}
+          imagePullPolicy: {{ .Values.console.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.console.securityContext | nindent 12 }}
+
+          args:
+            - -u
+            - {{ include "inrun.consoleURLs" . | quote }}
+            - -p
+            - {{ .Values.console.config.port | default 8081 | quote }}
+            - --log-level
+            - {{ .Values.console.config.logLevel | default "info" | quote }}
+            - --refresh
+            - {{ .Values.console.config.refreshInterval | default "10s" | quote }}
+
+          env:
+            - name: LOG_LEVEL
+              value: {{ .Values.console.config.logLevel | default "info" | quote }}
+            {{- if .Values.console.gatewayToken.secretRef.name }}
+            - name: GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.console.gatewayToken.secretRef.name | quote }}
+                  key: {{ .Values.console.gatewayToken.secretRef.key | default "token" | quote }}
+            {{- end }}
+            {{- with .Values.console.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- with .Values.console.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.console.config.port | default 8081 }}
+              protocol: TCP
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.console.livenessProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.console.livenessProbe.periodSeconds | default 10 }}
+            failureThreshold: {{ .Values.console.livenessProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.console.livenessProbe.timeoutSeconds | default 1 }}
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.console.readinessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.console.readinessProbe.periodSeconds | default 5 }}
+            failureThreshold: {{ .Values.console.readinessProbe.failureThreshold | default 3 }}
+            timeoutSeconds: {{ .Values.console.readinessProbe.timeoutSeconds | default 1 }}
+
+          resources:
+            {{- toYaml .Values.console.resources | nindent 12 }}
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.console.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.console.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.console.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.console.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.console.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.console.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+{{- end }}

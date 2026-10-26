@@ -1,0 +1,707 @@
+{
+  "$defs": {
+    "Auth": {
+      "additionalProperties": false,
+      "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
+      "properties": {
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesSecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SecretRef locates a Kubernetes Secret whose data key holds a bearer token\nMutually exclusive with Token. inrun validate enforces this"
+        },
+        "token": {
+          "description": "Token is a bearer token for the endpoint. $ENV_VAR syntax supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "description": "Condition is one test against the CR or runtime state.",
+      "properties": {
+        "between": {
+          "description": "Between passes when the field's number is inside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains passes when the field's value contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cron": {
+          "description": "Cron — a standard cron expression (5-field) that defines when the\nwindow opens. Duration defines how long the window stays open.\nWithout Duration, the window stays open until the next fire. Add Duration to close it sooner.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dayOfWeek": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DayOfWeekCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "DayOfWeek — active on the specified days of the week.\n  or:\n    - dayOfWeek:\n        in: [Monday, Tuesday, Wednesday, Thursday, Friday]"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Duration — how long a cron-opened window remains active."
+        },
+        "equals": {
+          "description": "Equals passes when the field's value is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "field": {
+          "description": "Field — dot-notation path to a field in the CR object or a runtime metric.\ne.g. \"spec.environment\", \"metrics.queueDepth\", \"cross.managed-database.metrics.queueDepth\"",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan passes when the field's number is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In passes when the field's value is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan passes when the field's number is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max is an inclusive upper bound: the field's number is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min is an inclusive lower bound: the field's number is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "negate": {
+          "description": "Negate — when true, the result of this condition is inverted.\nApplies to all condition types: field comparisons, time windows, dayOfWeek, cron.\n\n  when:\n    - dayOfWeek:\n        weekday: true\n      negate: true   # passes on weekends",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween passes when the field's number is outside an inclusive \"min,max\" range.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains passes when the field's value does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals passes when the field's value is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn passes when the field's value is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix passes when the field's value does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix passes when the field's value does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix passes when the field's value starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex passes when the field's value matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CrossSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source is the HTTP fallback for cross-binary metric observation.\nOnly used when field is a cross.\u003ccrd\u003e.metrics.* field and the CRD\nis not registered in GlobalCrossMetricsRegistry (different binary).\nThe endpoint must be the remote operator's /blueprint/{crd} URL.\n\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        host: \"http://inrun-database-operator:8080\"\n\t\t   crd: managed-database\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        endpoint: \"http://non-inrun-database-operator:8080/api/managed-database/metrics\""
+        },
+        "suffix": {
+          "description": "Suffix passes when the field's value ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Time — active when the current time is within the declared window.\nAfter and Before are both optional; omit one for a half-open range.\n  or:\n    - time:\n        after: \"08:00\"\n        before: \"20:00\""
+        },
+        "typeOf": {
+          "description": "TypeOf passes when the field's value has this type: map, slice,\nstring, number, bool or null (the names the typeOf function returns).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "unique": {
+          "description": "Unique, when true, passes when no other instance of the CRD has the same\nvalue at Field. Always passes where no uniqueness checker is available\n(e2e, simulate without a seeded fixture).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Conditions": {
+      "items": {
+        "$ref": "#/$defs/Condition"
+      },
+      "type": "array"
+    },
+    "CrossSource": {
+      "additionalProperties": false,
+      "description": "CrossSource declares how to fetch cross-binary/cluster data for a CRD.",
+      "properties": {
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Auth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Auth handles both ENV-based token and secret reads for cross: authentication\n\tauth:\n\t  secretRef:\n\t\tname: cross-secret\n\t\tnamespace: cross-namespace\n\t\tkey: password"
+        },
+        "cacheFor": {
+          "description": "CacheFor controls how long to cache the result before calling again.\nDefault: 30s — prevents hammering the endpoint on every evaluation.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint is a fully-qualified URL. If set, Inrun uses it directly\nand ignores Host/Protocol/Namespace. Template expressions supported.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "description": "Host is the base URL of a remote Inrun runtime, e.g.:\n  http://inrun-runtime.loader-system:8080\nCombined with Type to build the final URL.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace overrides the CR namespace when building info/events URLs.\nOptional — defaults to the CR's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "protocol": {
+          "description": "Protocol selects which Inrun-native endpoint to call.\nOne of: \"info\", \"metrics\", \"health\", \"events\".\nDefault: \"info\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "DayOfWeekCondition": {
+      "additionalProperties": false,
+      "description": "DayOfWeekCondition declares which days the condition is active.",
+      "properties": {
+        "in": {
+          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — active on all days except these.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "weekday": {
+          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "weekend": {
+          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Duration": {
+      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "KubernetesSecretRef": {
+      "additionalProperties": false,
+      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "properties": {
+        "key": {
+          "description": "Key is the data key within the Secret whose value is the token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Kubernetes Secret name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "rotateAfter": {
+          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ServeFieldConfig": {
+      "additionalProperties": false,
+      "description": "ServeFieldConfig holds display hints for one spec field in the serve form.",
+      "properties": {
+        "category": {
+          "description": "Category is a section heading for visual grouping. Fields sharing a category\nare rendered under the same heading. Works with When — if all fields in\na category are hidden, the heading is also hidden.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "default": {
+          "description": "Default — set only if the field is absent or empty.\nSupports template expressions. This is used to synthesize mutation rules for this field\n Ignored for Fields entries, which always infer default from the CRD's OpenAPI schema.\nUsed by `ServeFieldMutationRules`"
+        },
+        "description": {
+          "description": "Description is a short human-readable information about the field.\nInformational only.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "disabled": {
+          "description": "Disabled, when non-empty, renders the field greyed out with this string\nas the reason. The field is excluded from form submission.\nUse for maintenance windows or temporarily locked fields.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enum": {
+          "description": "Enum lists valid values when Type == \"enum\". Required in that case.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "hint": {
+          "description": "Hint is descriptive text rendered below the field.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "label": {
+          "description": "Label overrides the field name in the rendered form.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "migrate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServeFieldMigrate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Migrate configures a field-level migration. `inrun migrate` reads the\nvalue at Migrate.From, applies this field's value/values transform,\nwrites the result to the field's current path and removes Migrate.From.\nCRs without Migrate.From are skipped."
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Or is a list of conditions where at least ONE must be true for the\nfield to be visible. OR counterpart to When (AND)."
+        },
+        "order": {
+          "description": "Order controls position in the rendered form. Lower values appear first.\nFields with no order (0) appear after all explicitly ordered fields —\nany number of fields may leave it unset, since 0 means \"no preference,\"\nnot a real position.\n\nNot just form layout: allServeFieldRefs sorts by Order to decide\nsynthesized validation-rule priority too (see RuleViolation.Field /\nValidationResult.DenialMessage — only the first violation is reported\nas the headline denial reason), so the field a developer sees first is\nalso the one whose error they see first when several fail at once.\nTwo fields on the same CRD sharing a non-zero Order is a load-time\nerror (see Blueprint.validateServeFieldOrder) for exactly this reason.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "override": {
+          "description": "Override — always set, regardless of current value.\nSupports template expressions. This is used to synthesize mutation rules for this field\nIgnored for Fields entries, which always infer override from the CRD's OpenAPI schema.\nUsed by `ServeFieldMutationRules`"
+        },
+        "path": {
+          "description": "Path is the dot-notation path in the CRD spec where this field belongs.\nExample: \"app.repository\", \"scaling.minReplicas\"\nWhen set, the field is mapped to this nested path.\nWhen empty, the field name is used as the path (flat).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "placeholder": {
+          "description": "Placeholder is the input placeholder text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "required": {
+          "description": "Required, when true, marks the field as mandatory in the serve form —\nthe browser enforces this natively (asterisk on the label, form cannot\nbe submitted while Empty() — and is also enforced server-side: an\nimplicit exists validation rule is synthesized automatically at\nblueprint load time (see CRDEntry.RequiredServeFieldRules), covering every\nclient of the Gateway API, not just the Console form. No matching\nvalidation.rules entry needs to be hand-written.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Type is the value's type: the console renders the matching input and\nsends a value of that type. Declare it for any non-string field, spec\nfields included; the API server rejects a \"2\" for an integer spec field.\nSupported: string (default), integer, number, boolean, enum.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "Value is a template expression that transforms the submitted field value\nbefore writing it to the spec path. The expression has access to:\n  .value   — the raw submitted value for this field\n  .request — the full raw intent payload (cross-field reads)\n\nWhen Value is present, its result is written to Path (or the field name\nif Path is absent). When absent, the raw submitted value is written as-is.\n\nValue and Values are mutually exclusive.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "values": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Values is a fanout map from dot-notation spec paths to template expressions.\nUse when one submitted field must be split into multiple CR spec fields.\n\nExample — caller submits \"image: ghcr.io/myorg/app:v1.2.3\"; blueprint fans\nit out to image.registry, image.repository, image.tag:\n\n  values:\n    image.registry:   '{{ imageRegistry   .value }}'\n    image.repository: '{{ imageRepository .value }}'\n    image.tag:        '{{ imageTag        .value }}'\n\nAll map keys must be dot-notation (contain at least one dot).\nPath is ignored when Values is present.\nValue and Values are mutually exclusive.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When is a list of conditions that must ALL be true for this field to be\nvisible. Evaluated client-side as the user fills the form. An empty When\nmeans the field is always visible.\nSupports: equals, notEquals, time, dayOfWeek, cron, negate — same as\ntemplate source when: blocks."
+        }
+      },
+      "type": "object"
+    },
+    "ServeFieldMigrate": {
+      "additionalProperties": false,
+      "description": "ServeFieldMigrate holds the schema migration source for a serve field.",
+      "properties": {
+        "from": {
+          "description": "From is the dot-notation spec path where the value currently lives.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ServeInclude": {
+      "additionalProperties": false,
+      "description": "ServeInclude is the file serve.include names: fields, labels and annotations the inline ones override by name.",
+      "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ServeFieldConfig"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ServeFieldConfig"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "labels": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ServeFieldConfig"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "description": "TimeWindow declares a clock-based active window.",
+      "properties": {
+        "after": {
+          "description": "After — active after this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "before": {
+          "description": "Before — active before this time (format: \"HH:MM\" in 24h).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/serve.json",
+  "$ref": "#/$defs/ServeInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: serve"
+}

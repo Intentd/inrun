@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Intent: the gateway turns the intent into a reconciled Website and reads it back
+expect:
+  - name: Intent accepted by the gateway
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/apply
+          method: POST
+          headers:
+            Authorization: "Bearer dev-token"
+            Content-Type: "application/json"
+          body: '{"target":"website","name":"hello-intent","image":"nginx:1.25","replicas":1,"port":80}'
+          jq: .accepted
+          equals: "true"
+
+  - name: Intent became a reconciled Website
+    after: cr-applied
+    timeout: 120s
+    resources:
+      - kind: Deployment
+        name: hello-intent
+        namespace: default
+        ready: true
+      - kind: Service
+        name: hello-intent-svc
+        namespace: default
+
+  - name: View read back through the gateway
+    after: cr-applied
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/website/default/hello-intent
+          headers:
+            Authorization: "Bearer dev-token"
+          jq: .phase
+          equals: Running

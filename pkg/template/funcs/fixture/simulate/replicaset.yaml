@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: funcs-replicaset-sim
+  description: >
+    Runs blueprint-replicaset.yaml: the function results it writes into the probe's status reach
+    the API server, with fake clients and against envtest's real one.
+spec:
+  blueprint: ../blueprint-replicaset.yaml
+  cr: ../cr.yaml
+  cycles: 7
+  expect:
+    steady: true
+    noErrors: true
+    ops:
+      - cycle: 1
+        verb: patch
+        resource: status

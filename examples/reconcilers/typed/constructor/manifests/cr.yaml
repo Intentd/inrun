@@ -1,0 +1,17 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: build-and-test
+  namespace: default
+spec:
+  image: alpine:3.19
+  timeout: 30m
+  steps:
+    - name: build
+      command: ["sh", "-c", "echo 'Building...' && sleep 3 && echo 'Build complete'"]
+
+    - name: test
+      command: ["sh", "-c", "echo 'Running tests...' && sleep 2 && echo 'Tests passed'"]
+
+    - name: notify
+      command: ["sh", "-c", "echo 'Pipeline complete — sending notification'"]

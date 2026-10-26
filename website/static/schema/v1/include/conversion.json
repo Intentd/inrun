@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "ConversionInclude": {
+      "additionalProperties": false,
+      "description": "ConversionInclude is the file conversion.include names: paths added before the inline ones.",
+      "properties": {
+        "paths": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConversionPaths"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ConversionPath": {
+      "additionalProperties": false,
+      "description": "ConversionPath declares one explicit conversion mapping.",
+      "properties": {
+        "from": {
+          "description": "From — the source version (bare, e.g. \"v1alpha1\")",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "spec": {
+          "description": "Spec — the output spec in the target version's format.\nValues support Go template expressions evaluated against the source object.\nStatic values are used as-is.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "to": {
+          "description": "To — the target version (bare, e.g. \"v1\")",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ConversionPaths": {
+      "items": {
+        "$ref": "#/$defs/ConversionPath"
+      },
+      "type": "array"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/conversion.json",
+  "$ref": "#/$defs/ConversionInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: conversion"
+}

@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  # Worker not yet healthy — Platform gate still closed, no reconcile fires.
+  - name: Platform CR applied — gate closed, no reconcile while Worker unhealthy
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      apply:
+        - file: ../cr-platform.yaml
+      port-forward:
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .totalReconciles
+          assert:
+            equals: "0"
+        - leaderElection:
+            lease: inrun-leader
+            namespace: inrun-system
+          port: 8080
+          path: /blueprint/platform/health
+          jsonPath: .hasUnhealthyDependencies
+          assert:
+            equals: "true"
+    # The whole health response, to see what each field holds.
+    onFailure:
+      kubectl:
+        port-forward:
+          - leaderElection:
+              lease: inrun-leader
+              namespace: inrun-system
+            port: 8080
+            path: /blueprint/platform/health

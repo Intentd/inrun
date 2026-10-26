@@ -1,0 +1,64 @@
+# Destinations written before the migration reaches their sources:
+#   platform-10/api-server: a copy of the source applied with kubectl first, same
+#     spec. The migration counts it as migrated, records the source on it, and
+#     prunes the source; rollback restores the source and keeps the copy.
+#   default/api-server-gateway: the gateway already wrote its NewConfig from a
+#     newer intent (before-migration); this is the older AppConfig with the same
+#     name. The values differ, so it is drift: neither is touched.
+# Both sources are tier=web and Ready, so the selection takes them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-10
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-10
+  labels:
+    app: demo
+    tier: web
+spec:
+  image: "myapp/api:1.0.0"
+  scaling:
+    min: 4
+  observability:
+    logging:
+      level: "info"
+status:
+  phase: Ready
+---
+apiVersion: demo.inrun.dev/v1
+kind: NewConfig
+metadata:
+  name: api-server
+  namespace: platform-10
+  labels:
+    app: demo
+    tier: web
+spec:
+  image: "myapp/api:1.0.0"
+  scaling:
+    min: 4
+  observability:
+    logging:
+      level: "info"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server-gateway
+  namespace: default
+  labels:
+    app: demo
+    tier: web
+spec:
+  image: "myapp/api:1.0.0"
+  scaling:
+    min: 1
+  observability:
+    logging:
+      level: "debug"
+status:
+  phase: Ready

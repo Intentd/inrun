@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: <test-name>
+  description: <short description of what this E2E verifies>
+
+spec:
+  # --- Core files -----------------------------------------------------------
+  blueprint: ./blueprint.yaml
+  crd: ./crd.yaml
+  cr: ./cr.yaml
+
+  # --- Cluster --------------------------------------------------------------
+  cluster:
+    provider: kind       # kind (default) | existing
+    name: inrun-e2e
+    reuse: false         # false = clean cluster every run
+
+  # --- Setup (optional) -----------------------------------------------------
+  # Apply prerequisite resources before the operator starts.
+  # Shorthand: setup: - ./prereqs.yaml   (backward compatible)
+  # Full form:
+  setup:
+    apply:
+      - ./setup.yaml     # namespaces, secrets, extra CRDs — applied in order
+    # helm:              # install Helm charts before the operator starts
+    #   - repo: https://charts.example.com
+    #     chart: my-chart
+    #     version: 1.0.0
+    #     namespace: my-chart-system
+    #     createNamespace: true
+    wait:
+      - kind: Secret     # block until this resource exists
+        name: my-secret
+        namespace: default
+        timeout: 30s
+      # - kind: Deployment
+      #   name: my-operator
+      #   namespace: my-chart-system
+      #   ready: true    # wait for ready, not just existence
+      #   timeout: 120s
+
+  # --- Expectations ---------------------------------------------------------
+  expect:
+    # 1. CR created — confirms the CRD is registered and the CR was accepted
+    - name: CR created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: <CR Kind>
+          name: <cr-name>
+          namespace: <namespace>
+
+    # 2. Child resources created by the operator
+    - name: Resources created
+      after: cr-applied
+      timeout: 60s
+      resources:
+        - kind: Deployment
+          name: <resource-name>
+          namespace: <namespace>
+          ready: true
+        # - kind: Service
+        #   name: <resource-name>
+        #   namespace: <namespace>
+
+    # 3. Shell command assertions (optional — same polling loop as resources)
+    # - name: App responds
+    #   after: cr-applied
+    #   timeout: 90s
+    #   commands:
+    #     - run: "kubectl exec -n <namespace> deploy/<name> -- wget -qO- localhost:8080/health"
+    #       exitCode: 0
+    #       contains: "ok"
+
+    # 4. Full cleanup verified after CR deletion
+    - name: Cleanup verified
+      after: cr-deleted
+      timeout: 30s
+      resources:
+        - kind: Deployment
+          name: <resource-name>
+          namespace: <namespace>
+          count: 0
+        - kind: <CR Kind>
+          name: <cr-name>
+          namespace: <namespace>
+          count: 0

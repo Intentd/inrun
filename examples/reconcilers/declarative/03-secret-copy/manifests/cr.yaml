@@ -1,0 +1,10 @@
+apiVersion: demo.inrun.dev/v1alpha1
+kind: SecretDistribution
+metadata:
+  name: db-creds      # No namespace as it is cluster-scoped
+spec:
+  secretName: database-credentials
+  sourceNamespace: platform
+  targetNamespaces:
+    - team-alpha
+    - team-beta

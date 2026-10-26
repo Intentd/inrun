@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/simulate.json
+apiVersion: inrun.dev/v1
+kind: Simulate
+metadata:
+  name: notes-validation-sim
+  description: >
+    Verifies that user-defined notes work in validation and mutation rules.
+    The bad-image CR is always denied by the {{ allowedRegistry }} rule —
+    the error appears in the simulate output.
+
+spec:
+  blueprint: ./blueprint.yaml
+  cr: ./cr-bad-image.yaml
+  cycles: 3
+
+  # The denied CR is never reconciled: no Deployment is created.
+  expect:
+    noErrors: false
+    steady: true
+    absent:
+      - cycle: 1
+        verb: create
+        resource: deployments

@@ -1,0 +1,16 @@
+apiVersion: note.inrun.dev/v1alpha1
+kind: NoteProbe
+metadata:
+  name: my-probe
+  namespace: default
+spec:
+  image: nginx:1.25
+  debug: true
+  replicas: 1
+  minReplicas: 1
+  maxReplicas: 3
+  host: my-probe.example.com
+  storageClassName: standard
+  storage: 10Gi
+  port: 8080
+  schedule: "*/1 * * * *"

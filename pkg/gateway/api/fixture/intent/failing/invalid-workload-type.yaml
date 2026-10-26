@@ -1,0 +1,7 @@
+target: apifixture
+name: test-resource
+workloadType: invalid
+team: platform
+environment: staging
+repoURL: https://github.com/myorg/payments
+productionApproval: JIRA-1234

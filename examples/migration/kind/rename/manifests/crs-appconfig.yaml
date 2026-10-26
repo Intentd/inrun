@@ -1,0 +1,211 @@
+# platform-01..03: tier=web, no source annotations.
+# Selector `tier=web` and condition `status.phase=Ready` select this group.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-01
+  labels:
+    app: demo
+    tier: web
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+  endpoint: "api-server.platform-01.svc.cluster.local"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-02
+  labels:
+    app: demo
+    tier: web
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+  endpoint: "api-server.platform-02.svc.cluster.local"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-03
+  labels:
+    app: demo
+    tier: web
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+  endpoint: "api-server.platform-03.svc.cluster.local"
+---
+# platform-04..06: tier=batch, with source annotations that should be
+# preserved (PreserveSource default) or dropped (PreserveSource: false).
+# status.phase=Pending so the condition fixture excludes them.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-04
+  labels:
+    app: demo
+    tier: batch
+  annotations:
+    example.io/owner: "team-batch"
+    example.io/created-by: "platform-team"
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Pending
+  endpoint: ""
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-05
+  labels:
+    app: demo
+    tier: batch
+  annotations:
+    example.io/owner: "team-batch"
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Pending
+  endpoint: ""
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-06
+  labels:
+    app: demo
+    tier: batch
+  annotations:
+    example.io/owner: "team-batch"
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Pending
+  endpoint: ""
+---
+# platform-07..09: tier=internal, with Inrun provenance annotations.
+# These are the annotations the migration's declared metadata must override
+# when PreserveSource is false, or inherit when PreserveSource is true.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-07
+  labels:
+    app: demo
+    tier: internal
+  annotations:
+    inrun.dev/serve-target: appconfig
+    inrun.dev/serve-intent: '{"image":"myapp/api:2.2.0","replicas":6}'
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+  endpoint: "api-server.platform-07.svc.cluster.local"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-08
+  labels:
+    app: demo
+    tier: internal
+  annotations:
+    inrun.dev/serve-target: appconfig
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+  endpoint: "api-server.platform-08.svc.cluster.local"
+---
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-09
+  labels:
+    app: demo
+    tier: internal
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Ready
+  endpoint: "api-server.platform-09.svc.cluster.local"
+---
+# platform-10: no tier label, so `tier=web`, `tier=batch`, and `tier=internal`
+# selectors all exclude it. Tests the "not a candidate" path — the CR exists
+# but no selector matches it.
+apiVersion: demo.inrun.dev/v1
+kind: AppConfig
+metadata:
+  name: api-server
+  namespace: platform-10
+  labels:
+    app: demo
+spec:
+  image: "myapp/api:2.2.0"
+  scaling:
+    min: 6
+  observability:
+    logging:
+      level: "warn"
+status:
+  phase: Pending
+  endpoint: ""

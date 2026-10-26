@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Cleanup: remove the CRs, the gateway-created one through the gateway
+expect:
+  - name: Clean up applied CRs
+    after: cr-applied
+    timeout: 30s
+    kubectl:
+      delete:
+        - file: ../../manifests/old-crs.yaml
+    resources:
+      - kind: CronJob
+        name: db-backup
+        namespace: team-alpha
+        count: 0
+      - kind: CronJob
+        name: cache-flush
+        namespace: team-beta
+        count: 0
+      - kind: CronJob
+        name: report-gen
+        namespace: team-gamma
+        count: 0
+  
+  # The CR came from the gateway, not a file, so delete it the same way. 
+  - name: Deleted through the gateway
+    after: cr-deleted
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/cronjob/default/daily-backup
+          method: DELETE
+          headers:
+            Authorization: "Bearer dev-token"
+          statusCode: 204
+
+  # The cronjob goes once its finalizing reconcile is done.
+  - name: Garbage collection on CR delete
+    after: cr-deleted
+    resources:
+      - kind: CronJob
+        name: daily-backup
+        namespace: default
+        count: 0

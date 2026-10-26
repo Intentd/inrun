@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: network-policy
+  version: v0.1.0
+  description: >
+    Kubernetes NetworkPolicy controlling ingress and egress for a target namespace.
+    Created from a cluster-scoped ClusterPolicy CR — exercises the serve-disabled,
+    kubectl-only management path in the gateway fixture.
+  author: intentd
+  tags:
+    - networking
+    - networkpolicy
+    - security
+    - gateway-fixture
+
+resources:
+  networkPolicies:
+    - name: "{{ .metadata.name }}"
+      namespace: "{{ .spec.targetNamespace }}"
+      podSelector:
+        policy: "{{ .metadata.name }}"
+      policyTypes:
+        - Ingress
+        - Egress

@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/serve.json
+fields:
+  team:
+    label: "Team"
+    order: 1
+  environment:
+    label: "Environment"
+    order: 2

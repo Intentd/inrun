@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+expect:
+  - name: phase is Ready — postgres query succeeded
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.phase
+          assert:
+            equals: "Ready"
+
+  - name: currentDatabase is inrun
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.currentDatabase
+          assert:
+            equals: "inrun"
+
+  - name: connectionCount is set
+    after: cr-applied
+    timeout: 90s
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-app
+          namespace: default
+          field: .status.connectionCount
+          assert:
+            exists: true

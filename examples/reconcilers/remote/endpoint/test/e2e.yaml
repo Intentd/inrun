@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/e2e.json
+apiVersion: inrun.dev/v1
+kind: E2E
+metadata:
+  name: webapp-remote-e2e
+  description: >
+    Verify the remote reconciler creates a Deployment and Service and writes status
+    for a WebApp CR. The reconciler runs as a Deployment in the cluster, deployed
+    via setup before Inrun starts.
+
+spec:
+  blueprint: ../blueprint.yaml
+  crd: ../manifests/crd.yaml
+  cr: ../manifests/cr.yaml
+
+  cluster:
+    provider: kind
+    name: inrun-e2e
+    reuse: false
+
+  setup:
+    apply:
+      - path: ../manifests/secret.yaml
+      - path: ../reconciler/deploy.yaml
+        wait:
+          - kind: Deployment
+            name: webapp-reconciler
+            namespace: default
+            ready: true
+            timeout: 60s
+
+  expect:
+    - include: ./include/reconcile.yaml
+    - include: ./include/children.yaml
+    - include: ./include/auth.yaml
+    - include: ./include/cleanup.yaml
+
+  onFailure:
+    kubectl:
+      get:
+        - kind: WebApp
+          name: my-webapp
+          namespace: default
+      logs:
+        - labelSelector: app=webapp-reconciler
+          namespace: default
+          since: 2m
+      describe:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+        - kind: Deployment
+          name: webapp-reconciler
+          namespace: default
+      events:
+        - kind: Deployment
+          name: my-webapp
+          namespace: default
+    commands:
+      - run: kubectl get pods -n default -o wide

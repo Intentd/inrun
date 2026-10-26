@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/module.json
+apiVersion: inrun.dev/v1
+kind: Module
+metadata:
+  name: fixture-plan
+  description: >
+    Fixture module — TenantPlan operator. Creates a ConfigMap to prove
+    that the custom child CR's own operator runs after creation.
+
+resources:
+  onCreate:
+    configMaps:
+      - name: "{{ .metadata.name }}-config"
+        namespace: default
+        data:
+          tenant: "{{ .metadata.name }}"

@@ -1,0 +1,5 @@
+# The namespace Argo CD runs in, where the argocd-applicationset module writes.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd

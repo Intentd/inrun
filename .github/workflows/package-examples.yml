@@ -1,0 +1,64 @@
+name: Package Examples
+
+on:
+  workflow_call:
+    inputs:
+      github_repo:
+        description: 'GitHub repository (owner/name) for the main repo'
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      project_name:
+        description: 'Human‑readable project name (used in summary)'
+        required: false
+        type: string
+        default: 'Inrun'
+
+jobs:
+  examples:
+    name: Package Examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Package example packs
+        run: |
+          mkdir -p dist/examples
+          TAG="${{ github.ref_name }}"
+
+          for pack in reconcilers/declarative reconcilers/remote reconcilers/typed intent migration registry; do
+            tar -czf "dist/examples_$(basename $pack)_${TAG}.tar.gz" -C "examples/$pack" .
+          done
+
+          echo "📦 Example packs packaged"
+
+      - name: Upload example packs
+        uses: actions/upload-artifact@v7
+        with:
+          name: examples
+          path: dist/examples_*.tar.gz
+          retention-days: 1
+
+      - name: Write examples summary
+        run: |
+          TAG="${{ github.ref_name }}"
+          REPO="${{ inputs.github_repo }}"
+          NAME="${{ inputs.project_name }}"
+          echo "## 📦 Example Packs" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Pack | Description | Archive |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------------|---------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Declarative | Operators declared in a Blueprint | \`examples_declarative_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Remote | A reconciler in any language over HTTP | \`examples_remote_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Typed | Go hooks, constructor, controller-runtime drop-in | \`examples_typed_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Intent | Intent in through the gateway, view out | \`examples_intent_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Migration | Change the CRD under live CRs | \`examples_migration_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry | Consume, publish and deprecate patterns | \`examples_registry_${TAG}.tar.gz\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Download from the release assets or run:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "curl -LO https://github.com/${REPO}/releases/download/${TAG}/examples_declarative_${TAG}.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo "tar -xzf examples_declarative_${TAG}.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,69 @@
+package validate
+
+import (
+	"fmt"
+
+	"k8s.io/utils/ptr"
+
+	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/inrun/pkg/blueprint/validate/internal/check"
+	"github.com/intentd/inrun/pkg/blueprint/validate/runtime"
+	"github.com/intentd/inrun/pkg/children"
+	"github.com/intentd/inrun/pkg/types"
+)
+
+// applyDefaults fills in what a Blueprint leaves out, once every check has
+// passed. Checks read only what the user declared, so nothing here can change
+// what they report, and the runtime only ever sees defaulted entries:
+//
+//   - mode: typed when apiTypes.location is set, dynamic otherwise
+//   - runtime.ignoreStatusPatch / ignoreObservedGeneration for built-in kinds
+//     that have no status subresource or observedGeneration
+//   - an autoscale.preset expanded into the full autoscale spec
+//   - queue.behaviour.onThreshold.drop: always on at the threshold
+func applyDefaults(bp *blueprint.Blueprint) error {
+	for name, crd := range bp.EnabledCRDs() {
+		if crd.Mode == "" {
+			if crd.APITypes.Location != "" {
+				crd.Mode = types.CRDModeTyped
+			} else {
+				crd.Mode = types.CRDModeDynamic
+			}
+		}
+
+		// Look up by Kind directly; unknown kinds return the zero value.
+		meta := children.BuiltInMeta(crd.APITypes.Kind)
+		if meta.SkipStatusSubresource || meta.SkipObservedGeneration {
+			if crd.Box().Runtime == nil {
+				crd.Box().Runtime = &types.RuntimeConfig{}
+			}
+			if meta.SkipStatusSubresource {
+				crd.Box().Runtime.IgnoreStatusPatch = true
+			}
+			if meta.SkipObservedGeneration {
+				crd.Box().Runtime.IgnoreObservedGeneration = true
+			}
+		}
+
+		if crd.Box().EffectiveAutoscale() != nil && crd.HasAutoscalePreset() {
+			expanded, err := runtime.ExpandAutoscalePreset(&crd)
+			if err != nil {
+				return fmt.Errorf("%s CRD %q: autoscale.preset %q expansion failed: %w",
+					check.FailureMark(), name, crd.AutoScalePreset(), err)
+			}
+			if crd.Box().Runtime == nil {
+				crd.Box().Runtime = &types.RuntimeConfig{}
+			}
+			crd.Box().Runtime.Autoscale = expanded
+		}
+
+		if q := crd.QueueConfig(); !q.Empty() && q.HasBehaviour() {
+			if cfg := q.Behaviour(); cfg.HasOnThreshold() {
+				cfg.OnThreshold.Drop = ptr.To(true)
+			}
+		}
+
+		bp.EnabledCRDs()[name] = crd
+	}
+	return nil
+}

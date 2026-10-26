@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
+# Delete: through the gateway, then the Website and its Deployment are gone
+expect:
+  # The CR came from the gateway, not a file, so delete it the same way —
+  # while the runtime is still running to clear its finalizer. The DELETE is
+  # its own step: a retry would find the CR already going and get 404.
+  - name: Deleted through the gateway
+    after: cr-deleted
+    timeout: 60s
+    kubectl:
+      port-forward:
+        - service: inrun-gateway
+          namespace: inrun-system
+          port: 8080
+          path: /api/v1/resources/website/default/hello-intent
+          method: DELETE
+          headers:
+            Authorization: "Bearer dev-token"
+          statusCode: 204
+
+  # The Website goes once its finalizing reconcile is done.
+  - name: Website and its Deployment are gone
+    after: cr-deleted
+    timeout: 60s
+    resources:
+      - kind: Website
+        name: hello-intent
+        namespace: default
+        count: 0
+      - kind: Deployment
+        name: hello-intent
+        namespace: default
+        count: 0
