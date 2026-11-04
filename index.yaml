@@ -1,0 +1,58 @@
+apiVersion: v1
+entries:
+  inrun:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: "First Inrun release"
+      artifacthub.io/images: |
+        - name: runtime
+          image: ghcr.io/intentd/inrun
+        - name: gateway
+          image: ghcr.io/intentd/inrun-gateway
+        - name: console
+          image: ghcr.io/intentd/inrun-console
+      artifacthub.io/license: Apache-2.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://github.com/intentd/inrun/tree/main/docs
+        - name: Examples
+          url: https://github.com/intentd/inrun/tree/main/examples
+      artifacthub.io/operator: "true"
+      artifacthub.io/operatorCapabilities: Deep Insights
+      artifacthub.io/screenshots: |
+        - title: Inrun Console
+          url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/console-landing.png
+        - title: CRD Health View
+          url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/control-panel-app-platform.png
+        - title: Metrics Overview
+          url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/console-app-service-metrics.png
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-04T12:41:40.938117897Z"
+    description: Inrun is the intent runner for Kubernetes. Callers send an intent
+      through the gateway; Inrun turns it into a custom resource, reconciles it, and
+      returns a view. Deploys the runtime, the gateway and the console.
+    digest: fb64173e85082ee4757728a87effc520a3e2ffa539a3541376dda2c5b31a65a8
+    home: https://github.com/intentd/inrun
+    icon: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/inrun-mark.svg
+    keywords:
+    - inrun
+    - intent
+    - kubernetes
+    - operator
+    - reconciler
+    - crd
+    - gateway
+    maintainers:
+    - email: releases@inrun.dev
+      name: intentd
+      url: https://github.com/intentd/inrun
+    name: inrun
+    sources:
+    - https://github.com/intentd/inrun
+    type: application
+    urls:
+    - https://intentd.github.io/inrun/versions/inrun-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-11-04T12:41:40.936487639Z"
