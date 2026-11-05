@@ -29,11 +29,11 @@ entries:
           url: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/console/console-app-service-metrics.png
     apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-11-05T12:30:55.518839769Z"
+    created: "2026-11-05T12:34:35.442815337Z"
     description: Inrun is the intent runner for Kubernetes. Callers send an intent
       through the gateway; Inrun turns it into a custom resource, reconciles it, and
       returns a view. Deploys the runtime, the gateway and the console.
-    digest: 63f4512d476b931af156c6e3c0173d90dad4fc155df0e15e92393fd4bea17823
+    digest: 66bdf6659b1ca0524340b51ea17b51747fdf2ea3113a28fea8ddf3144c537f48
     home: https://github.com/intentd/inrun
     icon: https://raw.githubusercontent.com/intentd/inrun/main/docs/assets/inrun-mark.svg
     keywords:
@@ -55,4 +55,4 @@ entries:
     urls:
     - https://intentd.github.io/inrun/versions/inrun-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-05T12:30:55.51704874Z"
+generated: "2026-11-05T12:34:35.441551046Z"
