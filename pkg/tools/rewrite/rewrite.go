@@ -1,4 +1,4 @@
-// pkg/migrate/migrate.go
+// pkg/tools/rewrite/rewrite.go
 //
 // Rewrites a controller-runtime Reconcile method to the Inrun constructor
 // signature. It is intentionally a starting point — the output compiles but
@@ -231,7 +231,7 @@ func rewriteImports(src []byte, addStrings bool) []byte {
 	result = injectImport(result,
 		"// TODO(inrun rewrite): add these imports:\n"+
 			"//   \"github.com/intentd/inrun/domain\"\n"+
-			"//   \"github.com/intentd/inrun/pkg/kubeclient\"")
+			"//   \"github.com/intentd/inrun/pkg/runtime/kubeclient\"")
 
 	return result
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func eventForReference(field, apiVersion, kind, name, namespace string) *unstructured.Unstructured {

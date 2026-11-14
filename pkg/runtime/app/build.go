@@ -7,21 +7,24 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
+	kubeutil "github.com/intentd/tools/kube"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+// Events is wired as one of the runtime's components.
+var _ domain.Component = (*kubeutil.Events)(nil)
 
 // core holds the components every later step is wired from.
 type core struct {
 	scheme        *runtime.Scheme
 	kube          *kubeclient.Kubeclient
 	hs            *health.HealthServer
-	ev            *event.Event
+	ev            *kubeutil.Events
 	defaultWq     *queue.Workqueue
 	queueRegistry *queue.QueueRegistry
 }
@@ -37,12 +40,19 @@ func newCore(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint) (
 		return core{}, fmt.Errorf("failed to build scheme registry: %w", err)
 	}
 
-	kube := kubeclient.New(cfg, scheme)
+	kube := kubeclient.New(kubeclient.Options{KubeconfigPath: cfg.Cluster().KubeconfigPath(), MasterURL: cfg.Cluster().MasterURL()}, scheme)
 
 	// kubeclient is started immediately — the informer factory's missing-CRD
 	// check needs the REST config during construction, before Process.Start().
 	if err := kube.Start(ctx); err != nil {
 		return core{}, fmt.Errorf("failed to start kubeclient: %w", err)
+	}
+
+	// Surfaces notable state changes to the Kubernetes event stream (visible
+	// via kubectl describe). Shared by all controllers that emit events.
+	ev, err := kubeutil.NewEvents(kube.Clientset(), kube.Scheme(), "inrun runtime")
+	if err != nil {
+		return core{}, err
 	}
 
 	return core{
@@ -51,9 +61,7 @@ func newCore(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint) (
 		// HTTP-only (health, readiness, metrics, Blueprint API routes). Routes are
 		// registered before Start() binds the port.
 		hs: health.NewHealthServer(cfg),
-		// Surfaces notable state changes to the Kubernetes event stream (visible
-		// via kubectl describe). Shared by all controllers that emit events.
-		ev: event.NewEvent(kube),
+		ev: ev,
 		// Rate-limiting reconcile queue shared by controllers that do not need a
 		// dedicated queue. Bounded to prevent runaway reconcile storms.
 		defaultWq: queue.NewWorkqueue("default workqueue"),

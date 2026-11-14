@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -270,7 +270,7 @@ func (a *Autoscaler) applyOverride() {
 	if do.Workers != nil {
 		a.target.ResizeWorkers(*do.Workers)
 		log = log.Int("workers", *do.Workers)
-		metrics.RecordAutoscaleOverride(a.crdKind, *do.Workers)
+		inrunmetrics.RecordAutoscaleOverride(a.crdKind, *do.Workers)
 	}
 
 	if do.QueueDepth != nil {
@@ -283,7 +283,7 @@ func (a *Autoscaler) applyOverride() {
 	}
 
 	a.state.OverrideActive = true
-	metrics.SetAutoscaleActive(a.crdKind, true)
+	inrunmetrics.SetAutoscaleActive(a.crdKind, true)
 	log.Msg("autoscaler: override applied")
 }
 
@@ -297,7 +297,7 @@ func (a *Autoscaler) restoreBaseline() {
 	a.target.SetResyncInterval(0)
 
 	a.state.OverrideActive = false
-	metrics.RecordAutoscaleRestore(a.crdKind, a.baseline.Workers)
+	inrunmetrics.RecordAutoscaleRestore(a.crdKind, a.baseline.Workers)
 
 	logger.Info().
 		Str("crd", a.crdKind).

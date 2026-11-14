@@ -2,8 +2,8 @@ package types
 
 import (
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 // blueprintWithServe is a checker over one CRD with serve set.
@@ -45,7 +46,7 @@ func TestValidateAdmissionComparisons_NoCRDs(t *testing.T) {
 func TestValidateAdmissionComparisons_OneComparison(t *testing.T) {
 	e := blueprintWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Max: "10", Message: "too many replicas",
-		When: types.Conditions{{Field: "spec.tier", TypeOf: "string"}},
+		When: types.Conditions{{Condition: condition.Condition{Field: "spec.tier", TypeOf: "string"}}},
 	})
 	assert.NoError(t, e.validateAdmissionComparisons())
 }
@@ -63,7 +64,7 @@ func TestValidateAdmissionComparisons_TwoOnARule(t *testing.T) {
 func TestValidateAdmissionComparisons_TwoOnACondition(t *testing.T) {
 	e := blueprintWithValidationRule("app", types.ValidationRule{
 		Field: "spec.replicas", Prefix: "x", Message: "msg",
-		Or: types.Conditions{{Field: "spec.tier", Equals: "gold", Exists: ptr.To(true)}},
+		Or: types.Conditions{{Condition: condition.Condition{Field: "spec.tier", Equals: "gold", Exists: ptr.To(true)}}},
 	})
 	err := e.validateAdmissionComparisons()
 	require.Error(t, err)
@@ -74,7 +75,7 @@ func TestValidateAdmissionComparisons_MutationWhen(t *testing.T) {
 	e := blueprintWithMutationRule("app", types.MutationRule{
 		Field:   "spec.tier",
 		Default: "standard",
-		When:    types.Conditions{{Field: "spec.env", TypeOf: "list"}},
+		When:    types.Conditions{{Condition: condition.Condition{Field: "spec.env", TypeOf: "list"}}},
 	})
 	err := e.validateAdmissionComparisons()
 	require.Error(t, err)

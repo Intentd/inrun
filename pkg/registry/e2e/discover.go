@@ -3,7 +3,7 @@ package e2e
 import (
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 	"gopkg.in/yaml.v3"
 )
 

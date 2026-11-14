@@ -15,7 +15,7 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/registry/e2e"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/cobra"

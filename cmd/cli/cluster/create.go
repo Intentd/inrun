@@ -7,7 +7,8 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
+	"github.com/intentd/tools/cluster"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +43,7 @@ Downloads kind automatically if not found in PATH.
 
 		for _, n := range names {
 			fmt.Printf("→ Creating cluster '%s'...\n", n)
-			if err := cluster.EnsureKindCluster(n, workers, version); err != nil {
+			if err := cluster.EnsureKindCluster(n, inruncluster.Kind(workers, version)); err != nil {
 				return err
 			}
 			fmt.Printf("\nCluster '%s' is ready.\n", n)

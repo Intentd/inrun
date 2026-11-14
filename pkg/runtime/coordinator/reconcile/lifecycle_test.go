@@ -2,15 +2,15 @@ package reconcile
 
 import (
 	"context"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 	"testing"
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,9 +79,9 @@ var lifecycleCRD = types.CRDEntry{OperatorBox: &types.OperatorBoxConfig{Reconcil
 // target's children and another CR's of the same name stay.
 func TestSweepPreviousSurface_RemovesWhatTheOldTargetCreated(t *testing.T) {
 	target := func(uid, t string) map[string]string {
-		return map[string]string{labels.OwnerUID: uid, labels.InrunServeTarget: t}
+		return map[string]string{inrunmeta.OwnerUID: uid, inrunmeta.InrunServeTarget: t}
 	}
-	obj := cr(map[string]string{labels.AnnotationServeAlias: "b", labels.AnnotationLastSurface: "a"})
+	obj := cr(map[string]string{inrunmeta.AnnotationServeAlias: "b", inrunmeta.AnnotationLastSurface: "a"})
 	kube := newLifecycleKube(
 		obj.DeepCopy(),
 		configMap("default", "old", target("app-uid", "a"), false),
@@ -96,16 +96,16 @@ func TestSweepPreviousSurface_RemovesWhatTheOldTargetCreated(t *testing.T) {
 	assert.True(t, surfaceRecorded(kube))
 	stored, err := kube.Object(context.Background(), schema.GroupVersionResource{Group: "demo.inrun.dev", Version: "v1", Resource: "apps"}, obj.GetNamespace(), obj.GetName())
 	require.NoError(t, err)
-	assert.Equal(t, "b", stored.GetAnnotations()[labels.AnnotationLastSurface], "the current target is recorded on the CR")
+	assert.Equal(t, "b", stored.GetAnnotations()[inrunmeta.AnnotationLastSurface], "the current target is recorded on the CR")
 }
 
 func TestSweepPreviousSurface_NothingToDo(t *testing.T) {
 	for name, ann := range map[string]map[string]string{
 		"no target":      nil,
-		"target already": {labels.AnnotationServeAlias: "a", labels.AnnotationLastSurface: "a"},
+		"target already": {inrunmeta.AnnotationServeAlias: "a", inrunmeta.AnnotationLastSurface: "a"},
 	} {
 		kube := newLifecycleKube(configMap("default", "old",
-			map[string]string{labels.OwnerUID: "app-uid", labels.InrunServeTarget: "a"}, false))
+			map[string]string{inrunmeta.OwnerUID: "app-uid", inrunmeta.InrunServeTarget: "a"}, false))
 		require.NoError(t, sweepPreviousSurface(context.Background(), kube, lifecycleCRD, cr(ann)), name)
 		assert.Equal(t, []string{"old"}, cmNames(t, kube), name)
 		assert.False(t, surfaceRecorded(kube), name)
@@ -125,9 +125,9 @@ func cmNames(t *testing.T, kube *kubefake.Kubeclient) []string {
 
 func TestPruneChildren_RemovesResultChildrenOwnerReferencesMiss(t *testing.T) {
 	kube := newLifecycleKube(
-		configMap("elsewhere", "mine", map[string]string{labels.OwnerUID: "app-uid"}, true),
-		configMap("elsewhere", "from-a-template", map[string]string{labels.OwnerUID: "app-uid"}, false),
-		configMap("elsewhere", "someone-elses", map[string]string{labels.OwnerUID: "other-uid"}, true),
+		configMap("elsewhere", "mine", map[string]string{inrunmeta.OwnerUID: "app-uid"}, true),
+		configMap("elsewhere", "from-a-template", map[string]string{inrunmeta.OwnerUID: "app-uid"}, false),
+		configMap("elsewhere", "someone-elses", map[string]string{inrunmeta.OwnerUID: "other-uid"}, true),
 	)
 	prepared := &domain.PreparedRequest{Object: cr(nil)}
 

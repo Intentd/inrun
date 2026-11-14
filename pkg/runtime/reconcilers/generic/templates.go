@@ -6,10 +6,10 @@ import (
 	"github.com/intentd/inrun/pkg/external"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply/templates"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // runTemplates runs the CR's onCreate and onReconcile templates: their

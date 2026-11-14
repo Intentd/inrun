@@ -6,8 +6,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,6 +123,6 @@ func TestManagedSince(t *testing.T) {
 	owner.SetCreationTimestamp(created)
 	assert.Equal(t, "2026-10-01T12:00:00Z", managedSince(owner))
 
-	owner.SetAnnotations(map[string]string{labels.AnnotationManagedSince: "2026-09-01T00:00:00Z"})
+	owner.SetAnnotations(map[string]string{inrunmeta.AnnotationManagedSince: "2026-09-01T00:00:00Z"})
 	assert.Equal(t, "2026-09-01T00:00:00Z", managedSince(owner), "the owner's annotation wins")
 }

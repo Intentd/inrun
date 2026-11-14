@@ -1,6 +1,10 @@
 package types
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/intentd/tools/condition"
+)
 
 func findValidationRule(t *testing.T, rules ValidationRules, field string) ValidationRule {
 	t.Helper()
@@ -78,10 +82,10 @@ func TestRequiredServeFieldRules_SpecField(t *testing.T) {
 }
 
 func TestRequiredServeFieldRules_InheritsWhenAndOr(t *testing.T) {
-	appOnly := []Condition{{Field: "spec.workloadType", Equals: "app"}}
+	appOnly := []Condition{{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}}}
 	certOrApp := []Condition{
-		{Field: "spec.workloadType", Equals: "cert"},
-		{Field: "spec.workloadType", Equals: "app"},
+		{Condition: condition.Condition{Field: "spec.workloadType", Equals: "cert"}},
+		{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}},
 	}
 
 	c := &CRDEntry{Serve: &ServeConfig{
@@ -362,7 +366,7 @@ func TestEnumServeFieldRules_SpecField(t *testing.T) {
 // required: true must stay the only thing that makes a field
 // mandatory; enum membership must only apply when a value is present.
 func TestEnumServeFieldRules_ExistsGateIndependentOfRequired(t *testing.T) {
-	appOnly := []Condition{{Field: "spec.workloadType", Equals: "app"}}
+	appOnly := []Condition{{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}}}
 
 	c := &CRDEntry{Serve: &ServeConfig{
 		Fields: map[string]ServeFieldConfig{
@@ -539,10 +543,10 @@ func TestServeFieldMutationRules_SpecFieldDefaultUsePath(t *testing.T) {
 }
 
 func TestServeFieldMutationRules_SpecFieldInheritsWhenAndOr(t *testing.T) {
-	appOnly := []Condition{{Field: "spec.workloadType", Equals: "app"}}
+	appOnly := []Condition{{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}}}
 	certOrApp := []Condition{
-		{Field: "spec.workloadType", Equals: "cert"},
-		{Field: "spec.workloadType", Equals: "app"},
+		{Condition: condition.Condition{Field: "spec.workloadType", Equals: "cert"}},
+		{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}},
 	}
 
 	c := &CRDEntry{Serve: &ServeConfig{
@@ -621,10 +625,10 @@ func TestServeFieldMutationRules_LabelsAndAnnotationsUsePaths(t *testing.T) {
 }
 
 func TestServeFieldMutationRules_LabelsAndAnnotationsInheritsWhenAndOr(t *testing.T) {
-	appOnly := []Condition{{Field: "spec.workloadType", Equals: "app"}}
+	appOnly := []Condition{{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}}}
 	certOrApp := []Condition{
-		{Field: "spec.workloadType", Equals: "cert"},
-		{Field: "spec.workloadType", Equals: "app"},
+		{Condition: condition.Condition{Field: "spec.workloadType", Equals: "cert"}},
+		{Condition: condition.Condition{Field: "spec.workloadType", Equals: "app"}},
 	}
 
 	c := &CRDEntry{Serve: &ServeConfig{

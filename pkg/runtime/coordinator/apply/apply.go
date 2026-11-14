@@ -12,9 +12,9 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	resapply "github.com/intentd/kubewright/core/apply"
 	kwtypes "github.com/intentd/kubewright/core/types"
 )
@@ -90,7 +90,7 @@ func apply(
 		return nil, targetErr
 	}
 
-	blueprintName := owner.GetAnnotations()[labels.AnnotationManagedBy]
+	blueprintName := owner.GetAnnotations()[inrunmeta.AnnotationManagedBy]
 	since := managedSince(owner)
 
 	applied := make([]*unstructured.Unstructured, 0, len(targets))
@@ -183,16 +183,16 @@ func applyOne(
 		if ann == nil {
 			ann = map[string]string{}
 		}
-		if ann[labels.AnnotationManagedSince] == "" {
-			ann[labels.AnnotationManagedSince] = since
+		if ann[inrunmeta.AnnotationManagedSince] == "" {
+			ann[inrunmeta.AnnotationManagedSince] = since
 			u.SetAnnotations(ann)
 		}
 	}
 	// The same ownership labels as declarative children: the console finds a
 	// CR's children by them, and the surface sweep uses them on target changes.
 	// The owner UID label lets Prune find exactly this CR's children.
-	u.SetLabels(labels.StampInrunLabels(u.GetLabels(), owner))
-	labels.NewManager(labels.Config{}).EnsureManagedAnnotations(u, blueprintName)
+	u.SetLabels(inrunmeta.StampInrunLabels(u.GetLabels(), owner))
+	inrunmeta.NewManager(inrunmeta.Config{}).EnsureManagedAnnotations(u, blueprintName)
 
 	// Owner reference, wherever Kubernetes honours one: a namespaced owner
 	// owns only children in its own namespace (kwtypes.CanOwn). The rest are

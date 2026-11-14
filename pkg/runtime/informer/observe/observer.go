@@ -5,10 +5,10 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // Dependencies are the runtime services required by secondary observers.

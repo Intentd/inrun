@@ -1,0 +1,9 @@
+defaults:
+  token: {type: long}
+
+clusters:
+  staging:
+    context: kind-inrun-bt-2
+
+  prod:
+    context: kind-inrun-bt-3

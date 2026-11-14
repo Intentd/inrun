@@ -9,9 +9,9 @@ import (
 
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // ── Validation evaluation ─────────────────────────────────────────────────────

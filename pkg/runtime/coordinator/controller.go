@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 	"sync"
 	"sync/atomic"
 
@@ -11,15 +12,14 @@ import (
 	"github.com/intentd/inrun/domain"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/types"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/informer/observe"
 	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 var _ domain.Component = (*Controller)(nil)
@@ -29,7 +29,7 @@ type Controller struct {
 	kube             *kubeclient.Kubeclient
 	informerFactory  *informer.Factory
 	observer         *observe.Observer
-	event            *event.Event
+	event            *kubeutil.Events
 	blueprint        *ResourceBlueprint
 	bp               *blueprint.Blueprint
 	queueRegistry    *queue.QueueRegistry
@@ -61,7 +61,7 @@ func NewController(
 	observer *observe.Observer,
 	blueprint *ResourceBlueprint,
 	bp *blueprint.Blueprint,
-	event *event.Event,
+	event *kubeutil.Events,
 	hs domain.Health,
 	crdHealthMap map[string]*vitals.CRDHealth,
 	inrunHealth *vitals.RuntimeHealth,

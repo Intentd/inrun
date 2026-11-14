@@ -9,10 +9,10 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/term"
 )
 
 // confirmPrune asks before a forward run deletes source CRs. It dry-runs the

@@ -12,7 +12,7 @@
 // The resolved values are stored in TokenSet, which the auth closure uses
 // to validate incoming Authorization: Bearer <token> headers.
 //
-// Self-bootstrap and rotation use the same rotation annotations (pkg/labels)
+// Self-bootstrap and rotation use the same rotation annotations (inrunmeta.Rotation)
 // and checks (pkg/util/kube) as operator-managed secrets, so their rotation
 // clock is identical.
 package api
@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 	"net/http"
 	"os"
 	"strings"
@@ -29,11 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // TokenSet holds resolved static bearer tokens and OIDC token configurations.
@@ -134,7 +134,7 @@ func ResolveSecretRef(ctx context.Context, ref *types.KubernetesSecretRef, kube 
 	// Rotation check: if the Secret exists and rotateAfter has elapsed, delete it
 	// so the create step below regenerates it with a fresh token.
 	if ref.RotateAfter != "" {
-		needsRotation, err := kubeutil.SecretNeedsRotation(ctx, kube.Clientset(), ns, ref.Name, ref.RotateAfter)
+		needsRotation, err := kubeutil.SecretNeedsRotation(ctx, kube.Clientset(), ns, ref.Name, ref.RotateAfter, inrunmeta.Rotation)
 		if err != nil {
 			return "", fmt.Errorf("checking rotation for %s/%s: %w", ns, ref.Name, err)
 		}
@@ -177,13 +177,13 @@ func ResolveSecretRef(ctx context.Context, ref *types.KubernetesSecretRef, kube 
 // createTokenSecret creates a new Kubernetes Secret with the given token value
 // and generation annotations for the rotation clock.
 func createTokenSecret(ctx context.Context, kube kubeclient.Interface, ns, name, key, token, rotateAfter string) error {
-	annotations := labels.GenerationAnnotations(rotateAfter)
+	annotations := kubeutil.GenerationAnnotations(rotateAfter, inrunmeta.Rotation)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   ns,
 			Annotations: annotations,
-			Labels:      labels.WithDeletionProtection(labels.InrunResourceLabels()),
+			Labels:      inrunmeta.WithDeletionProtection(inrunmeta.InrunResourceLabels()),
 		},
 		Type: corev1.SecretTypeOpaque,
 		StringData: map[string]string{

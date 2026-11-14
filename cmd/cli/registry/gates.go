@@ -13,8 +13,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/testsuite"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/registry/e2e"
-	"github.com/intentd/inrun/pkg/tools/cluster"
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/cluster"
+	"github.com/intentd/tools/term"
 	"github.com/spf13/cobra"
 )
 

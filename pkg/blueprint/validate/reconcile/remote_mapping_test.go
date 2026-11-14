@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 // mappedRemote is a valid mapped remote; each test breaks one thing.
@@ -74,13 +75,13 @@ func TestValidateRemoteMapping_RequeueAfter(t *testing.T) {
 
 func TestValidateRemoteMapping_CallConditions(t *testing.T) {
 	require.NoError(t, mappedRemote(t, func(r *types.RemoteReconcilerDeclaration) {
-		r.Request.When = types.Conditions{{Field: "external.current.status", Equals: "404"}}
+		r.Request.When = types.Conditions{{Condition: condition.Condition{Field: "external.current.status", Equals: "404"}}}
 		r.Request.Finalize.URL = "https://buckets.internal/buckets/{{ .external.current.json.id }}"
-		r.Request.Finalize.Or = types.Conditions{{Field: "external.current.status", Equals: "200"}}
+		r.Request.Finalize.Or = types.Conditions{{Condition: condition.Condition{Field: "external.current.status", Equals: "200"}}}
 	}))
 
 	err := mappedRemote(t, func(r *types.RemoteReconcilerDeclaration) {
-		r.Request.Finalize.When = types.Conditions{{Field: "x", Min: "1", Max: "2"}}
+		r.Request.Finalize.When = types.Conditions{{Condition: condition.Condition{Field: "x", Min: "1", Max: "2"}}}
 	})
 	assert.ErrorContains(t, err, "request.finalize condition on x declares min and max")
 }
@@ -90,7 +91,7 @@ func TestValidateRemoteMapping_RequestWhenNeedsResponse(t *testing.T) {
 		r.Response = nil
 		r.Request.Finalize = nil
 		r.Request.ExpectedStatus = nil
-		r.Request.When = types.Conditions{{Field: "spec.enabled", Equals: "true"}}
+		r.Request.When = types.Conditions{{Condition: condition.Condition{Field: "spec.enabled", Equals: "true"}}}
 	})
 	assert.ErrorContains(t, err, "request.when/or needs reconcile.remote.response")
 }

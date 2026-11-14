@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/secrets"
 )
 
@@ -52,7 +52,7 @@ func BuildSecret(in map[string]interface{}, owner domain.Object) (map[string]int
 
 	spec.Data = data
 	spec.StringData = f.StringData
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	obj := secrets.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "Secret")
 	if err != nil {

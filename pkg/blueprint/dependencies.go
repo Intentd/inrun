@@ -6,8 +6,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/intentd/inrun/pkg/util/structured"
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/structured"
+	"github.com/intentd/tools/term"
 
 	"github.com/intentd/inrun/pkg/types"
 )

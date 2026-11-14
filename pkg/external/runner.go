@@ -7,10 +7,10 @@ import (
 
 	"github.com/intentd/kel/core"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -138,7 +138,7 @@ func Call(
 	callErr, _ := entry["error"].(string)
 	statusStr, _ := entry["status"].(string)
 	durationSeconds := 0.0 // non-HTTP clients don't surface duration yet
-	metrics.RecordExternalCall(gvk, call.Name, resolvedURL, durationSeconds, callErr, 0)
+	inrunmetrics.RecordExternalCall(gvk, call.Name, resolvedURL, durationSeconds, callErr, 0)
 
 	if callErr != "" {
 		log.Warn().

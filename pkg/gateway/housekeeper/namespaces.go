@@ -8,9 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // syncNamespaceLabels puts back the Inrun labels on the operator namespace.
@@ -34,12 +34,12 @@ func (h *Housekeeper) syncNamespaceLabels() {
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			logger.Error().Err(err).Str("namespace", namespace).Msg("housekeeper: failed to read namespace for label check")
-			metrics.RecordWebhookReconciliationFailure(labelNamespaceLabels)
+			inrunmetrics.RecordWebhookReconciliationFailure(labelNamespaceLabels)
 		}
 		return
 	}
 
-	required := labels.InrunResourceLabels()
+	required := inrunmeta.InrunResourceLabels()
 	if labelsPresent(ns.Labels, required) {
 		return
 	}
@@ -47,19 +47,19 @@ func (h *Housekeeper) syncNamespaceLabels() {
 	patch, err := json.Marshal(map[string]any{"metadata": map[string]any{"labels": required}})
 	if err != nil {
 		logger.Error().Err(err).Msg("housekeeper: failed to marshal namespace label patch")
-		metrics.RecordWebhookReconciliationFailure(labelNamespaceLabels)
+		inrunmetrics.RecordWebhookReconciliationFailure(labelNamespaceLabels)
 		return
 	}
 
 	_, err = h.client.CoreV1().Namespaces().Patch(ctx, namespace, types.MergePatchType, patch, metav1.PatchOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		logger.Error().Err(err).Str("namespace", namespace).Msg("housekeeper: failed to restore namespace labels")
-		metrics.RecordWebhookReconciliationFailure(labelNamespaceLabels)
+		inrunmetrics.RecordWebhookReconciliationFailure(labelNamespaceLabels)
 		return
 	}
 
 	logger.Warn().Str("namespace", namespace).Msg("housekeeper: namespace labels restored")
-	metrics.RecordWebhookReconciled(labelNamespaceLabels)
+	inrunmetrics.RecordWebhookReconciled(labelNamespaceLabels)
 }
 
 // labelsPresent reports whether current has every required label with the same value.

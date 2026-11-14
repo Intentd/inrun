@@ -12,7 +12,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 // RegisterDeletionProtectionWebhook creates or updates the deletion-protection
@@ -51,7 +51,7 @@ func RegisterDeletionProtectionWebhook(ctx context.Context, client kubernetes.In
 	}
 	if len(inrunGVRs) > 0 {
 		w := webhook("protect.resources.inrun.dev", inrunGVRs)
-		w.ObjectSelector = labels.DeletionProtectionSelector()
+		w.ObjectSelector = inrunmeta.DeletionProtectionSelector()
 		webhooks = append(webhooks, w)
 	}
 
@@ -128,7 +128,7 @@ func RegisterStrictModeWebhook(ctx context.Context, client kubernetes.Interface,
 				Service:  serviceRef(opts, "/strict-mode-protection"),
 				CABundle: caBundle,
 			},
-			ObjectSelector:          labels.DeletionProtectionSelector(),
+			ObjectSelector:          inrunmeta.DeletionProtectionSelector(),
 			Rules:                   []admissionv1.RuleWithOperations{updateAny},
 			FailurePolicy:           ptr.To(admissionv1.Fail),
 			MatchPolicy:             ptr.To(admissionv1.Equivalent),

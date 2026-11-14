@@ -25,6 +25,8 @@ import (
 	"maps"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
+	"github.com/intentd/tools/logger"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -322,20 +324,28 @@ func (r *Resolver) WithHealth(health map[string]interface{}) *Resolver {
 // WithUniquenessChecker — unique: true injection
 // ─────────────────────────────────────────────────────────────────────────────
 
-// WithUniquenessChecker returns a new Resolver with a live UniquenessChecker
-// injected under the "_uniquenessChecker" key — the string must match
-// pkg/types' uniquenessCheckerKey constant (same convention as _cronWindows,
-// see when.go). Not template-visible; read internally by unique: true in
-// both validation.rules and when:/or: (see types.UniquenessChecker).
-// Only the reconciler calls this, so the operator is enforced at reconcile
-// time only.
+// WithUniquenessChecker returns a new Resolver with checker injected under
+// condition.UniquenessCheckerKey, where unique: true in validation.rules and
+// when:/or: reads it. Not template-visible. A check that errors passes, and
+// is logged here.
 func (r *Resolver) WithUniquenessChecker(checker types.UniquenessChecker) *Resolver {
 	if checker == nil {
 		return r
 	}
 	newData := r.shallowCopy()
-	newData["_uniquenessChecker"] = checker
+	newData[condition.UniquenessCheckerKey] = loggedChecker{checker}
 	return r.copyWith(newData)
+}
+
+// loggedChecker warns when a uniqueness check fails to run.
+type loggedChecker struct{ types.UniquenessChecker }
+
+func (c loggedChecker) IsUnique(field, value, selfNamespace, selfName string) (bool, error) {
+	unique, err := c.UniquenessChecker.IsUnique(field, value, selfNamespace, selfName)
+	if err != nil {
+		logger.Warn().Err(err).Str("field", field).Msg("unique check failed — passing")
+	}
+	return unique, err
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

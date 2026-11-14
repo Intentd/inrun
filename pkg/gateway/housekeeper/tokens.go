@@ -6,8 +6,8 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // syncTokenSecrets reloads the Gateway API tokens when a token Secret is
@@ -41,7 +41,7 @@ func (h *Housekeeper) syncTokenSecrets() {
 		default:
 			logger.Error().Err(err).Str("secret", t.SecretRef.Name).Str("namespace", ns).
 				Msg("housekeeper: failed to check gateway API token secret")
-			metrics.RecordWebhookReconciliationFailure(labelTokenSecret)
+			inrunmetrics.RecordWebhookReconciliationFailure(labelTokenSecret)
 		}
 	}
 
@@ -50,9 +50,9 @@ func (h *Housekeeper) syncTokenSecrets() {
 	}
 	if err := h.reloadTokens(ctx); err != nil {
 		logger.Error().Err(err).Msg("housekeeper: gateway API token reload failed")
-		metrics.RecordWebhookReconciliationFailure(labelTokenSecret)
+		inrunmetrics.RecordWebhookReconciliationFailure(labelTokenSecret)
 		return
 	}
 	logger.Info().Msg("housekeeper: gateway API tokens reloaded")
-	metrics.RecordWebhookReconciled(labelTokenSecret)
+	inrunmetrics.RecordWebhookReconciled(labelTokenSecret)
 }

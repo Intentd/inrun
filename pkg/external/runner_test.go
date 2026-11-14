@@ -11,6 +11,7 @@ import (
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 // stubTransport returns a fixed response for every request.
@@ -180,7 +181,7 @@ func TestRun_WhenConditionSkipsCall(t *testing.T) {
 	calls := []types.ExternalCallSpec{
 		{CallSpec: types.CallSpec{URL: "http://prod.internal/v1",
 			When: types.Conditions{
-				{Field: "spec.env", Equals: "production"},
+				{Condition: condition.Condition{Field: "spec.env", Equals: "production"}},
 			}}, Name: "prod-only",
 		},
 	}
@@ -345,7 +346,7 @@ func TestCall_OneCall(t *testing.T) {
 	}
 
 	skipped, err := external.Call(context.Background(), "test", "remote", r, types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x",
-		When: types.Conditions{{Field: "spec.ready", Equals: "yes"}}}, Name: "gated",
+		When: types.Conditions{{Condition: condition.Condition{Field: "spec.ready", Equals: "yes"}}}}, Name: "gated",
 	}, nil)
 	if err != nil || skipped["called"] != "false" {
 		t.Errorf("a call whose conditions fail is skipped: %v, %v", skipped, err)

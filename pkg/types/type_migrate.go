@@ -3,15 +3,25 @@ package types
 import (
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // CRMigrate is a CRD's migrate block. Selection scopes its migration at either
 // level; To makes it kind level: each selected CR is rebuilt as a To CR (same
-// name, namespace and spec) and server-side applied. Status is carried only
-// with To.CarryStatus; the snapshot keeps it so rollback can restore it.
+// name, namespace and spec) and server-side applied. Status is copied only
+// with To.CopyStatus; the snapshot keeps it so rollback can restore it.
 type CRMigrate struct {
+	// From is the schema CRs are stored under before the migration, and CR
+	// files in it. Field level needs it to rehearse (the CRD's crdFile is the
+	// new schema); kind level defaults to the CRD's own crdFile.
+	From *CRMigrateSource `yaml:"from,omitempty" json:"from,omitempty"`
+
+	// Transitional is the schema a field migration runs under, holding both
+	// the old and the new paths. Generated from From and the CRD's crdFile
+	// when absent; checked when declared. Field level only.
+	Transitional *CRMigrateTransitional `yaml:"transitional,omitempty" json:"transitional,omitempty"`
+
 	// To names the destination CRD. Leave it out to only scope field-level
 	// (serve.fields migrate.from) migrations.
 	To CRMigrateTarget `yaml:"to" json:"to"`
@@ -73,6 +83,27 @@ func (m CRMigrate) Plural() string {
 }
 
 // CRMigrateTarget is migrate.to.
+// CRMigrateTransitional is a declared transitional schema.
+type CRMigrateTransitional struct {
+	// CRDFile is the transitional CRD, relative to the Blueprint.
+	CRDFile string `yaml:"crdFile" json:"crdFile"`
+	// ResolvedCRDFile is the path read at load.
+	ResolvedCRDFile string `yaml:"-" json:"-"`
+}
+
+// CRMigrateSource is a migration's stored shape: its CRD file and CR files.
+type CRMigrateSource struct {
+	// CRDFile is the CRD the CRs are stored under, relative to the Blueprint.
+	CRDFile string `yaml:"crdFile,omitempty" json:"crdFile,omitempty"`
+	// CRFiles are files of CRs in that shape; `inrun migrate rehearse` seeds
+	// them.
+	CRFiles []string `yaml:"crFiles,omitempty" json:"crFiles,omitempty"`
+
+	// ResolvedCRDFile and ResolvedCRFiles are the paths read at load.
+	ResolvedCRDFile string   `yaml:"-" json:"-"`
+	ResolvedCRFiles []string `yaml:"-" json:"-"`
+}
+
 type CRMigrateTarget struct {
 	// APIVersion — the destination CRD's group and version, e.g.
 	// "platform.example.com/v2".
@@ -86,16 +117,22 @@ type CRMigrateTarget struct {
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 	// Metadata — labels and annotations for the destination CRs.
 	Metadata CRMigrateMetadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
-	// CarryStatus copies the source's status onto the destination. Off by
+	// CopyStatus copies the source's status onto the destination. Off by
 	// default: status is what the destination's controller has observed.
-	CarryStatus bool `yaml:"carryStatus,omitempty" json:"carryStatus,omitempty"`
+	CopyStatus bool `yaml:"copyStatus,omitempty" json:"copyStatus,omitempty"`
 
 	// CRDFile fills APIVersion, Kind and Plural at load (declared values
 	// must match) and lets validation check scope and schema.
 	CRDFile string `yaml:"crdFile,omitempty" json:"crdFile,omitempty"`
 
-	// ResolvedCRDFile is the absolute path read at load.
-	ResolvedCRDFile string `yaml:"-" json:"-"`
+	// CRFiles are files of CRs already in the destination shape;
+	// `inrun migrate rehearse` seeds them. They do not make a migration kind
+	// level: at field level they are CRs in the CRD's new schema.
+	CRFiles []string `yaml:"crFiles,omitempty" json:"crFiles,omitempty"`
+
+	// ResolvedCRDFile and ResolvedCRFiles are the absolute paths read at load.
+	ResolvedCRDFile string   `yaml:"-" json:"-"`
+	ResolvedCRFiles []string `yaml:"-" json:"-"`
 }
 
 // Declared reports whether migrate.to names a destination.

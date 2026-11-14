@@ -9,6 +9,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 // AutoscalePreset is a named autoscale behavior preset.
@@ -110,7 +111,7 @@ func expandBurst(b types.AutoscaleBaseline, cfg presetConfig) *types.AutoscaleSp
 		Interval: types.Duration{Duration: cfg.interval},
 		Cooldown: types.Duration{Duration: cfg.cooldown},
 		Conditions: types.AutoscaleConditions{
-			When: types.Conditions{{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)}},
+			When: types.Conditions{{Condition: condition.Condition{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)}}},
 		},
 		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
 	}
@@ -125,8 +126,8 @@ func expandSteady(b types.AutoscaleBaseline, cfg presetConfig) *types.AutoscaleS
 		Cooldown: types.Duration{Duration: cfg.cooldown},
 		Conditions: types.AutoscaleConditions{
 			When: types.Conditions{
-				{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)},
-				{Field: "metrics.workersBusyPercent", GreaterThan: "70"},
+				{Condition: condition.Condition{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)}},
+				{Condition: condition.Condition{Field: "metrics.workersBusyPercent", GreaterThan: "70"}},
 			},
 		},
 		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
@@ -140,7 +141,7 @@ func expandBatch(b types.AutoscaleBaseline, cfg presetConfig) *types.AutoscaleSp
 		Interval: types.Duration{Duration: cfg.interval},
 		Cooldown: types.Duration{Duration: cfg.cooldown},
 		Conditions: types.AutoscaleConditions{
-			Or: types.Conditions{{Cron: "0 23 * * *", Duration: types.Duration{Duration: 3 * time.Hour}}},
+			Or: types.Conditions{{Condition: condition.Condition{Cron: "0 23 * * *", Duration: types.Duration{Duration: 3 * time.Hour}}}},
 		},
 		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},
 	}
@@ -152,7 +153,7 @@ func expandLatencySensitive(b types.AutoscaleBaseline, cfg presetConfig) *types.
 		Interval: types.Duration{Duration: cfg.interval},
 		Cooldown: types.Duration{Duration: cfg.cooldown},
 		Conditions: types.AutoscaleConditions{
-			When: types.Conditions{{Field: "metrics.reconcileDurationP95Ms", GreaterThan: "200"}},
+			When: types.Conditions{{Condition: condition.Condition{Field: "metrics.reconcileDurationP95Ms", GreaterThan: "200"}}},
 		},
 		Do: types.AutoscaleAction{Workers: ptr.To(workers)},
 	}
@@ -167,8 +168,8 @@ func expandCostOptimized(b types.AutoscaleBaseline, cfg presetConfig) *types.Aut
 		Cooldown: types.Duration{Duration: cfg.cooldown},
 		Conditions: types.AutoscaleConditions{
 			When: types.Conditions{
-				{Field: "metrics.workersIdlePercent", GreaterThan: "60"},
-				{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)},
+				{Condition: condition.Condition{Field: "metrics.workersIdlePercent", GreaterThan: "60"}},
+				{Condition: condition.Condition{Field: "metrics.queueDepth", GreaterThan: fmt.Sprintf("%d", threshold)}},
 			},
 		},
 		Do: types.AutoscaleAction{Workers: ptr.To(workers), QueueDepth: ptr.To(queue)},

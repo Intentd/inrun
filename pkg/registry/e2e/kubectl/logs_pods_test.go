@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient/kubefake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

@@ -13,8 +13,8 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 // Pruned names a child deleted because the Result no longer returned it.
@@ -52,7 +52,7 @@ func Prune(
 		want[childKey(u.GroupVersionKind().Group, u.GetKind(), u.GetNamespace(), u.GetName())] = struct{}{}
 	}
 
-	opts := metav1.ListOptions{LabelSelector: labels.OwnerUID + "=" + string(owner.GetUID())}
+	opts := metav1.ListOptions{LabelSelector: inrunmeta.OwnerUID + "=" + string(owner.GetUID())}
 	background := metav1.DeletePropagationBackground
 
 	var pruned []Pruned
@@ -65,7 +65,7 @@ func Prune(
 		}
 		for i := range list.Items {
 			item := &list.Items[i]
-			if !appliedByInrun(item) || item.GetLabels()[labels.DeletionProtectionLabel] == "true" {
+			if !appliedByInrun(item) || item.GetLabels()[inrunmeta.DeletionProtectionLabel] == "true" {
 				continue
 			}
 			key := childKey(item.GroupVersionKind().Group, item.GetKind(), item.GetNamespace(), item.GetName())
@@ -99,13 +99,13 @@ func PruneChildren(
 	if owner.GetUID() == "" {
 		return nil, nil
 	}
-	return PruneOwned(ctx, dyn, labels.OwnerUID+"="+string(owner.GetUID()), gvrs, keep)
+	return PruneOwned(ctx, dyn, inrunmeta.OwnerUID+"="+string(owner.GetUID()), gvrs, keep)
 }
 
 // PruneOwned deletes every object of the kinds in gvrs that matches the
 // label selector, in any namespace and cluster-scoped ones included, except
 // kinds in keep and deletion-protected objects. The selector must name an
-// owner (labels.OwnerUID); an empty one deletes nothing.
+// owner (inrunmeta.OwnerUID); an empty one deletes nothing.
 func PruneOwned(
 	ctx context.Context,
 	dyn dynamic.Interface,
@@ -113,7 +113,7 @@ func PruneOwned(
 	gvrs []schema.GroupVersionResource,
 	keep []string,
 ) ([]Pruned, error) {
-	if !strings.Contains(selector, labels.OwnerUID+"=") {
+	if !strings.Contains(selector, inrunmeta.OwnerUID+"=") {
 		return nil, nil
 	}
 	kept := make(map[string]bool, len(keep))
@@ -136,7 +136,7 @@ func PruneOwned(
 		}
 		for i := range list.Items {
 			item := &list.Items[i]
-			if kept[children.KindName(item.GetKind())] || item.GetLabels()[labels.DeletionProtectionLabel] == "true" {
+			if kept[children.KindName(item.GetKind())] || item.GetLabels()[inrunmeta.DeletionProtectionLabel] == "true" {
 				continue
 			}
 			err := dyn.Resource(gvr).Namespace(item.GetNamespace()).Delete(ctx, item.GetName(),

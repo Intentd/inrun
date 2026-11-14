@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/presets"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/logger"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -115,8 +115,8 @@ func (c *Blueprint) SetDefaults(cfg *config.Config) error {
 		}
 		// Every CR Inrun manages carries its cleanup finalizer, whatever the
 		// reconciler: deletion waits for a finalizing reconcile to finish.
-		if !slices.Contains(boxFinalizers, labels.CleanupFinalizer) {
-			boxFinalizers = append(boxFinalizers, labels.CleanupFinalizer)
+		if !slices.Contains(boxFinalizers, inrunmeta.CleanupFinalizer) {
+			boxFinalizers = append(boxFinalizers, inrunmeta.CleanupFinalizer)
 		}
 		if crd.Box().Runtime == nil {
 			crd.Box().Runtime = &types.RuntimeConfig{}

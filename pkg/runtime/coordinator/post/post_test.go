@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func TestSameHealth_IgnoresPerPassFields(t *testing.T) {

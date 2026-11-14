@@ -5,14 +5,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
-	"github.com/intentd/inrun/pkg/util/term"
+	kubeutil "github.com/intentd/tools/kube"
+	"github.com/intentd/tools/term"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -21,7 +20,7 @@ import (
 type LeaderElection struct {
 	name       string
 	kube       *kubeclient.Kubeclient
-	event      *event.Event
+	event      *kubeutil.Events
 	cancelFunc context.CancelFunc
 	runCancel  context.CancelFunc
 	run        func(context.Context)
@@ -51,7 +50,7 @@ var _ domain.Component = (*LeaderElection)(nil)
 
 func NewLeaderElection(
 	kube *kubeclient.Kubeclient,
-	event *event.Event,
+	event *kubeutil.Events,
 	run func(context.Context),
 	onElected func(leader string),
 	opts LeaderOptions,

@@ -12,8 +12,9 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/blueprint/validate"
 	apigateway "github.com/intentd/inrun/pkg/gateway/api"
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/cluster"
 	"github.com/spf13/cobra"
 )
 
@@ -152,15 +153,16 @@ Uses the current kubectl context to reach the management cluster.
 Pass --context <ctx> to use a specific context instead.
 
 With --config <file>, skips the blueprint entirely and checks connectivity only
-for each cluster listed in the bootstrap config file. Use this to verify
-contexts are reachable before bootstrapping them.`,
+for each cluster listed in a clusters file (gateway.clusters format, as
+access --out writes). Use this to verify
+the credentials work before adding them to the blueprint.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterCtx, _ := cmd.Flags().GetString("context")
 		clustersRaw, _ := cmd.Flags().GetString("clusters")
 		configPath, _ := cmd.Flags().GetString("config")
 
 		if configPath != "" {
-			clusters, err := cluster.LoadClustersFile(configPath)
+			clusters, err := inruncluster.LoadClustersFile(configPath)
 			if err != nil {
 				return err
 			}

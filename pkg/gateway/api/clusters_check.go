@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // ClusterCheckResult holds the outcome for a single gateway cluster.

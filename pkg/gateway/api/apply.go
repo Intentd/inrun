@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 	"io"
 	"net/http"
 	"strings"
@@ -31,11 +32,11 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // ApplyResponse is returned for every POST /api/v1/apply request.
@@ -449,9 +450,9 @@ func godapplyHandler(
 				if probeErr == nil {
 					op = types.ServeOpUpdate
 					ann := existing.GetAnnotations()
-					storedSurface := ann[labels.AnnotationServeAlias]
+					storedSurface := ann[inrunmeta.AnnotationServeAlias]
 					if storedSurface == "" {
-						storedSurface = ann[labels.AnnotationServeTarget]
+						storedSurface = ann[inrunmeta.AnnotationServeTarget]
 					}
 					incomingSurface := alias
 					if incomingSurface == "" {
@@ -571,9 +572,9 @@ func godapplyHandler(
 				if probeErr == nil {
 					op = types.ServeOpUpdate
 					ann := existing.GetAnnotations()
-					storedSurface := ann[labels.AnnotationServeAlias]
+					storedSurface := ann[inrunmeta.AnnotationServeAlias]
 					if storedSurface == "" {
-						storedSurface = ann[labels.AnnotationServeTarget]
+						storedSurface = ann[inrunmeta.AnnotationServeTarget]
 					}
 					if storedSurface != "" && storedSurface != incomingSurface && !override {
 						cr.Message = fmt.Sprintf(
@@ -744,10 +745,10 @@ func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias s
 		ann = make(map[string]string, 3)
 	}
 	if target != "" {
-		ann[labels.AnnotationServeTarget] = target
+		ann[inrunmeta.AnnotationServeTarget] = target
 	}
 	if alias != "" {
-		ann[labels.AnnotationServeAlias] = alias
+		ann[inrunmeta.AnnotationServeAlias] = alias
 	}
 	obj.SetAnnotations(ann)
 }
@@ -756,7 +757,7 @@ func InjectProvenanceAnnotations(obj *unstructured.Unstructured, target, alias s
 // annotation so the admission webhook can bind it as .request in validation
 // rules, enabling intent-level gates before field translation.
 func InjectServeIntentAnnotation(obj *unstructured.Unstructured, raw map[string]interface{}) {
-	labels.InjectAnnotationToObject(obj, raw, labels.AnnotationServeIntent)
+	kubeutil.SetJSONAnnotation(obj, inrunmeta.AnnotationServeIntent, raw)
 }
 
 // InjectFieldSelectorAnnotations adds the field selector target and selectors to the CR.
@@ -768,11 +769,11 @@ func InjectFieldSelectorAnnotations(obj *unstructured.Unstructured, target strin
 	if ann == nil {
 		ann = make(map[string]string)
 	}
-	ann[labels.AnnotationServeSelectorTarget] = target
+	ann[inrunmeta.AnnotationServeSelectorTarget] = target
 
 	b, err := json.Marshal(selector)
 	if err == nil {
-		ann[labels.AnnotationServeSelector] = string(b)
+		ann[inrunmeta.AnnotationServeSelector] = string(b)
 	}
 	obj.SetAnnotations(ann)
 }

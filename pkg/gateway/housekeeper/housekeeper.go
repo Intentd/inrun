@@ -12,9 +12,9 @@ import (
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/logger"
 )
 
 var _ domain.Component = (*Housekeeper)(nil)
@@ -162,7 +162,7 @@ func (h *Housekeeper) hasWork() bool {
 // webhook configuration trusts it.
 func (h *Housekeeper) syncAll() {
 	h.stats.RecordReconciled()
-	metrics.RecordWebhookReconciled(labelHousekeeper)
+	inrunmetrics.RecordWebhookReconciled(labelHousekeeper)
 
 	h.syncCertSecret()
 	h.syncAdmissionWebhooks()
@@ -178,6 +178,6 @@ func (h *Housekeeper) syncAll() {
 func (h *Housekeeper) failed(labels ...string) {
 	h.stats.RecordFailure()
 	for _, l := range labels {
-		metrics.RecordWebhookReconciliationFailure(l)
+		inrunmetrics.RecordWebhookReconciliationFailure(l)
 	}
 }

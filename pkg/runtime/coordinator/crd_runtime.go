@@ -5,9 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/autoscaler"
 	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/tools/logger"
 )
 
 // perCRDRuntime holds the per-CRD concurrency and autoscale state owned by

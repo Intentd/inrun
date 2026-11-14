@@ -11,14 +11,14 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kubewright/core/ingresses"
 	"github.com/intentd/kubewright/core/networkpolicies"
 	"github.com/intentd/kubewright/core/services"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // RunServices writes Service template entries; runChildren describes how.

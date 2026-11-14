@@ -2,8 +2,8 @@ package rewrite
 
 const (
 	domain     = "github.com/intentd/inrun/domain"
-	kubeclient = "github.com/intentd/inrun/pkg/kubeclient"
-	ctrlclient = "github.com/intentd/inrun/pkg/kubeclient/adapter"
+	kubeclient = "github.com/intentd/tools/kubeclient"
+	ctrlclient = "github.com/intentd/inrun/pkg/runtime/kubeclient/adapter"
 )
 
 // Mode controls how much of the source file migrate rewrites.

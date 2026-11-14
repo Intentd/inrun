@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	tmplresources "github.com/intentd/inrun/pkg/template/resources"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/statefulsets"
 	kwtypes "github.com/intentd/kubewright/core/types"
 )
@@ -62,8 +62,8 @@ func BuildStatefulSet(in map[string]interface{}, owner domain.Object) (map[strin
 		InitContainers: f.InitContainers,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
-	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
+	spec.Selector = map[string]string{inrunmeta.InrunOwner: owner.GetName()}
 	obj := statefulsets.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "apps/v1", "StatefulSet")

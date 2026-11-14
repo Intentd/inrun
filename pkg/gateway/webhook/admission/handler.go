@@ -10,8 +10,8 @@ import (
 	"github.com/intentd/inrun/pkg/health"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/kube"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/structured"
 )
 
 var (

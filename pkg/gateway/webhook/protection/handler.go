@@ -3,7 +3,7 @@ package protection
 import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 )
 
 // Log prefixes for each webhook.

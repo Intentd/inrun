@@ -6,7 +6,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 const registerTimeout = 30 * time.Second

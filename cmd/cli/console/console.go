@@ -15,7 +15,7 @@ import (
 	"syscall"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/version"
 
 	"github.com/spf13/cobra"
 )

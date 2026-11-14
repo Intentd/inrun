@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/runtimeapi"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 
 	"github.com/intentd/inrun/domain"
 

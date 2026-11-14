@@ -8,10 +8,10 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // Input holds everything Prepare needs from the Controller.

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 func blueprintWithEmit(crdName string, emit *types.EmitConfig) *checker {
@@ -144,7 +145,7 @@ func TestValidateEmit_InvalidWhenFieldTemplate(t *testing.T) {
 				Reason:  "Failed",
 				Message: "something failed",
 				When: types.Conditions{
-					{Field: "{{ .status.phase"},
+					{Condition: condition.Condition{Field: "{{ .status.phase"}},
 				},
 			},
 		},
@@ -182,7 +183,7 @@ func TestValidateEmit_WithWhenCondition(t *testing.T) {
 				Reason:  "Ready",
 				Message: "{{ .spec.name }} is ready",
 				When: types.Conditions{
-					{Field: ".status.phase", Equals: "Ready"},
+					{Condition: condition.Condition{Field: ".status.phase", Equals: "Ready"}},
 				},
 			},
 		},

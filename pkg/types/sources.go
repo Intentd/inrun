@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 )
 
 // FileSource represents one file source entry.

@@ -11,6 +11,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,8 +56,8 @@ func mappedReconciler(endpoint string) *Reconciler {
 				Requeue: &types.RequeueConfig{
 					After: "10s",
 					Or: types.Conditions{
-						{Field: "response.json.status", Equals: "provisioning"},
-						{Field: "response.status", Equals: "202"},
+						{Condition: condition.Condition{Field: "response.json.status", Equals: "provisioning"}},
+						{Condition: condition.Condition{Field: "response.status", Equals: "202"}},
 					},
 				},
 			},
@@ -190,7 +191,7 @@ func observed(finalizing bool, status string, id string) domain.Request {
 func TestMapped_RequestSkippedWhenItsConditionFails(t *testing.T) {
 	srv, seen := bucketAPI(t, "ready", 0)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.When = types.Conditions{{Field: "external.current.status", Equals: "404"}}
+	r.decl.Request.When = types.Conditions{{Condition: condition.Condition{Field: "external.current.status", Equals: "404"}}}
 	r.decl.Response.Requeue = &types.RequeueConfig{After: "30s"}
 
 	result, err := r.reconcileMapped(context.Background(), observed(false, "200", "b-1"))
@@ -208,7 +209,7 @@ func TestMapped_RequestSkippedWhenItsConditionFails(t *testing.T) {
 func TestMapped_FinalizeSkippedReleases(t *testing.T) {
 	srv, seen := bucketAPI(t, "", http.StatusAccepted)
 	r := mappedReconciler(srv.URL)
-	r.decl.Request.Finalize.When = types.Conditions{{Field: "external.current.status", Equals: "200"}}
+	r.decl.Request.Finalize.When = types.Conditions{{Condition: condition.Condition{Field: "external.current.status", Equals: "200"}}}
 
 	result, err := r.reconcileMapped(context.Background(), observed(true, "404", ""))
 	require.NoError(t, err)

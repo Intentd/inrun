@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func TestInrunContext_InjectedIntoResolver(t *testing.T) {

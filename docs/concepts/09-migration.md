@@ -42,7 +42,7 @@ spec:
               equals: Ready
 ```
 
-Each selected source is rebuilt as a destination CR and applied. Before writing, a dry-run apply refuses a destination that would drop or change a source field, and name collisions fail rather than overwrite (a namespaced to cluster-scoped move makes names unique cluster-wide). `migrate.to.carryStatus` copies the status across. `prune` deletes a source only once the destination holds every source field, and only if the source hasn't changed since it was read.
+Each selected source is rebuilt as a destination CR and applied. Before writing, a dry-run apply refuses a destination that would drop or change a source field, and name collisions fail rather than overwrite (a namespaced to cluster-scoped move makes names unique cluster-wide). `migrate.to.copyStatus` copies the status across. `prune` deletes a source only once the destination holds every source field, and only if the source hasn't changed since it was read.
 
 ## Selection
 

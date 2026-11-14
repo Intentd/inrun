@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -100,9 +100,9 @@ func readChildrenForEndpoint(
 	defer cancel()
 
 	// Children carry the surface-aware owner key (name, or name.target when the
-	// CR came through a serve target), as stamped by labels.StampInrunLabels.
+	// CR came through a serve target), as stamped by inrunmeta.StampInrunLabels.
 	annotations, _, _ := unstructured.NestedStringMap(owner, "metadata", "annotations")
-	labelSelector := labels.InrunOwner + "=" + labels.EffectiveOwnerKey(name, annotations)
+	labelSelector := inrunmeta.InrunOwner + "=" + inrunmeta.EffectiveOwnerKey(name, annotations)
 
 	// Only query the kinds the CR creates, not every known kind.
 	gvrs := relevantGVRsFromConfig(rc)

@@ -3,7 +3,7 @@ package generate
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +50,7 @@ func renderNamespace(namespace string) ([]byte, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   namespace,
-			Labels: labels.InrunBaseLabels(),
+			Labels: inrunmeta.InrunBaseLabels(),
 		},
 	}
 	return yaml.Marshal(ns)
@@ -70,19 +70,19 @@ func renderRBAC(runtimeRules, gatewayRules []rbacv1.PolicyRule, namespace string
 	if opts.IncludeRuntime {
 		objs = append(objs, corev1.ServiceAccount{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
-			ObjectMeta: metav1.ObjectMeta{Name: inrunRuntime, Namespace: namespace, Labels: labels.InrunResourceLabels()},
+			ObjectMeta: metav1.ObjectMeta{Name: inrunRuntime, Namespace: namespace, Labels: inrunmeta.InrunResourceLabels()},
 		})
 	}
 	if opts.IncludeGateway {
 		objs = append(objs, corev1.ServiceAccount{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
-			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Namespace: namespace, Labels: labels.InrunResourceLabels()},
+			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Namespace: namespace, Labels: inrunmeta.InrunResourceLabels()},
 		})
 	}
 	if opts.IncludeConsole {
 		objs = append(objs, corev1.ServiceAccount{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
-			ObjectMeta: metav1.ObjectMeta{Name: inrunConsole, Namespace: namespace, Labels: labels.InrunResourceLabels()},
+			ObjectMeta: metav1.ObjectMeta{Name: inrunConsole, Namespace: namespace, Labels: inrunmeta.InrunResourceLabels()},
 		})
 	}
 
@@ -94,12 +94,12 @@ func renderRBAC(runtimeRules, gatewayRules []rbacv1.PolicyRule, namespace string
 		objs = append(objs,
 			rbacv1.ClusterRole{
 				TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole"},
-				ObjectMeta: metav1.ObjectMeta{Name: inrunNS, Labels: labels.InrunResourceLabels()},
+				ObjectMeta: metav1.ObjectMeta{Name: inrunNS, Labels: inrunmeta.InrunResourceLabels()},
 				Rules:      runtimeRules,
 			},
 			rbacv1.ClusterRoleBinding{
 				TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRoleBinding"},
-				ObjectMeta: metav1.ObjectMeta{Name: inrunNS, Labels: labels.InrunResourceLabels()},
+				ObjectMeta: metav1.ObjectMeta{Name: inrunNS, Labels: inrunmeta.InrunResourceLabels()},
 				RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: inrunNS},
 				Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: inrunRuntime, Namespace: namespace}},
 			},
@@ -112,12 +112,12 @@ func renderRBAC(runtimeRules, gatewayRules []rbacv1.PolicyRule, namespace string
 		objs = append(objs,
 			rbacv1.ClusterRole{
 				TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole"},
-				ObjectMeta: metav1.ObjectMeta{Name: inrunGatewayNS, Labels: labels.InrunResourceLabels()},
+				ObjectMeta: metav1.ObjectMeta{Name: inrunGatewayNS, Labels: inrunmeta.InrunResourceLabels()},
 				Rules:      gatewayRules,
 			},
 			rbacv1.ClusterRoleBinding{
 				TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRoleBinding"},
-				ObjectMeta: metav1.ObjectMeta{Name: inrunGatewayNS, Labels: labels.InrunResourceLabels()},
+				ObjectMeta: metav1.ObjectMeta{Name: inrunGatewayNS, Labels: inrunmeta.InrunResourceLabels()},
 				RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: inrunGatewayNS},
 				Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: inrunGateway, Namespace: namespace}},
 			},
@@ -140,23 +140,23 @@ func renderRBAC(runtimeRules, gatewayRules []rbacv1.PolicyRule, namespace string
 
 // RBACForCluster generates a self-contained RBAC file to apply to a remote cluster.
 // It produces a ServiceAccount, ClusterRole, and ClusterRoleBinding in saNamespace
-// (typically "kube-system"), matching what inrun clusters bootstrap creates live.
+// (typically "kube-system"), matching what inrun clusters access creates live.
 // Apply this file to the remote cluster, not to the gateway cluster.
 // saNamespace must already exist on the target cluster — "kube-system" always does.
 func RBACForCluster(clusterName string, rules []rbacv1.PolicyRule, saNamespace string) ([]byte, error) {
 	objs := []interface{}{
 		corev1.ServiceAccount{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
-			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Namespace: saNamespace, Labels: labels.InrunResourceLabels()},
+			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Namespace: saNamespace, Labels: inrunmeta.InrunResourceLabels()},
 		},
 		rbacv1.ClusterRole{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole"},
-			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Labels: labels.InrunResourceLabels()},
+			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Labels: inrunmeta.InrunResourceLabels()},
 			Rules:      rules,
 		},
 		rbacv1.ClusterRoleBinding{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRoleBinding"},
-			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Labels: labels.InrunResourceLabels()},
+			ObjectMeta: metav1.ObjectMeta{Name: inrunGateway, Labels: inrunmeta.InrunResourceLabels()},
 			RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: inrunGateway},
 			Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: inrunGateway, Namespace: saNamespace}},
 		},

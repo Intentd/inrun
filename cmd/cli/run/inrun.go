@@ -9,8 +9,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"github.com/intentd/inrun/cmd/internal"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/tools/logger"
 	"github.com/spf13/cobra"
 )
 

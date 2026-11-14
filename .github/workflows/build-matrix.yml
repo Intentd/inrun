@@ -90,9 +90,9 @@ jobs:
           go build \
             -trimpath \
             -ldflags="-s -w \
-              -X github.com/intentd/inrun/pkg/util/version.Version=${{ github.ref_name }} \
-              -X github.com/intentd/inrun/pkg/util/version.Commit=${{ github.sha }} \
-              -X github.com/intentd/inrun/pkg/util/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              -X github.com/intentd/tools/version.Version=${{ github.ref_name }} \
+              -X github.com/intentd/tools/version.Commit=${{ github.sha }} \
+              -X github.com/intentd/tools/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -o dist/${{ env.RUNTIME }} \
             ./cmd/inrun/
           echo "✅ Runtime built: dist/${{ env.RUNTIME }}"
@@ -109,9 +109,9 @@ jobs:
           go build \
             -trimpath \
             -ldflags="-s -w \
-              -X github.com/intentd/inrun/console/version.Version=${{ github.ref_name }} \
-              -X github.com/intentd/inrun/console/version.Commit=${{ github.sha }} \
-              -X github.com/intentd/inrun/console/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              -X github.com/intentd/tools/version.Version=${{ github.ref_name }} \
+              -X github.com/intentd/tools/version.Commit=${{ github.sha }} \
+              -X github.com/intentd/tools/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -o ../../dist/${{ env.CONTROL }} .
           echo "✅ Console built: dist/${{ env.CONTROL }}"
 

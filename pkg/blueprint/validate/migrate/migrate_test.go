@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
@@ -616,7 +617,7 @@ func TestValidateCRMigrate_BadSelectionCondition(t *testing.T) {
 	c := blueprintWithMigrate(&types.CRMigrate{
 		To: types.CRMigrateTarget{APIVersion: "test.migrate/v1", Kind: "App"},
 		Selection: types.MigrateSelection{
-			When: types.Conditions{{Field: "spec.tier", Equals: "a", NotEquals: "b"}},
+			When: types.Conditions{{Condition: condition.Condition{Field: "spec.tier", Equals: "a", NotEquals: "b"}}},
 		},
 	})
 	err := c.validateMigrate()
@@ -628,7 +629,7 @@ func TestValidateCRMigrate_GoodSelectionCondition(t *testing.T) {
 	c := blueprintWithMigrate(&types.CRMigrate{
 		To: types.CRMigrateTarget{APIVersion: "test.migrate/v1", Kind: "App"},
 		Selection: types.MigrateSelection{
-			Or: types.Conditions{{Field: "status.phase", Equals: "Ready"}},
+			Or: types.Conditions{{Condition: condition.Condition{Field: "status.phase", Equals: "Ready"}}},
 		},
 	})
 	require.NoError(t, c.validateMigrate())
@@ -719,7 +720,7 @@ func fieldServe() *types.ServeConfig {
 
 func TestValidateMigrate_SelectionScopesFieldMigration(t *testing.T) {
 	c := blueprintWithMigrateAndField(&types.CRMigrate{
-		Selection: types.MigrateSelection{Selector: "tier=gold", When: types.Conditions{{Field: "spec.env", Equals: "prod"}}},
+		Selection: types.MigrateSelection{Selector: "tier=gold", When: types.Conditions{{Condition: condition.Condition{Field: "spec.env", Equals: "prod"}}}},
 	}, fieldServe())
 	require.NoError(t, c.validateMigrate())
 }

@@ -43,10 +43,10 @@ import (
 	"github.com/intentd/inrun/pkg/runtimeapi"
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"

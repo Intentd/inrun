@@ -164,48 +164,7 @@ func ApplyFieldTransform(
 	config types.ServeFieldConfig,
 	submitted interface{},
 ) error {
-	// Fanout: one submitted field → multiple CR spec paths.
-	if config.HasValues() {
-		r := resolver.WithFieldValue(submitted)
-		var errs []string
-		for specPath, expr := range config.Values {
-			result, err := r.Resolve(expr)
-			if err != nil {
-				errs = append(errs, fmt.Sprintf("field %q: values[%q]: %s", key, specPath, err.Error()))
-				continue
-			}
-			if err := setSpecValue(spec, specPath, result); err != nil {
-				errs = append(errs, fmt.Sprintf("field %q: values[%q]: %s", key, specPath, err.Error()))
-			}
-		}
-		if len(errs) > 0 {
-			return fmt.Errorf("%s", strings.Join(errs, "; "))
-		}
-		return nil
-	}
-
-	// Single transform: evaluate expression, write result to spec path.
-	if config.HasValue() {
-		r := resolver.WithFieldValue(submitted)
-		result, err := r.Resolve(config.Value)
-		if err != nil {
-			return fmt.Errorf("field %q: value: %s", key, err.Error())
-		}
-		return setSpecValue(spec, config.SpecPath(key), result)
-	}
-
-	// Plain field: write submitted value as-is to spec path.
-	return setSpecValue(spec, config.SpecPath(key), submitted)
-}
-
-// setSpecValue writes a value to a dot-notation spec path, creating intermediate
-// maps as needed. Flat paths (no dot) are assigned directly.
-func setSpecValue(spec map[string]interface{}, path string, value interface{}) error {
-	if isNestedPath(path) {
-		return setNestedPath(spec, path, value)
-	}
-	spec[path] = value
-	return nil
+	return resolver.Core().ApplyField(spec, key, config.Field(), submitted)
 }
 
 // resolveServeIdentity resolves serve.name and serve.namespace using the flat field map.

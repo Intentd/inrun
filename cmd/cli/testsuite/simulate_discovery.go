@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/cmd/cli/validate"

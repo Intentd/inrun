@@ -21,7 +21,7 @@ import (
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/tools/devserver"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

@@ -13,6 +13,7 @@ import (
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 // resolver returns a no-op template resolver: the tests use plain commands,
@@ -131,7 +132,7 @@ func TestVerify_SkippedReportsConfiguredWithoutRunning(t *testing.T) {
 	res, err := runStep(context.Background(), scope(types.E2EExpectation{
 		Name:  "gated",
 		Retry: 2,
-		When:  types.Conditions{{Field: "x", Equals: "y"}},
+		When:  types.Conditions{{Condition: condition.Condition{Field: "x", Equals: "y"}}},
 	}), resolver())
 	if err != errSkipped {
 		t.Fatalf("err = %v, want errSkipped", err)

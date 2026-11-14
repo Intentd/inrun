@@ -13,7 +13,7 @@ import (
 	"github.com/intentd/inrun/cmd/cli/console"
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 // Start starts the console next to the runtime, and the gateway too when the

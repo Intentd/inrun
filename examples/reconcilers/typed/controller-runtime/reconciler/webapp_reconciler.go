@@ -17,8 +17,8 @@ import (
 
 	demov1alpha1 "github.com/intentd/from-controller-runtime-demo/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/kubeclient/adapter"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient/adapter"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // WebAppReconciler is a controller-runtime reconciler, unchanged apart from

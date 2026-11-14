@@ -8,12 +8,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	kwtypes "github.com/intentd/kubewright/core/types"
+	"github.com/intentd/tools/logger"
 )
 
 // nsGuard reports whether owner may write into namespace ns. A nil guard
@@ -131,7 +131,7 @@ func runChildren[S, Spec any](
 
 		if !passed {
 			if (update || e.Reconcile) && !active[ns+"/"+name] {
-				res, err := k.deleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+				res, err := k.deleteIfOwned(ctx, kube.Clientset(), name, ns, inrunmeta.OwnedBy(owner))
 				if err != nil {
 					return fmt.Errorf("%s[%d]: conditional cleanup: %w", k.field, i, err)
 				}

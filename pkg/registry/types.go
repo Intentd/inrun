@@ -3,7 +3,7 @@ package registry
 import (
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/term"
 )
 
 // PatternKind is the Inrun pattern type, read from the kind: field.

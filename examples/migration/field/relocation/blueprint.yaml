@@ -22,7 +22,18 @@ gateway:
 spec:
   crds:
     appconfig:
-      crdFile: ./manifests/crd-transitional.yaml
+      crdFile: ./manifests/crd-final.yaml
+      # The schema and CRs before the migration, the transitional schema the
+      # CRs move under (applied in crdFile's place in dev mode and e2e), and
+      # CRs already written in the new shape.
+      migrate:
+        from:
+          crdFile: ./manifests/old-crd.yaml
+          crFiles: [./manifests/old-crs.yaml]
+        transitional:
+          crdFile: ./manifests/crd-transitional.yaml
+        to:
+          crFiles: [./manifests/new-crs.yaml]
       serve:
         enabled: true
         target: my-api-server

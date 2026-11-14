@@ -9,7 +9,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"

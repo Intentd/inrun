@@ -107,6 +107,7 @@ func (c *Blueprint) BuildRuntimeBlueprint(
 			}
 			entry.Migrate.To.CRDFile = ""
 		}
+		ResolveMigrateFiles(&entry, c.blueprintDir)
 		if err := PopulateCustomResourcesFromCRDFiles(&entry, c.blueprintDir); err != nil {
 			return nil, fmt.Errorf("CRD %q: %w", name, err)
 		}

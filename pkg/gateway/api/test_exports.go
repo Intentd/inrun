@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 func WithTokenName(ctx context.Context, name string) context.Context {

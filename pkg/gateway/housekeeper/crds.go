@@ -6,8 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/watch"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // CRDWatcher watches one CRD by name. The gateway app implements it with the
@@ -52,7 +52,7 @@ func (h *Housekeeper) syncConversionCRDs() {
 	for _, name := range h.bp.ManagedConversionCRDs() {
 		if err := h.patchConversionCRD(ctx, name, caBundle64); err != nil {
 			logger.Error().Err(err).Str("crd", name).Msg("housekeeper: failed to patch CRD conversion caBundle")
-			metrics.RecordWebhookReconciliationFailure(labelConversionCABundle)
+			inrunmetrics.RecordWebhookReconciliationFailure(labelConversionCABundle)
 			continue
 		}
 		logger.Debug().Str("crd", name).Msg("housekeeper: CRD conversion caBundle in sync")

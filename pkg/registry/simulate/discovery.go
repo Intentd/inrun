@@ -2,7 +2,7 @@ package simulate
 
 import (
 	"github.com/intentd/inrun/pkg/registry"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 	"github.com/stretchr/testify/assert/yaml"
 )
 

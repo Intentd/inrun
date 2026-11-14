@@ -7,11 +7,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 const eventHandler = "event handler"

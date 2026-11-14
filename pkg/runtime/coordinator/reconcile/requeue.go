@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/tools/logger"
 )
 
 // resolveRequeueAfter returns the post-reconcile requeue delay.

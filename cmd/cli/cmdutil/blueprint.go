@@ -120,6 +120,7 @@ func resolveCRDFiles(crds map[string]types.CRDEntry) error {
 			}
 			crd.Migrate.To.CRDFile = ""
 		}
+		blueprint.ResolveMigrateFiles(&crd, "")
 		if err := blueprint.PopulateCustomResourcesFromCRDFiles(&crd, ""); err != nil {
 			return fmt.Errorf("CRD %q: %w", name, err)
 		}

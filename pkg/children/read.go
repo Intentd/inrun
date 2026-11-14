@@ -3,13 +3,14 @@ package children
 import (
 	"context"
 	"fmt"
+	kubechildren "github.com/intentd/tools/children"
 	"strings"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,53 +27,11 @@ func readResourceGroup(
 	gvr schema.GroupVersionResource,
 	names []resolvedChildName,
 ) map[string]interface{} {
-	result := map[string]interface{}{}
-
-	for _, child := range names {
-		ns := child.namespace
-		if ns == "" {
-			ns = obj.GetNamespace()
-		}
-
-		var err error
-		var u *unstructured.Unstructured
-		if ns != "" {
-			// Namespaced — use resolved namespace (template or owner fallback)
-			u, err = kube.DynamicClient().
-				Resource(gvr).
-				Namespace(ns).
-				Get(ctx, child.name, metav1.GetOptions{})
-		} else {
-			// Cluster-scoped (e.g. Namespace, ClusterRole)
-			u, err = kube.DynamicClient().
-				Resource(gvr).
-				Get(ctx, child.name, metav1.GetOptions{})
-		}
-
-		if err != nil {
-			// Not found on first reconcile is expected and not an error.
-			// Any other error is worth logging at debug level.
-			if !strings.Contains(err.Error(), "not found") {
-				logger.FromContext(ctx).Debug().
-					Str("resource", fmt.Sprintf("%s/%s", ns, child.name)).
-					Str("gvr", gvr.String()).
-					Err(err).
-					Msg("children: read failed — omitted from status context")
-			}
-			continue
-		}
-
-		// Ensure status is always a non-nil map so template expressions like
-		// {{ .children.deployment.status.readyReplicas }} resolve to "" rather
-		// than causing a nil-pointer dereference on a newly-created resource.
-		o := u.Object
-		if s, ok := o["status"]; !ok || s == nil {
-			o["status"] = map[string]interface{}{}
-		}
-		result[child.name] = o
+	refs := make([]kubechildren.Ref, len(names))
+	for i, n := range names {
+		refs[i] = kubechildren.Ref{Name: n.name, Namespace: n.namespace}
 	}
-
-	return result
+	return kubechildren.ReadGroup(ctx, kube, obj, gvr, refs)
 }
 
 // readCustomResourceGroup reads each custom resource entry using its own GVR resolved

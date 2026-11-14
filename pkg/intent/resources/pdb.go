@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/pdbs"
 )
 
@@ -39,7 +39,7 @@ func BuildPDB(in map[string]interface{}, owner domain.Object) (map[string]interf
 		MaxUnavailable: f.MaxUnavailable,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	obj := pdbs.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "policy/v1", "PodDisruptionBudget")
 	if err != nil {

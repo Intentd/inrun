@@ -5,14 +5,14 @@ package internal
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/term"
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/app"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/template"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/logger"
+	"github.com/intentd/tools/version"
 )
 
 // RunGateway builds and runs the gateway until ctx ends. There is no leader

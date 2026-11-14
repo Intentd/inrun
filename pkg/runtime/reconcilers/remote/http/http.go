@@ -2,12 +2,12 @@ package http
 
 import (
 	"context"
+	kubeutil "github.com/intentd/tools/kube"
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,7 +22,7 @@ type Reconciler struct {
 	decl             *types.RemoteReconcilerDeclaration
 	gvk              schema.GroupVersionKind
 	kube             kubeclient.Interface
-	event            event.Recorder
+	event            kubeutil.EventRecorder
 	managedResources []domain.ManagedResource
 	namespace        string // inrun namespace, used as default when secretRef.namespace is empty
 	timeout          time.Duration
@@ -38,7 +38,7 @@ func New(
 	decl *types.RemoteReconcilerDeclaration,
 	gvk schema.GroupVersionKind,
 	kube kubeclient.Interface,
-	ev event.Recorder,
+	ev kubeutil.EventRecorder,
 	managedResources []domain.ManagedResource,
 	ownNamespace string,
 ) *Reconciler {

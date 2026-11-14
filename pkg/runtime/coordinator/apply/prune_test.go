@@ -2,8 +2,8 @@ package apply
 
 import (
 	"context"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 	"sort"
 	"testing"
 
@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 var (
@@ -33,7 +33,7 @@ func child(apiVersion, kind, ns, name, uid string, byInrun bool, extra map[strin
 	u := object.New(apiVersion, kind, name, object.InNamespace(ns))
 	lbls := map[string]string{}
 	if uid != "" {
-		lbls[labels.OwnerUID] = uid
+		lbls[inrunmeta.OwnerUID] = uid
 	}
 	for k, v := range extra {
 		lbls[k] = v
@@ -79,7 +79,7 @@ func TestPrune(t *testing.T) {
 			child("apps/v1", "Deployment", "default", "someone-else", "other-uid", true, nil), // another CR's child
 			child("apps/v1", "Deployment", "default", "manual", "test-uid", false, nil),       // not applied by Inrun
 			child("apps/v1", "Deployment", "default", "protected", "test-uid", true,
-				map[string]string{labels.DeletionProtectionLabel: "true"}),
+				map[string]string{inrunmeta.DeletionProtectionLabel: "true"}),
 			child("v1", "PersistentVolumeClaim", "default", "data", "test-uid", true, nil),
 		)
 	}
@@ -130,7 +130,7 @@ func TestPrune(t *testing.T) {
 // it (a template child has no inrun-reconciler field manager), in any
 // namespace, but not another owner's, a kept kind or a protected object.
 func TestPruneChildren_EveryChildOfTheOwner(t *testing.T) {
-	protected := map[string]string{labels.DeletionProtectionLabel: "true"}
+	protected := map[string]string{inrunmeta.DeletionProtectionLabel: "true"}
 	dyn := pruneClient(
 		child("apps/v1", "Deployment", "team", "from-result", "uid-1", true, nil),
 		child("apps/v1", "Deployment", "other-ns", "from-template", "uid-1", false, nil),
@@ -151,18 +151,18 @@ func TestPruneChildren_EveryChildOfTheOwner(t *testing.T) {
 
 // The surface sweep narrows the owner's children to one serve target.
 func TestPruneOwned_SurfaceSelector(t *testing.T) {
-	prev := map[string]string{labels.InrunServeTarget: "small"}
-	cur := map[string]string{labels.InrunServeTarget: "large"}
+	prev := map[string]string{inrunmeta.InrunServeTarget: "small"}
+	cur := map[string]string{inrunmeta.InrunServeTarget: "large"}
 	dyn := pruneClient(
 		child("apps/v1", "Deployment", "team", "old", "uid-1", false, prev),
 		child("apps/v1", "Deployment", "team", "new", "uid-1", false, cur),
 	)
-	sel := labels.OwnerUID + "=uid-1," + labels.InrunServeTarget + "=small"
+	sel := inrunmeta.OwnerUID + "=uid-1," + inrunmeta.InrunServeTarget + "=small"
 	_, err := PruneOwned(context.Background(), dyn, sel, []schema.GroupVersionResource{deployGVR}, nil)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"new"}, names(t, dyn, deployGVR))
 
-	_, err = PruneOwned(context.Background(), dyn, labels.InrunServeTarget+"=large", []schema.GroupVersionResource{deployGVR}, nil)
+	_, err = PruneOwned(context.Background(), dyn, inrunmeta.InrunServeTarget+"=large", []schema.GroupVersionResource{deployGVR}, nil)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"new"}, names(t, dyn, deployGVR), "a selector without an owner deletes nothing")
 }

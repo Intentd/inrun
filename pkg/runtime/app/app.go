@@ -2,24 +2,24 @@ package app
 
 import (
 	"context"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/process"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/runtime/informer/crds"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // Runtime is the assembled runtime. Start it with Process.Start; Coordinator
 // begins reconciling once this replica leads.
 type Runtime struct {
 	Blueprint   *blueprint.Blueprint
-	Event       *event.Event
+	Event       *kube.Events
 	Kube        *kubeclient.Kubeclient
 	Coordinator *coordinator.DependencyCoordinator
 	Process     *process.Manager

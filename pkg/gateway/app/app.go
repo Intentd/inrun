@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+	kubeutil "github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
@@ -13,10 +13,10 @@ import (
 	"github.com/intentd/inrun/pkg/gateway/housekeeper"
 	"github.com/intentd/inrun/pkg/gateway/webhook"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/inrun/pkg/process"
+	"github.com/intentd/tools/logger"
 )
 
 // Gateway is the assembled gateway. Start it with Process.Start.
@@ -71,10 +71,12 @@ func New(ctx context.Context, cfg *config.Config, m *merger.Merger, opts Gateway
 			return nil, err
 		}
 
+		components := []domain.Component{hs, kube}
 		if api != nil {
 			api.Register(hs)
+			components = append(components, api.CredentialRefresher(kube.Clientset(), cfg.Cluster().Namespace()))
 		}
-		return &Gateway{Blueprint: bp, Process: process.New(cfg, []domain.Component{hs, kube})}, nil
+		return &Gateway{Blueprint: bp, Process: process.New(cfg, components)}, nil
 	}
 
 	// Namespace label, TLS and the conversion caBundle.
@@ -111,15 +113,18 @@ func New(ctx context.Context, cfg *config.Config, m *merger.Merger, opts Gateway
 		return nil, err
 	}
 
-	if api != nil {
-		api.Register(hs)
-		hk.SetTokenReloader(api.ReloadTokens)
-	}
-
-	return &Gateway{Blueprint: bp, Process: process.New(cfg, []domain.Component{
+	components := []domain.Component{
 		hs,   // 1. HTTP server — /ready, /livez probes
 		ws,   // 2. HTTPS webhook server — /validate, /mutate, /convert
 		hk,   // 3. Housekeeper — stops before the webhook server's shutdown cleanup
 		kube, // 4. REST clients — already started, managed for Stop()
-	})}, nil
+	}
+	if api != nil {
+		api.Register(hs)
+		hk.SetTokenReloader(api.ReloadTokens)
+		// 5. renews the remote clusters' short tokens
+		components = append(components, api.CredentialRefresher(kube.Clientset(), cfg.Cluster().Namespace()))
+	}
+
+	return &Gateway{Blueprint: bp, Process: process.New(cfg, components)}, nil
 }

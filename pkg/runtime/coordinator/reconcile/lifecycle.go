@@ -6,12 +6,12 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply/templates"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -20,7 +20,7 @@ import (
 // decides what its CR needs; when a CR's children go is Inrun's job.
 
 // pruneChildren removes a CR's children once a finalizing reconcile is
-// done: every object carrying its UID label (labels.OwnerUID), whoever wrote
+// done: every object carrying its UID label (inrunmeta.OwnerUID), whoever wrote
 // it, in any namespace and cluster-scoped ones included, except prune.keep
 // kinds. Owner references reach only same-namespace children; this reaches
 // the rest.
@@ -59,19 +59,19 @@ func sweepPreviousSurface(ctx context.Context, kube kubeclient.Interface, crd ty
 	if target == "" || crd.KeepPreviousSurface(target) {
 		return nil
 	}
-	prev := obj.GetAnnotations()[labels.AnnotationLastSurface]
+	prev := obj.GetAnnotations()[inrunmeta.AnnotationLastSurface]
 	if prev == target {
 		return nil
 	}
 
 	if prev != "" && obj.GetUID() != "" {
-		selector := labels.OwnerUID + "=" + string(obj.GetUID()) + "," + labels.InrunServeTarget + "=" + prev
+		selector := inrunmeta.OwnerUID + "=" + string(obj.GetUID()) + "," + inrunmeta.InrunServeTarget + "=" + prev
 		if _, err := apply.PruneOwned(ctx, kube.DynamicClient(), selector, childKinds(kube, crd), nil); err != nil {
 			return err
 		}
 	}
 
-	if err := kube.PatchAnnotations(ctx, obj, map[string]string{labels.AnnotationLastSurface: target}, metav1.PatchOptions{}); err != nil {
+	if err := kube.PatchAnnotations(ctx, obj, map[string]string{inrunmeta.AnnotationLastSurface: target}, metav1.PatchOptions{}); err != nil {
 		logger.FromContext(ctx).Warn().Err(err).
 			Str("name", obj.GetName()).
 			Msg("surface sweep: failed to record last-surface")

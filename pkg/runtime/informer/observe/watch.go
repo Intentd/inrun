@@ -25,11 +25,11 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -133,14 +133,12 @@ func (o *Observer) observeWatches(ctx context.Context, crd types.CRDEntry) {
 	}
 }
 
-func (o *Observer) startWatchInformer(ctx context.Context, opts watchOptions) {
-	// Each secondary watch gets its own dynamic informer backed by the shared
-	// informer factory so its cache/indexer is available to the runtime.
-	lw := o.deps.Kube.NewDynamicListerWatcher(opts.entry.ToCRDInfo(opts.gvr), kubeclient.ListOptions{})
-
-	// Build indexers: always include namespace; add any user-declared index: entries.
+// Indexers returns the indexes a watch informer for entry carries: the
+// namespace index, plus one per declared index: entry, keyed by its name and
+// valued by the string at its field.
+func Indexers(entry types.WatchEntry) cache.Indexers {
 	indexers := cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}
-	for _, wi := range opts.entry.Index {
+	for _, wi := range entry.Index {
 		parts := splitWatchField(wi.Field)
 		indexers[wi.Name] = func(obj interface{}) ([]string, error) {
 			u, ok := obj.(*unstructured.Unstructured)
@@ -156,12 +154,19 @@ func (o *Observer) startWatchInformer(ctx context.Context, opts watchOptions) {
 			return []string{val}, nil
 		}
 	}
+	return indexers
+}
+
+func (o *Observer) startWatchInformer(ctx context.Context, opts watchOptions) {
+	// Each secondary watch gets its own dynamic informer backed by the shared
+	// informer factory so its cache/indexer is available to the runtime.
+	lw := o.deps.Kube.NewDynamicListerWatcher(opts.entry.ToCRDInfo(opts.gvr), kubeclient.ListOptions{})
 
 	inf := cache.NewSharedIndexInformer(
 		lw,
 		&unstructured.Unstructured{},
 		0, // no resync — primary CRD resync handles re-queuing
-		indexers,
+		Indexers(opts.entry),
 	)
 
 	// Captured so each handler can check HasSynced; events fired during the

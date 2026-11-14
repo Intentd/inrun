@@ -2,12 +2,12 @@ package remote
 
 import (
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote/http"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -25,7 +25,7 @@ func New(
 	decl *types.RemoteReconcilerDeclaration,
 	gvk schema.GroupVersionKind,
 	kube kubeclient.Interface,
-	ev event.Recorder,
+	ev kubeutil.EventRecorder,
 	managedResources []domain.ManagedResource,
 	ownNamespace string,
 ) (Transport, error) {

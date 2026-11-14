@@ -5,12 +5,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/term"
 
+	"github.com/go-logr/zerologr"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 var (
@@ -51,8 +54,11 @@ func init() {
 
 func initConfig() {
 	// Resolve log level (flag > env > default) and initialize logger
-	level := resolveLogLevel(RootCmd)
-	logger.Init(level)
+	logger.Init(resolveLogLevel(RootCmd))
+	// Wire zerolog as the backend for logr / controller-runtime log, so
+	// constructors calling ctrl/log.FromContext(ctx) or logr.FromContext(ctx)
+	// emit through it.
+	ctrllog.SetLogger(zerologr.New(&log.Logger))
 
 	// Resolve kubeconfig path (flag > env > ~/.kube/config > in‑cluster)
 	kubeconfig := resolveKubeconfig(RootCmd)

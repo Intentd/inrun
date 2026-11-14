@@ -1,15 +1,11 @@
 package template
 
 import (
-	"encoding/json"
 	"fmt"
-	"maps"
-	"strings"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/resolver"
 )
 
 // ResolveMap evaluates template expressions in each value of a map[string]string —
@@ -21,29 +17,14 @@ import (
 //	name: {{ .metadata.name }}
 //	app: {{ .metadata.labels.app }}
 func (r *Resolver) ResolveMap(m map[string]string) (map[string]string, error) {
-	resolved := make(map[string]string, len(m))
-	for k, v := range m {
-		v, err := r.Resolve(v)
-		if err != nil {
-			return nil, fmt.Errorf("%q: %w", k, err)
-		}
-		resolved[k] = v
-	}
-	return resolved, nil
+	return r.core().ResolveMap(m)
 }
 
 // ResolveMapLenient is ResolveMap that never fails: a value that fails to
 // resolve, or resolves to nothing, becomes "". Used for labels and
 // annotations, where "" is valid and a raw template is not.
 func (r *Resolver) ResolveMapLenient(m map[string]string) map[string]string {
-	if len(m) == 0 {
-		return m
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k], _ = r.Resolve(v)
-	}
-	return out
+	return r.core().ResolveMapLenient(m)
 }
 
 // ResolveStringSlice resolves template expressions in each element of a string slice.
@@ -55,41 +36,14 @@ func (r *Resolver) ResolveMapLenient(m map[string]string) map[string]string {
 //	input:  ["{{ .metadata.namespace }}", "monitoring", "{{ .spec.extraNamespace }}"]
 //	output: ["my-app", "monitoring", "platform"]
 func (r *Resolver) ResolveStringSlice(values []string) ([]string, error) {
-	if len(values) == 0 {
-		return nil, nil
-	}
-
-	resolved := make([]string, 0, len(values))
-	for i, v := range values {
-		rv, err := r.Resolve(v)
-		if err != nil {
-			return nil, fmt.Errorf("index %d: %w", i, err)
-		}
-		// Skip empty results — a template that resolves to "" means
-		// the field was not set on the CR. This avoids not creating a namespace named "".
-		if rv != "" {
-			resolved = append(resolved, rv)
-		}
-	}
-	return resolved, nil
+	return r.core().ResolveStringSlice(values)
 }
 
 // ResolveArgs resolves a command or args list element by element. Unlike
 // ResolveStringSlice it keeps elements that resolve to "", since dropping one
 // would shift the arguments that follow it. field names the list in errors.
 func (r *Resolver) ResolveArgs(values []string, field string) ([]string, error) {
-	if len(values) == 0 {
-		return nil, nil
-	}
-	out := make([]string, 0, len(values))
-	for i, v := range values {
-		rv, err := r.Resolve(v)
-		if err != nil {
-			return nil, fmt.Errorf("%s[%d]: %w", field, i, err)
-		}
-		out = append(out, rv)
-	}
-	return out, nil
+	return r.core().ResolveArgs(values, field)
 }
 
 // ResolveNamespace resolves a child's namespace; an empty one is the CR's.
@@ -145,51 +99,11 @@ func (r *Resolver) ResolveEnvFromRefs(refs []types.EnvFromRef, field string) ([]
 	return resolved, nil
 }
 
-// ── Internal ──────────────────────────────────────────────────────────────────
-
-// objectToMap converts any domain.Object to map[string]interface{} for template execution.
-//
-// Two paths, one result:
-//
-//	*unstructured.Unstructured — already a complete map. Used directly with no
-//	allocation. This is the common path for all declarative (default: true) operators.
-//
-//	Typed objects — marshaled to JSON and back. The JSON round-trip uses the
-//	struct's json tags to produce the same map shape as the unstructured path:
-//	spec fields, status fields, and metadata all accessible as .spec.*, .status.*,
-//	.metadata.* in templates.
-//
-// The JSON round-trip on typed objects was the key insight that unified the two modes.
-// Template expressions, conditions, status fields, and cross-CRD reads all work
-// identically regardless of whether the operator uses typed or unstructured mode.
-// The 5% of patterns that still require Go hooks do so because of business logic
-// complexity — not because of any templating limitation.
-// ObjectToMap is the exported variant of objectToMap for external packages
-// (e.g. coordinator/prepare) that need the same typed/unstructured unification.
+// ObjectToMap converts any domain.Object to the map templates see (see
+// resolver.ObjectToMap): .metadata, .spec and .status read the same for typed
+// and unstructured objects.
 func ObjectToMap(obj domain.Object) (map[string]interface{}, error) {
-	return objectToMap(obj)
-}
-
-func objectToMap(obj domain.Object) (map[string]interface{}, error) {
-	// Unstructured: copy the top level, so keys a Resolver adds stay off
-	// the caller's object.
-	if u, ok := obj.(*unstructured.Unstructured); ok {
-		return maps.Clone(u.Object), nil
-	}
-
-	// Typed — marshal to JSON, unmarshal to map.
-	// This gives the complete object — spec, status, metadata — as
-	// map[string]interface{}, exactly like unstructured mode.
-	// The JSON round-trip preserves all field names from json struct tags.
-	data, err := json.Marshal(obj)
-	if err != nil {
-		return nil, fmt.Errorf("objectToMap: %w", err)
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, fmt.Errorf("objectToMap: %w", err)
-	}
-	return result, nil
+	return resolver.ObjectToMap(obj)
 }
 
 // ResolveRaw returns the raw value at the path in a "{{ .a.b }}" expression,
@@ -197,40 +111,7 @@ func objectToMap(obj domain.Object) (map[string]interface{}, error) {
 // the path does not exist. Used where a template names a list, such as
 // toNamespaces: "{{ .spec.targetNamespaces }}".
 func (r *Resolver) ResolveRaw(expr string) interface{} {
-	return resolveRawValue(r.data, expr)
-}
-
-// resolveRawValue navigates a dot-notation path extracted from a template
-// expression and returns the raw value — preserving the original type
-// ([]interface{}, map, string, float64, bool) rather than stringifying it.
-//
-// Input: "{{ .spec.targetNamespaces }}" → navigates data["spec"]["targetNamespaces"]
-// Returns nil when the path does not exist.
-func resolveRawValue(data map[string]interface{}, expr string) interface{} {
-	// Extract the path from "{{ .spec.targetNamespaces }}"
-	path := strings.TrimSpace(expr)
-	path = strings.TrimPrefix(path, "{{")
-	path = strings.TrimSuffix(path, "}}")
-	path = strings.TrimSpace(path)
-	path = strings.TrimPrefix(path, ".")
-
-	if path == "" {
-		return nil
-	}
-
-	parts := strings.Split(path, ".")
-	var current interface{} = data
-	for _, part := range parts {
-		m, ok := current.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		current, ok = m[part]
-		if !ok {
-			return nil
-		}
-	}
-	return current
+	return r.core().ResolveRaw(expr)
 }
 
 // ValidResolverName reports whether name is a valid normalized resolver name.

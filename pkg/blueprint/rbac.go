@@ -2,9 +2,10 @@ package blueprint
 
 import (
 	"slices"
+	"sort"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
@@ -181,6 +182,28 @@ func (c *Blueprint) collectGatewayAPISecretRefs() []*types.KubernetesSecretRef {
 		refs = append(refs, t.SecretRef)
 	}
 	return refs
+}
+
+// gatewayClusterTokenSecrets returns the names of the Secrets holding
+// gateway.clusters tokens and CAs, sorted.
+func (c *Blueprint) gatewayClusterTokenSecrets() []string {
+	if !c.IsGatewayEnabled() || c.GatewayClustersEmpty() {
+		return nil
+	}
+	seen := map[string]bool{}
+	for _, cfg := range c.GatewayClusters() {
+		for _, ref := range []*types.KubernetesSecretRef{cfg.TokenRef, cfg.CARef} {
+			if ref != nil && ref.SecretName() != "" {
+				seen[ref.SecretName()] = true
+			}
+		}
+	}
+	names := make([]string, 0, len(seen))
+	for n := range seen {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // RuntimeRBACRules returns the RBAC rules required by the runtime reconciler process.
@@ -376,6 +399,24 @@ func (c *Blueprint) GatewayRBACRules() []rbacv1.PolicyRule {
 			APIGroups: []string{""},
 			Resources: []string{"secrets"},
 			Verbs:     []string{"get", "create"},
+		})
+	}
+
+	// ───────────────────────────────────────────────
+	// gateway.clusters token credentials — read on use, renewed when short
+	// ───────────────────────────────────────────────
+	// The gateway reads each token Secret, and renews a short token by
+	// rewriting it (get + update, by name), taking turns under a Lease.
+	if names := c.gatewayClusterTokenSecrets(); len(names) > 0 {
+		rules = append(rules, rbacv1.PolicyRule{
+			APIGroups:     []string{""},
+			Resources:     []string{"secrets"},
+			ResourceNames: names,
+			Verbs:         []string{"get", "update"},
+		}, rbacv1.PolicyRule{
+			APIGroups: []string{"coordination.k8s.io"},
+			Resources: []string{"leases"},
+			Verbs:     []string{"get", "create", "update"},
 		})
 	}
 

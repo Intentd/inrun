@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/tools/cluster"
 )
 
 const (

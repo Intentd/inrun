@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
 	pkgregistry "github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 const orasPullTimeout = 2 * time.Minute

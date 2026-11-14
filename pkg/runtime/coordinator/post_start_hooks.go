@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

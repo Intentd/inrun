@@ -1,8 +1,8 @@
 package post
 
 import (
-	"github.com/intentd/inrun/pkg/util/fileio"
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/term"
 )
 
 var (

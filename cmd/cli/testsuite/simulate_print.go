@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/registry/simulate"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // underSpinner runs run under a spinner showing msg, with the reconciler's

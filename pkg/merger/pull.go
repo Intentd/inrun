@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 )
 
 // noop cleanup used when serving from cache — nothing to remove.

@@ -9,7 +9,7 @@ import (
 	"github.com/intentd/inrun/pkg/runtimeapi"
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/version"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"

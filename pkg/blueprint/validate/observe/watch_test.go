@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 func blueprintWithWatch(crdName string, box types.OperatorBoxConfig) *checker {
@@ -194,7 +195,7 @@ func TestValidateGateTemplate_DeclaredSentinelParsesOK(t *testing.T) {
 			Sentinels: []string{"generationChanged"},
 			EnqueueGate: &types.GateConditions{
 				When: types.Conditions{
-					{Field: `{{ generationChanged }}`, Equals: "true"},
+					{Condition: condition.Condition{Field: `{{ generationChanged }}`, Equals: "true"}},
 				},
 			},
 		},
@@ -208,7 +209,7 @@ func TestValidateGateTemplate_UndeclaredSentinelFails(t *testing.T) {
 			Sentinels: []string{"generationChanged"},
 			EnqueueGate: &types.GateConditions{
 				When: types.Conditions{
-					{Field: `{{ labelsChanged }}`, Equals: "true"},
+					{Condition: condition.Condition{Field: `{{ labelsChanged }}`, Equals: "true"}},
 				},
 			},
 		},

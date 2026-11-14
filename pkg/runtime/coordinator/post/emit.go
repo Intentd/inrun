@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // applyEmit fires declarative Kubernetes events declared in operatorBox.emit.events.

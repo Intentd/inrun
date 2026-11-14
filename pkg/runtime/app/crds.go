@@ -6,12 +6,12 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/informer/crds"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers"
+	"github.com/intentd/tools/logger"
 )
 
 // wireCRDs registers every enabled CRD with the coordinator registry: its

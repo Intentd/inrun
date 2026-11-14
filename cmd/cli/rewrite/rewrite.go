@@ -12,8 +12,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
 	"github.com/intentd/inrun/pkg/tools/rewrite"
-	"github.com/intentd/inrun/pkg/util/term"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/term"
+	"github.com/intentd/tools/version"
 	"github.com/spf13/cobra"
 )
 

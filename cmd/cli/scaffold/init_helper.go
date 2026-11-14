@@ -15,7 +15,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/version"
 
 	"github.com/intentd/inrun/examples"
 )

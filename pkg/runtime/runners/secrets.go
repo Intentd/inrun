@@ -3,6 +3,7 @@ package runners
 import (
 	"context"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,15 +11,14 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/secrets"
 	kwtypes "github.com/intentd/kubewright/core/types"
+	"github.com/intentd/tools/logger"
 )
 
 // RunSecrets resolves and writes Secret template entries. For each entry:
@@ -26,7 +26,7 @@ import (
 //  1. Its when: and or: conditions are evaluated; one that fails is skipped.
 //
 //  2. once: true, and the Secret already exists: it is left alone, unless
-//     rotateAfter is set and its age has passed it (see labels.NeedsRotation),
+//     rotateAfter is set and its age has passed it (see kubeutil.RotationDue),
 //     in which case it is deleted and generated again.
 //
 //  3. The templates are resolved; random values such as
@@ -106,7 +106,7 @@ func RunSecrets(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					res, err := secrets.DeleteIfOwned(ctx, kube.Clientset(), name, ns, labels.OwnedBy(owner))
+					res, err := secrets.DeleteIfOwned(ctx, kube.Clientset(), name, ns, inrunmeta.OwnedBy(owner))
 					if err != nil {
 						return fmt.Errorf("secrets[%d]: conditional cleanup: %w", i, err)
 					}
@@ -124,7 +124,7 @@ func RunSecrets(
 		if src.Once && !update && !src.Reconcile {
 			if src.RotateAfter != "" {
 				// Rotation mode: check if the Secret has exceeded its threshold
-				needsRotation, err := kubeutil.SecretNeedsRotation(ctx, kube.Clientset(), ns, name, src.RotateAfter)
+				needsRotation, err := kubeutil.SecretNeedsRotation(ctx, kube.Clientset(), ns, name, src.RotateAfter, inrunmeta.Rotation)
 				if err != nil {
 					return fmt.Errorf("secrets[%d]: rotation check: %w", i, err)
 				}
@@ -200,9 +200,9 @@ func RunSecrets(
 
 		// Attach rotation annotation when rotateAfter is declared
 		if src.RotateAfter != "" && spec.Annotations == nil {
-			spec.Annotations = labels.GenerationAnnotations(src.RotateAfter)
+			spec.Annotations = kubeutil.GenerationAnnotations(src.RotateAfter, inrunmeta.Rotation)
 		} else if src.RotateAfter != "" {
-			for k, v := range labels.GenerationAnnotations(src.RotateAfter) {
+			for k, v := range kubeutil.GenerationAnnotations(src.RotateAfter, inrunmeta.Rotation) {
 				spec.Annotations[k] = v
 			}
 		}
@@ -329,7 +329,7 @@ func createTLSSecret(
 		name = owner.GetName() + "-inrun-tls"
 	}
 
-	annotations := labels.GenerationAnnotations(rotateAfter)
+	annotations := kubeutil.GenerationAnnotations(rotateAfter, inrunmeta.Rotation)
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

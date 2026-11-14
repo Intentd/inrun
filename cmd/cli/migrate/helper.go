@@ -5,18 +5,18 @@ package migrate
 import (
 	"context"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 	"os"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/cmd/cli/migrate/output"
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/blueprint/pipeline"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -83,7 +83,7 @@ func newMigrator(cmd *cobra.Command, kube kubeclient.Interface, funcs types.KELF
 	selector, _ := cmd.Flags().GetString("selector")
 	namespaces, _ := cmd.Flags().GetStringSlice("namespace")
 	force, _ := cmd.Flags().GetBool("force")
-	if _, err := labels.ValidateLabelSelector(selector); err != nil {
+	if _, err := kubeutil.ValidateLabelSelector(selector); err != nil {
 		return nil, migrate.MigratorOpts{}, err
 	}
 

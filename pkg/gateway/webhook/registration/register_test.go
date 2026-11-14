@@ -2,7 +2,7 @@ package registration
 
 import (
 	"context"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake"
 	"os"
 	"path/filepath"
 	"testing"

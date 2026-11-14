@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -198,7 +198,7 @@ func ClusterRoleBindingSpec(src types.ClusterRoleBindingTemplateSource, owner do
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -228,7 +228,7 @@ func ClusterRoleSpec(src types.ClusterRoleTemplateSource, owner domain.Object) c
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -268,7 +268,7 @@ func RoleBindingSpec(src types.RoleBindingTemplateSource, owner domain.Object) r
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -299,6 +299,6 @@ func RoleSpec(src types.RoleTemplateSource, owner domain.Object) roles.Spec {
 		})
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

@@ -12,7 +12,7 @@ package main
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/term"
 
 	"github.com/intentd/inrun/cmd/cli"
 	"github.com/intentd/inrun/pkg/config"

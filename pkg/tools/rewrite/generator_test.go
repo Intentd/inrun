@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 )

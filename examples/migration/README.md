@@ -29,7 +29,7 @@ Two levels, one folder each:
 
 ### kind/[rescope](kind/rescope/README.md)
 
-`AppConfig` moves from a namespaced CRD to a cluster-scoped one. Names that were unique per namespace must be unique cluster-wide: collisions are caught even in a dry-run and never overwrite. Also shows `carryStatus` and the reverse direction's `migrate.to.namespace`.
+`AppConfig` moves from a namespaced CRD to a cluster-scoped one. Names that were unique per namespace must be unique cluster-wide: collisions are caught even in a dry-run and never overwrite. Also shows `copyStatus` and the reverse direction's `migrate.to.namespace`.
 
 ## Run the complete migration suite
 

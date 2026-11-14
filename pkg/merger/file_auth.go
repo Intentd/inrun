@@ -4,11 +4,11 @@ package merger
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // loadImportFileWithAuth loads a Blueprint import file with optional authentication.

@@ -3,23 +3,23 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/tools/kube"
 	"path"
 	"runtime"
 	"time"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/apply"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/maintain"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -29,7 +29,7 @@ import (
 // Deps are the long-lived dependencies a pass uses, held by the coordinator.
 type Deps struct {
 	Kube      kubeclient.Interface
-	Event     event.Recorder
+	Event     kube.EventRecorder
 	Blueprint *blueprint.Blueprint
 	Registry  prepare.BlueprintRegistry
 }
@@ -282,7 +282,7 @@ func safeReconcile(ctx context.Context, in Input, prepared *domain.PreparedReque
 	// The defer ensures duration is recorded even if a panic occurs.
 	start := time.Now()
 	defer func() {
-		metrics.ObserveReconcileDuration(gvk, time.Since(start).Seconds())
+		inrunmetrics.ObserveReconcileDuration(gvk, time.Since(start).Seconds())
 
 		// Panic recovery: this is the isolation boundary.
 		// Any panic inside the operator is caught, logged, and converted into an error.
@@ -301,7 +301,7 @@ func safeReconcile(ctx context.Context, in Input, prepared *domain.PreparedReque
 
 			// Update CRD health state and metrics.
 			in.Health.RecordFailure(err, in.FailureThreshold)
-			metrics.RecordReconcile(gvk, "error")
+			inrunmetrics.RecordReconcile(gvk, "error")
 		}
 	}()
 
@@ -322,13 +322,13 @@ func safeReconcile(ctx context.Context, in Input, prepared *domain.PreparedReque
 	if err != nil {
 		// Update CRD health state and metrics.
 		in.Health.RecordFailure(err, in.FailureThreshold)
-		metrics.RecordReconcile(gvk, "error")
+		inrunmetrics.RecordReconcile(gvk, "error")
 		return result, err
 	}
 
 	// Successful reconcile path.
 	in.Health.RecordSuccess()
 	vitals.InvalidateChildrenCache(ns, name)
-	metrics.RecordReconcile(gvk, "success")
+	inrunmetrics.RecordReconcile(gvk, "success")
 	return result, nil
 }

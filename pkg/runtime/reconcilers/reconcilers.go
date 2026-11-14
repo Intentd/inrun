@@ -7,15 +7,15 @@ package reconcilers
 
 import (
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/generic"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/mux"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers/remote"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
@@ -24,7 +24,7 @@ import (
 type Deps struct {
 	Kube       kubeclient.Interface
 	Informer   cache.SharedIndexInformer
-	Event      event.Recorder
+	Event      kubeutil.EventRecorder
 	StoreFor   func(schema.GroupVersionKind) cache.Store
 	IndexerFor func(schema.GroupVersionKind) cache.Indexer
 	Blueprint  *blueprint.Blueprint

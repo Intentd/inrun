@@ -2,41 +2,12 @@ package migrate
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	"github.com/rs/zerolog"
 )
-
-// Run runs every migration bp declares, or only Kind's when set. Results are
-// in blueprint order; a kind-level error is returned with the results so far.
-func (m *Migrator) Run(ctx context.Context, bp *blueprint.Blueprint) ([]*KindMigrateResult, error) {
-	var results []*KindMigrateResult
-	matched := false
-	for _, name := range bp.CRDNames() {
-		entry, ok := bp.CRDEntry(name)
-		if !ok || !entry.HasAnyMigrate() {
-			continue
-		}
-		if m.Kind != "" && entry.GVK().Kind != m.Kind {
-			continue
-		}
-		matched = true
-		r, err := m.runFor(ctx, &entry)
-		if r != nil {
-			results = append(results, r)
-		}
-		if err != nil {
-			return results, err
-		}
-	}
-	if m.Kind != "" && !matched {
-		return nil, fmt.Errorf("no CRD of kind %q declares a migration", m.Kind)
-	}
-	return results, nil
-}
 
 // Apply migrates all CRDs in bp that declare migrate.from fields.
 // Returns an error on the first kind-level failure; the caller decides whether

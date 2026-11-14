@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 )
 
 func TestAPITypesFromCRDHeader(t *testing.T) {

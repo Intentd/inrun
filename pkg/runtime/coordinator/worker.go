@@ -3,10 +3,10 @@ package coordinator
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
 	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // Worker that only processes items for a specific GVK
@@ -50,7 +50,7 @@ func (c *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 
 			// Update metrics (outside of processing state)
 			depth := float64(wq.Depth())
-			metrics.SetQueueDepth(gvk, depth)
+			inrunmetrics.SetQueueDepth(gvk, depth)
 
 			// Push live depth into AutoMetrics so the autoscaler can read it.
 			// No-op for non-autoscaled CRDs (runtimeMap entry has no autoscaler).
@@ -64,7 +64,7 @@ func (c *Controller) runWorkerForGVK(ctx context.Context, gvk string, workerID s
 			// Resource count — read from this CRD's informer cache
 			if entry, ok := c.blueprint.Get(gvk); ok && entry.Informer != nil {
 				count := float64(len(entry.Informer.GetIndexer().List()))
-				metrics.SetResourceCount(gvk, count)
+				inrunmetrics.SetResourceCount(gvk, count)
 			}
 		}
 	}

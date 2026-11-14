@@ -27,10 +27,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // resourcesHandler returns the http.HandlerFunc for /api/v1/resources/... routes.
@@ -160,7 +160,7 @@ func getResource(
 	// serve-alias annotation wins; fall back to serve-target, then CRD-level.
 	if alias == "" {
 		ann := obj.GetAnnotations()
-		if a := ann[labels.AnnotationServeAlias]; a != "" {
+		if a := ann[inrunmeta.AnnotationServeAlias]; a != "" {
 			alias = a
 		}
 	}

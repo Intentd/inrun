@@ -2,21 +2,21 @@ package reconcile
 
 import (
 	"context"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/post"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // postInput holds everything runPost needs from the pass.
 type postInput struct {
 	Kube      kubeclient.Interface
-	Event     event.Recorder
+	Event     kube.EventRecorder
 	Health    *vitals.CRDHealth
 	CRD       types.CRDEntry
 	Prepared  *domain.PreparedRequest

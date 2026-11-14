@@ -1,12 +1,13 @@
 module github.com/intentd/inrun-resource-probe
 
-go 1.27.3
+go 1.27.4
 
 replace github.com/intentd/inrun => ../../../..
 
 require (
 	github.com/intentd/inrun v0.0.0
 	github.com/intentd/kubewright v0.1.5
+	github.com/intentd/tools v0.0.0-20261114075435-617058b27feb
 	k8s.io/apimachinery v0.37.1
 )
 
@@ -73,13 +74,14 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/intentd/kel v0.1.2 // indirect
+	github.com/intentd/kome v0.0.0-20261115000803-acc1f0c92c83 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.9.2 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.19.0 // indirect
+	github.com/klauspost/compress v1.20.2 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect

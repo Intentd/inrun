@@ -4,7 +4,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 )
 
 // RenderArgs renders the request's reconcile.args onto prepared.Args, for the

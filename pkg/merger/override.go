@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 )
 
 // Set is one override of a merged CRD entry for a single run, such as

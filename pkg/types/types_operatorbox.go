@@ -2,10 +2,9 @@
 package types
 
 import (
+	"github.com/intentd/tools/kube"
 	"slices"
 	"strings"
-
-	"github.com/intentd/inrun/pkg/sentinel"
 )
 
 // ── FailPolicy ────────────────────────────────────────────────────────────────────
@@ -237,7 +236,7 @@ func (r *PreReconcileConfig) InvalidSentinels() []string {
 	if r == nil {
 		return nil
 	}
-	_, invalid := sentinel.IsAllValid(r.Sentinels)
+	_, invalid := kube.AllValidSentinels(r.Sentinels)
 	return invalid
 }
 

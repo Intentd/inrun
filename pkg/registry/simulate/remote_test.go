@@ -13,8 +13,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/merger"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 const remoteTestCRD = `

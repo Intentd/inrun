@@ -1,15 +1,11 @@
 package intent
 
 import (
-	"github.com/intentd/inrun/pkg/util/kube"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/structured"
 )
 
-var (
-	validateK8sName = kube.ValidKubernetesName
-	isNestedPath    = structured.IsNestedPath
-	setNestedPath   = structured.SetNestedPath
-)
+var validateK8sName = kube.ValidKubernetesName
 
 // mapContains is a nil-safe map membership check.
 // Wraps structured.MapContains for local convenience.

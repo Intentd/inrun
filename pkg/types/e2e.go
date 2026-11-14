@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
 
 	"github.com/intentd/kel/core"
+	"github.com/intentd/tools/cluster"
 	"gopkg.in/yaml.v3"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -143,34 +143,28 @@ type SetupHelmInstall struct {
 	Wait []SetupWait `yaml:"wait,omitempty"`
 }
 
-// ReleaseName returns the effective Helm release name.
-func (h SetupHelmInstall) ReleaseName() string {
-	if h.Release != "" {
-		return h.Release
+// HelmRelease returns the release to install.
+func (h SetupHelmInstall) HelmRelease() cluster.HelmRelease {
+	return cluster.HelmRelease{
+		Repo: h.Repo, Chart: h.Chart, Release: h.Release, Namespace: h.Namespace,
+		Version: h.Version, ValueFiles: h.ValueFiles, Values: h.Values,
+		CreateNamespace: h.CreateNamespace,
 	}
-	return h.Chart
 }
+
+// ReleaseName returns the effective Helm release name.
+func (h SetupHelmInstall) ReleaseName() string { return h.HelmRelease().ReleaseName() }
 
 // EffectiveNamespace returns the effective namespace, defaulting to "default".
-func (h SetupHelmInstall) EffectiveNamespace() string {
-	if h.Namespace != "" {
-		return h.Namespace
-	}
-	return "default"
-}
+func (h SetupHelmInstall) EffectiveNamespace() string { return h.HelmRelease().EffectiveNamespace() }
 
 // IsLocalChart reports whether the chart field is a local filesystem path.
-func (h SetupHelmInstall) IsLocalChart() bool {
-	return strings.HasPrefix(h.Chart, "./") || strings.HasPrefix(h.Chart, "/") || h.Chart == "."
-}
+func (h SetupHelmInstall) IsLocalChart() bool { return h.HelmRelease().IsLocalChart() }
 
 // Validate returns an error when required fields are missing.
 func (h SetupHelmInstall) Validate() error {
-	if h.Chart == "" {
-		return fmt.Errorf("setup.helm: chart is required")
-	}
-	if !h.IsLocalChart() && h.Repo == "" {
-		return fmt.Errorf("setup.helm: repo is required for remote charts")
+	if err := h.HelmRelease().Validate(); err != nil {
+		return fmt.Errorf("setup.helm: %w", err)
 	}
 	return nil
 }

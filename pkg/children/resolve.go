@@ -1,7 +1,7 @@
 package children
 
 import (
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/runtime/schema"

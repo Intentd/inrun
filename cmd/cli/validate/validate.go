@@ -5,6 +5,7 @@ package validate
 import (
 	"errors"
 	"fmt"
+	"github.com/intentd/inrun/pkg/migrate"
 	"sort"
 	"strings"
 
@@ -110,6 +111,13 @@ Examples:
 		}
 		entries := bp.EnabledCRDs()
 
+		// The migrations, checked offline by KOME: identities and level,
+		// schemas both ways, the transitional schema, the CR files.
+		migrationWarnings, err := validateMigrations(bp)
+		if err != nil {
+			return err
+		}
+
 		kindLabel := "Blueprint"
 		if config.IsStackKind(docKind) {
 			kindLabel = "Stack"
@@ -189,6 +197,9 @@ Examples:
 		for _, w := range bp.CronConditionWarnings() {
 			fmt.Printf("\n%s  %s\n", cmdutil.Yellow("⚠"), w)
 		}
+		for _, w := range migrationWarnings {
+			fmt.Printf("\n%s  migrate %s\n", cmdutil.Yellow("⚠"), w)
+		}
 
 		if full {
 			if dd := bp.DependencyDisplayData(); dd != nil {
@@ -209,6 +220,31 @@ Examples:
 }
 
 // detectKindFromFile peeks at a YAML file to read its kind field.
+// validateMigrations runs KOME's offline checks on the Blueprint's
+// migrations. Errors are printed and fail; warnings are returned.
+func validateMigrations(bp *blueprint.Blueprint) ([]string, error) {
+	f, err := migrate.Declaration(bp, "")
+	if err != nil {
+		return nil, err
+	}
+	if len(f.Migrations) == 0 {
+		return nil, nil
+	}
+	rep := f.Validate()
+	var warnings []string
+	for _, w := range rep.Warnings() {
+		warnings = append(warnings, w.String())
+	}
+	if errs := rep.Errors(); len(errs) > 0 {
+		fmt.Println()
+		for _, e := range errs {
+			fmt.Printf("%s migrate %s\n", cmdutil.FailureMark(), e)
+		}
+		return nil, fmt.Errorf("%d migration error(s)", len(errs))
+	}
+	return warnings, nil
+}
+
 func detectKindFromFile(path string) (string, error) {
 	data, err := cmdutil.ReadLocal(path)
 	if err != nil {

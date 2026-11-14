@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
@@ -14,6 +13,7 @@ import (
 	"github.com/intentd/kubewright/core/clusterroles"
 	"github.com/intentd/kubewright/core/rolebindings"
 	"github.com/intentd/kubewright/core/roles"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // RunRoles writes Role template entries; runChildren describes how.

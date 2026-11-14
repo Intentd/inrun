@@ -3,7 +3,7 @@ package blueprint
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"
@@ -195,11 +195,11 @@ func (c *Blueprint) effectiveResolver(ctx context.Context, obj domain.Object, pr
 		resolver = resolver.WithIntent(req)
 	}
 	// .metrics context
-	if metrics := labels.ResolveResourceMetricFromObject(resolver.Data()); metrics != nil {
+	if metrics := inrunmeta.ResolveResourceMetricFromObject(resolver.Data()); metrics != nil {
 		resolver = resolver.WithMetrics(metrics)
 	}
 	// .health context
-	if health := labels.ResolveResourceHealthFromObject(resolver.Data()); health != nil {
+	if health := inrunmeta.ResolveResourceHealthFromObject(resolver.Data()); health != nil {
 		resolver = resolver.WithHealth(health)
 	}
 	// .events context

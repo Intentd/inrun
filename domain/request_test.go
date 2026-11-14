@@ -3,7 +3,7 @@ package domain
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func TestRequest_Finalizing(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 
 	apiv1 "github.com/intentd/inrun-hooks-demo/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kubewright/core/cronjobs"
 	"github.com/intentd/kubewright/core/services"

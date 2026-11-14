@@ -23,7 +23,7 @@ package blueprint
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/pkg/children"
 	"github.com/intentd/inrun/pkg/types"

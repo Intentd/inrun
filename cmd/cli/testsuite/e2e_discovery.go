@@ -12,7 +12,7 @@ import (
 	"github.com/intentd/inrun/cmd/cli/validate"
 
 	"github.com/intentd/inrun/pkg/registry/e2e"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/cobra"

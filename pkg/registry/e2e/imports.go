@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/pkg/registry/e2e/expect"
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
+	"github.com/intentd/tools/cluster"
 )
 
 // runImports runs each imported E2E file after the main test completes.
@@ -108,7 +109,7 @@ func (r *Runner) prepareImportsCluster(ctx context.Context) (cleanup func(), fai
 		// one so imports don't run alongside the parent's Inrun install.
 		importCluster := r.clusterName() + "-imports"
 		fmt.Printf("→ Creating imports cluster '%s'...\n", importCluster)
-		if err := cluster.EnsureKindCluster(importCluster, r.workers, r.kindVersion); err != nil {
+		if err := cluster.EnsureKindCluster(importCluster, inruncluster.Kind(r.workers, r.kindVersion)); err != nil {
 			return nil, []expect.ImportResult{{
 				Path: importCluster,
 				Err:  fmt.Errorf("creating imports cluster: %w", err),
@@ -133,8 +134,8 @@ func (r *Runner) prepareImportsCluster(ctx context.Context) (cleanup func(), fai
 				prevCleanup()
 			}
 			fmt.Printf("→ Uninstalling Inrun...\n")
-			cmd := exec.CommandContext(ctx, "helm", "uninstall", cluster.Inrun,
-				"--namespace", cluster.InrunNamespace, "--ignore-not-found")
+			cmd := exec.CommandContext(ctx, "helm", "uninstall", inruncluster.Inrun,
+				"--namespace", inruncluster.InrunNamespace, "--ignore-not-found")
 			if out, err := cmd.CombinedOutput(); err != nil {
 				fmt.Printf("  ! helm uninstall failed: %v\n%s\n", err, out)
 			} else {

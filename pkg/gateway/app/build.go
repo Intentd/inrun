@@ -9,10 +9,10 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
 	apigateway "github.com/intentd/inrun/pkg/gateway/api"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/types"
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+	kubeutil "github.com/intentd/tools/kube"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -26,7 +26,7 @@ func buildBase(ctx context.Context, cfg *config.Config, m *merger.Merger) (*blue
 		return nil, nil, fmt.Errorf("build scheme registry: %w", err)
 	}
 
-	kube := kubeclient.New(cfg, scheme)
+	kube := kubeclient.New(kubeclient.Options{KubeconfigPath: cfg.Cluster().KubeconfigPath(), MasterURL: cfg.Cluster().MasterURL()}, scheme)
 	if err := kube.Start(ctx); err != nil {
 		return nil, nil, fmt.Errorf("start kubeclient: %w", err)
 	}

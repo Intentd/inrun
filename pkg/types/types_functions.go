@@ -2,9 +2,8 @@ package types
 
 import (
 	"fmt"
+	"github.com/intentd/tools/kube"
 	"strings"
-
-	"github.com/intentd/inrun/pkg/sentinel"
 )
 
 // UserDefinedFunction is a named template expression declared in a Blueprint or Module.
@@ -91,7 +90,7 @@ func IsKelFuncRef(field string) bool {
 		return false
 	}
 	name := strings.TrimSpace(strings.TrimSuffix(inner, "}}"))
-	return name != "" && !sentinel.IsValid(name)
+	return name != "" && !kube.IsValidSentinel(name)
 }
 
 // FuncRefName extracts the bare function name from a {{ functionName }} field expression.
@@ -160,7 +159,7 @@ func (nr KELFunctionRegistry) templateReferences(expr, root string, visited map[
 		return true
 	}
 	for _, n := range nr.Definitions {
-		if visited[n.Name] || sentinel.IsValid(n.Name) || !isWordIn(expr, n.Name) {
+		if visited[n.Name] || kube.IsValidSentinel(n.Name) || !isWordIn(expr, n.Name) {
 			continue
 		}
 		visited[n.Name] = true

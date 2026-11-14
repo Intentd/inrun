@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"strings"
 
 	"github.com/intentd/inrun/pkg/blueprint"
@@ -9,7 +9,7 @@ import (
 	"github.com/intentd/inrun/pkg/gateway/stats"
 	"github.com/intentd/inrun/pkg/gateway/webhook"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 // registerBlueprintRoutes serves the gateway's own stats surface. The console

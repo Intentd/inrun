@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // Merger loads one or more Blueprint files, resolves their imports

@@ -3,16 +3,16 @@ package internal
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/util/term"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/term"
+	"github.com/intentd/tools/version"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/runtime/app"
 	"github.com/intentd/inrun/pkg/template"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/logger"
 )
 
 // RunRuntime builds and runs the runtime until ctx ends. Each onBlueprint func is
@@ -65,7 +65,7 @@ func RunRuntime(cfg *config.Config, m *merger.Merger, ctx context.Context, onBlu
 			LeaseDuration: cfg.Leader().LeaseDuration(),
 			RenewDeadline: cfg.Leader().RenewDeadline(),
 			RetryPeriod:   cfg.Leader().RetryPeriod(),
-			Labels:        labels.WithDeletionProtection(nil),
+			Labels:        inrunmeta.WithDeletionProtection(nil),
 		})
 
 	// start leader election as postStartHook after  inrun is ready

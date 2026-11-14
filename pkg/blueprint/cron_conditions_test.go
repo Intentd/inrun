@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/intentd/inrun/pkg/blueprint"
+	"github.com/intentd/tools/condition"
 
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -19,7 +20,7 @@ func blueprintWithCronCondition(cron string, duration types.Duration) *blueprint
 							{
 								Name: "my-app",
 								When: types.Conditions{
-									{Cron: cron, Duration: duration},
+									{Condition: condition.Condition{Cron: cron, Duration: duration}},
 								},
 							},
 						},

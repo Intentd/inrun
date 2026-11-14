@@ -3,9 +3,9 @@ package resources
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kubewright/presets"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func TestHPASpecReplicaBounds(t *testing.T) {

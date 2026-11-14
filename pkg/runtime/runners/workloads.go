@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
@@ -17,6 +16,7 @@ import (
 	"github.com/intentd/kubewright/core/pods"
 	"github.com/intentd/kubewright/core/replicasets"
 	"github.com/intentd/kubewright/core/statefulsets"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // RunPods writes Pod template entries; runChildren describes how.

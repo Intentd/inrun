@@ -2,8 +2,8 @@ package runners
 
 import (
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
 	kwtypes "github.com/intentd/kubewright/core/types"
+	"github.com/intentd/tools/logger"
 )
 
 // logResult logs what a write to a child resource did. Created, Replaced and

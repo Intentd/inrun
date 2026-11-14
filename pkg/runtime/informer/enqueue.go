@@ -8,11 +8,11 @@ package informer
 
 import (
 	"context"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/queue"
-	"github.com/intentd/inrun/pkg/sentinel"
+	"github.com/intentd/tools/logger"
 )
 
 // ComputeSentinelsOptions provides sentinel declarations for event evaluation.
@@ -97,7 +97,7 @@ func (f *Factory) ComputeSentinels(
 		return nil
 	}
 
-	return sentinel.Compute(declared, oldDomain, newDomain)
+	return kube.ComputeSentinels(declared, oldDomain, newDomain)
 }
 
 // queueFor returns the queue for a GVK, falling back to the default queue.

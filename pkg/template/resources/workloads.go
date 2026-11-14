@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -416,7 +416,7 @@ func CronJobSpec(src types.CronJobTemplateSource, owner domain.Object, reg *type
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -477,8 +477,8 @@ func DeploymentSpec(src types.DeploymentTemplateSource, owner domain.Object, reg
 
 	// Inrun system labels — always added
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
-	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
+	spec.Selector = map[string]string{inrunmeta.InrunOwner: owner.GetName()}
 	return spec
 }
 
@@ -520,7 +520,7 @@ func JobSpec(src types.JobTemplateSource, backoffLimit int, owner domain.Object,
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -573,7 +573,7 @@ func PodSpec(src types.PodTemplateSource, owner domain.Object, reg *types.Preset
 
 	// System labels — always present
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -623,8 +623,8 @@ func ReplicaSetSpec(src types.ReplicaSetTemplateSource, owner domain.Object, reg
 
 	spec.Env = []types.EnvVar(src.Env)
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
-	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
+	spec.Selector = map[string]string{inrunmeta.InrunOwner: owner.GetName()}
 	return spec
 }
 
@@ -693,7 +693,7 @@ func StatefulSetSpec(src types.StatefulSetTemplateSource, owner domain.Object, r
 
 	spec.RollingUpdate = presetRollingUpdate(src.RollingUpdate, reg.All())
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
-	spec.Selector = map[string]string{labels.InrunOwner: owner.GetName()}
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
+	spec.Selector = map[string]string{inrunmeta.InrunOwner: owner.GetName()}
 	return spec
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/serviceaccounts"
 )
 
@@ -30,7 +30,7 @@ func BuildServiceAccount(in map[string]interface{}, owner domain.Object) (map[st
 	namespace := resolveNamespace(owner, "")
 	spec := serviceaccounts.Spec{Name: f.Name, Namespace: namespace}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	obj := serviceaccounts.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "ServiceAccount")
 	if err != nil {

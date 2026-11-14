@@ -7,8 +7,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/health"
-	"github.com/intentd/inrun/pkg/metrics"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/kube"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -82,19 +82,19 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics.IncConversionRequests()
-	defer metrics.DecConversionRequests()
+	inrunmetrics.IncConversionRequests()
+	defer inrunmetrics.DecConversionRequests()
 
 	var review ConversionReview
 	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
 		h.stats.For("").RecordFailure() // kind unknown at decode time
-		metrics.RecordConversionError("unknown", "invalid_request")
+		inrunmetrics.RecordConversionError("unknown", "invalid_request")
 		http.Error(w, "invalid ConversionReview", http.StatusBadRequest)
 		return
 	}
 	if review.Request == nil {
 		h.stats.For("").RecordFailure()
-		metrics.RecordConversionError("unknown", "missing_request")
+		inrunmetrics.RecordConversionError("unknown", "missing_request")
 		http.Error(w, "missing request", http.StatusBadRequest)
 		return
 	}
@@ -132,8 +132,8 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 		var obj map[string]interface{}
 		if err := json.Unmarshal(raw, &obj); err != nil {
 			resp.Result = &Status{Status: "Failure", Message: "invalid object payload"}
-			metrics.RecordConversionError(kind, "invalid_payload")
-			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
+			inrunmetrics.RecordConversionError(kind, "invalid_payload")
+			inrunmetrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			// Object is undecodable — no GVK to derive a stats key from.
 			// Record under "" so failures are visible without fabricating CRD attribution.
 			h.stats.For("").RecordFailure()
@@ -143,8 +143,8 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 		kind, _ = obj["kind"].(string)
 		if kind == "" {
 			resp.Result = &Status{Status: "Failure", Message: "object missing kind"}
-			metrics.RecordConversionError(kind, "missing_kind")
-			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
+			inrunmetrics.RecordConversionError(kind, "missing_kind")
+			inrunmetrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			// Object decoded but carries no kind field — same unattributable case.
 			h.stats.For("").RecordFailure()
 			break
@@ -157,8 +157,8 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 		gvk, err := kube.GVKFromFields(objAPIVersion, kind)
 		if err != nil {
 			resp.Result = &Status{Status: "Failure", Message: err.Error()}
-			metrics.RecordConversionError(kind, "invalid_api_version")
-			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
+			inrunmetrics.RecordConversionError(kind, "invalid_api_version")
+			inrunmetrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			h.stats.For("").RecordFailure()
 			break
 		}
@@ -167,8 +167,8 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 		rules := h.registry.GetConversionRules(kind)
 		if rules == nil {
 			resp.Result = &Status{Status: "Failure", Message: "no conversion rules for kind"}
-			metrics.RecordConversionError(kind, "no_rules")
-			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
+			inrunmetrics.RecordConversionError(kind, "no_rules")
+			inrunmetrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			h.stats.For(h.gvrKeys[gvkKey]).RecordFailure()
 			break
 		}
@@ -176,15 +176,15 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 		converted, err := applyConversion(obj, rules, review.Request.DesiredAPIVersion)
 		if err != nil {
 			resp.Result = &Status{Status: "Failure", Message: err.Error()}
-			metrics.RecordConversionError(kind, "apply_failed")
-			metrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
+			inrunmetrics.RecordConversionError(kind, "apply_failed")
+			inrunmetrics.RecordConversion(kind, sourceVersion, targetVersion, "failure")
 			h.stats.For(h.gvrKeys[gvkKey]).RecordFailure()
 			break
 		}
 
 		objDuration := time.Since(objStart).Seconds()
-		metrics.ObserveConversionDuration(kind, sourceVersion, targetVersion, objDuration)
-		metrics.RecordConversion(kind, sourceVersion, targetVersion, "success")
+		inrunmetrics.ObserveConversionDuration(kind, sourceVersion, targetVersion, objDuration)
+		inrunmetrics.RecordConversion(kind, sourceVersion, targetVersion, "success")
 		h.stats.For(h.gvrKeys[gvkKey]).RecordSuccess(time.Duration(objDuration * float64(time.Second)))
 
 		out, _ := json.Marshal(converted)

@@ -8,12 +8,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/customresources"
+	"github.com/intentd/tools/logger"
 )
 
 // RunCustomResources resolves and applies CustomResource template declarations.
@@ -26,7 +26,7 @@ func RunCustomResources(
 	srcs []types.CustomResourceTemplateSource,
 	update bool,
 	guard func(ctx context.Context, obj domain.Object, ns string) bool,
-	labelMgr *labels.Manager,
+	labelMgr *inrunmeta.Manager,
 	shouldProtect bool,
 ) error {
 	// Track active names for conditional cleanup when resources are no longer desired.
@@ -62,7 +62,7 @@ func RunCustomResources(
 		if !conditionPassed {
 			if update || src.Reconcile {
 				if !activeNames[ns+"/"+name] {
-					res, err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), name, ns, src.APIVersion, src.Kind, labels.OwnedBy(owner))
+					res, err := customresources.DeleteIfOwned(ctx, kube.DynamicClient(), kube.RESTMapper(), name, ns, src.APIVersion, src.Kind, inrunmeta.OwnedBy(owner))
 					if err != nil {
 						return fmt.Errorf("custom[%d]: conditional cleanup: %w", i, err)
 					}
@@ -130,7 +130,7 @@ func RunCustomResources(
 // protectionLabel returns the hook that sets or removes the deletion-protection
 // label on a custom resource right before it is written, or nil without a
 // label manager.
-func protectionLabel(m *labels.Manager, shouldProtect bool) func(*unstructured.Unstructured) {
+func protectionLabel(m *inrunmeta.Manager, shouldProtect bool) func(*unstructured.Unstructured) {
 	if m == nil {
 		return nil
 	}

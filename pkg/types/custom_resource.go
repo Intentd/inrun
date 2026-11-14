@@ -3,8 +3,8 @@ package types
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/kube"
 	kwtypes "github.com/intentd/kubewright/core/types"
+	"github.com/intentd/tools/kube"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"

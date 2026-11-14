@@ -3,11 +3,11 @@ package simulate
 import (
 	"context"
 	"fmt"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
 	"github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"

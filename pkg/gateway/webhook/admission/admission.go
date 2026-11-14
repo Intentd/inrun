@@ -13,9 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/logger"
 )
 
 // Validate serves /validate: it checks a CREATE or UPDATE against the CRD's
@@ -76,24 +76,24 @@ func (h *Handler) Validate(w http.ResponseWriter, r *http.Request) {
 	admStats := h.stats.For(gvrKey)
 	if len(denials) > 0 {
 		admStats.RecordValidationDenied(duration)
-		metrics.RecordValidationOutcome(crdName, "denied", metrics.MetricSourceAdmission)
+		inrunmetrics.RecordValidationOutcome(crdName, "denied", inrunmetrics.MetricSourceAdmission)
 		for _, d := range denials {
-			metrics.RecordValidationViolation(crdName, d.Field, d.RuleType, "deny", metrics.MetricSourceAdmission)
+			inrunmetrics.RecordValidationViolation(crdName, d.Field, d.RuleType, "deny", inrunmetrics.MetricSourceAdmission)
 		}
 		for _, w := range warnings {
-			metrics.RecordValidationViolation(crdName, w.Field, w.RuleType, "warn", metrics.MetricSourceAdmission)
+			inrunmetrics.RecordValidationViolation(crdName, w.Field, w.RuleType, "warn", inrunmetrics.MetricSourceAdmission)
 		}
 	} else if len(warnings) > 0 {
 		admStats.RecordValidationWarned(duration)
-		metrics.RecordValidationOutcome(crdName, "warned", metrics.MetricSourceAdmission)
+		inrunmetrics.RecordValidationOutcome(crdName, "warned", inrunmetrics.MetricSourceAdmission)
 		for _, w := range warnings {
-			metrics.RecordValidationViolation(crdName, w.Field, w.RuleType, "warn", metrics.MetricSourceAdmission)
+			inrunmetrics.RecordValidationViolation(crdName, w.Field, w.RuleType, "warn", inrunmetrics.MetricSourceAdmission)
 		}
 	} else {
 		admStats.RecordValidationAllowed(duration)
-		metrics.RecordValidationOutcome(crdName, "allowed", metrics.MetricSourceAdmission)
+		inrunmetrics.RecordValidationOutcome(crdName, "allowed", inrunmetrics.MetricSourceAdmission)
 	}
-	metrics.RecordValidationDurationSeconds(crdName, duration.Seconds())
+	inrunmetrics.RecordValidationDurationSeconds(crdName, duration.Seconds())
 
 	if len(denials) > 0 {
 		resp.Allowed = false
@@ -196,8 +196,8 @@ func (h *Handler) Mutate(w http.ResponseWriter, r *http.Request) {
 	if len(changes) == 0 {
 		duration := time.Since(start)
 		mutStats.RecordMutationSkipped(duration)
-		metrics.RecordMutationOutcome(crdName, "skipped", metrics.MetricSourceAdmission)
-		metrics.RecordMutationDurationSeconds(crdName, duration.Seconds())
+		inrunmetrics.RecordMutationOutcome(crdName, "skipped", inrunmetrics.MetricSourceAdmission)
+		inrunmetrics.RecordMutationDurationSeconds(crdName, duration.Seconds())
 		logger.Debug().
 			Str("kind", crdName).
 			Str("name", req.Name).
@@ -221,11 +221,11 @@ func (h *Handler) Mutate(w http.ResponseWriter, r *http.Request) {
 
 	duration := time.Since(start)
 	mutStats.RecordMutationApplied(duration)
-	metrics.RecordMutationOutcome(crdName, "applied", metrics.MetricSourceAdmission)
+	inrunmetrics.RecordMutationOutcome(crdName, "applied", inrunmetrics.MetricSourceAdmission)
 	for _, c := range changes {
-		metrics.RecordMutationFieldApplied(crdName, c.Field, c.ChangeType, metrics.MetricSourceAdmission)
+		inrunmetrics.RecordMutationFieldApplied(crdName, c.Field, c.ChangeType, inrunmetrics.MetricSourceAdmission)
 	}
-	metrics.RecordMutationDurationSeconds(crdName, duration.Seconds())
+	inrunmetrics.RecordMutationDurationSeconds(crdName, duration.Seconds())
 
 	logger.Info().
 		Str("kind", crdName).

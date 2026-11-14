@@ -5,7 +5,7 @@ package testsuite
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 )
 
 // testAction is what the flags select for the given argument.

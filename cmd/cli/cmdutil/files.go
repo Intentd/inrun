@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/intentd/inrun/pkg/registry"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 )
 
 const (

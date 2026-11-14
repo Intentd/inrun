@@ -22,6 +22,9 @@ spec:
     appconfig:
       crdFile: ./manifests/crd-appconfig.yaml
       migrate:
+        # CRs to seed for inrun migrate rehearse.
+        from:
+          crFiles: [./manifests/crs-appconfig.yaml]
         to:
           crdFile: ./manifests/crd-newconfig.yaml
           metadata:

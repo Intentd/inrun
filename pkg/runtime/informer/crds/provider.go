@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/informer"
+	"github.com/intentd/tools/kubeclient"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

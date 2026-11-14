@@ -8,7 +8,8 @@ import (
 
 	"k8s.io/utils/ptr"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/condition"
+	"github.com/intentd/tools/structured"
 )
 
 // serveFieldRef is one serve.fields, serve.labels or serve.annotations entry
@@ -132,7 +133,7 @@ func (c *CRDEntry) EnumServeFieldRules() ValidationRules {
 		if cfgType != "enum" || len(ref.cfg.Enum) == 0 {
 			continue
 		}
-		when := append([]Condition{{Field: ref.field, Exists: ptr.To(true)}}, ref.cfg.When...)
+		when := append([]Condition{{Condition: condition.Condition{Field: ref.field, Exists: ptr.To(true)}}}, ref.cfg.When...)
 		rules = append(rules, ValidationRule{
 			Field:   ref.field,
 			Link:    ref.link,

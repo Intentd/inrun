@@ -7,13 +7,13 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kubewright/core/configmaps"
 	"github.com/intentd/kubewright/core/namespaces"
 	"github.com/intentd/kubewright/core/serviceaccounts"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // RunNamespaces writes Namespace template entries; runChildren describes how.

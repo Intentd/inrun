@@ -2,11 +2,11 @@ package blueprint
 
 import (
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/fileio"
-	"github.com/intentd/inrun/pkg/util/term"
 	"github.com/intentd/kel/core"
+	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/logger"
+	"github.com/intentd/tools/term"
 )
 
 // ── utils aliases ────────────────────────────────────────────────────────────

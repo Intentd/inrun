@@ -3,7 +3,7 @@ package http
 import (
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"

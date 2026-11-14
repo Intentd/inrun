@@ -3,7 +3,7 @@ package funcs
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 // cr builds a minimal CR map with the given annotations set.
@@ -25,8 +25,8 @@ func TestFunctionGetServeTarget(t *testing.T) {
 		obj  interface{}
 		want string
 	}{
-		{"set", crWithAnnotations(map[string]string{labels.AnnotationServeTarget: "smartapp"}), "smartapp"},
-		{"empty annotation", crWithAnnotations(map[string]string{labels.AnnotationServeTarget: ""}), ""},
+		{"set", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeTarget: "smartapp"}), "smartapp"},
+		{"empty annotation", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeTarget: ""}), ""},
 		{"annotation absent", crWithAnnotations(map[string]string{}), ""},
 		{"no annotations block", map[string]interface{}{"metadata": map[string]interface{}{}}, ""},
 		{"no metadata", map[string]interface{}{}, ""},
@@ -48,7 +48,7 @@ func TestFunctionGetServeAlias(t *testing.T) {
 		obj  interface{}
 		want string
 	}{
-		{"alias set", crWithAnnotations(map[string]string{labels.AnnotationServeAlias: "public"}), "public"},
+		{"alias set", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeAlias: "public"}), "public"},
 		{"alias absent", crWithAnnotations(map[string]string{}), ""},
 		{"no metadata", map[string]interface{}{}, ""},
 		{"nil", nil, ""},
@@ -68,8 +68,8 @@ func TestFunctionHasServeTarget(t *testing.T) {
 		obj  interface{}
 		want bool
 	}{
-		{"present", crWithAnnotations(map[string]string{labels.AnnotationServeTarget: "smartapp"}), true},
-		{"empty string", crWithAnnotations(map[string]string{labels.AnnotationServeTarget: ""}), false},
+		{"present", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeTarget: "smartapp"}), true},
+		{"empty string", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeTarget: ""}), false},
 		{"absent", crWithAnnotations(map[string]string{}), false},
 		{"no metadata", map[string]interface{}{}, false},
 		{"nil", nil, false},
@@ -89,8 +89,8 @@ func TestFunctionHasServeAlias(t *testing.T) {
 		obj  interface{}
 		want bool
 	}{
-		{"alias set", crWithAnnotations(map[string]string{labels.AnnotationServeAlias: "internal"}), true},
-		{"alias empty", crWithAnnotations(map[string]string{labels.AnnotationServeAlias: ""}), false},
+		{"alias set", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeAlias: "internal"}), true},
+		{"alias empty", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeAlias: ""}), false},
 		{"absent", crWithAnnotations(map[string]string{}), false},
 		{"nil", nil, false},
 	}
@@ -115,17 +115,17 @@ func TestFunctionIsDirectApply(t *testing.T) {
 		{"no metadata", map[string]interface{}{}, true},
 
 		// serve-target present — any gateway apply
-		{"target set", crWithAnnotations(map[string]string{labels.AnnotationServeTarget: "app"}), false},
+		{"target set", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeTarget: "app"}), false},
 		// serve-alias alone (defensive — shouldn't happen in practice but not a direct apply)
-		{"alias only", crWithAnnotations(map[string]string{labels.AnnotationServeAlias: "preview"}), false},
+		{"alias only", crWithAnnotations(map[string]string{inrunmeta.AnnotationServeAlias: "preview"}), false},
 		// full gateway apply — all three present
 		{"all three", crWithAnnotations(map[string]string{
-			labels.AnnotationServeTarget: "app",
-			labels.AnnotationServeAlias:  "preview",
+			inrunmeta.AnnotationServeTarget: "app",
+			inrunmeta.AnnotationServeAlias:  "preview",
 		}), false},
 		// primary target apply — alias absent, still not a direct apply
 		{"target without alias", crWithAnnotations(map[string]string{
-			labels.AnnotationServeTarget: "app",
+			inrunmeta.AnnotationServeTarget: "app",
 		}), false},
 	}
 	for _, tt := range tests {

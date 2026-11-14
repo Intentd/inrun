@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 
 	"errors"
 
 	"github.com/intentd/inrun/domain"
 
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"

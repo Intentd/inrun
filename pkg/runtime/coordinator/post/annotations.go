@@ -6,8 +6,8 @@ import (
 	"reflect"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,20 +24,20 @@ func injectRuntimeAnnotations(ctx context.Context, obj domain.Object, in Input) 
 	}
 	existing := u.GetAnnotations()
 	before := [2]string{
-		existing[labels.AnnotationCrossMetrics],
-		existing[labels.AnnotationHealth],
+		existing[inrunmeta.AnnotationCrossMetrics],
+		existing[inrunmeta.AnnotationHealth],
 	}
 
 	if in.CRD.CrossAccessEnabled() && len(in.MetricsMap) > 0 {
-		labels.InjectMetricsAnnotation(u, in.MetricsMap)
+		inrunmeta.InjectMetricsAnnotation(u, in.MetricsMap)
 	}
 	if in.CRD.Endpoints.IsHealthEnabled() && len(in.HealthMap) > 0 {
-		labels.InjectHealthAnnotation(u, in.HealthMap)
+		inrunmeta.InjectHealthAnnotation(u, in.HealthMap)
 	}
 
 	after := u.GetAnnotations()
-	if after[labels.AnnotationCrossMetrics] == before[0] &&
-		sameHealth(after[labels.AnnotationHealth], before[1]) {
+	if after[inrunmeta.AnnotationCrossMetrics] == before[0] &&
+		sameHealth(after[inrunmeta.AnnotationHealth], before[1]) {
 		return
 	}
 	if err := in.Kube.PatchAnnotations(ctx, obj, after, metav1.PatchOptions{}); err != nil {

@@ -3,10 +3,10 @@ package expect
 import (
 	"errors"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
-	"github.com/intentd/inrun/pkg/util/structured"
-	"github.com/intentd/inrun/pkg/util/term"
 	"github.com/intentd/kel/core"
+	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/structured"
+	"github.com/intentd/tools/term"
 
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -14,7 +14,6 @@ import (
 var (
 	readLocal         = fileio.ReadLocal
 	strictUnmarshal   = structured.StrictUnmarshal
-	writeFile         = structured.WriteFile
 	stringSliceEqual  = structured.StringSliceEqual
 	successMark       = term.SuccessMark
 	failureMark       = term.FailureMark

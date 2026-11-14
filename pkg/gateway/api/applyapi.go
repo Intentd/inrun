@@ -17,11 +17,11 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/intent"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // applyHandler returns the http.HandlerFunc for POST /api/v1/apply.
@@ -385,9 +385,9 @@ func applySingleCluster(
 		if probeErr == nil {
 			op = types.ServeOpUpdate
 			ann := existing.GetAnnotations()
-			storedSurface := ann[labels.AnnotationServeAlias]
+			storedSurface := ann[inrunmeta.AnnotationServeAlias]
 			if storedSurface == "" {
-				storedSurface = ann[labels.AnnotationServeTarget]
+				storedSurface = ann[inrunmeta.AnnotationServeTarget]
 			}
 			incomingSurface := p.alias
 			if incomingSurface == "" {
@@ -526,9 +526,9 @@ func applyFanout(
 			if probeErr == nil {
 				op = types.ServeOpUpdate
 				ann := existing.GetAnnotations()
-				storedSurface := ann[labels.AnnotationServeAlias]
+				storedSurface := ann[inrunmeta.AnnotationServeAlias]
 				if storedSurface == "" {
-					storedSurface = ann[labels.AnnotationServeTarget]
+					storedSurface = ann[inrunmeta.AnnotationServeTarget]
 				}
 				if storedSurface != "" && storedSurface != incomingSurface && !req.override {
 					cr.Message = fmt.Sprintf(

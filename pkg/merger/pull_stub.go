@@ -13,7 +13,7 @@ package merger
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/fileio"
 )
 
 func PullToDir(url, version string, oci bool, auth *fileio.FileAuth) (dir string, cleanup func(), err error) {

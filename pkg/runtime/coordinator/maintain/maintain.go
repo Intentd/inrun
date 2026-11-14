@@ -3,13 +3,13 @@ package maintain
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // Input holds everything Apply needs from the Controller.
@@ -17,7 +17,7 @@ type Input struct {
 	CRD       types.CRDEntry
 	Blueprint *blueprint.Blueprint
 	Kube      kubeclient.Interface
-	Recorder  event.Recorder
+	Recorder  kube.EventRecorder
 
 	// ForCleanup signals that the CR is about to be deleted by the cleanup gate.
 	// When true, maintain sets shouldHaveProtection=false so the two-phase

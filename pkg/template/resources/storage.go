@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	"github.com/intentd/kubewright/core/pvcs"
 	"github.com/intentd/kubewright/core/pvs"
@@ -107,7 +107,7 @@ func PVCSpec(src types.PVCTemplateSource, owner domain.Object) pvcs.Spec {
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -136,6 +136,6 @@ func PVSpec(src types.PVTemplateSource, owner domain.Object) pvs.Spec {
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

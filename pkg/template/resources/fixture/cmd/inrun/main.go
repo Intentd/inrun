@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/term"
 
 	_ "github.com/intentd/inrun-resource-probe/pkg/typeregistry"
 	"github.com/intentd/inrun/cmd/cli"

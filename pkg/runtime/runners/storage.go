@@ -6,12 +6,12 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kubewright/core/pvcs"
 	"github.com/intentd/kubewright/core/pvs"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // RunPVCs writes PersistentVolumeClaim template entries; runChildren describes how.

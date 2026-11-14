@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"

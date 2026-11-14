@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

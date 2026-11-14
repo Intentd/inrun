@@ -21,7 +21,7 @@ import (
 
 	rpv1alpha1 "github.com/intentd/inrun-resource-probe/api/v1alpha1"
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/inrun/pkg/runtime/kubeclient"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kubewright/core/clusterrolebindings"
 	"github.com/intentd/kubewright/core/clusterroles"

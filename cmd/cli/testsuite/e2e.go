@@ -13,8 +13,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/registry/e2e"
 	"github.com/intentd/inrun/pkg/registry/simulate"
-	"github.com/intentd/inrun/pkg/tools/cluster"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/tools/cluster"
+	"github.com/intentd/tools/fileio"
 
 	"github.com/spf13/cobra"
 )

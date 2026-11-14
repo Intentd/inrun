@@ -2,7 +2,7 @@
 package blueprint
 
 import (
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"sync"
 
 	"github.com/intentd/inrun/pkg/types"

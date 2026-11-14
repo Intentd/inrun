@@ -12,9 +12,9 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +37,7 @@ func ensureSecurity(ctx context.Context, cfg *config.Config, bp *blueprint.Bluep
 	namespace := cfg.Cluster().Namespace()
 
 	if bp.IsDeletionProtectionEnabled() {
-		if err := ensureNamespaceLabeled(ctx, kube, namespace, labels.InrunResourceLabels()); err != nil {
+		if err := ensureNamespaceLabeled(ctx, kube, namespace, inrunmeta.InrunResourceLabels()); err != nil {
 			logger.Warn().Err(err).
 				Str("namespace", namespace).
 				Msg("security: failed to label inrun namespace — deletion protection will not cover it")

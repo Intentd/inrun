@@ -6,7 +6,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 )
 
 // NestedOption changes how ResolveNested treats a value.

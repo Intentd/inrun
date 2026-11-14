@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/structured"
 	"gopkg.in/yaml.v3"
 )
 

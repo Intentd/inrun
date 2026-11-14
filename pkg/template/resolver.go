@@ -2,15 +2,14 @@
 package template
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"text/template"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/resolver"
 )
 
 // Resolver evaluates Go text/template expressions against a live CR object.
@@ -48,19 +47,7 @@ func (r *Resolver) WithSentinels(declared []string, values map[string]string) *R
 	if len(declared) == 0 {
 		return r
 	}
-	base := kelFunctions
-	if r.mergedFuncs != nil {
-		base = r.mergedFuncs
-	}
-	merged := make(template.FuncMap, len(base)+len(declared))
-	for k, v := range base {
-		merged[k] = v
-	}
-	for _, name := range declared {
-		n := name // capture
-		merged[n] = func() string { return values[n] }
-	}
-	r.mergedFuncs = merged
+	r.mergedFuncs = resolver.Values(r.funcMap(), declared, values)
 	return r
 }
 
@@ -68,12 +55,7 @@ func (r *Resolver) WithSentinels(declared []string, values map[string]string) *R
 // All stubs return "" — only template parsing is checked, not execution.
 // Used by validators that need to parse gate templates without a full Resolver.
 func SentinelFuncMap(declared []string) template.FuncMap {
-	fm := make(template.FuncMap, len(declared))
-	for _, name := range declared {
-		n := name
-		fm[n] = func() string { return "" }
-	}
-	return fm
+	return resolver.Values(nil, declared, nil)
 }
 
 // WithPresets attaches a user-defined preset registry to the resolver.
@@ -93,33 +75,11 @@ func (r *Resolver) WithUserFunctions(reg types.KELFunctionRegistry) *Resolver {
 	if reg.Empty() {
 		return r
 	}
-	// merged holds built-ins + user functions. Closures capture it by reference
-	// so all user functions see the complete FuncMap (including each other) at eval time.
-	merged := make(template.FuncMap, len(kelFunctions)+len(reg.Definitions))
-	for k, v := range kelFunctions {
-		merged[k] = v
-	}
+	fns := make([]resolver.Function, 0, len(reg.Definitions))
 	for _, n := range reg.Definitions {
-		expr := n.Expression // capture by value, not loop variable
-		merged[n.Name] = func() interface{} {
-			tmpl, err := template.New("").Option("missingkey=zero").Funcs(merged).Parse(expr)
-			if err != nil {
-				return ""
-			}
-			var buf bytes.Buffer
-			_ = tmpl.Execute(&buf, r.data)
-			out := strings.TrimSpace(strings.ReplaceAll(buf.String(), "<no value>", ""))
-			switch out {
-			case "true":
-				return true
-			case "false":
-				return false
-			default:
-				return out
-			}
-		}
+		fns = append(fns, resolver.Function{Name: n.Name, Expression: n.Expression})
 	}
-	r.mergedFuncs = merged
+	r.mergedFuncs = resolver.Functions(kelFunctions, func() map[string]interface{} { return r.data }, fns...)
 	return r
 }
 
@@ -130,7 +90,7 @@ func (r *Resolver) Presets() *types.PresetRegistry {
 
 // NewResolver creates a Resolver from any domain.Object.
 func NewResolver(ctx context.Context, obj domain.Object) (*Resolver, error) {
-	data, err := objectToMap(obj) // converts any domain.Object to mapstringinterface{} for template execution.
+	data, err := resolver.ObjectToMap(obj)
 	if err != nil {
 		return nil, fmt.Errorf("template.NewResolver: %w", err)
 	}
@@ -206,36 +166,24 @@ func (r *Resolver) ResolveStrict(value string) (out string, missing bool, err er
 }
 
 func (r *Resolver) resolve(value string) (string, bool, error) {
-	if value == "" {
-		return "", false, nil
-	}
+	return r.core().ResolveStrict(value)
+}
 
-	// Fast path — no template markers, static value
-	if !types.IsTemplate(value) {
-		return value, false, nil
-	}
-
-	funcs := kelFunctions
+// funcMap is the resolver's functions: KEL's, plus user functions and
+// sentinels once added.
+func (r *Resolver) funcMap() template.FuncMap {
 	if r.mergedFuncs != nil {
-		funcs = r.mergedFuncs
+		return r.mergedFuncs
 	}
-	tmpl, err := template.New("f").Option("missingkey=zero").
-		Funcs(funcs).
-		Parse(value)
-	if err != nil {
-		return "", false, fmt.Errorf("parsing %q: %w", value, err)
-	}
+	return kelFunctions
+}
 
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, r.data); err != nil {
-		return "", false, fmt.Errorf("executing %q: %w", value, err)
-	}
+// Core is the tools resolver over r's data and functions, for the
+// evaluation tools does (resolver.ApplyField).
+func (r *Resolver) Core() *resolver.Resolver {
+	return resolver.New(r.data, r.funcMap())
+}
 
-	// missingkey=zero makes missing map keys produce nil (interface{} zero value).
-	// Go's text/template renders nil interface{} as "<no value>", not "".
-	// Replace all occurrences so callers get "" as documented.
-	raw := strings.TrimSpace(buf.String())
-	missing := strings.Contains(raw, "<no value>")
-	out := strings.ReplaceAll(raw, "<no value>", "")
-	return out, missing, nil
+func (r *Resolver) core() *resolver.Resolver {
+	return r.Core()
 }

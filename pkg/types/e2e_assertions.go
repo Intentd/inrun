@@ -7,7 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/condition"
+	"github.com/intentd/tools/structured"
 )
 
 // Assertions checks a step's output: one comparison inline, a list under
@@ -113,7 +114,7 @@ func (a TextAssertion) values() map[string]string {
 
 // empty reports whether no comparison is set.
 func (a TextAssertion) empty() bool {
-	return len(declared(a.flagValues(), a.values())) == 0
+	return len(condition.Declared(a.flagValues(), a.values())) == 0
 }
 
 // check returns an error naming the first comparison output fails, nil when
@@ -122,15 +123,15 @@ func (a TextAssertion) check(output string) error {
 	trimmed := strings.TrimSpace(output)
 	data := map[string]interface{}{"output": trimmed}
 	values := a.values()
-	for _, c := range declared(a.flagValues(), values) {
-		want := values[c.name]
-		if applyOperator(c.op, trimmed, want, data, Condition{Field: "output"}) {
+	for _, c := range condition.Declared(a.flagValues(), values) {
+		want := values[c.Name]
+		if condition.Apply(c.Op, trimmed, want, data, "output") {
 			continue
 		}
 		if want == "" {
-			return fmt.Errorf("output %q fails %s", trimmed, c.name)
+			return fmt.Errorf("output %q fails %s", trimmed, c.Name)
 		}
-		return fmt.Errorf("output %q fails %s %q", trimmed, c.name, want)
+		return fmt.Errorf("output %q fails %s %q", trimmed, c.Name, want)
 	}
 	return nil
 }

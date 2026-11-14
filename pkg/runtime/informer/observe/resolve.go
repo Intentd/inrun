@@ -3,8 +3,8 @@ package observe
 
 import (
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/logger"
+	"github.com/intentd/tools/structured"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"

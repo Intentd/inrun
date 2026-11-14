@@ -9,8 +9,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/util/fileio"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/fileio"
 )
 
 // The webhook configurations Inrun owns.
@@ -54,7 +54,7 @@ func NewOptions(bp *blueprint.Blueprint, cfg *config.Config) Options {
 		ServiceName:         bp.GatewayServiceName(),
 		ServiceNamespace:    cfg.Cluster().Namespace(),
 		TLSCertFile:         cfg.Security().Webhooks.TLSCert,
-		InrunResourceLabels: labels.InrunResourceLabels(),
+		InrunResourceLabels: inrunmeta.InrunResourceLabels(),
 	}
 }
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/namespaces"
 )
 
@@ -29,7 +29,7 @@ func BuildNamespace(in map[string]interface{}, owner domain.Object) (map[string]
 
 	spec := namespaces.Spec{Name: f.Name}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	obj := namespaces.Build(owner, spec)
 	rawMap, err := toObjectMap(obj, "v1", "Namespace")
 	if err != nil {

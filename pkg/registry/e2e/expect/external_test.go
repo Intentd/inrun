@@ -15,6 +15,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -58,7 +59,7 @@ func TestCheckExternal(t *testing.T) {
 	assert.Error(t, externalErr(ctx, down, "", checkResolver(), nil), "a failed call fails the check")
 
 	skipped := call("gated", srv.URL+"/down")
-	skipped.When = types.Conditions{{Field: "{{ .inrun.inPod }}", Equals: "true"}}
+	skipped.When = types.Conditions{{Condition: condition.Condition{Field: "{{ .inrun.inPod }}", Equals: "true"}}}
 	assert.NoError(t, externalErr(ctx, skipped, "", checkResolver(), nil), "a call whose when: fails is skipped")
 }
 

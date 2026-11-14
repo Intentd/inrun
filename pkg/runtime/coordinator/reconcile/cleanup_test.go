@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -45,7 +46,7 @@ func newCR(phase string, ann map[string]string) *unstructured.Unstructured {
 
 func cleanupBox(after time.Duration) types.OperatorBoxConfig {
 	return types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{Cleanup: &types.CleanupConfig{
-		Or:    types.Conditions{{Field: "status.phase", Equals: "Completed"}},
+		Or:    types.Conditions{{Condition: condition.Condition{Field: "status.phase", Equals: "Completed"}}},
 		After: types.Duration{Duration: after},
 	}}}
 }

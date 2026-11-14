@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/external"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -123,7 +123,7 @@ func runMutation(
 			Type:     mutationType,
 		})
 
-		metrics.RecordMutationFieldDetail(crdName, targetField, mutationType)
+		inrunmetrics.RecordMutationFieldDetail(crdName, targetField, mutationType)
 
 		logger.Debug().
 			Str("crd", crdName).
@@ -162,7 +162,7 @@ func runMutation(
 	}
 
 	result.Applied = len(result.Changes)
-	metrics.RecordMutationTotal(crdName)
+	inrunmetrics.RecordMutationTotal(crdName)
 
 	logger.Info().
 		Str("crd", crdName).

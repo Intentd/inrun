@@ -3,13 +3,13 @@ package resources
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/intentd/tools/kube"
 	"sort"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	kwtypes "github.com/intentd/kubewright/core/types"
 )
 
@@ -90,10 +90,10 @@ func applyMetaOverrides(obj map[string]interface{}, lbls, annotations map[string
 	if len(lbls) == 0 && len(annotations) == 0 {
 		return nil
 	}
-	if err := labels.ValidateLabelMap(lbls); err != nil {
+	if err := kube.ValidateLabelMap(lbls); err != nil {
 		return err
 	}
-	if err := labels.ValidateAnnotationKeys(annotations); err != nil {
+	if err := kube.ValidateAnnotationKeys(annotations); err != nil {
 		return err
 	}
 

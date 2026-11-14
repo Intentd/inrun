@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/term"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/intentd/inrun/pkg/blueprint"
@@ -124,7 +124,7 @@ func BootstrapWith(ctx context.Context, cfg *config.Config, paths []string, adju
 		return nil, nil, err
 	}
 
-	kube, err := kubeclient.Connect(ctx, cfg, scheme)
+	kube, err := kubeclient.Connect(ctx, kubeclient.Options{KubeconfigPath: cfg.Cluster().KubeconfigPath(), MasterURL: cfg.Cluster().MasterURL()}, scheme)
 	if err != nil {
 		return nil, nil, err
 	}

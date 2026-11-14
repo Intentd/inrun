@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // Metadata sets the labels and annotations a Result returns on the CR itself,
@@ -23,10 +23,10 @@ func Metadata(ctx context.Context, kube kubeclient.Interface, obj domain.Object,
 	if len(lbls) == 0 && len(annotations) == 0 && !managesMetadata(obj) {
 		return nil
 	}
-	if err := labels.CheckReserved("labels", lbls); err != nil {
+	if err := inrunmeta.CheckReserved("labels", lbls); err != nil {
 		return err
 	}
-	if err := labels.CheckReserved("annotations", annotations); err != nil {
+	if err := inrunmeta.CheckReserved("annotations", annotations); err != nil {
 		return err
 	}
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/kubeclient"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // metadata carries optional labels and annotations to apply to a built object.
@@ -103,7 +103,7 @@ func allowKey(group, resource string) string {
 // annotation, else its creation time. Children carry the same value, so it
 // is stable across applies.
 func managedSince(owner domain.Object) string {
-	if v := owner.GetAnnotations()[labels.AnnotationManagedSince]; v != "" {
+	if v := owner.GetAnnotations()[inrunmeta.AnnotationManagedSince]; v != "" {
 		return v
 	}
 	if ts := owner.GetCreationTimestamp(); !ts.IsZero() {

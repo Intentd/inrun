@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -50,7 +50,7 @@ func renderConfigMapBytes(expandedYAML []byte, namespace string) ([]byte, error)
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultConfigMapName,
 			Namespace: namespace,
-			Labels:    labels.InrunBaseLabels(),
+			Labels:    inrunmeta.InrunBaseLabels(),
 		},
 		Data: map[string]string{
 			defaultConfigMapKey: string(expandedYAML),

@@ -101,6 +101,7 @@ cd declarative/01-hello-website
 inrun                      # run it
 inrun simulate             # check it without a cluster
 inrun simulate --envtest   # the same against a real API server and etcd, still no cluster
+inrun simulate --compare   # both, and check they agree
 inrun e2e                  # test it end to end on a kind cluster it creates and removes
 ```
 
@@ -108,10 +109,15 @@ Each example's README is its guide.
 
 ## Built on
 
-Two libraries that came out of Inrun and stand on their own:
+Three libraries that came out of Inrun and stand on their own:
 
 - [KEL](https://github.com/intentd/kel): functions that know Kubernetes, for reading state in templates and Go.
 - [kubewright](https://github.com/intentd/kubewright): building and writing an owner's child resources.
+- [KOME](https://github.com/intentd/kome): moving stored custom resources to a new schema or kind, reversibly.
+
+## Talks
+
+- [Operators as Data: Why Lifecycle is Not a Separate Problem](https://cloudcon.au/#talk=operators-as-data-why-lifecycle), CloudCon Sydney 2026 (lightning talk)
 
 ## Status
 

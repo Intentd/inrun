@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 )
 
 // validateMigrate checks every enabled CRD that declares a CR-level migration.

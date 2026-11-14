@@ -6,8 +6,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/gateway/webhook/admission"
 	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // Deletion serves /deletion-protection: it blocks DELETE on the protected
@@ -37,7 +37,7 @@ func (h *Handler) Deletion(w http.ResponseWriter, r *http.Request) {
 			Str("uid", req.UID).
 			Msgf("%s: blocking deletion of the deletion-protection webhook", deletionProtection)
 
-		metrics.RecordDeletionProtectionBlocked(registration.DeletionProtectionConfigName)
+		inrunmetrics.RecordDeletionProtectionBlocked(registration.DeletionProtectionConfigName)
 		h.infraStats.RecordBlocked() // infra event — not attributable to a specific CRD
 
 		admission.Deny(w, rv, fmt.Sprintf(
@@ -63,7 +63,7 @@ func (h *Handler) Deletion(w http.ResponseWriter, r *http.Request) {
 				Str("uid", req.UID).
 				Msgf("%s: blocking CRD deletion", deletionProtection)
 
-			metrics.RecordDeletionProtectionBlocked(req.Name)
+			inrunmetrics.RecordDeletionProtectionBlocked(req.Name)
 			crdStats.RecordBlocked()
 
 			admission.Deny(w, rv, fmt.Sprintf(
@@ -89,7 +89,7 @@ func (h *Handler) Deletion(w http.ResponseWriter, r *http.Request) {
 		Str("uid", req.UID).
 		Msgf("%s: blocking Inrun resource deletion", deletionProtection)
 
-	metrics.RecordDeletionProtectionBlocked("inrun-" + req.Resource.Resource)
+	inrunmetrics.RecordDeletionProtectionBlocked("inrun-" + req.Resource.Resource)
 	h.infraStats.RecordBlocked()
 
 	kind := req.Kind.Kind

@@ -6,9 +6,9 @@ import (
 	texttemplate "text/template"
 
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/logger"
 )
 
 // validateCustomResources validates any Custom resources declared under the

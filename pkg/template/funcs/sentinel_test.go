@@ -3,7 +3,7 @@ package funcs
 import (
 	"testing"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

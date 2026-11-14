@@ -12,8 +12,9 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/cluster"
 	"gopkg.in/yaml.v3"
 	"k8s.io/utils/ptr"
 )
@@ -58,8 +59,8 @@ func Teardown(ctx context.Context, cfg TeardownConfig) {
 	// runtime is stopped before its RBAC and ConfigMap are removed.
 	if cfg.UninstallInrun && !cfg.SharedInrun {
 		sp := startSpinner("Uninstalling Inrun...")
-		cmd := exec.CommandContext(ctx, "helm", "uninstall", cluster.Inrun,
-			"--namespace", cluster.InrunNamespace, "--ignore-not-found")
+		cmd := exec.CommandContext(ctx, "helm", "uninstall", inruncluster.Inrun,
+			"--namespace", inruncluster.InrunNamespace, "--ignore-not-found")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			sp.Failure()
 			fmt.Printf("    %v\n%s\n", err, out)
@@ -85,7 +86,7 @@ func Teardown(ctx context.Context, cfg TeardownConfig) {
 		for i := len(helms) - 1; i >= 0; i-- {
 			h := helms[i]
 			sp := startSpinner(fmt.Sprintf("Uninstalling setup helm %s...", h.ReleaseName()))
-			if err := cluster.HelmUninstall(ctx, h); err != nil {
+			if err := cluster.HelmUninstall(ctx, h.HelmRelease()); err != nil {
 				sp.Failure()
 				fmt.Printf("    %v\n", err)
 			} else {

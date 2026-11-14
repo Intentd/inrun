@@ -11,9 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // certBundle is the generated TLS bundle, kept to restore its Secret.
@@ -46,7 +46,7 @@ func (h *Housekeeper) syncCertSecret() {
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			logger.Error().Err(err).Str("secret", h.certName).Msg("housekeeper: failed to check TLS secret")
-			metrics.RecordWebhookReconciliationFailure(labelTLSSecret)
+			inrunmetrics.RecordWebhookReconciliationFailure(labelTLSSecret)
 			return
 		}
 		h.restoreCertSecret(ctx)
@@ -67,7 +67,7 @@ func (h *Housekeeper) restoreCertSecret(ctx context.Context) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      h.certName,
 			Namespace: h.certNamespace,
-			Labels:    labels.WithDeletionProtection(labels.InrunResourceLabels()),
+			Labels:    inrunmeta.WithDeletionProtection(inrunmeta.InrunResourceLabels()),
 		},
 		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{
@@ -80,13 +80,13 @@ func (h *Housekeeper) restoreCertSecret(ctx context.Context) {
 	if _, err := h.client.CoreV1().Secrets(h.certNamespace).Create(ctx, secret, metav1.CreateOptions{}); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			logger.Error().Err(err).Str("secret", h.certName).Msg("housekeeper: failed to restore TLS secret")
-			metrics.RecordWebhookReconciliationFailure(labelTLSSecret)
+			inrunmetrics.RecordWebhookReconciliationFailure(labelTLSSecret)
 		}
 		return
 	}
 
 	logger.Info().Str("secret", h.certName).Msg("housekeeper: TLS secret restored")
-	metrics.RecordWebhookReconciled(labelTLSSecret)
+	inrunmetrics.RecordWebhookReconciled(labelTLSSecret)
 }
 
 // maybeRotateCert writes a new certificate to the Secret once the stored one
@@ -114,7 +114,7 @@ func (h *Housekeeper) maybeRotateCert(ctx context.Context, existing *corev1.Secr
 		certmanager.BundleOpts{ValidFor: h.bp.CertValidForStr()})
 	if err != nil {
 		logger.Error().Err(err).Msg("housekeeper: cert rotation failed to generate a new bundle")
-		metrics.RecordWebhookReconciliationFailure(labelTLSRotation)
+		inrunmetrics.RecordWebhookReconciliationFailure(labelTLSRotation)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *Housekeeper) maybeRotateCert(ctx context.Context, existing *corev1.Secr
 			logger.Warn().Msg("housekeeper: cert rotation skipped, the secret is gone; the next sync restores it")
 		} else {
 			logger.Error().Err(err).Msg("housekeeper: cert rotation failed to read the secret")
-			metrics.RecordWebhookReconciliationFailure(labelTLSRotation)
+			inrunmetrics.RecordWebhookReconciliationFailure(labelTLSRotation)
 		}
 		return
 	}
@@ -140,7 +140,7 @@ func (h *Housekeeper) maybeRotateCert(ctx context.Context, existing *corev1.Secr
 
 	if _, err := h.client.CoreV1().Secrets(h.certNamespace).Update(ctx, fresh, metav1.UpdateOptions{}); err != nil {
 		logger.Error().Err(err).Msg("housekeeper: cert rotation failed to update the secret")
-		metrics.RecordWebhookReconciliationFailure(labelTLSRotation)
+		inrunmetrics.RecordWebhookReconciliationFailure(labelTLSRotation)
 		return
 	}
 
@@ -149,5 +149,5 @@ func (h *Housekeeper) maybeRotateCert(ctx context.Context, existing *corev1.Secr
 
 	logger.Info().Str("secret", h.certName).
 		Msg("housekeeper: TLS cert rotated, the new cert takes effect on the next gateway restart")
-	metrics.RecordWebhookReconciled(labelTLSRotation)
+	inrunmetrics.RecordWebhookReconciled(labelTLSRotation)
 }

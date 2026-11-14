@@ -2,7 +2,7 @@ package kubectl
 
 import (
 	"context"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake"
 	"testing"
 
 	"github.com/intentd/inrun/pkg/types"

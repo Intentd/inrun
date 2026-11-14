@@ -3,13 +3,13 @@ package runtimeapi
 import (
 	"context"
 	"encoding/json"
+	"github.com/intentd/tools/kube"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/intentd/inrun/pkg/types"
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -23,7 +23,7 @@ func ResolveCrossToken(ctx context.Context, cs kubernetes.Interface, s *types.Cr
 	}
 	if s.HasSecretRef() {
 		ref := s.Auth.SecretRef
-		return kubeutil.ReadSecretKey(ctx, cs, ref.SecretNamespace(), ref.SecretName(), ref.SecretKey())
+		return kube.ReadSecretKey(ctx, cs, ref.SecretNamespace(), ref.SecretName(), ref.SecretKey())
 	}
 	return structured.ResolveEnvVar(s.Auth.Token)
 

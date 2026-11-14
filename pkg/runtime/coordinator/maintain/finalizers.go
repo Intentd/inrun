@@ -3,6 +3,7 @@ package maintain
 import (
 	"context"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -10,10 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // applyFinalizers adds or removes finalizers depending on runtime.finalizers.remove.
@@ -52,7 +52,7 @@ func ensureFinalizers(
 		Any("crd finalizers", finalizers).
 		Msgf("checking finalizers: %v", obj.GetFinalizers())
 
-	if !labels.EnsureFinalizers(obj, finalizers) {
+	if !kubeutil.EnsureFinalizers(obj, finalizers) {
 		return nil
 	}
 
@@ -84,7 +84,7 @@ func Finalize(ctx context.Context, kube kubeclient.Interface, obj domain.Object,
 	if len(obj.GetFinalizers()) == 0 {
 		return nil
 	}
-	if !labels.StripFinalizers(obj, box.EffectiveFinalizers()) {
+	if !kubeutil.StripFinalizers(obj, box.EffectiveFinalizers()) {
 		return nil
 	}
 

@@ -1,6 +1,6 @@
 package vitals
 
-import "github.com/intentd/inrun/pkg/metrics"
+import "github.com/intentd/inrun/pkg/util/inrunmetrics"
 
 // Worker state constants
 const (
@@ -17,9 +17,9 @@ func (h *CRDHealth) SetTotalWorkers(count int32) {
 	h.processingWorkers.Store(0)
 
 	if h.gvk != "" {
-		metrics.SetWorkersTotal(h.gvk, float64(count))
-		metrics.SetWorkersIdle(h.gvk, float64(count))
-		metrics.SetWorkersProcessing(h.gvk, 0)
+		inrunmetrics.SetWorkersTotal(h.gvk, float64(count))
+		inrunmetrics.SetWorkersIdle(h.gvk, float64(count))
+		inrunmetrics.SetWorkersProcessing(h.gvk, 0)
 	}
 }
 
@@ -37,8 +37,8 @@ func (h *CRDHealth) MarkWorkerProcessing(workerID string) {
 
 	// Update metrics
 	if h.gvk != "" {
-		metrics.SetWorkersProcessing(h.gvk, float64(newProcessing))
-		metrics.SetWorkersIdle(h.gvk, float64(newIdle))
+		inrunmetrics.SetWorkersProcessing(h.gvk, float64(newProcessing))
+		inrunmetrics.SetWorkersIdle(h.gvk, float64(newIdle))
 	}
 }
 
@@ -51,8 +51,8 @@ func (h *CRDHealth) MarkWorkerIdle(workerID string) {
 
 	// Update metrics
 	if h.gvk != "" {
-		metrics.SetWorkersProcessing(h.gvk, float64(newProcessing))
-		metrics.SetWorkersIdle(h.gvk, float64(newIdle))
+		inrunmetrics.SetWorkersProcessing(h.gvk, float64(newProcessing))
+		inrunmetrics.SetWorkersIdle(h.gvk, float64(newIdle))
 	}
 }
 
@@ -93,8 +93,8 @@ func (h *CRDHealth) ResetWorkerCounts() {
 	})
 
 	if h.gvk != "" {
-		metrics.SetWorkersProcessing(h.gvk, 0)
-		metrics.SetWorkersIdle(h.gvk, 0)
+		inrunmetrics.SetWorkersProcessing(h.gvk, 0)
+		inrunmetrics.SetWorkersIdle(h.gvk, 0)
 	}
 }
 

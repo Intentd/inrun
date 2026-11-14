@@ -257,7 +257,7 @@
         "dayOfWeek": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DayOfWeekCondition"
+              "$ref": "#/$defs/condition.DayOfWeek"
             },
             {
               "type": "null"
@@ -268,7 +268,7 @@
         "duration": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Duration"
+              "$ref": "#/$defs/duration.Duration"
             },
             {
               "type": "null"
@@ -293,7 +293,7 @@
           ]
         },
         "field": {
-          "description": "Field — dot-notation path to a field in the CR object or a runtime metric.\ne.g. \"spec.environment\", \"metrics.queueDepth\", \"cross.managed-database.metrics.queueDepth\"",
+          "description": "Field — dot-notation path to the value tested, e.g. \"spec.environment\",\n\"metrics.queueDepth\". A template expression is resolved first.",
           "type": [
             "string",
             "number",
@@ -455,7 +455,7 @@
         "time": {
           "anyOf": [
             {
-              "$ref": "#/$defs/TimeWindow"
+              "$ref": "#/$defs/condition.TimeWindow"
             },
             {
               "type": "null"
@@ -464,7 +464,7 @@
           "description": "Time — active when the current time is within the declared window.\nAfter and Before are both optional; omit one for a half-open range.\n  or:\n    - time:\n        after: \"08:00\"\n        before: \"20:00\""
         },
         "typeOf": {
-          "description": "TypeOf passes when the field's value has this type: map, slice,\nstring, number, bool or null (the names the typeOf function returns).",
+          "description": "TypeOf passes when the field's value has this type: map, slice,\nstring, number, bool or null.",
           "type": [
             "string",
             "number",
@@ -473,7 +473,7 @@
           ]
         },
         "unique": {
-          "description": "Unique, when true, passes when no other instance of the CRD has the same\nvalue at Field. Always passes where no uniqueness checker is available\n(e2e, simulate without a seeded fixture).",
+          "description": "Unique, when true, passes when no other object has the same value at\nField. Always passes where no UniquenessChecker is in the data.",
           "type": [
             "boolean",
             "null"
@@ -550,63 +550,6 @@
         }
       },
       "type": "object"
-    },
-    "DayOfWeekCondition": {
-      "additionalProperties": false,
-      "description": "DayOfWeekCondition declares which days the condition is active.",
-      "properties": {
-        "in": {
-          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
-          "items": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — active on all days except these.",
-          "items": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "weekday": {
-          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "weekend": {
-          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "Duration": {
-      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
-      "type": [
-        "string",
-        "number",
-        "boolean"
-      ]
     },
     "JSONAssertion": {
       "additionalProperties": false,
@@ -1320,7 +1263,56 @@
       },
       "type": "array"
     },
-    "TimeWindow": {
+    "condition.DayOfWeek": {
+      "additionalProperties": false,
+      "description": "DayOfWeek declares which days the condition is active.",
+      "properties": {
+        "in": {
+          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — active on all days except these.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "weekday": {
+          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "weekend": {
+          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "condition.TimeWindow": {
       "additionalProperties": false,
       "description": "TimeWindow declares a clock-based active window.",
       "properties": {
@@ -1344,6 +1336,14 @@
         }
       },
       "type": "object"
+    },
+    "duration.Duration": {
+      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
     }
   },
   "$id": "https://inrun.dev/schema/v1/include/simulate-ops-rule.json",

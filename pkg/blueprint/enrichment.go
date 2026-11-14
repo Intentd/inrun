@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // EnrichCRDEntry checks whether a CRD entry uses kind-only declaration

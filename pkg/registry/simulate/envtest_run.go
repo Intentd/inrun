@@ -9,17 +9,17 @@ package simulate
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/tools/kube"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/runtime/informer/crds"
 	"github.com/intentd/inrun/pkg/runtime/informer/observe"
 	"github.com/intentd/inrun/pkg/runtime/queue"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers"
+	"github.com/intentd/tools/kubeclient"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
@@ -143,7 +143,7 @@ func runWithEnvtest(ctx context.Context, opts RunOptions) (*Result, error) {
 		recDeps: reconcilers.Deps{
 			Kube:         recKube,
 			Informer:     inf,
-			Event:        event.Discard(),
+			Event:        kube.DiscardEvents(),
 			StoreFor:     infFactory.StoreFor,
 			IndexerFor:   infFactory.IndexerFor,
 			Blueprint:    bp,

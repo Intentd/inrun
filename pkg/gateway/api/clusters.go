@@ -3,23 +3,27 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
+
+	kubeutil "github.com/intentd/tools/kube"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	kubeutil "github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // ClusterRegistry maps gateway.clusters names to their ready kubeclient.Interface.
 // Built at gateway startup from the blueprint config; never mutated after construction.
 type ClusterRegistry struct {
 	clients map[string]kubeclient.Interface
+	// credentials are the token credentials, which CredentialRefresher renews.
+	credentials []credentialRef
 }
 
 // ClientFor returns the client for the named cluster and whether it was found.
@@ -65,6 +69,9 @@ func BuildClusterRegistry(
 			return nil, fmt.Errorf("connecting to cluster %q (%s): %w", name, cfg.EndpointURL(), err)
 		}
 		reg.clients[name] = client
+		if ref, ok := tokenCredential(name, cfg, ownNS); ok {
+			reg.credentials = append(reg.credentials, ref)
+		}
 		logger.FromContext(ctx).Info().
 			Str("cluster", name).
 			Str("endpoint", cfg.EndpointURL()).
@@ -128,15 +135,15 @@ func buildTokenRestConfig(
 	if tokenNS == "" {
 		tokenNS = ownNS
 	}
-	token, err := kubeutil.ReadSecretKey(ctx, kube.Clientset(), tokenNS, tokenRef.SecretName(), tokenRef.SecretKey())
-	if err != nil {
-		return nil, fmt.Errorf("token %s/%s[%s]: %w", tokenNS, tokenRef.SecretName(), tokenRef.SecretKey(), err)
+	// The token is read from its Secret on every use (cached briefly), so a
+	// token renewed by CredentialRefresher is picked up without a restart.
+	src := &secretToken{cs: kube.Clientset(), namespace: tokenNS, name: tokenRef.SecretName(), key: tokenRef.SecretKey()}
+	if _, err := src.get(ctx); err != nil {
+		return nil, err
 	}
 
-	restCfg := &rest.Config{
-		Host:        cfg.EndpointURL(),
-		BearerToken: strings.TrimSpace(token),
-	}
+	restCfg := &rest.Config{Host: cfg.EndpointURL()}
+	restCfg.Wrap(func(rt http.RoundTripper) http.RoundTripper { return bearer{src: src, next: rt} })
 
 	if cfg.IsInsecure() {
 		restCfg.TLSClientConfig.Insecure = true

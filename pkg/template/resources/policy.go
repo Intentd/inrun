@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	"github.com/intentd/kubewright/core/hpas"
 	"github.com/intentd/kubewright/core/limitranges"
@@ -295,7 +295,7 @@ func HPASpec(src types.HPATemplateSource, owner domain.Object, reg *types.Preset
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -317,7 +317,7 @@ func LimitRangeSpec(src types.LimitRangeTemplateSource, owner domain.Object, reg
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -352,7 +352,7 @@ func PDBSpec(src types.PDBTemplateSource, owner domain.Object, reg *types.Preset
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -374,6 +374,6 @@ func ResourceQuotaSpec(src types.ResourceQuotaTemplateSource, owner domain.Objec
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

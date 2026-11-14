@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 )
 
 func reconcileWithConditions(when types.Conditions, notes ...types.UserDefinedFunction) error {
@@ -23,31 +24,31 @@ func reconcileWithConditions(when types.Conditions, notes ...types.UserDefinedFu
 
 func TestReconcileConditions_CRAndArgsFromTheCR(t *testing.T) {
 	require.NoError(t, reconcileWithConditions(types.Conditions{
-		{Field: "spec.enabled", Equals: "true"},
-		{Field: "args.quotaGB", GreaterThan: "0"},
+		{Condition: condition.Condition{Field: "spec.enabled", Equals: "true"}},
+		{Condition: condition.Condition{Field: "args.quotaGB", GreaterThan: "0"}},
 	}))
 }
 
 func TestReconcileConditions_ExternalRejected(t *testing.T) {
-	err := reconcileWithConditions(types.Conditions{{Field: "external.plan.status", Equals: "200"}})
+	err := reconcileWithConditions(types.Conditions{{Condition: condition.Condition{Field: "external.plan.status", Equals: "200"}}})
 	assert.ErrorContains(t, err, "reads .external")
 	assert.ErrorContains(t, err, "preReconcile.reconcileGate")
 }
 
 func TestReconcileConditions_ExternalInAnOperandRejected(t *testing.T) {
-	err := reconcileWithConditions(types.Conditions{{Field: "spec.tier", Equals: "{{ .external.plan.json.tier }}"}})
+	err := reconcileWithConditions(types.Conditions{{Condition: condition.Condition{Field: "spec.tier", Equals: "{{ .external.plan.json.tier }}"}}})
 	assert.ErrorContains(t, err, "reads .external")
 }
 
 func TestReconcileConditions_ExternalThroughANoteRejected(t *testing.T) {
 	err := reconcileWithConditions(
-		types.Conditions{{Field: "{{ planReady }}", Equals: "true"}},
+		types.Conditions{{Condition: condition.Condition{Field: "{{ planReady }}", Equals: "true"}}},
 		types.UserDefinedFunction{Name: "planReady", Expression: `{{ eq .external.plan.status "200" }}`},
 	)
 	assert.ErrorContains(t, err, "reads .external")
 }
 
 func TestReconcileConditions_ArgReadingExternalRejected(t *testing.T) {
-	err := reconcileWithConditions(types.Conditions{{Field: "args.plan.tier", Equals: "gold"}})
+	err := reconcileWithConditions(types.Conditions{{Condition: condition.Condition{Field: "args.plan.tier", Equals: "gold"}}})
 	assert.ErrorContains(t, err, "reads args.plan")
 }

@@ -5,7 +5,7 @@ package gate
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/template"

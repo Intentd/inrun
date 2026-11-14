@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"github.com/joho/godotenv"
 )
 

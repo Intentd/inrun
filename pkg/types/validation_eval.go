@@ -16,10 +16,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/condition"
+	"github.com/intentd/tools/structured"
 
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/template/funcs"
+	"github.com/intentd/tools/logger"
 )
 
 // TemplateResolver resolves a Go-template expression string against CR data
@@ -31,57 +31,14 @@ type TemplateResolver interface {
 }
 
 // UniquenessChecker reports whether no other existing instance of the CRD
-// under evaluation currently has the same value for a given field. Satisfied
-// structurally by two concrete implementations, both outside this package to
-// avoid a reverse-import-cycle (same reason as TemplateResolver):
-// pkg/runtime/reconciler's live-List()-backed checker (reconcile time, the
-// authoritative one) and pkg/gateway/webhook's HTTP-backed checker
-// (admission time, best-effort — queries the runtime's own informer cache
-// instead of doing a live List() itself).
-type UniquenessChecker interface {
-	// IsUnique reports whether no other CR of this kind currently has
-	// field == value. selfNamespace/selfName identify the CR under
-	// evaluation so it's excluded from the comparison — a CR is never a
-	// duplicate of its own already-stored value.
-	IsUnique(field, value, selfNamespace, selfName string) (bool, error)
-}
+// under evaluation currently has the same value for a given field. Two
+// implementations: pkg/runtime/coordinator/prepare's live-List() checker
+// (reconcile time, the authoritative one) and pkg/runtimeapi's HTTP-backed
+// checker (admission time, best-effort). Injected with
+// template.Resolver.WithUniquenessChecker; unique: true passes where none is.
+type UniquenessChecker = condition.UniquenessChecker
 
-// uniquenessCheckerKey is the data-map key an injected UniquenessChecker is
-// stored under — same convention as _cronWindows in when.go: state that
-// doesn't belong in a CR's template context travels alongside it in the
-// data map instead of as an explicit parameter on every evaluation
-// function. Set via template.Resolver.WithUniquenessChecker — the
-// reconciler wires in a live-List() checker on every reconcile, the
-// admission webhook wires in an HTTP-backed one on every admission request,
-// so unique: true is enforced identically in both validation.rules and
-// when:/or: at both points. Always passes elsewhere (e2e, template-only
-// contexts, simulate without a seeded fixture) where there's no live CRD to
-// check against.
-const uniquenessCheckerKey = "_uniquenessChecker"
-
-// resolveUnique evaluates unique: true against a checker injected under
-// uniquenessCheckerKey, excluding the CR under evaluation by its own
-// metadata.namespace/name. Shared by EvaluateValidationRule and
-// applyOperator (when.go) so the operator behaves identically wherever it's
-// used.
-//
-// Returns true (pass) when no checker is injected or the checker errors —
-// uniqueness is enforced when a live checker is available, not required.
-func resolveUnique(data map[string]interface{}, field, fieldVal string) bool {
-	checker, ok := data[uniquenessCheckerKey].(UniquenessChecker)
-	if !ok || checker == nil {
-		return true
-	}
-	selfNS, _ := ResolveScalarField(data, "metadata.namespace")
-	selfName, _ := ResolveScalarField(data, "metadata.name")
-	unique, err := checker.IsUnique(field, fieldVal, selfNS, selfName)
-	if err != nil {
-		logger.Warn().Err(err).Str("field", field).
-			Msg("validation: unique check failed — rule skipped")
-		return true
-	}
-	return unique
-}
+const uniquenessCheckerKey = condition.UniquenessCheckerKey
 
 // RuleViolation is the outcome of one failed ValidationRule.
 type RuleViolation struct {
@@ -143,7 +100,7 @@ func ScalarToString(v interface{}) string {
 // from a ValidationRule, handling all shorthand fields. Falls back to an
 // explicit operator+value pair, or a bare exists check when neither is set.
 func ResolveValidationOp(r ValidationRule) (ConditionOperator, string) {
-	_, op, value := resolve(r.flagValues(), r.values())
+	_, op, value := condition.Resolve(r.flagValues(), r.values())
 	return op, value
 }
 
@@ -154,7 +111,7 @@ func ResolveValidationOp(r ValidationRule) (ConditionOperator, string) {
 // distinct "min" operator), since that's the more actionable label for
 // "which rule type is causing the most friction" alerting.
 func RuleTypeLabel(r ValidationRule) string {
-	name, _, _ := resolve(r.flagValues(), r.values())
+	name, _, _ := condition.Resolve(r.flagValues(), r.values())
 	return name
 }
 
@@ -356,7 +313,7 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 		}
 
 	case ConditionBetween:
-		lo, hi, ok := parseBetween(expected)
+		lo, hi, ok := condition.ParseBetween(expected)
 		if !ok {
 			logger.Warn().Str("field", rule.Field).Str("val", expected).
 				Msg("validation: between requires \"min,max\" numeric values — rule skipped")
@@ -368,7 +325,7 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 		}
 
 	case ConditionNotBetween:
-		lo, hi, ok := parseBetween(expected)
+		lo, hi, ok := condition.ParseBetween(expected)
 		if !ok {
 			logger.Warn().Str("field", rule.Field).Str("val", expected).
 				Msg("validation: notBetween requires \"min,max\" numeric values — rule skipped")
@@ -380,7 +337,7 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 		}
 
 	case ConditionTypeOf:
-		if funcs.TypeOf(NavigateRawPath(data, rule.Field)) != expected {
+		if condition.TypeOf(NavigateRawPath(data, rule.Field)) != expected {
 			return fail()
 		}
 
@@ -391,7 +348,7 @@ func EvaluateValidationRule(data map[string]interface{}, resolver TemplateResolv
 			// as EvaluateOneCond.
 			return nil
 		}
-		if !found || !resolveUnique(data, rule.Field, fieldVal) {
+		if !found || !condition.IsUnique(data, rule.Field, fieldVal) {
 			return fail()
 		}
 	}

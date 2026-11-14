@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/cluster"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
@@ -112,7 +113,7 @@ func (r *Runner) ensureCluster(ctx context.Context) error {
 		}
 	}
 
-	return cluster.EnsureKindCluster(name, r.workers, r.kindVersion)
+	return cluster.EnsureKindCluster(name, inruncluster.Kind(r.workers, r.kindVersion))
 }
 
 func (r *Runner) deleteCluster(ctx context.Context) error {

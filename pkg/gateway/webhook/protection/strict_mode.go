@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/intentd/inrun/pkg/gateway/webhook/admission"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/logger"
 )
 
 // StrictMode serves /strict-mode-protection: it denies an UPDATE that removes
@@ -49,11 +49,11 @@ func (h *Handler) StrictMode(w http.ResponseWriter, r *http.Request) {
 	oldLabels := extractLabels(req.OldObject)
 	newLabels := extractLabels(req.Object)
 
-	hadLabel := oldLabels[labels.DeletionProtectionLabel] == "true"
-	hasLabel := newLabels[labels.DeletionProtectionLabel] == "true"
+	hadLabel := oldLabels[inrunmeta.DeletionProtectionLabel] == "true"
+	hasLabel := newLabels[inrunmeta.DeletionProtectionLabel] == "true"
 
 	// --- EXEMPTION CHECK ---
-	if newLabels[labels.StrictModeExemptKey] == "true" {
+	if newLabels[inrunmeta.StrictModeExemptKey] == "true" {
 		// Exempt from strict mode – allow label removal
 		admission.Allow(w, rv)
 		return
@@ -71,7 +71,7 @@ func (h *Handler) StrictMode(w http.ResponseWriter, r *http.Request) {
 			Str("uid", req.UID).
 			Msgf("%s: blocking deletion-protection label removal", strictModeProtection)
 
-		metrics.RecordDeletionProtectionBlocked("strict-mode:" + kind)
+		inrunmetrics.RecordDeletionProtectionBlocked("strict-mode:" + kind)
 		h.strictModeStats.RecordBlocked()
 
 		var header string

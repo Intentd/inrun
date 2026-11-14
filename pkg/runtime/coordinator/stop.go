@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 // stopCRDWorkers cancels the CRD context and waits for all workers to drain.

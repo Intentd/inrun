@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 // syncAdmissionWebhooks keeps the validating and mutating configurations in

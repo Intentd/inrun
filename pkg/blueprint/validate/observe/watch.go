@@ -2,10 +2,10 @@ package observe
 
 import (
 	"fmt"
+	"github.com/intentd/tools/kube"
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/intentd/inrun/pkg/sentinel"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 )
@@ -183,7 +183,7 @@ func validateCRDSentinels(crdName string, crd types.CRDEntry) error {
 		return nil
 	}
 	return fmt.Errorf("%s crd %q: preReconcile.sentinels: unknown sentinel(s) [%s] — valid values: %s",
-		failureMark(), crdName, strings.Join(invalid, ", "), strings.Join(sentinel.ValidSentinels(), ", "))
+		failureMark(), crdName, strings.Join(invalid, ", "), strings.Join(kube.ValidSentinels(), ", "))
 }
 
 // validatePreReconcileGateTemplates parses enqueueGate and reconcileGate templates

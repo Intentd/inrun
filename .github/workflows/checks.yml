@@ -220,7 +220,7 @@ jobs:
         run: |
           specs() {
             grep -rlE '^kind: Simulate' --include='*.yaml' "$1" | xargs grep -l '^spec:' | sort |
-              grep -v -e '^pkg/kubeclient/fixture/' -e '^pkg/template/resources/fixture/' -e '/intent/simulate-reject.yaml$'
+              grep -v -e '^pkg/runtime/kubeclient/fixture/' -e '^pkg/template/resources/fixture/' -e '/intent/simulate-reject.yaml$'
           }
           failed=""
           run() {
@@ -250,7 +250,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [pkg/kubeclient/fixture, pkg/template/resources/fixture]
+        module: [pkg/runtime/kubeclient/fixture, pkg/template/resources/fixture]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

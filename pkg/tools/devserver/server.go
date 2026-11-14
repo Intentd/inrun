@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 const Port = 9999

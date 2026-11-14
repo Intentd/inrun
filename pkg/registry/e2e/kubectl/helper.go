@@ -7,10 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
-	"github.com/intentd/inrun/pkg/util/structured"
-	"github.com/intentd/inrun/pkg/util/term"
 	"github.com/intentd/kel/core"
+	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/term"
 	"gopkg.in/yaml.v3"
 
 	"github.com/intentd/inrun/pkg/types"
@@ -22,7 +21,6 @@ var (
 	startSpinner      = term.StartSpinner
 	parseTimeDuration = core.ParseTimeDuration
 	applyExtract      = types.ApplyExtract
-	requireErr        = structured.RequireErr
 )
 
 // assertionListMsg is appended to every "at least one assertion required"

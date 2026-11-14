@@ -23,6 +23,12 @@ spec:
   crds:
     cronjob:
       crdFile: ./manifests/crd.yaml
+      # The schema and CRs before the migration, for inrun migrate rehearse and
+      # inrun migrate transitional. The transitional schema is generated.
+      migrate:
+        from:
+          crdFile: ./manifests/old-crd.yaml
+          crFiles: [./manifests/old-crs.yaml]
       serve:
         enabled: true
         target: cronjob

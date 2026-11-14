@@ -3,10 +3,10 @@ package types
 import (
 	"strings"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 
-	"github.com/intentd/inrun/pkg/util/fileio"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/domain"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,6 +87,9 @@ const (
 	// GatewayMigrationLeaseName is the coordination.k8s.io/v1 Lease gateway replicas
 	// take in turn to run the startup migration one at a time.
 	GatewayMigrationLeaseName = "inrun-gateway-migration"
+	// GatewayCredentialLeaseName is the Lease gateway replicas take turns
+	// under to renew the short tokens of gateway.clusters.
+	GatewayCredentialLeaseName = "inrun-gateway-credentials"
 
 	CRDModeTyped   CRDMode = "typed"
 	CRDModeDynamic CRDMode = "dynamic"

@@ -2,15 +2,16 @@ package reconcile_test
 
 import (
 	"context"
+	kubeutil "github.com/intentd/tools/kube"
 	"testing"
 	"time"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/condition"
+	"github.com/intentd/tools/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
@@ -51,7 +52,7 @@ func passFixture(t *testing.T) (reconcile.Deps, contract.RegistryEntry) {
 		object.WithSpec(map[string]any{"image": "nginx"}))
 	require.NoError(t, inf.GetIndexer().Add(obj))
 
-	deps := reconcile.Deps{Kube: kubefake.New(runtime.NewScheme(), obj.DeepCopy()), Event: event.Discard(), Blueprint: bp}
+	deps := reconcile.Deps{Kube: kubefake.New(runtime.NewScheme(), obj.DeepCopy()), Event: kubeutil.DiscardEvents(), Blueprint: bp}
 	return deps, contract.RegistryEntry{CRD: crd, Informer: inf}
 }
 
@@ -105,7 +106,7 @@ func finalizingFixture(t *testing.T, requeue *types.RequeueConfig, waiting strin
 
 	kube := kubefake.New(runtime.NewScheme())
 	require.NoError(t, kube.Seed(obj.DeepCopy()))
-	return reconcile.Deps{Kube: kube, Event: event.Discard(), Blueprint: bp}, contract.RegistryEntry{CRD: crd, Informer: inf}
+	return reconcile.Deps{Kube: kube, Event: kubeutil.DiscardEvents(), Blueprint: bp}, contract.RegistryEntry{CRD: crd, Informer: inf}
 }
 
 func runFinalizing(t *testing.T, deps reconcile.Deps, entry contract.RegistryEntry) (reconcile.Outcome, *recordingReconciler) {
@@ -123,7 +124,7 @@ func runFinalizing(t *testing.T, deps reconcile.Deps, entry contract.RegistryEnt
 func TestRun_Finalizing_ConditionalRequeueHolds(t *testing.T) {
 	waitWhilePending := &types.RequeueConfig{
 		After: "10s",
-		When:  types.Conditions{{Field: "spec.waiting", Equals: "true"}},
+		When:  types.Conditions{{Condition: condition.Condition{Field: "spec.waiting", Equals: "true"}}},
 	}
 
 	deps, entry := finalizingFixture(t, waitWhilePending, "true")
@@ -161,7 +162,7 @@ func TestRun_ValidationDenialWritesStatus(t *testing.T) {
 	require.NoError(t, inf.GetIndexer().Add(obj))
 	// The store holds the CR, as a cluster does; the status patch lands there.
 	kube := kubefake.New(runtime.NewScheme(), obj.DeepCopy())
-	deps := reconcile.Deps{Kube: kube, Event: event.Discard(), Blueprint: bp}
+	deps := reconcile.Deps{Kube: kube, Event: kubeutil.DiscardEvents(), Blueprint: bp}
 	entry := contract.RegistryEntry{CRD: crd, Informer: inf}
 
 	rec := &recordingReconciler{}

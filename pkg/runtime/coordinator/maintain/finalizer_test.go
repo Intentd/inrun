@@ -2,13 +2,14 @@ package maintain
 
 import (
 	"context"
+	kubeutil "github.com/intentd/tools/kube"
 	"testing"
 	"time"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,21 +27,21 @@ func makeObj(finalizers ...string) *unstructured.Unstructured {
 
 func TestContainsFinalizer_Present(t *testing.T) {
 	obj := makeObj("inrun.dev/cleanup", "other.io/finalizer")
-	if !labels.ContainsFinalizer(obj, "inrun.dev/cleanup") {
+	if !kubeutil.ContainsFinalizer(obj, "inrun.dev/cleanup") {
 		t.Error("expected finalizer to be found")
 	}
 }
 
 func TestContainsFinalizer_Absent(t *testing.T) {
 	obj := makeObj("other.io/finalizer")
-	if labels.ContainsFinalizer(obj, "inrun.dev/cleanup") {
+	if kubeutil.ContainsFinalizer(obj, "inrun.dev/cleanup") {
 		t.Error("expected finalizer to be absent")
 	}
 }
 
 func TestContainsFinalizer_Empty(t *testing.T) {
 	obj := makeObj()
-	if labels.ContainsFinalizer(obj, "inrun.dev/cleanup") {
+	if kubeutil.ContainsFinalizer(obj, "inrun.dev/cleanup") {
 		t.Error("no finalizers — must return false")
 	}
 }
@@ -49,18 +50,18 @@ func TestContainsFinalizer_Empty(t *testing.T) {
 
 func TestAddFinalizer_AddsWhenAbsent(t *testing.T) {
 	obj := makeObj()
-	updated := labels.AddFinalizer(obj, "inrun.dev/cleanup")
+	updated := kubeutil.AddFinalizer(obj, "inrun.dev/cleanup")
 	if !updated {
 		t.Error("expected updated=true when adding a new finalizer")
 	}
-	if !labels.ContainsFinalizer(obj, "inrun.dev/cleanup") {
+	if !kubeutil.ContainsFinalizer(obj, "inrun.dev/cleanup") {
 		t.Error("finalizer must be present after Add")
 	}
 }
 
 func TestAddFinalizer_NoopWhenPresent(t *testing.T) {
 	obj := makeObj("inrun.dev/cleanup")
-	updated := labels.AddFinalizer(obj, "inrun.dev/cleanup")
+	updated := kubeutil.AddFinalizer(obj, "inrun.dev/cleanup")
 	if updated {
 		t.Error("expected updated=false when finalizer already present")
 	}
@@ -71,8 +72,8 @@ func TestAddFinalizer_NoopWhenPresent(t *testing.T) {
 
 func TestAddFinalizer_MultipleFinalizers(t *testing.T) {
 	obj := makeObj("first.io/f")
-	labels.AddFinalizer(obj, "second.io/f")
-	labels.AddFinalizer(obj, "third.io/f")
+	kubeutil.AddFinalizer(obj, "second.io/f")
+	kubeutil.AddFinalizer(obj, "third.io/f")
 	f := obj.GetFinalizers()
 	if len(f) != 3 {
 		t.Errorf("expected 3 finalizers, got %d: %v", len(f), f)
@@ -83,21 +84,21 @@ func TestAddFinalizer_MultipleFinalizers(t *testing.T) {
 
 func TestRemoveFinalizer_RemovesWhenPresent(t *testing.T) {
 	obj := makeObj("inrun.dev/cleanup", "other.io/f")
-	updated := labels.RemoveFinalizer(obj, "inrun.dev/cleanup")
+	updated := kubeutil.RemoveFinalizer(obj, "inrun.dev/cleanup")
 	if !updated {
 		t.Error("expected updated=true when removing a present finalizer")
 	}
-	if labels.ContainsFinalizer(obj, "inrun.dev/cleanup") {
+	if kubeutil.ContainsFinalizer(obj, "inrun.dev/cleanup") {
 		t.Error("finalizer must be gone after Remove")
 	}
-	if !labels.ContainsFinalizer(obj, "other.io/f") {
+	if !kubeutil.ContainsFinalizer(obj, "other.io/f") {
 		t.Error("other finalizer must remain")
 	}
 }
 
 func TestRemoveFinalizer_NoopWhenAbsent(t *testing.T) {
 	obj := makeObj("other.io/f")
-	updated := labels.RemoveFinalizer(obj, "inrun.dev/cleanup")
+	updated := kubeutil.RemoveFinalizer(obj, "inrun.dev/cleanup")
 	if updated {
 		t.Error("expected updated=false when finalizer not present")
 	}
@@ -108,7 +109,7 @@ func TestRemoveFinalizer_NoopWhenAbsent(t *testing.T) {
 
 func TestRemoveFinalizer_EmptyList(t *testing.T) {
 	obj := makeObj()
-	updated := labels.RemoveFinalizer(obj, "inrun.dev/cleanup")
+	updated := kubeutil.RemoveFinalizer(obj, "inrun.dev/cleanup")
 	if updated {
 		t.Error("expected updated=false on empty finalizer list")
 	}
@@ -116,7 +117,7 @@ func TestRemoveFinalizer_EmptyList(t *testing.T) {
 
 func TestRemoveFinalizer_AllRemoved(t *testing.T) {
 	obj := makeObj("inrun.dev/cleanup")
-	labels.RemoveFinalizer(obj, "inrun.dev/cleanup")
+	kubeutil.RemoveFinalizer(obj, "inrun.dev/cleanup")
 	if len(obj.GetFinalizers()) != 0 {
 		t.Error("all finalizers should be removed")
 	}
@@ -124,7 +125,7 @@ func TestRemoveFinalizer_AllRemoved(t *testing.T) {
 
 func TestRemoveFinalizer_OnlyTargetRemoved(t *testing.T) {
 	obj := makeObj("a", "b", "c")
-	labels.RemoveFinalizer(obj, "b")
+	kubeutil.RemoveFinalizer(obj, "b")
 	f := obj.GetFinalizers()
 	if len(f) != 2 {
 		t.Errorf("expected 2 remaining, got %v", f)
@@ -155,12 +156,12 @@ func (p *patchRecorder) PatchFinalizers(_ context.Context, _ runtime.Object, f [
 
 func cleanupBox() types.OperatorBoxConfig {
 	return types.OperatorBoxConfig{Runtime: &types.RuntimeConfig{Finalizers: &types.FinalizerConfig{
-		Names: []string{labels.CleanupFinalizer},
+		Names: []string{inrunmeta.CleanupFinalizer},
 	}}}
 }
 
 func TestFinalize_RemovesOnlyInrunsFinalizers(t *testing.T) {
-	obj := makeObj(labels.CleanupFinalizer, "other.io/finalizer")
+	obj := makeObj(inrunmeta.CleanupFinalizer, "other.io/finalizer")
 	kube := &patchRecorder{Kubeclient: kubefake.New(runtime.NewScheme())}
 
 	require.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))
@@ -185,7 +186,7 @@ func TestEnsureFinalizers_SkipsObjectBeingDeleted(t *testing.T) {
 }
 
 func TestFinalize_AlreadyGoneIsDone(t *testing.T) {
-	obj := object.New("", "", "gone", object.WithFinalizers(labels.CleanupFinalizer))
+	obj := object.New("", "", "gone", object.WithFinalizers(inrunmeta.CleanupFinalizer))
 	kube := &patchRecorder{Kubeclient: kubefake.New(runtime.NewScheme()), err: apierrors.NewNotFound(schema.GroupResource{Resource: "webapps"}, "gone")}
 
 	assert.NoError(t, Finalize(context.Background(), kube, obj, cleanupBox()))

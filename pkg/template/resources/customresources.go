@@ -5,7 +5,7 @@ import (
 	"maps"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	"github.com/intentd/kubewright/core/customresources"
 
@@ -101,6 +101,6 @@ func CustomResourceSpec(src types.CustomResourceTemplateSource, owner domain.Obj
 		spec.Metadata.Name = ownerName + "-custom"
 	}
 
-	spec.Metadata.Labels = labels.StampInrunLabels(maps.Clone(spec.Metadata.Labels), owner)
+	spec.Metadata.Labels = inrunmeta.StampInrunLabels(maps.Clone(spec.Metadata.Labels), owner)
 	return spec
 }

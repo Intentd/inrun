@@ -6,8 +6,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -125,7 +125,7 @@ func TestSetDefaults_OperatorBoxFinalizersDefault(t *testing.T) {
 	// The spec's finalizers, plus Inrun's cleanup finalizer on every CRD.
 	entry := e.EnabledCRDs()["app"]
 	boxFinalizers := entry.OperatorBox.EffectiveFinalizers()
-	assert.ElementsMatch(t, []string{"spec-finalizer", labels.CleanupFinalizer}, boxFinalizers)
+	assert.ElementsMatch(t, []string{"spec-finalizer", inrunmeta.CleanupFinalizer}, boxFinalizers)
 }
 
 func TestSetDefaults_SpecFinalizerAddToOperatorBoxFinalizer(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/blueprint/validate/internal/check"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 )
 
 type checker struct{ check.Checker }

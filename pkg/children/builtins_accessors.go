@@ -314,27 +314,6 @@ func IsValidEnrichmentTarget(name string) bool {
 	return ok
 }
 
-// ListKindsForFakeDynamic returns a GVR→list-kind map for every registered
-// built-in, suitable for fakedynamic.NewSimpleDynamicClientWithCustomListKinds.
-//
-// The fake dynamic client refuses to List a GVR whose list kind was not
-// registered at construction. Registering the whole registry up front lets a
-// reconciler List any built-in it might read, whether or not the fixture
-// seeded one — which is the case for reads like "list ConfigMaps to decide
-// whether to create one".
-func ListKindsForFakeDynamic() map[schema.GroupVersionResource]string {
-	out := make(map[schema.GroupVersionResource]string, len(builtInRegistry))
-	for _, b := range builtInRegistry {
-		gvr := schema.GroupVersionResource{
-			Group:    b.Group,
-			Version:  b.Version,
-			Resource: b.Plural,
-		}
-		out[gvr] = b.Kind + "List"
-	}
-	return out
-}
-
 // ── Readiness / deletion-protection queries ───────────────────────────────────
 
 func SkipObservedGenerationGVKs() []string {

@@ -25,8 +25,8 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	oidcpkg "github.com/intentd/inrun/pkg/gateway/oidc"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // Registrar is the subset of health.HealthServer used here.

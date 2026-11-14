@@ -2,8 +2,11 @@ package types
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
+
+	"github.com/intentd/tools/resolver"
 )
 
 // ServeDenyReason is returned by TokenAllowed to let the caller compose a
@@ -157,6 +160,14 @@ type ServeConfig struct {
 	// When absent, intents apply to the local cluster only.
 	// Every apply fans out to all declared clusters unless a target entry narrows it.
 	Clusters []string `yaml:"clusters,omitempty" json:"clusters,omitempty"`
+}
+
+// FieldNames returns the names of the serve fields, sorted.
+func (s *ServeConfig) FieldNames() []string {
+	if s == nil {
+		return nil
+	}
+	return slices.Sorted(maps.Keys(s.Fields))
 }
 
 // HasClusters reports whether any cluster routing is declared.
@@ -375,6 +386,11 @@ func (f ServeFieldConfig) SpecPath(name string) string {
 // IsNested returns true if the spec path contains a dot.
 func (f ServeFieldConfig) IsNested(name string) bool {
 	return strings.Contains(f.SpecPath(name), ".")
+}
+
+// Field is how the field's value is written into the spec.
+func (f ServeFieldConfig) Field() resolver.Field {
+	return resolver.Field{Path: f.Path, Value: f.Value, Values: f.Values}
 }
 
 // HasValue reports whether a single-destination transform expression is declared.

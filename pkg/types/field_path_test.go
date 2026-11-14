@@ -1,6 +1,10 @@
 package types
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/intentd/tools/condition"
+)
 
 func TestDottedLabelPath(t *testing.T) {
 	data := map[string]interface{}{
@@ -16,7 +20,7 @@ func TestDottedLabelPath(t *testing.T) {
 	if v := NavigateDotPath(data, path); v != "web" {
 		t.Errorf("NavigateDotPath = %q", v)
 	}
-	cond := []Condition{{Field: path, Equals: "web"}}
+	cond := []Condition{{Condition: condition.Condition{Field: path, Equals: "web"}}}
 	if !EvaluateConditions(data, cond, nil, nil) {
 		t.Error("condition on a dotted label path did not match")
 	}

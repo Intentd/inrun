@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/logger"
 )
 
 // ── Merge rules ───────────────────────────────────────────────────────────────

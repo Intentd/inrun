@@ -14,12 +14,12 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/prepare"
 	"github.com/intentd/inrun/pkg/runtime/runners"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // Writer writes one CRD's templates.
@@ -67,7 +67,7 @@ func (w Writer) runGroup(
 	// nil-safe: if CRD has no restrictions, guard is a no-op.
 	guard := w.namespaceGuard()
 
-	labelMgr := labels.NewManager(labels.Config{
+	labelMgr := inrunmeta.NewManager(inrunmeta.Config{
 		Standalone:                w.Blueprint.IsStandaloneGateway(),
 		DeletionProtectionEnabled: w.Blueprint.IsDeletionProtectionEnabled(),
 	})

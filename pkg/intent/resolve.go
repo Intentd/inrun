@@ -2,11 +2,12 @@ package intent
 
 import (
 	"fmt"
+	"github.com/intentd/tools/kube"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 // Target extracts the effective target from a CR's annotations.
@@ -20,12 +21,12 @@ func Target(annotations map[string]string) string {
 	}
 
 	// 1. Check alias first (most specific)
-	if alias, ok := annotations[labels.AnnotationServeAlias]; ok && alias != "" {
+	if alias, ok := annotations[inrunmeta.AnnotationServeAlias]; ok && alias != "" {
 		return alias
 	}
 
 	// 2. Fall back to target
-	if target, ok := annotations[labels.AnnotationServeTarget]; ok && target != "" {
+	if target, ok := annotations[inrunmeta.AnnotationServeTarget]; ok && target != "" {
 		return target
 	}
 
@@ -44,7 +45,7 @@ func SetTarget(obj *unstructured.Unstructured, target string) {
 	if ann == nil {
 		ann = map[string]string{}
 	}
-	ann[labels.AnnotationServeTarget] = target
+	ann[inrunmeta.AnnotationServeTarget] = target
 	obj.SetAnnotations(ann)
 }
 
@@ -54,7 +55,7 @@ func SetTarget(obj *unstructured.Unstructured, target string) {
 // Used by both the webhook and the reconciler to inject .request into
 // the resolver so validation rules can reference intent-vocabulary fields.
 func FromObject(obj map[string]interface{}) map[string]interface{} {
-	return labels.ResolveAnnotationFromObject(obj, labels.AnnotationServeIntent)
+	return kube.JSONAnnotation(obj, inrunmeta.AnnotationServeIntent)
 }
 
 // Decode parses an intent written as JSON or YAML. YAML is converted to JSON

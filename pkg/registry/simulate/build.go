@@ -3,6 +3,7 @@ package simulate
 import (
 	"context"
 	"fmt"
+	kubeutil "github.com/intentd/tools/kube"
 	"io"
 	"net/http"
 	"sort"
@@ -13,11 +14,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/external"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
@@ -25,6 +22,9 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/reconcilers"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kel"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/kubeclient/kubefake"
+	"github.com/intentd/tools/logger"
 	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -171,7 +171,7 @@ func runReconcileLoop(ctx context.Context, crdEntry types.CRDEntry, run reconcil
 
 	deps := reconcile.Deps{
 		Kube:      run.reconcileKube,
-		Event:     event.Discard(),
+		Event:     kubeutil.DiscardEvents(),
 		Blueprint: bp,
 		Registry:  run.peerReg,
 	}

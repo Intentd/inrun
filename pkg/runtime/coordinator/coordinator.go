@@ -2,22 +2,22 @@ package coordinator
 
 import (
 	"context"
+	kubeutil "github.com/intentd/tools/kube"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/event"
 	"github.com/intentd/inrun/pkg/types"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/informer/observe"
 	"github.com/intentd/inrun/pkg/runtime/queue"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // DependencyCoordinator extends the base Controller with dependency‑aware startup.
@@ -55,7 +55,7 @@ func NewDependencyCoordinator(
 	observer *observe.Observer,
 	blueprint *ResourceBlueprint,
 	bp *blueprint.Blueprint,
-	events *event.Event,
+	events *kubeutil.Events,
 	hs domain.Health,
 	queueRegistry *queue.QueueRegistry,
 	defaultWorkqueue *queue.Workqueue,

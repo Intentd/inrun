@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func TestSetTarget(t *testing.T) {
@@ -23,7 +23,7 @@ func TestSetTarget(t *testing.T) {
 	if obj.GetAnnotations()["keep"] != "me" {
 		t.Error("other annotations were dropped")
 	}
-	if obj.GetAnnotations()[labels.AnnotationServeTarget] != "v2" {
+	if obj.GetAnnotations()[inrunmeta.AnnotationServeTarget] != "v2" {
 		t.Error("serve-target annotation not set")
 	}
 }

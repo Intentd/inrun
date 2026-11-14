@@ -6,6 +6,7 @@ import (
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/condition"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,10 +94,10 @@ func TestIsEventAware(t *testing.T) {
 			blueprint: blueprintWithPreReconcile(types.PreReconcileConfig{
 				ReconcileGate: &types.GateConditions{
 					When: types.Conditions{
-						{
+						{Condition: condition.Condition{
 							Field:  "{{ .metadata.name }}",
 							Equals: "app",
-						},
+						}},
 					},
 				},
 			}),

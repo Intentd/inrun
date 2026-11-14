@@ -7,10 +7,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/logger"
+	"github.com/intentd/tools/structured"
 )
 
 // applyLabels applies the three system label invariants plus any user-defined
@@ -26,7 +26,7 @@ import (
 // permits the deletion-protection label removal. On the next reconcile the
 // exempt label is cleaned up without webhook interference.
 func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *template.Resolver) error {
-	mgr := labels.NewManager(labels.Config{
+	mgr := inrunmeta.NewManager(inrunmeta.Config{
 		Standalone:                in.Blueprint.IsStandaloneGateway(),
 		DeletionProtectionEnabled: in.Blueprint.IsDeletionProtectionEnabled(),
 	})
@@ -42,7 +42,7 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 		mgr.EnsureDeletionProtectionLabel(obj, shouldHaveProtection)
 
 		effectiveStrict := in.CRD.IsStrictDeletionProtection(in.Blueprint.IsStrictModeEnabled())
-		currentlyProtected := serverLabels[labels.DeletionProtectionLabel] == labels.DeletionProtectionValue
+		currentlyProtected := serverLabels[inrunmeta.DeletionProtectionLabel] == inrunmeta.DeletionProtectionValue
 		if !shouldHaveProtection && currentlyProtected {
 			effectiveStrict = false
 		}
@@ -66,7 +66,7 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 			resolved[k] = val
 		}
 		// Check for reserved domains
-		if err := labels.CheckReserved("labels", resolved); err != nil {
+		if err := inrunmeta.CheckReserved("labels", resolved); err != nil {
 			return err
 		}
 		mgr.EnsureUserLabels(obj, resolved)
@@ -86,7 +86,7 @@ func applyLabels(ctx context.Context, in Input, obj domain.Object, resolver *tem
 			resolved[k] = val
 		}
 		// Check for reserved domains
-		if err := labels.CheckReserved("annotations", resolved); err != nil {
+		if err := inrunmeta.CheckReserved("annotations", resolved); err != nil {
 			return err
 		}
 		mgr.EnsureUserAnnotations(obj, resolved)

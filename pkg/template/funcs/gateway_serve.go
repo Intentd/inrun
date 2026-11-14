@@ -3,7 +3,7 @@ package funcs
 import (
 	"text/template"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 // serveFuncs — Serve
@@ -37,7 +37,7 @@ func serveFuncs() template.FuncMap {
 //	- path: serveTarget
 //	  value: "{{ getServeTarget . }}"
 func getServeTarget(obj interface{}) string {
-	return metaAnnotationField(obj, labels.AnnotationServeTarget)
+	return metaAnnotationField(obj, inrunmeta.AnnotationServeTarget)
 }
 
 // getServeAlias returns the `inrun.dev/serve-alias` annotation — the alias
@@ -54,7 +54,7 @@ func getServeTarget(obj interface{}) string {
 //	- path: serveAlias
 //	  value: "{{ getServeAlias . }}"
 func getServeAlias(obj interface{}) string {
-	return metaAnnotationField(obj, labels.AnnotationServeAlias)
+	return metaAnnotationField(obj, inrunmeta.AnnotationServeAlias)
 }
 
 // hasServeTarget reports whether the `inrun.dev/serve-target` annotation is
@@ -72,7 +72,7 @@ func getServeAlias(obj interface{}) string {
 //	  - field: "{{ hasServeTarget . }}"
 //	    equals: "true"
 func hasServeTarget(obj interface{}) bool {
-	return metaAnnotationField(obj, labels.AnnotationServeTarget) != ""
+	return metaAnnotationField(obj, inrunmeta.AnnotationServeTarget) != ""
 }
 
 // hasServeAlias reports whether the `inrun.dev/serve-alias` annotation is set
@@ -88,7 +88,7 @@ func hasServeTarget(obj interface{}) bool {
 //	- path: routedVia
 //	  value: "{{ if hasServeAlias . }}alias:{{ getServeAlias . }}{{ else }}direct{{ end }}"
 func hasServeAlias(obj interface{}) bool {
-	return metaAnnotationField(obj, labels.AnnotationServeAlias) != ""
+	return metaAnnotationField(obj, inrunmeta.AnnotationServeAlias) != ""
 }
 
 // isDirectApply reports whether the CR was NOT submitted via the Gateway API —

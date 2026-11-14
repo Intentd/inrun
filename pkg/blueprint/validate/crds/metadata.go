@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 )
 
 // validateCRDEntryMetadata validates the labels: and annotations: blocks
@@ -33,7 +33,7 @@ func (c *checker) validateCRDEntryLabels() error {
 		}
 
 		lbls := crd.Labels
-		if err := labels.CheckReserved("labels", lbls); err != nil {
+		if err := inrunmeta.CheckReserved("labels", lbls); err != nil {
 			return err
 		}
 		for key, value := range lbls {
@@ -72,7 +72,7 @@ func (c *checker) validateCRDEntryAnnotations() error {
 		}
 
 		ann := crd.Annotations
-		if err := labels.CheckReserved("annotations", ann); err != nil {
+		if err := inrunmeta.CheckReserved("annotations", ann); err != nil {
 			return err
 		}
 		for key, value := range ann {

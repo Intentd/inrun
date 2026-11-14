@@ -2,13 +2,13 @@ package post
 
 import (
 	"context"
+	"github.com/intentd/tools/kube"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/children"
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // ValidationResult is the subset of prepare.ValidationResult that post needs
@@ -31,7 +31,7 @@ type ValidationViolation struct {
 type Input struct {
 	CRD      types.CRDEntry
 	Kube     kubeclient.Interface
-	Recorder event.Recorder
+	Recorder kube.EventRecorder
 	// MetricsMap carries live queue/worker/autoscale metrics for resolver enrichment
 	// and metrics annotation injection. Nil is safe — enrichment is skipped.
 	MetricsMap map[string]interface{}

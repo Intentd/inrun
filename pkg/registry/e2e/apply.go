@@ -12,8 +12,8 @@ import (
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
 	"github.com/intentd/inrun/pkg/registry/module"
-	"github.com/intentd/inrun/pkg/tools/cluster"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/cluster"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,6 +43,11 @@ func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 		Spec struct {
 			CRDs map[string]struct {
 				CRDFile string `yaml:"crdFile"`
+				Migrate struct {
+					Transitional struct {
+						CRDFile string `yaml:"crdFile"`
+					} `yaml:"transitional"`
+				} `yaml:"migrate"`
 			} `yaml:"crds"`
 		} `yaml:"spec"`
 	}
@@ -56,14 +61,20 @@ func (r *Runner) applyCRD(ctx context.Context) ([]string, error) {
 	blueprintDir := filepath.Dir(r.blueprintFile)
 	var applied []string
 	for name, entry := range raw.Spec.CRDs {
-		if entry.CRDFile == "" {
+		// A declared transitional CRD holds the old and new paths, so the
+		// gateway's migration can move CRs: it is applied in crdFile's place.
+		file := entry.CRDFile
+		if t := entry.Migrate.Transitional.CRDFile; t != "" {
+			file = t
+		}
+		if file == "" {
 			continue
 		}
-		path := entry.CRDFile
+		path := file
 		if !filepath.IsAbs(path) && !strings.HasPrefix(path, "http") {
 			path = filepath.Join(blueprintDir, path)
 		}
-		fmt.Printf("→ Applying CRD '%s' from %s...\n", name, entry.CRDFile)
+		fmt.Printf("→ Applying CRD '%s' from %s...\n", name, file)
 		if out, err := kubectl.Apply(ctx, kubectl.ApplyOptions{File: path}); err != nil {
 			fmt.Printf("  ! CRD apply failed (continuing): %v\n%s\n", err, out)
 		} else {
@@ -200,7 +211,7 @@ func (r *Runner) applySetup(ctx context.Context) ([]string, error) {
 			}
 		}
 		sp := startSpinner(fmt.Sprintf("Installing %s...", h.ReleaseName()))
-		if err := cluster.HelmInstall(ctx, h); err != nil {
+		if err := cluster.HelmInstall(ctx, h.HelmRelease()); err != nil {
 			sp.Failure()
 			return applied, fmt.Errorf("setup helm %s: %w", h.Chart, err)
 		}
@@ -228,7 +239,7 @@ func runSetupWait(ctx context.Context, w types.SetupWait) error {
 		loc += " (" + w.Namespace + ")"
 	}
 	sp := startSpinner(fmt.Sprintf("Waiting for %s...", loc))
-	if err := cluster.WaitForResource(ctx, w); err != nil {
+	if err := cluster.WaitForResource(ctx, cluster.Wait(w)); err != nil {
 		sp.Failure()
 		return err
 	}

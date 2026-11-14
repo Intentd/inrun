@@ -3,7 +3,7 @@ package template
 import (
 	"context"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 )
 
 type inrunContextKey struct{}

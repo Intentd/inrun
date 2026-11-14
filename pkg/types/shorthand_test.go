@@ -5,50 +5,33 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/intentd/tools/condition"
 )
 
 // Every comparison in the table resolves the same way on a Condition and a
 // ValidationRule, and each type maps every name.
 func TestComparisons_ConditionAndRuleAgree(t *testing.T) {
-	for _, cmp := range append(append([]comparison{}, flags...), comparisons...) {
-		c, r := Condition{Field: "spec.x"}, ValidationRule{Field: "spec.x"}
-		set(t, &c, &r, cmp.name)
+	for _, cmp := range condition.Comparisons() {
+		c, r := Condition{Condition: condition.Condition{Field: "spec.x"}}, ValidationRule{Field: "spec.x"}
+		set(t, &c, &r, cmp.Name)
 
 		op, v := ResolveConditionOp(c)
-		assert.Equal(t, cmp.op, op, cmp.name)
+		assert.Equal(t, cmp.Op, op, cmp.Name)
 		rop, rv := ResolveValidationOp(r)
-		assert.Equal(t, cmp.op, rop, cmp.name)
-		assert.Equal(t, v, rv, cmp.name)
-		assert.Equal(t, cmp.name, RuleTypeLabel(r))
-		assert.Equal(t, []string{cmp.name}, c.Declared())
-		assert.Equal(t, []string{cmp.name}, r.Declared())
-		assert.NoError(t, c.CheckComparison(), cmp.name)
+		assert.Equal(t, cmp.Op, rop, cmp.Name)
+		assert.Equal(t, v, rv, cmp.Name)
+		assert.Equal(t, cmp.Name, RuleTypeLabel(r))
+		assert.Equal(t, []string{cmp.Name}, c.Declared())
+		assert.Equal(t, []string{cmp.Name}, r.Declared())
+		assert.NoError(t, c.CheckComparison(), cmp.Name)
 	}
 }
 
-func TestComparisons_NoneMeansExists(t *testing.T) {
-	op, _ := ResolveConditionOp(Condition{Field: "spec.x"})
-	assert.Equal(t, ConditionExists, op)
-}
-
-func TestComparisons_MoreThanOneRejected(t *testing.T) {
-	err := Condition{Field: "spec.x", Min: "1", Max: "3"}.CheckComparison()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "declares min and max")
-}
-
-func TestComparisons_TypeOfMustBeAType(t *testing.T) {
-	assert.NoError(t, Condition{Field: "spec.x", TypeOf: "slice"}.CheckComparison())
+func TestComparisons_RuleTypeOfMustBeAType(t *testing.T) {
 	err := ValidationRule{Field: "spec.x", TypeOf: "list"}.CheckComparison()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "map, slice, string, number, bool, null")
-}
-
-func TestComparisonNames_FlagsThenValues(t *testing.T) {
-	names := ComparisonNames()
-	assert.Equal(t, "exists", names[0])
-	assert.Contains(t, names, "typeOf")
-	assert.NotContains(t, names, "greaterThanOrEqual")
 }
 
 func set(t *testing.T, c *Condition, r *ValidationRule, name string) {

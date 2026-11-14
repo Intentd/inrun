@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 	"github.com/stretchr/testify/assert"
 )
 

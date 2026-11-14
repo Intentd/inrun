@@ -14,13 +14,13 @@ spec:
       migrate:
         to:
           crdFile: ./manifests/crd-appconfig-cluster.yaml
-          carryStatus: true
+          copyStatus: true
         # prune: true
     platform-appconfig:
       crdFile: ./manifests/crd-appconfig-cluster.yaml
 ```
 
-`carryStatus: true` copies each source's status onto its destination. The destination CRD has a status subresource, so status is written through `/status`. Without `carryStatus` the destination starts with no status and its reconciler writes one. Either way the snapshot keeps the source's status, and rollback restores it.
+`copyStatus: true` copies each source's status onto its destination. The destination CRD has a status subresource, so status is written through `/status`. Without `copyStatus` the destination starts with no status and its reconciler writes one. Either way the snapshot keeps the source's status, and rollback restores it.
 
 ## Walkthrough
 
@@ -95,7 +95,7 @@ payments   Ready   team-a
 search     Ready   team-b
 ```
 
-The status came across with `carryStatus`, and the source labels with the default `preserveSource`. Each destination's snapshot records where it came from, namespace included:
+The status came across with `copyStatus`, and the source labels with the default `preserveSource`. Each destination's snapshot records where it came from, namespace included:
 
 ```bash
 kubectl get appconfig.platform.demo.inrun.dev payments \

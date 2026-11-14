@@ -12,8 +12,8 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/tools/generate"
+	"github.com/intentd/tools/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -223,7 +223,7 @@ import (
 
 	"github.com/intentd/inrun/cmd/cli"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/util/term"
+	"github.com/intentd/tools/term"
 
 	%s
 )

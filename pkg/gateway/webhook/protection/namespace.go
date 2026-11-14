@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/intentd/inrun/pkg/gateway/webhook/admission"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/metrics"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmetrics"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/logger"
 )
 
 // Namespace serves /namespace-protection: it rejects CREATE and UPDATE of a
@@ -41,7 +41,7 @@ func (h *Handler) Namespace(w http.ResponseWriter, r *http.Request) {
 			Str("uid", req.UID).
 			Msgf("%s: blocking CR creation/update in forbidden namespace", namespaceProtection)
 
-		metrics.RecordNamespaceProtectionBlocked(req.Resource.Resource)
+		inrunmetrics.RecordNamespaceProtectionBlocked(req.Resource.Resource)
 		h.namespaceStats.For(kube.GVRKey(req.Resource.Group, req.Resource.Version, req.Resource.Resource)).RecordBlocked()
 
 		admission.Deny(w, rv, fmt.Sprintf(

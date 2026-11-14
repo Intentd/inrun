@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/logger"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,7 +88,7 @@ func (m *k8sManager) EnsureCertificate(ctx context.Context, spec CertificateSpec
 	}
 
 	// 3. Prepare the secret object
-	secretLabels := labels.WithDeletionProtection(spec.BaseLabels)
+	secretLabels := inrunmeta.WithDeletionProtection(spec.BaseLabels)
 	secretLabels["app.kubernetes.io/component"] = "tls"
 
 	secret := &corev1.Secret{

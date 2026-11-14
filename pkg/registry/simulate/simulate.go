@@ -3,11 +3,11 @@ package simulate
 import (
 	"context"
 	"fmt"
+	"github.com/intentd/tools/kube"
 	"time"
 
-	"github.com/intentd/inrun/pkg/event"
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
 	"github.com/intentd/inrun/pkg/runtime/reconcilers"
+	"github.com/intentd/tools/kubeclient/kubefake"
 )
 
 // New returns a Simulator bound to ctx and opts. Call Execute on the returned value.
@@ -116,11 +116,16 @@ func run(ctx context.Context, opts RunOptions) (*Result, error) {
 	// it shares the op log and the store with the base client.
 	withInformer := fakeKube.WithInformer(informer).(*kubefake.Kubeclient)
 
+	// Cached reads of watched kinds, as the observer's informers serve them.
+	stores := newFakeStores(fakeKube, bp, &entry)
+
 	return runReconcileLoop(ctx, entry, reconcileRun{
 		recDeps: reconcilers.Deps{
 			Kube:         fakeKube,
 			Informer:     informer,
-			Event:        event.Discard(),
+			StoreFor:     stores.StoreFor,
+			IndexerFor:   stores.IndexerFor,
+			Event:        kube.DiscardEvents(),
 			Blueprint:    bp,
 			OwnNamespace: outsidePodNamespace,
 		},

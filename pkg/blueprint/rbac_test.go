@@ -578,3 +578,35 @@ func TestGatewayRBACRules_MigrateToPruneDeletesSource(t *testing.T) {
 		t.Errorf("destination rule must not allow delete: %+v", got[0])
 	}
 }
+
+// ── GatewayRBACRules — gateway.clusters token credentials ─────────────
+
+func TestGatewayRBACRules_ClusterTokenSecrets(t *testing.T) {
+	bp := blueprint.NewBlueprintForTest(map[string]types.CRDEntry{"widget": newWidgetCRD("prod")})
+	bp.Gateway = gatewayWithClusters("prod", "staging")
+	bp.Gateway.Clusters.Entries["prod"] = types.GatewayClusterConfig{
+		Endpoint: "https://prod.internal:6443",
+		TokenRef: &types.KubernetesSecretRef{Name: "inrun-prod", Key: "token"},
+		CARef:    &types.KubernetesSecretRef{Name: "inrun-prod", Key: "ca.crt"},
+	}
+	bp.Gateway.Clusters.Entries["staging"] = types.GatewayClusterConfig{
+		Endpoint: "https://staging.internal:6443",
+		TokenRef: &types.KubernetesSecretRef{Name: "inrun-staging", Key: "token"},
+	}
+
+	var secrets, leases bool
+	for _, r := range bp.GatewayRBACRules() {
+		if contains(r.Resources, "secrets") && reflect.DeepEqual(r.ResourceNames, []string{"inrun-prod", "inrun-staging"}) {
+			secrets = reflect.DeepEqual(r.Verbs, []string{"get", "update"})
+		}
+		if contains(r.Resources, "leases") {
+			leases = true
+		}
+	}
+	if !secrets {
+		t.Error("expected get+update on the cluster credential Secrets, by name")
+	}
+	if !leases {
+		t.Error("expected the refresher's Lease rule")
+	}
+}

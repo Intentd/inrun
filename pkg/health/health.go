@@ -11,7 +11,7 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/config"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

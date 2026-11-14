@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 type QueueRegistry struct {

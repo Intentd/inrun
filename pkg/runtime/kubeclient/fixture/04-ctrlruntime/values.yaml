@@ -1,0 +1,4 @@
+runtime:
+  image:
+    repository: ghcr.io/intentd/inrun/pkg/runtime/kubeclient/fixture/04-ctrlruntime
+    tag: latest

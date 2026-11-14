@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"gopkg.in/yaml.v3"
 )
 
@@ -91,6 +91,36 @@ func PopulateMigrateTargetFromCRDFile(entry *types.CRDEntry, blueprintDir string
 	to.APIVersion, to.Kind, to.Plural = apiVersion, file.Kind, file.Plural
 	to.ResolvedCRDFile = path
 	return nil
+}
+
+// ResolveMigrateFiles resolves migrate.from's crdFile and crFiles,
+// migrate.transitional's crdFile and migrate.to's crFiles against
+// blueprintDir. Remote URLs are kept as written.
+func ResolveMigrateFiles(entry *types.CRDEntry, blueprintDir string) {
+	if entry.Migrate == nil {
+		return
+	}
+	resolve := func(path string) string {
+		if path == "" || strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") || filepath.IsAbs(path) {
+			return path
+		}
+		return filepath.Join(blueprintDir, path)
+	}
+	resolveAll := func(paths []string) []string {
+		out := make([]string, len(paths))
+		for i, p := range paths {
+			out[i] = resolve(p)
+		}
+		return out
+	}
+	if from := entry.Migrate.From; from != nil {
+		from.ResolvedCRDFile = resolve(from.CRDFile)
+		from.ResolvedCRFiles = resolveAll(from.CRFiles)
+	}
+	if t := entry.Migrate.Transitional; t != nil {
+		t.ResolvedCRDFile = resolve(t.CRDFile)
+	}
+	entry.Migrate.To.ResolvedCRFiles = resolveAll(entry.Migrate.To.CRFiles)
 }
 
 // PopulateCustomResourcesFromCRDFiles fills apiVersion, kind and

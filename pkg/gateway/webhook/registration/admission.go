@@ -10,8 +10,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/logger"
-	"github.com/intentd/inrun/pkg/util/retry"
+	"github.com/intentd/tools/logger"
+	"github.com/intentd/tools/retry"
 )
 
 // AdmissionRegistry is the part of blueprint.AdmissionRegistry registration reads.

@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/customresources"
+	"github.com/intentd/tools/kube"
 )
 
 // CustomResourceFields are the fields accepted in the remote reconciler
@@ -51,7 +51,7 @@ func BuildCustomResource(in map[string]interface{}, owner domain.Object) (map[st
 		Spec:       f.Spec,
 	}
 
-	spec.Metadata.Labels = labels.StampInrunLabels(spec.Metadata.Labels, owner)
+	spec.Metadata.Labels = inrunmeta.StampInrunLabels(spec.Metadata.Labels, owner)
 	u := customresources.Build(owner, spec)
 	if err := applyMetaOverrides(u.Object, f.Labels, f.Annotations); err != nil {
 		return nil, fmt.Errorf("custom intent: %w", err)

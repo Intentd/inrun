@@ -5,7 +5,7 @@ package admission
 import (
 	"context"
 	"encoding/json"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"testing"
 
 	"k8s.io/utils/ptr"

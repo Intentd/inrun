@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 // handleAdd admits a new object the way handleUpdate admits a change:

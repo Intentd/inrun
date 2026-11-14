@@ -726,6 +726,20 @@ func (c *CRDEntry) HasCRDFile() bool {
 	return c != nil && c.CRDFile != ""
 }
 
+// AppliedCRDFile returns the CRD file Inrun applies for this CRD where it
+// applies CRDs itself (dev mode, e2e): the declared migrate.transitional
+// crdFile, which holds both the old and the new paths so the gateway's
+// migration can move CRs, else crdFile.
+func (c *CRDEntry) AppliedCRDFile() string {
+	if c == nil {
+		return ""
+	}
+	if c.Migrate != nil && c.Migrate.Transitional != nil && c.Migrate.Transitional.CRDFile != "" {
+		return c.Migrate.Transitional.CRDFile
+	}
+	return c.CRDFile
+}
+
 // HasResolvedCRDFile reports whether a CRD file was read and resolved to a
 // local path. Unlike CRDFile, this survives the load phase: the runtime clears
 // CRDFile so the serialized bundle does not reference files that won't exist

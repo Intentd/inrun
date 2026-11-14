@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
 )
 
 func TestSupportedIntentTypesAreSorted(t *testing.T) {

@@ -12,9 +12,9 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/gateway/certmanager"
-	"github.com/intentd/inrun/pkg/kubeclient"
-	"github.com/intentd/inrun/pkg/labels"
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
+	"github.com/intentd/tools/kubeclient"
+	"github.com/intentd/tools/logger"
 )
 
 // webhookTLS is the certificate the webhook server serves. mgr and bundle are
@@ -44,7 +44,7 @@ func ensureTLS(ctx context.Context, cfg *config.Config, bp *blueprint.Blueprint,
 		Namespace:   cfg.Cluster().Namespace(),
 		SecretName:  certmanager.DefaultTLSSecretName,
 		ValidFor:    bp.CertValidForStr(),
-		BaseLabels:  labels.InrunResourceLabels(),
+		BaseLabels:  inrunmeta.InrunResourceLabels(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ensuring TLS secret: %w", err)

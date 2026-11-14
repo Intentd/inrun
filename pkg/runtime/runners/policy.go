@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/template/resources"
 	"github.com/intentd/inrun/pkg/types"
@@ -15,6 +14,7 @@ import (
 	"github.com/intentd/kubewright/core/limitranges"
 	"github.com/intentd/kubewright/core/pdbs"
 	"github.com/intentd/kubewright/core/resourcequotas"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // RunHPAs writes HorizontalPodAutoscaler template entries; runChildren describes how.

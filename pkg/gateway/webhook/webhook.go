@@ -16,9 +16,9 @@ import (
 	"github.com/intentd/inrun/pkg/gateway/webhook/conversion"
 	"github.com/intentd/inrun/pkg/gateway/webhook/protection"
 	"github.com/intentd/inrun/pkg/gateway/webhook/registration"
-	"github.com/intentd/inrun/pkg/logger"
 	"github.com/intentd/inrun/pkg/template"
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/logger"
 )
 
 var _ domain.Component = (*Server)(nil)

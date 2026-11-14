@@ -161,7 +161,7 @@ func TestRewrite_StructRewritten(t *testing.T) {
 	if strings.Contains(src, "informer cache.SharedIndexInformer") {
 		t.Error("informer field should not be in struct — use kube.GetInformer()")
 	}
-	if strings.Contains(src, "ev       event.Recorder") {
+	if strings.Contains(src, "EventRecorder") {
 		t.Error("ev field should not be in struct — use kube.GetEventRecorder()")
 	}
 }
@@ -320,10 +320,10 @@ func (r *WebAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if !strings.Contains(out, `"github.com/intentd/inrun/domain"`) {
 		t.Error("expected domain import to be injected")
 	}
-	if !strings.Contains(out, `"github.com/intentd/inrun/pkg/kubeclient"`) {
+	if !strings.Contains(out, `"github.com/intentd/tools/kubeclient"`) {
 		t.Error("expected kubeclient import to be injected")
 	}
-	if !strings.Contains(out, `"github.com/intentd/inrun/pkg/kubeclient/adapter"`) {
+	if !strings.Contains(out, `"github.com/intentd/inrun/pkg/runtime/kubeclient/adapter"`) {
 		t.Error("expected adapter import to be injected")
 	}
 

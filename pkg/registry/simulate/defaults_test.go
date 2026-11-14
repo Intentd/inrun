@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake"
+	"github.com/intentd/tools/kubeclient/kubefake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"

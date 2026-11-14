@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 	"github.com/intentd/kubewright/core/jobs"
 	kwtypes "github.com/intentd/kubewright/core/types"
 )
@@ -57,7 +57,7 @@ func BuildJob(in map[string]interface{}, owner domain.Object) (map[string]interf
 		InitContainers: f.InitContainers,
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	obj := jobs.Build(owner, spec)
 
 	rawMap, err := toObjectMap(obj, "batch/v1", "Job")

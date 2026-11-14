@@ -2,11 +2,12 @@ package children
 
 import (
 	"context"
+	kubechildren "github.com/intentd/tools/children"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/kubeclient"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/kubeclient"
 )
 
 // ReadChildren reads all child resources declared in the Blueprint's onCreate
@@ -80,7 +81,7 @@ func ReadChildren(
 		// synthesize .children.replicaset from the active RS embedded in _replicaSets.
 		// This makes replicaSetOwnerName and replicaSetOwnerKind work on .children.replicaset.
 		if crd.ShouldEnrich("replicasets") && len(templates.ReplicaSets) == 0 {
-			if rsGroup := activeReplicaSetGroup(m); len(rsGroup) > 0 {
+			if rsGroup := kubechildren.ActiveReplicaSetGroup(m); len(rsGroup) > 0 {
 				children["replicasets"] = rsGroup
 				children["replicaset"] = firstValue(rsGroup)
 			}

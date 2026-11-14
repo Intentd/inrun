@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/intentd/inrun/domain"
-	"github.com/intentd/inrun/pkg/labels"
+	"github.com/intentd/inrun/pkg/util/inrunmeta"
 
 	"github.com/intentd/kubewright/core/ingresses"
 	"github.com/intentd/kubewright/core/networkpolicies"
@@ -252,7 +252,7 @@ func IngressSpec(src types.IngressTemplateSource, owner domain.Object) ingresses
 		}
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -346,7 +346,7 @@ func NetworkPolicySpec(src types.NetworkPolicyTemplateSource, owner domain.Objec
 		spec.Labels[k] = v
 	}
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }
 
@@ -396,10 +396,10 @@ func ServiceSpec(src types.ServiceTemplateSource, owner domain.Object) services.
 	for k, v := range src.Selector {
 		spec.Selector[k] = v
 	}
-	spec.Selector[labels.InrunOwner] = owner.GetName()
+	spec.Selector[inrunmeta.InrunOwner] = owner.GetName()
 
 	// System labels
 
-	spec.Labels = labels.StampInrunLabels(spec.Labels, owner)
+	spec.Labels = inrunmeta.StampInrunLabels(spec.Labels, owner)
 	return spec
 }

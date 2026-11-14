@@ -14,9 +14,12 @@ spec:
     appconfig:
       crdFile: ./manifests/crd-appconfig.yaml
       migrate:
+        # CRs to seed for inrun migrate rehearse.
+        from:
+          crFiles: [./manifests/crs.yaml]
         to:
           crdFile: ./manifests/crd-appconfig-cluster.yaml
-          carryStatus: true
+          copyStatus: true
         # prune: true    # deletes each source once migrated; or for one run: inrun migrate --kind AppConfig --set prune=true --yes
     platform-appconfig:
       crdFile: ./manifests/crd-appconfig-cluster.yaml

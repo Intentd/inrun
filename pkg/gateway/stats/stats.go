@@ -7,8 +7,8 @@ package stats
 import (
 	"net/http"
 
-	"github.com/intentd/inrun/pkg/util/kube"
-	"github.com/intentd/inrun/pkg/util/version"
+	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/version"
 
 	"github.com/intentd/inrun/pkg/util/httpapi"
 

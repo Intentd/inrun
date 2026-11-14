@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

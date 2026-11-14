@@ -5,10 +5,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/intentd/inrun/pkg/kubeclient/kubefake/object"
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/inrun/pkg/util/structured"
+	"github.com/intentd/tools/kubeclient/kubefake/object"
+	"github.com/intentd/tools/structured"
 )
 
 // templateOnly lists, per pod kind, the template fields kubewright's spec has

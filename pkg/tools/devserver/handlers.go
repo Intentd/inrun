@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/logger"
+	"github.com/intentd/tools/logger"
 )
 
 func registerHandlers(mux *http.ServeMux) {

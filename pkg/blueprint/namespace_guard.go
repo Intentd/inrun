@@ -3,7 +3,7 @@ package blueprint
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/util/kube"
+	"github.com/intentd/tools/kube"
 )
 
 // NamespaceRuleEntry holds the raw allowed/restricted namespace lists for one CRD.

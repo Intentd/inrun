@@ -13,9 +13,9 @@ GOOS        ?= linux
 GOARCH      ?= amd64
 CGO_ENABLED  = 0
 
-INRUN_LDFLAGS := -X github.com/intentd/inrun/pkg/util/version.Version=$(GIT_VERSION) \
-               -X github.com/intentd/inrun/pkg/util/version.Commit=$(GIT_COMMIT) \
-               -X github.com/intentd/inrun/pkg/util/version.Date=$(GIT_DATE)
+INRUN_LDFLAGS := -X github.com/intentd/tools/version.Version=$(GIT_VERSION) \
+               -X github.com/intentd/tools/version.Commit=$(GIT_COMMIT) \
+               -X github.com/intentd/tools/version.Date=$(GIT_DATE)
 
 # ── registry ──────────────────────────────────────────────────────────────────
 # Generates pkg/typeregistry/zz_generated_typeregistry.go.

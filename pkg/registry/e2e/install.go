@@ -3,7 +3,7 @@ package e2e
 import (
 	"fmt"
 
-	"github.com/intentd/inrun/pkg/tools/cluster"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
 	"github.com/intentd/inrun/pkg/types"
 	"gopkg.in/yaml.v3"
 )
@@ -30,12 +30,12 @@ func (r *Runner) installInrun() error {
 		text = " gateway only..."
 	}
 
-	runtimeInstalled := cluster.RuntimeInstalled()
-	gatewayInstalled := cluster.GatewayInstalled()
+	runtimeInstalled := inruncluster.RuntimeInstalled()
+	gatewayInstalled := inruncluster.GatewayInstalled()
 
 	if !runtimeInstalled && !gatewayInstalled {
 		sp := startSpinner("Installing Inrun" + text)
-		if err := cluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
+		if err := inruncluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
 			sp.Failure()
 			return fmt.Errorf("helm install: %w", err)
 		}
@@ -45,29 +45,29 @@ func (r *Runner) installInrun() error {
 		// 1. helm upgrade applies this import's values.
 		// 2. SyncRuntime/SyncGateway restarts the pod to load the updated bundle ConfigMap.
 		sp := startSpinner("Upgrading Inrun" + text)
-		if err := cluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
+		if err := inruncluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
 			sp.Failure()
 			return fmt.Errorf("helm upgrade: %w", err)
 		}
 		sp.Success()
 
 		if !r.noRuntime {
-			if err := cluster.SyncRuntime(); err != nil {
+			if err := inruncluster.SyncRuntime(); err != nil {
 				return fmt.Errorf("syncing Inrun runtime: %w", err)
 			}
 		}
 
 		if gatewayEnabled {
-			if cluster.GatewayInstalled() {
+			if inruncluster.GatewayInstalled() {
 				sp := startSpinner("→ Restarting gateway to load updated configuration...")
-				if err := cluster.SyncGateway(); err != nil {
+				if err := inruncluster.SyncGateway(); err != nil {
 					sp.Failure()
 					return fmt.Errorf("syncing Inrun gateway: %w", err)
 				}
 				sp.Success()
 			} else {
 				sp := startSpinner("Upgrading Inrun to enable gateway...")
-				if err := cluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
+				if err := inruncluster.InstallOrUpgradeInrun(r.inrunChart, r.inrunVersion, r.valueFiles, r.helmArgs...); err != nil {
 					sp.Failure()
 					return fmt.Errorf("helm upgrade (gateway): %w", err)
 				}
@@ -77,14 +77,14 @@ func (r *Runner) installInrun() error {
 	}
 
 	if !r.noRuntime {
-		status := cluster.CheckRuntimeHealth()
+		status := inruncluster.CheckRuntimeHealth()
 		if !status.Running {
 			return fmt.Errorf("Inrun runtime not ready: %s", status.Reason)
 		}
 	}
 
 	if gatewayEnabled {
-		status := cluster.CheckGatewayHealth()
+		status := inruncluster.CheckGatewayHealth()
 		if !status.Running {
 			return fmt.Errorf("Inrun gateway not ready: %s", status.Reason)
 		}
