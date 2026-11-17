@@ -1321,10 +1321,28 @@
           ],
           "description": "From is the schema CRs are stored under before the migration, and CR\nfiles in it. Field level needs it to rehearse (the CRD's crdFile is the\nnew schema); kind level defaults to the CRD's own crdFile."
         },
-        "prune": {
-          "description": "Prune deletes each source once its destination holds every source\nfield. Kind level only; the CLI asks first unless --yes.",
+        "lifecycle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MigrateLifecycle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Lifecycle is what happens to each source once its destination holds\nevery source field. Kind level only."
+        },
+        "needs": {
+          "description": "Needs names the CRDs (spec.crds keys) whose migrations must be done\nbefore this one: the same objects moved twice, or a destination\nanother migration creates.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
           "type": [
-            "boolean",
+            "array",
             "null"
           ]
         },
@@ -5897,6 +5915,43 @@
       },
       "type": "object"
     },
+    "MigrateLifecycle": {
+      "additionalProperties": false,
+      "description": "MigrateLifecycle is migrate.lifecycle: what a kind migration does with each source after its move.",
+      "properties": {
+        "children": {
+          "description": "Children is what happens to the objects the source owns when it is\npruned: reparent (to the destination), orphan or delete. Required when\na source has children; one with children and no policy is not pruned.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "finalizers": {
+          "description": "Finalizers are the finalizers that may be removed from a source before\nit is pruned. A source with any other finalizer is not pruned.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "prune": {
+          "description": "Prune deletes the source. The CLI asks first unless --yes.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "MigrateSelection": {
       "additionalProperties": false,
       "description": "MigrateSelection restricts which CRs a migration touches; every set field must match.",
@@ -9918,7 +9973,7 @@
       "description": "ServeFieldMigrate holds the schema migration source for a serve field.",
       "properties": {
         "from": {
-          "description": "From is the dot-notation spec path where the value currently lives.",
+          "description": "From is the dot-notation spec path where the value currently lives:\n\"replicas\", \"spec.replicas\" and \".spec.replicas\" name the same field.",
           "type": [
             "string",
             "number",

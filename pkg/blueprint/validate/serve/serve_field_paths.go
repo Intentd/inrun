@@ -70,7 +70,21 @@ func (c *checker) validateServeFieldPaths() error {
 			if !config.HasMigrate() {
 				continue
 			}
-			from := strings.TrimPrefix(config.MigrateFrom(), "spec.")
+			from := config.Migrate.SpecPath()
+
+			// 4. migrate.from is a spec path: "x", "spec.x" and ".spec.x" are
+			//    the same field; anything outside spec is not.
+			raw := strings.TrimPrefix(strings.TrimSpace(config.MigrateFrom()), ".")
+			for _, outside := range []string{"status", "metadata", "apiVersion", "kind"} {
+				if raw == outside || strings.HasPrefix(raw, outside+".") {
+					return fmt.Errorf("%s CRD %q: serve.fields %q has migrate.from %q outside spec: a migration moves spec fields only",
+						failureMark(), crdName, name, config.MigrateFrom())
+				}
+			}
+			if err := validatePathFormat(from); err != nil {
+				return fmt.Errorf("%s CRD %q: serve.fields %q has invalid migrate.from %q: %w",
+					failureMark(), crdName, name, config.MigrateFrom(), err)
+			}
 
 			// 5. Duplicate migrate.from: two fields reading from the same old path.
 			//    The second field would silently skip on every run — the first

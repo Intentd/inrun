@@ -20,6 +20,8 @@ serve:
         from: replicas
 ```
 
+`migrate.from` is a spec path: `replicas`, `spec.replicas` and `.spec.replicas` name the same field, and a path under `status` or `metadata` is refused.
+
 New intents land in the new shape from the start. `inrun migrate` reads each stored CR's old path, runs the same transform the gateway applies on every write, and writes the result to the new path. One declaration drives both the live writes and the one-time backfill, so they cannot disagree.
 
 !!! note "Moving a field needs a transitional CRD"
@@ -42,7 +44,55 @@ spec:
               equals: Ready
 ```
 
-Each selected source is rebuilt as a destination CR and applied. Before writing, a dry-run apply refuses a destination that would drop or change a source field, and name collisions fail rather than overwrite (a namespaced to cluster-scoped move makes names unique cluster-wide). `migrate.to.copyStatus` copies the status across. `prune` deletes a source only once the destination holds every source field, and only if the source hasn't changed since it was read.
+Each selected source is rebuilt as a destination CR and applied. Before writing, a dry-run apply refuses a destination that would drop or change a source field, and name collisions fail rather than overwrite (a namespaced to cluster-scoped move makes names unique cluster-wide). `migrate.to.copyStatus` copies the status across.
+
+## Lifecycle: what happens to each source
+
+By default a source stays where it is once its destination is written. `migrate.lifecycle` deletes it:
+
+```yaml
+migrate:
+  to:
+    crdFile: ./manifests/crd-newconfig.yaml
+  lifecycle:
+    prune: true
+    children: reparent        # or orphan, or delete
+    finalizers:
+      - example.io/cleanup
+```
+
+- `prune` deletes a source only once the destination holds every source field, and only if the source hasn't changed since it was read.
+- `children` is what happens to the objects the source owns (by owner reference): `reparent` moves them to the destination, `orphan` keeps them without an owner, `delete` deletes them with the source. A source with children and no policy is not pruned.
+- `finalizers` are the finalizers the migration may remove before deleting a source. A source with any other finalizer is not pruned.
+
+`children` and `finalizers` need `prune`, and validation refuses Kubernetes' own finalizers. The CLI asks before pruning unless `--yes`; `--dry-run` lists what would be deleted.
+
+The gateway never prunes. When it migrates at startup (`--migrate`), it moves the sources, skips the lifecycle and logs a warning for each CRD that declares `prune`, so its role needs no `delete` on sources. Pruning is a step a person runs with `inrun migrate`.
+
+## Needs: migrations in order
+
+`migrate.needs` names the CRDs (their `spec.crds` keys) whose migrations run first: the same CRs moved twice, or a destination another migration creates.
+
+```yaml
+spec:
+  crds:
+    appconfig:
+      migrate:
+        to:
+          crdFile: ./manifests/crd-newconfig.yaml
+    newconfig:
+      crdFile: ./manifests/crd-newconfig.yaml
+      serve:
+        fields:
+          replicas:
+            path: scaling.min
+            migrate:
+              from: replicas
+      migrate:
+        needs: [appconfig]
+```
+
+Every run goes in that order, and rollback in reverse. A run limited with `--kind` still checks the others: it refuses to migrate while a migration its kind needs is pending, and to roll back while a migration that needs it is applied. Each name must be a CRD that declares a migration, and the needs can't form a cycle. When field migrations of one kind need each other, the generated transitional CRD covers every path along the chain.
 
 ## Selection
 
@@ -55,12 +105,12 @@ inrun migrate --dry-run
 inrun migrate
 ```
 
-`--kind` limits a run to one CRD and `-o json` gives machine-readable output. Migration can also run before anything is served: `inrun --migrate` (or `inrun gate run --migrate`, as the gateway runs in a cluster) migrates first.
+`--kind` limits a run to one CRD and `-o json` gives machine-readable output. Migration can also run before anything is served: `inrun --migrate` (or `inrun gate run --migrate`, as the gateway runs in a cluster) migrates first, without the lifecycle.
 
 `--set` changes a kind's `migrate` block for one run without editing the Blueprint, keys relative to it. It needs `--kind` for one kind or `--all` (`-A`) for every kind that declares a migration, and the result is validated like the Blueprint:
 
 ```bash
-inrun migrate --kind AppConfig --set prune=true --yes
+inrun migrate --kind AppConfig --set lifecycle.prune=true --yes
 ```
 
 ## Rollback

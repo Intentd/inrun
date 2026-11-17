@@ -51,6 +51,45 @@ func TestValidateServeFieldPaths_DuplicateMigrateFrom_SpecPrefixCollision(t *tes
 	}
 }
 
+func TestValidateServeFieldPaths_DuplicateMigrateFrom_LeadingDotCollision(t *testing.T) {
+	// .spec.oldKey is spec.oldKey written as a JSON path.
+	e := blueprintWithServe(&types.ServeConfig{
+		Enabled:   true,
+		Namespace: "default",
+		Fields: map[string]types.ServeFieldConfig{
+			"newA": migrateField("dest.a", ".spec.oldKey"),
+			"newB": migrateField("dest.b", "oldKey"),
+		},
+	})
+	if err := e.validateServeFieldPaths(); err == nil {
+		t.Fatal("expected error: .spec.oldKey and oldKey resolve to the same from-path")
+	}
+}
+
+func TestValidateServeFieldPaths_MigrateFromOutsideSpec_Errors(t *testing.T) {
+	for _, from := range []string{"status.ready", ".metadata.labels.app", "kind", "spec.", ".", "spec..a"} {
+		e := blueprintWithServe(&types.ServeConfig{
+			Enabled:   true,
+			Namespace: "default",
+			Fields:    map[string]types.ServeFieldConfig{"newA": migrateField("dest.a", from)},
+		})
+		if err := e.validateServeFieldPaths(); err == nil {
+			t.Errorf("migrate.from %q accepted", from)
+		}
+	}
+}
+
+func TestServeFieldMigrate_SpecPath(t *testing.T) {
+	for _, from := range []string{"a.b", "spec.a.b", ".spec.a.b", " .spec.a.b "} {
+		if got := (&types.ServeFieldMigrate{From: from}).SpecPath(); got != "a.b" {
+			t.Errorf("SpecPath(%q) = %q, want a.b", from, got)
+		}
+	}
+	if got := (*types.ServeFieldMigrate)(nil).SpecPath(); got != "" {
+		t.Errorf("nil SpecPath = %q", got)
+	}
+}
+
 func TestValidateServeFieldPaths_UniqueMigrateFrom_OK(t *testing.T) {
 	e := blueprintWithServe(&types.ServeConfig{
 		Enabled:   true,

@@ -56,7 +56,8 @@ func TestDeclarationFor_Kind(t *testing.T) {
 			From: &types.CRMigrateSource{ResolvedCRFiles: []string{"/bp/apps.yaml"}},
 			To: types.CRMigrateTarget{APIVersion: "new.io/v1", Kind: "App", ResolvedCRDFile: "/bp/new-crd.yaml",
 				CopyStatus: true, ResolvedCRFiles: []string{"/bp/existing.yaml"}},
-			Prune: true,
+			Lifecycle: &types.MigrateLifecycle{Prune: true, Children: "orphan", Finalizers: []string{"example.io/cleanup"}},
+			Needs:     []string{"website"},
 		},
 	}
 	d := declarationFor(crd)
@@ -66,7 +67,8 @@ func TestDeclarationFor_Kind(t *testing.T) {
 	assert.Equal(t, "/bp/new-crd.yaml", d.To.Schema)
 	assert.Equal(t, []string{"/bp/existing.yaml"}, d.To.Objects)
 	assert.True(t, d.To.CopyStatus)
-	assert.True(t, d.Prune)
+	assert.Equal(t, &declaration.Lifecycle{Prune: true, Children: "orphan", Finalizers: []string{"example.io/cleanup"}}, d.Lifecycle)
+	assert.Equal(t, []string{"website"}, d.Needs)
 }
 
 func TestAppliedCRDFile(t *testing.T) {

@@ -63,7 +63,11 @@ Example:
 		if err != nil {
 			return err
 		}
-		r := &rehearse.Rehearsal{File: f, Engine: migrate.Engine(kube, bp.UserFunctions()), Cluster: rehearse.KubeCluster{Kube: kube}}
+		e, err := migrate.Engine(kube, bp.UserFunctions())
+		if err != nil {
+			return err
+		}
+		r := &rehearse.Rehearsal{File: f, Engine: e, Cluster: rehearse.KubeCluster{Kube: kube}}
 		if output != "json" {
 			r.Step = func(s rehearse.Step) { fmt.Fprintln(cmd.OutOrStdout(), s) }
 		}

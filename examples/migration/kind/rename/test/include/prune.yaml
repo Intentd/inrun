@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
 # Prune: a forward run with prune removes the migrated sources
 expect:
-  # --- prune: forward with --set prune=true --yes ---
+  # --- prune: forward with --set lifecycle.prune=true --yes ---
   - name: Patch Platform-03 status back to Ready
     kubectl: 
       patch:
@@ -14,7 +14,7 @@ expect:
   - name: Forward with --yes prunes the three selected sources
     timeout: 60s
     commands:
-      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true --yes
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set lifecycle.prune=true --yes
         contains: "3 sources pruned"
 
   - name: Pruned sources are gone; destinations and the gateway CR remain and labelled

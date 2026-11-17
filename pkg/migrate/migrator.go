@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -105,8 +104,11 @@ type MigratorOpts struct {
 	Name       string
 	Selector   string
 	Force      bool
-	Log        *zerolog.Logger
-	Progress   func(label string, done, total int)
+	// NoLifecycle runs kind migrations without their migrate.lifecycle:
+	// sources are moved, never pruned. The gateway runs this way at startup.
+	NoLifecycle bool
+	Log         *zerolog.Logger
+	Progress    func(label string, done, total int)
 }
 
 // New returns a Migrator for mode. A nil opts.Log uses the context logger.
@@ -121,28 +123,48 @@ func New(ctx context.Context, kube client.Interface, funcs types.KELFunctionRegi
 // Run runs every migration bp declares, or only Kind's when set. Results are
 // in blueprint order; a kind-level error is returned with the results so far.
 func (m *Migrator) Run(ctx context.Context, bp *blueprint.Blueprint) ([]*KindMigrateResult, error) {
-	var ms kome.Migrations
-	labels := map[string]string{}
-	matched := false
-	for _, name := range bp.CRDNames() {
-		entry, ok := bp.CRDEntry(name)
-		if !ok || !entry.HasAnyMigrate() {
-			continue
+	// Every migration, in needs order: those a run leaves out are still
+	// checked, so one never runs while a migration it needs is pending.
+	f, err := Declaration(bp, "")
+	if err != nil {
+		return nil, err
+	}
+	order, err := f.Order()
+	if err != nil {
+		return nil, err
+	}
+	neededBy := map[string][]string{}
+	for _, name := range order {
+		for _, need := range f.Migrations[name].Needs {
+			neededBy[need] = append(neededBy[need], name)
 		}
+	}
+	var all, ms kome.Migrations
+	labels := map[string]string{}
+	for _, name := range order {
+		entry, _ := bp.CRDEntry(name)
+		mig, label := migrationFor(name, &entry)
+		if m.Opts.NoLifecycle {
+			mig.Kind.Prune, mig.Kind.Children, mig.Kind.Finalizers = false, "", nil
+		}
+		mig.NeededBy = neededBy[name]
+		all = append(all, mig)
 		if m.Kind != "" && entry.GVK().Kind != m.Kind {
 			continue
 		}
-		matched = true
-		mig, label := migrationFor(name, &entry)
 		ms = append(ms, mig)
 		labels[mig.Name] = label
 	}
-	if m.Kind != "" && !matched {
+	if m.Kind != "" && len(ms) == 0 {
 		return nil, fmt.Errorf("no CRD of kind %q declares a migration", m.Kind)
 	}
 
-	e := Engine(m.Kube, m.Functions)
+	e, err := Engine(m.Kube, m.Functions)
+	if err != nil {
+		return nil, err
+	}
 	o := kome.Options{
+		All:    all,
 		DryRun: m.Opts.DryRun, Strict: m.Opts.Strict, Force: m.Opts.Force, PageSize: m.Opts.PageSize,
 		Scope: engine.Selection{Namespaces: m.Opts.Namespaces, Name: m.Opts.Name, Selector: m.Opts.Selector},
 		// The gateway migrates under the CRD it serves;
@@ -154,7 +176,6 @@ func (m *Migrator) Run(ctx context.Context, bp *blueprint.Blueprint) ([]*KindMig
 	}
 
 	var results []*engine.Result
-	var err error
 	switch m.Mode {
 	case ModeRollback:
 		results, err = e.Down(ctx, ms, o)
@@ -188,7 +209,11 @@ func Migrations(f *declaration.File) (kome.Migrations, error) {
 
 // Engine is KOME's engine as Inrun runs it: the inrun.dev annotations, the
 // gateway's field manager, and templates with the Blueprint's functions.
-func Engine(kube client.Interface, funcs types.KELFunctionRegistry) *kome.Engine {
+func Engine(kc client.Interface, funcs types.KELFunctionRegistry) (*kome.Engine, error) {
+	kube, err := kome.KubeForConfig(kc.RestConfig(), kc.RESTMapper())
+	if err != nil {
+		return nil, err
+	}
 	return &kome.Engine{
 		Kube:         kube,
 		Prefix:       inrunmeta.ReservedDomain,
@@ -196,7 +221,7 @@ func Engine(kube client.Interface, funcs types.KELFunctionRegistry) *kome.Engine
 		Resolver: func(data map[string]any) *resolver.Resolver {
 			return template.NewResolverFromMap(data).WithUserFunctions(funcs).Core()
 		},
-	}
+	}, nil
 }
 
 // migrationFor is the KOME migration a CRD declares, and its progress label.
@@ -218,10 +243,12 @@ func migrationFor(name string, crd *types.CRDEntry) (kome.Migration, string) {
 			Annotations:    crd.Migrate.To.Metadata.Annotations,
 			PreserveSource: crd.ShouldPreserveMeta(),
 			CopyStatus:     crd.Migrate.To.CopyStatus,
-			Prune:          crd.Migrate.Prune,
 			Selection:      sel,
 		}
-		return kome.Migration{Name: name, Level: declaration.LevelKind, Kind: km}, gvk.Kind + " → " + destinationLabel(gvk, to)
+		if l := crd.Migrate.Lifecycle; l != nil {
+			km.Prune, km.Children, km.Finalizers = l.Prune, l.Children, l.Finalizers
+		}
+		return kome.Migration{Name: name, Level: declaration.LevelKind, Needs: crd.Migrate.Needs, Kind: km}, gvk.Kind + " → " + destinationLabel(gvk, to)
 	}
 	fm := field.Migration{Name: name, GVK: gvk, Selection: sel}
 	for _, key := range crd.Serve.FieldNames() {
@@ -231,11 +258,15 @@ func migrationFor(name string, crd *types.CRDEntry) (kome.Migration, string) {
 		}
 		fm.Moves = append(fm.Moves, field.Move{
 			Key:   key,
-			From:  strings.TrimPrefix(cfg.MigrateFrom(), "spec."),
+			From:  cfg.Migrate.SpecPath(),
 			Field: cfg.Field(),
 		})
 	}
-	return kome.Migration{Name: name, Level: declaration.LevelField, Field: fm}, gvk.Kind
+	var needs []string
+	if crd.Migrate != nil {
+		needs = crd.Migrate.Needs
+	}
+	return kome.Migration{Name: name, Level: declaration.LevelField, Needs: needs, Field: fm}, gvk.Kind
 }
 
 func destinationLabel(from, to schema.GroupVersionKind) string {

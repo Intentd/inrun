@@ -35,7 +35,8 @@ spec:
           when:
             - field: status.phase
               equals: Ready
-        # prune: true    # deletes each source once migrated; or for one run: inrun migrate --kind AppConfig --set prune=true --yes
+        # lifecycle:       # what happens to each source once migrated
+        #   prune: true    # delete it; or for one run: inrun migrate --kind AppConfig --set lifecycle.prune=true --yes
       serve:
         enabled: true
         target: my-api-server

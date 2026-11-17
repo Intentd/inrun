@@ -29,9 +29,39 @@ type CRMigrate struct {
 	// Selection restricts which CRs are migrated. Empty means all.
 	Selection MigrateSelection `yaml:"selection,omitempty" json:"selection,omitempty"`
 
-	// Prune deletes each source once its destination holds every source
-	// field. Kind level only; the CLI asks first unless --yes.
+	// Lifecycle is what happens to each source once its destination holds
+	// every source field. Kind level only.
+	Lifecycle *MigrateLifecycle `yaml:"lifecycle,omitempty" json:"lifecycle,omitempty"`
+
+	// Needs names the CRDs (spec.crds keys) whose migrations must be done
+	// before this one: the same objects moved twice, or a destination
+	// another migration creates.
+	Needs []string `yaml:"needs,omitempty" json:"needs,omitempty"`
+}
+
+// MigrateLifecycle is migrate.lifecycle: what a kind migration does with each
+// source after its move.
+type MigrateLifecycle struct {
+	// Prune deletes the source. The CLI asks first unless --yes.
 	Prune bool `yaml:"prune,omitempty" json:"prune,omitempty"`
+	// Children is what happens to the objects the source owns when it is
+	// pruned: reparent (to the destination), orphan or delete. Required when
+	// a source has children; one with children and no policy is not pruned.
+	Children string `yaml:"children,omitempty" json:"children,omitempty"`
+	// Finalizers are the finalizers that may be removed from a source before
+	// it is pruned. A source with any other finalizer is not pruned.
+	Finalizers []string `yaml:"finalizers,omitempty" json:"finalizers,omitempty"`
+}
+
+// Prunes reports whether the migration deletes its sources. Nil-safe.
+func (m *CRMigrate) Prunes() bool { return m != nil && m.Lifecycle != nil && m.Lifecycle.Prune }
+
+// NeedsOrNil returns migrate.needs. Nil-safe.
+func (m *CRMigrate) NeedsOrNil() []string {
+	if m == nil {
+		return nil
+	}
+	return m.Needs
 }
 
 // ShouldPreserveMeta reports whether source labels and annotations are

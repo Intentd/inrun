@@ -5,7 +5,7 @@ expect:
   - name: Prune the three migrated sources only
     timeout: 60s
     commands:
-      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true -n team-a,team-b,team-d --yes
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set lifecycle.prune=true -n team-a,team-b,team-d --yes
         contains: "3 sources pruned"
 
   - name: Pruned sources are gone and their destinations remain
@@ -57,7 +57,7 @@ expect:
   - name: Repeating the prune command is idempotent
     timeout: 60s
     commands:
-      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true -n team-a,team-b,team-d --yes -ojson
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set lifecycle.prune=true -n team-a,team-b,team-d --yes -ojson
         json:
           - path: .totals.crs
             equals: 0

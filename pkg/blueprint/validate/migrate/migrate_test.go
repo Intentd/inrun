@@ -207,14 +207,38 @@ func TestValidateCRMigrate_PruneWarning(t *testing.T) {
 			APIVersion: "test.migrate/v1",
 			Kind:       "App",
 		},
-		Prune: true,
+		Lifecycle: &types.MigrateLifecycle{Prune: true, Children: "reparent"},
 	})
 	require.NoError(t, c.validateMigrate())
 
 	w := crdPtr(c, "app").Warnings
 	require.True(t, w.HasWarnings())
-	assert.Contains(t, w.String(), "migrate.prune")
+	assert.Contains(t, w.String(), "migrate.lifecycle.prune")
 	assert.Contains(t, w.String(), "destructive")
+	assert.Contains(t, w.String(), "does not prune at startup")
+}
+
+func TestValidateCRMigrate_LifecycleCheckedAsKOMEDoes(t *testing.T) {
+	for name, tc := range map[string]struct {
+		lc   types.MigrateLifecycle
+		want string
+	}{
+		"unknown children policy":     {types.MigrateLifecycle{Prune: true, Children: "adopt"}, "migrate.lifecycle.children"},
+		"children without prune":      {types.MigrateLifecycle{Children: "orphan"}, "set lifecycle.prune"},
+		"finalizers without prune":    {types.MigrateLifecycle{Finalizers: []string{"example.io/cleanup"}}, "set lifecycle.prune"},
+		"a Kubernetes finalizer":      {types.MigrateLifecycle{Prune: true, Finalizers: []string{"kubernetes.io/pv-protection"}}, "belongs to Kubernetes"},
+		"a finalizer listed twice":    {types.MigrateLifecycle{Prune: true, Finalizers: []string{"example.io/a", "example.io/a"}}, "listed twice"},
+		"a finalizer that is no name": {types.MigrateLifecycle{Prune: true, Finalizers: []string{"not a name"}}, "migrate.lifecycle.finalizers"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			lc := tc.lc
+			c := blueprintWithMigrate(&types.CRMigrate{
+				To:        types.CRMigrateTarget{APIVersion: "test.migrate/v1", Kind: "App"},
+				Lifecycle: &lc,
+			})
+			assert.ErrorContains(t, c.validateMigrate(), tc.want)
+		})
+	}
 }
 
 // ── plural warning ────────────────────────────────────────────────────────────
@@ -241,7 +265,9 @@ func TestValidateCRMigrate_PluralNoWarning(t *testing.T) {
 			Kind:       "App",
 			Plural:     "apps",
 		},
-		Prune: false,
+		Lifecycle: &types.MigrateLifecycle{
+			Prune: false,
+		},
 	})
 	require.NoError(t, c.validateMigrate())
 
@@ -256,7 +282,9 @@ func TestValidateCRMigrate_NoPruneNoWarning(t *testing.T) {
 			Kind:       "App",
 			Plural:     "apps",
 		},
-		Prune: false,
+		Lifecycle: &types.MigrateLifecycle{
+			Prune: false,
+		},
 	})
 	require.NoError(t, c.validateMigrate())
 	assert.False(t, crdPtr(c, "app").Warnings.HasWarnings())
@@ -272,7 +300,9 @@ func TestValidateCRMigrate_InvalidDoesNotWarn(t *testing.T) {
 		To: types.CRMigrateTarget{
 			Kind: "App", // APIVersion missing
 		},
-		Prune: true,
+		Lifecycle: &types.MigrateLifecycle{
+			Prune: true,
+		},
 	})
 	err := c.validateMigrate()
 	require.Error(t, err)
@@ -732,11 +762,46 @@ func TestValidateMigrate_SelectionWithNothingToMigrate(t *testing.T) {
 	assert.ErrorContains(t, err, "nothing to migrate")
 }
 
-func TestValidateMigrate_PruneNeedsTo(t *testing.T) {
-	c := blueprintWithMigrateAndField(&types.CRMigrate{Prune: true}, fieldServe())
+func TestValidateMigrate_LifecycleNeedsTo(t *testing.T) {
+	c := blueprintWithMigrateAndField(&types.CRMigrate{Lifecycle: &types.MigrateLifecycle{Prune: true}}, fieldServe())
 	err := c.validateMigrate()
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "migrate.prune needs migrate.to")
+	assert.ErrorContains(t, err, "migrate.lifecycle needs migrate.to")
+}
+
+// fieldMigrations is a Blueprint of field migrations, one per name, each
+// needing the names given.
+func fieldMigrations(needs map[string][]string) *checker {
+	crds := map[string]types.CRDEntry{}
+	for name, n := range needs {
+		crds[name] = types.CRDEntry{Migrate: &types.CRMigrate{Needs: n}, Serve: fieldServe()}
+	}
+	return newBlueprintExec(crds)
+}
+
+func TestValidateMigrate_Needs(t *testing.T) {
+	require.NoError(t, fieldMigrations(map[string][]string{"app": {"web"}, "web": nil}).validateMigrate())
+
+	for name, tc := range map[string]struct {
+		needs map[string][]string
+		want  string
+	}{
+		"an unknown name":     {map[string][]string{"app": {"nope"}}, `"nope": no enabled CRD of that name declares a migration`},
+		"itself":              {map[string][]string{"app": {"app"}}, "names the CRD itself"},
+		"a name listed twice": {map[string][]string{"app": {"web", "web"}, "web": nil}, "twice"},
+		"a cycle":             {map[string][]string{"app": {"web"}, "web": {"app"}}, "cycle"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.ErrorContains(t, fieldMigrations(tc.needs).validateMigrate(), tc.want)
+		})
+	}
+
+	// A CRD that declares no migration can't be needed.
+	c := newBlueprintExec(map[string]types.CRDEntry{
+		"app": {Migrate: &types.CRMigrate{Needs: []string{"web"}}, Serve: fieldServe()},
+		"web": {},
+	})
+	assert.ErrorContains(t, c.validateMigrate(), `"web": no enabled CRD`)
 }
 
 func TestValidateMigrate_BadSelectionOnFieldLevel(t *testing.T) {

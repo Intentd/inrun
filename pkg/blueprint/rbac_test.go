@@ -545,8 +545,10 @@ func migrateRules(t *testing.T, prune bool) []rbacv1.PolicyRule {
 	crd := newWidgetCRD("")
 	crd.Serve = nil
 	crd.Migrate = &types.CRMigrate{
-		To:    types.CRMigrateTarget{APIVersion: "next.io/v2", Kind: "Gadget", Plural: "gadgets"},
-		Prune: prune,
+		To: types.CRMigrateTarget{APIVersion: "next.io/v2", Kind: "Gadget", Plural: "gadgets"},
+	}
+	if prune {
+		crd.Migrate.Lifecycle = &types.MigrateLifecycle{Prune: true, Children: "reparent", Finalizers: []string{"example.io/cleanup"}}
 	}
 	bp := blueprint.NewBlueprintForTest(map[string]types.CRDEntry{"widget": crd})
 	bp.Gateway = gatewayWithClusters()
@@ -569,13 +571,11 @@ func TestGatewayRBACRules_MigrateTo(t *testing.T) {
 	}
 }
 
-func TestGatewayRBACRules_MigrateToPruneDeletesSource(t *testing.T) {
-	got := migrateRules(t, true)
-	if len(got) != 2 || !contains(got[1].Verbs, "delete") {
-		t.Errorf("source rule must allow delete with prune: %+v", got)
-	}
-	if contains(got[0].Verbs, "delete") {
-		t.Errorf("destination rule must not allow delete: %+v", got[0])
+// The gateway never prunes (migrate.Apply skips the lifecycle), so a
+// lifecycle adds nothing to its role.
+func TestGatewayRBACRules_MigrateToLifecycleAddsNothing(t *testing.T) {
+	if got, want := migrateRules(t, true), migrateRules(t, false); !reflect.DeepEqual(got, want) {
+		t.Errorf("rules with a lifecycle = %+v\nwant %+v", got, want)
 	}
 }
 

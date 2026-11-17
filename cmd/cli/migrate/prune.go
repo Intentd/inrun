@@ -53,7 +53,7 @@ func confirmPrune(ctx context.Context, bp *blueprint.Blueprint, kube kubeclient.
 	}
 
 	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, cmdutil.Yellow("⚠ migrate.prune is on.")+" These source CRs are deleted after their destination is written:")
+	fmt.Fprintln(os.Stderr, cmdutil.Yellow("⚠ migrate.lifecycle.prune is on.")+" These source CRs are deleted after their destination is written:")
 	for _, l := range lines {
 		fmt.Fprintln(os.Stderr, l)
 	}
@@ -65,11 +65,12 @@ func confirmPrune(ctx context.Context, bp *blueprint.Blueprint, kube kubeclient.
 	return term.Confirm(fmt.Sprintf("Delete %s after migrating?", plural(total, "source CR")))
 }
 
-// declaresPrune reports whether any CRD in scope declares migrate.prune.
+// declaresPrune reports whether any CRD in scope declares
+// migrate.lifecycle.prune.
 func declaresPrune(bp *blueprint.Blueprint, kind string) bool {
 	for _, name := range bp.CRDNames() {
 		entry, ok := bp.CRDEntry(name)
-		if !ok || !entry.HasMigrate() || !entry.Migrate.Prune {
+		if !ok || !entry.HasMigrate() || !entry.Migrate.Prunes() {
 			continue
 		}
 		if kind == "" || entry.GVK().Kind == kind {

@@ -12,7 +12,7 @@ import (
 )
 
 // Set is one override of a merged CRD entry for a single run, such as
-// `--set migrate.prune=true`: a dot path through the entry's own YAML keys and
+// `--set migrate.lifecycle.prune=true`: a dot path through the entry's own YAML keys and
 // a value read as YAML, so true, 3 and text keep their types.
 type Set struct {
 	Path  string

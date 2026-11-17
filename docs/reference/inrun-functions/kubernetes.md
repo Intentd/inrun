@@ -10,6 +10,10 @@ Answer the questions about any Kubernetes object that every controller asks: its
 | [`conditionMessage`](#conditionmessage) | Returns the `message` field of a named condition. |
 | [`conditionReason`](#conditionreason) | Returns the `reason` field of a named condition. |
 | [`conditionsHealthy`](#conditionshealthy) | Reports whether an object's standard conditions say it is healthy, for any kind that reports them: Flux, cert-manager, Crossplane, Argo and most operators. |
+| [`conditionsState`](#conditionsstate) | Reads an object's standard conditions into one of "healthy", "progressing", "failed" or "unknown", for any kind that reports them: Flux, cert-manager, Crossplane, Argo, Deployments and most operators. |
+| [`conditionsStateMessage`](#conditionsstatemessage) | Returns the message of the condition that decided conditionsState: Stalled, Synced, Progressing, Reconciling, Ready or Available. |
+| [`expectState`](#expectstate) | Judges one status value the way conditionsState judges conditions, for kinds that report a field instead of standard conditions: "healthy" when the value matches healthy, "failed" when it matches failed, and "progressing" otherwise, including when the value is absent or empty (not reported yet). |
+| [`firstState`](#firststate) | Returns the first of its states that says something: the first that is neither "unknown" nor empty, or "unknown" when none does. |
 | [`generation`](#generation) | Returns `metadata.generation` as int64. |
 | [`get`](#get) | Navigates a nested path through a Kubernetes object using variadic string segments. |
 | [`getAnnotation`](#getannotation) | Returns the value of a single annotation key from `metadata.annotations`. |
@@ -71,6 +75,52 @@ Answer the questions about any Kubernetes object that every controller asks: its
 ```text
 {{ conditionsHealthy .helmRelease }}  → true
 {{ conditionsHealthy .deployment }}  → true
+```
+
+### conditionsState
+
+`conditionsState` reads an object's standard conditions into one of "healthy", "progressing", "failed" or "unknown", for any kind that reports them: Flux, cert-manager, Crossplane, Argo, Deployments and most operators. It tells "not yet" from "failed", which conditionsHealthy does not. The first rule that matches decides:
+
+- progressing: status.observedGeneration (or Ready's own) is behind metadata.generation, so the status is about an older spec;
+- failed: Stalled is "True", Synced is "False" or Progressing is "False";
+- progressing: Reconciling is "True";
+- healthy: Ready is "True";
+- progressing: Ready is "False" while Progressing, Synced or Issuing is "True" (Crossplane creating, cert-manager issuing), or Ready is "Unknown";
+- failed: Ready is "False" otherwise;
+- without Ready: healthy when Available is "True", progressing when it is present but not "True";
+- unknown: none of these conditions.
+
+conditionsHealthy is true exactly when this is "healthy".
+
+```text
+{{ conditionsState .permission }}  → "failed"
+{{ conditionsState .helmRelease }}  → "healthy"
+{{ eq (conditionsState .permission) "failed" }}  → true
+```
+
+### conditionsStateMessage
+
+`conditionsStateMessage` returns the message of the condition that decided conditionsState: Stalled, Synced, Progressing, Reconciling, Ready or Available. Returns "" when no condition decided (a status about an older spec, or no standard conditions) or the deciding condition has no message.
+
+```text
+{{ conditionsStateMessage .permission }}  → "failed create Permission, missing User"
+```
+
+### expectState
+
+`expectState` judges one status value the way conditionsState judges conditions, for kinds that report a field instead of standard conditions: "healthy" when the value matches healthy, "failed" when it matches failed, and "progressing" otherwise, including when the value is absent or empty (not reported yet). healthy and failed are each one value or a list (list, toList or a Go slice); an empty failed means nothing counts as failed. Values are compared as text, so true matches "true" and 1 matches 1.0. healthy wins when a value is in both. Find the value with get, phase or status.
+
+```text
+{{ expectState (get .database "status" "applied") true false }}  → "healthy"
+{{ expectState (phase .pod) "Running" (list "Failed" "Unknown") }}  → "healthy"
+```
+
+### firstState
+
+`firstState` returns the first of its states that says something: the first that is neither "unknown" nor empty, or "unknown" when none does. It chains a general rule and a fallback, such as conditions first and a phase when the object has no conditions KEL knows.
+
+```text
+{{ firstState (conditionsState .database) (expectState (get .database "status" "applied") true false) }}  → "healthy"
 ```
 
 ### generation

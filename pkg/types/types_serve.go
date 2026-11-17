@@ -351,8 +351,18 @@ type ServeFieldConfig struct {
 
 // ServeFieldMigrate holds the schema migration source for a serve field.
 type ServeFieldMigrate struct {
-	// From is the dot-notation spec path where the value currently lives.
+	// From is the dot-notation spec path where the value currently lives:
+	// "replicas", "spec.replicas" and ".spec.replicas" name the same field.
 	From string `yaml:"from" json:"from"`
+}
+
+// SpecPath returns From relative to spec: a leading "." and "spec." are
+// dropped, so every way of writing the path compares equal. Nil-safe.
+func (m *ServeFieldMigrate) SpecPath() string {
+	if m == nil {
+		return ""
+	}
+	return strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(m.From), "."), "spec.")
 }
 
 // IsValidServeFieldType reports whether t is a valid ServeFieldConfig.Type value.

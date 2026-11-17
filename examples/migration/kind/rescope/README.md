@@ -15,7 +15,8 @@ spec:
         to:
           crdFile: ./manifests/crd-appconfig-cluster.yaml
           copyStatus: true
-        # prune: true
+        # lifecycle:
+        #   prune: true
     platform-appconfig:
       crdFile: ./manifests/crd-appconfig-cluster.yaml
 ```
@@ -114,10 +115,10 @@ Turn pruning on for this run with `--set`, and narrow it to the namespaces that
 moved cleanly:
 
 ```bash
-inrun migrate --kind AppConfig --set prune=true -n team-a,team-b,team-d --yes
+inrun migrate --kind AppConfig --set lifecycle.prune=true -n team-a,team-b,team-d --yes
 ```
 
-To prune on every run instead, uncomment `prune: true` in [`blueprint.yaml`](./blueprint.yaml).
+To prune on every run instead, uncomment `lifecycle: { prune: true }` in [`blueprint.yaml`](./blueprint.yaml).
 
 ```console
   ✓ team-a/payments  already migrated; source pruned
@@ -226,7 +227,7 @@ chmod +x cleanup.sh && ./cleanup.sh
 
 ## E2E
 
-Runs the complete CRD rescope lifecycle — the example migrates namespaced `AppConfig` resources from `demo.inrun.dev` to the cluster-scoped `platform.demo.inrun.dev` API group, preserving resource specifications, labels, and status. It verifies migration of resources across namespaces, handles a name collision without overwriting the existing destination, and confirms that source resources remain when pruning is disabled. The example then tests repeated migration, prunes the successfully migrated sources with `--set prune=true` (a repeat prune finds nothing more to delete), verifies that the colliding source remains untouched, then resolves the collision by renaming that source and migrating it on its own. Finally it rolls back all four, restoring the namespaced resources and their statuses while removing the cluster-scoped destinations.
+Runs the complete CRD rescope lifecycle — the example migrates namespaced `AppConfig` resources from `demo.inrun.dev` to the cluster-scoped `platform.demo.inrun.dev` API group, preserving resource specifications, labels, and status. It verifies migration of resources across namespaces, handles a name collision without overwriting the existing destination, and confirms that source resources remain when pruning is disabled. The example then tests repeated migration, prunes the successfully migrated sources with `--set lifecycle.prune=true` (a repeat prune finds nothing more to delete), verifies that the colliding source remains untouched, then resolves the collision by renaming that source and migrating it on its own. Finally it rolls back all four, restoring the namespaced resources and their statuses while removing the cluster-scoped destinations.
 
 ```
 inrun e2e --report

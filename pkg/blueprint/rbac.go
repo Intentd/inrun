@@ -467,7 +467,8 @@ func (c *Blueprint) GatewayRBACRules() []rbacv1.PolicyRule {
 	// migrate.to — the gateway runs forward migrations at startup
 	// ───────────────────────────────────────────────
 	// Destination: get to check it, create+patch for server-side apply.
-	// Source: get+list to read it, delete when prune is on.
+	// Source: get+list to read it. The gateway never prunes (migrate.Apply
+	// skips migrate.lifecycle), so it needs no delete.
 	for _, crd := range c.Enabled() {
 		if !crd.HasMigrate() {
 			continue
@@ -477,14 +478,10 @@ func (c *Blueprint) GatewayRBACRules() []rbacv1.PolicyRule {
 			Resources: []string{crd.Migrate.Plural()},
 			Verbs:     []string{"get", "create", "patch"},
 		})
-		srcVerbs := []string{"get", "list"}
-		if crd.Migrate.Prune {
-			srcVerbs = append(srcVerbs, "delete")
-		}
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups: []string{crd.APITypes.Group},
 			Resources: []string{crd.APITypes.Plural},
-			Verbs:     srcVerbs,
+			Verbs:     []string{"get", "list"},
 		})
 	}
 

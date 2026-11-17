@@ -34,8 +34,8 @@ Example:
   inrun migrate -f blueprint.yaml
   inrun migrate -f blueprint.yaml --dry-run
   inrun migrate -f blueprint.yaml --kind WebApp
-  inrun migrate -f blueprint.yaml --kind WebApp --set prune=true --yes
-  inrun migrate -f blueprint.yaml -A --set prune=true --yes`,
+  inrun migrate -f blueprint.yaml --kind WebApp --set lifecycle.prune=true --yes
+  inrun migrate -f blueprint.yaml -A --set lifecycle.prune=true --yes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runMigrateCmd(cmd, migrate.ModeForward)
 	},
@@ -60,8 +60,8 @@ func init() {
 	migrateCmd.PersistentFlags().StringP("output", "o", "text", "Output format: text, json")
 	migrateCmd.PersistentFlags().Bool("force", false, "Take ownership of fields owned by another manager when applying the crd.migrate.to destination (SSA force). Default: fail on conflict.")
 
-	migrateCmd.Flags().BoolP("yes", "y", false, "Do not ask before migrate.prune deletes source CRs")
-	migrateCmd.Flags().StringArray("set", nil, "Change the migrate block for this run, key=value relative to it (e.g. prune=true; repeatable). Needs --kind or --all")
+	migrateCmd.Flags().BoolP("yes", "y", false, "Do not ask before migrate.lifecycle.prune deletes source CRs")
+	migrateCmd.Flags().StringArray("set", nil, "Change the migrate block for this run, key=value relative to it (e.g. lifecycle.prune=true; repeatable). Needs --kind or --all")
 	migrateCmd.Flags().BoolP("all", "A", false, "Apply --set to every kind that declares a migration")
 
 	// Shadow global flags so they don't appear under `inrun version`

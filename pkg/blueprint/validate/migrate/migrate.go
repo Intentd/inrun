@@ -2,9 +2,11 @@ package migrate
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/kome/declaration"
 	"github.com/intentd/tools/kube"
 )
 
@@ -15,8 +17,10 @@ import (
 // migration time.
 //
 // migrate.to.crdFile has already filled apiVersion, kind and plural at parse
-// time. Prune warns because it deletes sources; a missing plural warns
-// because RBAC falls back to a naive guess.
+// time. The lifecycle is checked as KOME checks it, and prune warns because
+// it deletes sources; a missing plural warns because RBAC falls back to a
+// naive guess. migrate.needs must name CRDs that declare a migration, with
+// no cycle.
 func (c *checker) validateMigrate() error {
 	funcMap := buildFuncMapForValidation(c.Blueprint.Functions)
 
@@ -36,8 +40,8 @@ func (c *checker) validateMigrate() error {
 		if !crd.HasMigrate() {
 			// Selection-only block: it scopes field-level migrations.
 			switch {
-			case crd.Migrate.Prune:
-				return fmt.Errorf("%s CRD %s: migrate.prune needs migrate.to", failureMark(), crd.Name)
+			case crd.Migrate.Lifecycle != nil:
+				return fmt.Errorf("%s CRD %s: migrate.lifecycle needs migrate.to", failureMark(), crd.Name)
 			case !crd.HasServeFieldMigrate():
 				return fmt.Errorf("%s CRD %s: migrate declares no migrate.to and no serve.fields migrate.from; there is nothing to migrate", failureMark(), crd.Name)
 			}
@@ -81,9 +85,18 @@ func (c *checker) validateMigrate() error {
 			return fmt.Errorf("%s CRD %s: %w", failureMark(), crd.Name, err)
 		}
 
-		if crd.Migrate.Prune {
+		var lc *declaration.Lifecycle
+		if l := crd.Migrate.Lifecycle; l != nil {
+			lc = &declaration.Lifecycle{Prune: l.Prune, Children: l.Children, Finalizers: l.Finalizers}
+		}
+		for _, p := range declaration.LifecycleProblems(lc) {
+			if !p.Warning {
+				return fmt.Errorf("%s CRD %s: migrate.%s: %s", failureMark(), crd.Name, p.Path, p.Message)
+			}
+		}
+		if crd.Migrate.Prunes() {
 			crd.Warnings.AddWarning(fmt.Sprintf(
-				"CRD: %s - migrate.prune is true. Source CRs will be deleted after the destination CR is applied; this is destructive and cannot be undone.",
+				"CRD: %s - migrate.lifecycle.prune is true. Source CRs are deleted once their destination holds every source field; this is destructive and cannot be undone. The gateway does not prune at startup: run inrun migrate to prune.",
 				crd.Name,
 			))
 		}
@@ -96,6 +109,46 @@ func (c *checker) validateMigrate() error {
 		}
 
 		c.Blueprint.EnabledCRDs()[name] = crd
+	}
+	return c.validateMigrateNeeds()
+}
+
+// validateMigrateNeeds checks migrate.needs across the Blueprint: each name is
+// an enabled CRD (its spec.crds key) that declares a migration, and the needs
+// form no cycle, so every run has an order.
+func (c *checker) validateMigrateNeeds() error {
+	enabled := c.Blueprint.Enabled()
+	f := &declaration.File{Migrations: map[string]declaration.Migration{}}
+	for name, crd := range enabled {
+		if crd.HasAnyMigrate() {
+			f.Migrations[name] = declaration.Migration{Needs: crd.Migrate.NeedsOrNil()}
+		}
+	}
+	names := make([]string, 0, len(enabled))
+	for name := range enabled {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		crd := enabled[name]
+		if crd.Migrate == nil {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, need := range crd.Migrate.Needs {
+			switch _, ok := f.Migrations[need]; {
+			case need == name:
+				return fmt.Errorf("%s CRD %s: migrate.needs names the CRD itself", failureMark(), crd.Name)
+			case seen[need]:
+				return fmt.Errorf("%s CRD %s: migrate.needs lists %q twice", failureMark(), crd.Name, need)
+			case !ok:
+				return fmt.Errorf("%s CRD %s: migrate.needs %q: no enabled CRD of that name declares a migration", failureMark(), crd.Name, need)
+			}
+			seen[need] = true
+		}
+	}
+	if _, err := f.Order(); err != nil {
+		return fmt.Errorf("%s migrate.needs: %w", failureMark(), err)
 	}
 	return nil
 }

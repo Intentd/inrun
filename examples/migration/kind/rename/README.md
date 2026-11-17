@@ -34,7 +34,8 @@ spec:
           when:
             - field: status.phase                 # evaluated per CR
               equals: Ready
-        # prune: true
+        # lifecycle:
+        #   prune: true
     newconfig:
       crdFile: ./manifests/crd-newconfig.yaml
       serve: { target: my-new-api-server, include: ./serve/appconfig.yaml, ... }
@@ -292,7 +293,7 @@ inrun migrate
 **When the destination already exists.** If the gateway (or anyone, with `kubectl`) has already written a `NewConfig` with the same name and namespace as a selected source, the migration never overwrites it:
 
 - If it holds different values from the source (a newer intent, say), it is reported as **drifted** and left alone, and so is the source.
-- If it holds exactly what the migration would write, it counts as migrated. With `prune` on, the migration first records the source on the destination (a snapshot marked as not created by the migration), then deletes the source.
+- If it holds exactly what the migration would write, it counts as migrated. With `lifecycle.prune` on, the migration first records the source on the destination (a snapshot marked as not created by the migration), then deletes the source.
 - A later rollback restores that source and **keeps** the destination, removing only the migration's record from it, and reports it: `kept: not created by the migration`.
 
 ### 9. Send the same intent after migration
@@ -317,15 +318,15 @@ Set `platform-03` back to `Ready`, then turn pruning on for this run with `--set
 ```bash
 kubectl patch appconfig api-server -n platform-03 --type merge \
   -p '{"status":{"phase":"Ready"}}'
-inrun migrate --kind AppConfig --set prune=true
+inrun migrate --kind AppConfig --set lifecycle.prune=true
 ```
 
-`--set` changes the kind's `migrate` block for one run and is validated like the Blueprint. To prune on every run instead, uncomment `prune: true` in [`blueprint.yaml`](./blueprint.yaml).
+`--set` changes the kind's `migrate` block for one run and is validated like the Blueprint. To prune on every run instead, uncomment `lifecycle: { prune: true }` in [`blueprint.yaml`](./blueprint.yaml).
 
 The command counts the sources it would delete and asks for confirmation:
 
 ```console
-⚠ migrate.prune is on. These source CRs are deleted after their destination is written:
+⚠ migrate.lifecycle.prune is on. These source CRs are deleted after their destination is written:
     AppConfig → NewConfig  3 sources
 
 Delete 3 source CRs after migrating? [y/N]:
@@ -409,7 +410,7 @@ chmod +x cleanup.sh && ./cleanup.sh
 
 E2E
 
-Runs the complete CRD rename lifecycle — the gateway starts without migration enabled and remains available throughout, intent requests create `NewConfig` resources before migration, and full-CR requests using the old `AppConfig` GVK are rejected. The example then migrates selected `AppConfig` resources to `NewConfig` (an edit made after the dry run is carried over), verifies selector and condition-based filtering, prunes with `--set prune=true`, rolls back a destination, and cleans up the remaining snapshots. Gateway intent continues working before migration, after migration, and after rollback without restarting the gateway.
+Runs the complete CRD rename lifecycle — the gateway starts without migration enabled and remains available throughout, intent requests create `NewConfig` resources before migration, and full-CR requests using the old `AppConfig` GVK are rejected. The example then migrates selected `AppConfig` resources to `NewConfig` (an edit made after the dry run is carried over), verifies selector and condition-based filtering, prunes with `--set lifecycle.prune=true`, rolls back a destination, and cleans up the remaining snapshots. Gateway intent continues working before migration, after migration, and after rollback without restarting the gateway.
 
 It ends with destinations that already existed: one written by the gateway and one applied with `kubectl`, both before the migration reached their sources. The migration prunes the older sources without overwriting either destination, and rollback restores the sources and keeps both destinations.
 

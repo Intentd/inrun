@@ -51,7 +51,8 @@ func TestMigrationFor_Kind(t *testing.T) {
 		Migrate: &types.CRMigrate{
 			To: types.CRMigrateTarget{APIVersion: "new.io/v1", Kind: "App", Namespace: "default", CopyStatus: true,
 				Metadata: types.CRMigrateMetadata{PreserveSource: &no, Labels: map[string]string{"a": "b"}}},
-			Prune: true,
+			Lifecycle: &types.MigrateLifecycle{Prune: true, Children: "reparent", Finalizers: []string{"example.io/cleanup"}},
+			Needs:     []string{"website"},
 		},
 	}
 	m, label := migrationFor("app", crd)
@@ -60,6 +61,9 @@ func TestMigrationFor_Kind(t *testing.T) {
 	k := m.Kind
 	assert.Equal(t, "new.io", k.To.Group)
 	assert.True(t, k.Prune)
+	assert.Equal(t, "reparent", k.Children)
+	assert.Equal(t, []string{"example.io/cleanup"}, k.Finalizers)
+	assert.Equal(t, []string{"website"}, m.Needs)
 	assert.True(t, k.CopyStatus)
 	assert.False(t, k.PreserveSource)
 	assert.Equal(t, "default", k.Namespace)

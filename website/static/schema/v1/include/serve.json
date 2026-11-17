@@ -572,7 +572,7 @@
       "description": "ServeFieldMigrate holds the schema migration source for a serve field.",
       "properties": {
         "from": {
-          "description": "From is the dot-notation spec path where the value currently lives.",
+          "description": "From is the dot-notation spec path where the value currently lives:\n\"replicas\", \"spec.replicas\" and \".spec.replicas\" name the same field.",
           "type": [
             "string",
             "number",

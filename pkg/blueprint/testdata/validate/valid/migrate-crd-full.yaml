@@ -30,4 +30,8 @@ spec:
           when:
             - field: status.phase
               equals: Ready
-        prune: true
+        lifecycle:
+          prune: true
+          children: reparent
+          finalizers:
+            - example.io/cleanup

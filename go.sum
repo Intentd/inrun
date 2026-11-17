@@ -1,3 +1,5 @@
+cel.dev/cel-go v0.33.2 h1:eAcEdBguc6AFrGbPOyE0g168Uey4kKFW9J6qsBLSeMU=
+cel.dev/cel-go v0.33.2/go.mod h1:DnVip7tpJSsgZymwfT+m1tnEVy3ivAjSMXPx12YrMkU=
 cel.dev/expr v0.25.1 h1:1KrZg61W6TWSxuNZ37Xy49ps13NUovb66QLprthtwi4=
 cel.dev/expr v0.25.1/go.mod h1:hrXvqGP6G6gyx8UAHSHJ5RGk//1Oj5nXQ2NI02Nrsg4=
 dario.cat/mergo v1.0.1 h1:Ra4+bf83h2ztPIQYNP99R6m+Y7KfnARDfID+a+vLl4s=
@@ -207,14 +209,8 @@ github.com/huandu/xstrings v1.5.0 h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI
 github.com/huandu/xstrings v1.5.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/intentd/kel v0.1.2 h1:rEyX/nlWBNvj8ylNV8wD/+lEj4Q+WsdUWsk/dPWn6Qs=
-github.com/intentd/kel v0.1.2/go.mod h1:+J9f7EzxVb2pBoIUrYSFQgLdCN+hXaWvWfRoIwVEE9E=
-github.com/intentd/kome v0.0.0-20261115000803-acc1f0c92c83 h1:FrhJLQUatJs7WMeeXa/1WPVeJ9NLp/moGrU3bnJndVo=
-github.com/intentd/kome v0.0.0-20261115000803-acc1f0c92c83/go.mod h1:FbL6R0bN+1z19hscldSa36MZzwBWh/mHQi5CbNYF7D4=
 github.com/intentd/kubewright v0.1.5 h1:3cniD3gQoAG9pQIoSDoiyscTi4X/AKT80x5f4qpb56Y=
 github.com/intentd/kubewright v0.1.5/go.mod h1:sw+q+L8MKH4wAXU1e3q9s24uHBLRcKPoWRAcYZCl0vo=
-github.com/intentd/tools v0.0.0-20261114075435-617058b27feb h1:QX9xojTjqqLlchBowps3YD4VpQ/uQLkFy+aRtYkRmx8=
-github.com/intentd/tools v0.0.0-20261114075435-617058b27feb/go.mod h1:8J3a2MP6ZdmKya4294YYPJvXGI5ZQnK1iSsGYfFowDU=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
 github.com/invopop/jsonschema v0.14.0/go.mod h1:ygm6C2EaVNMBDPpaPlnOA2pFAxBnxGjFlMZABxm9n2I=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=

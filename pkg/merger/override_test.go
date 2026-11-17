@@ -22,7 +22,7 @@ func mergedRename(t *testing.T) *Merger {
 }
 
 func TestParseSets(t *testing.T) {
-	sets, err := ParseSets([]string{"migrate.prune=true", "migrate.selection.selector=tier=web"})
+	sets, err := ParseSets([]string{"migrate.lifecycle.prune=true", "migrate.selection.selector=tier=web"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,21 +41,21 @@ func TestParseSets(t *testing.T) {
 func TestOverride_ChangesOnlyThePath(t *testing.T) {
 	m := mergedRename(t)
 	before, _ := m.Get("appconfig")
-	if before.Migrate == nil || before.Migrate.Prune {
-		t.Fatal("the rename example should declare a migration with prune off")
+	if before.Migrate == nil || before.Migrate.Lifecycle != nil {
+		t.Fatal("the rename example should declare a migration with no lifecycle")
 	}
-	if err := m.Override("appconfig", []Set{{Path: "migrate.prune", Value: "true"}}); err != nil {
+	if err := m.Override("appconfig", []Set{{Path: "migrate.lifecycle.prune", Value: "true"}}); err != nil {
 		t.Fatal(err)
 	}
 	after, _ := m.Get("appconfig")
-	if !after.Migrate.Prune {
-		t.Fatal("migrate.prune not set")
+	if !after.Migrate.Prunes() {
+		t.Fatal("migrate.lifecycle.prune not set")
 	}
-	after.Migrate.Prune = false
+	after.Migrate.Lifecycle = nil
 	b, _ := yaml.Marshal(before)
 	a, _ := yaml.Marshal(after)
 	if string(b) != string(a) {
-		t.Errorf("the override changed more than migrate.prune:\nbefore:\n%s\nafter:\n%s", b, a)
+		t.Errorf("the override changed more than migrate.lifecycle.prune:\nbefore:\n%s\nafter:\n%s", b, a)
 	}
 	if after.Name != before.Name || after.CRDFile != before.CRDFile || after.RegistryRef != before.RegistryRef {
 		t.Error("the merger's own fields (not in the YAML) were not kept")
@@ -67,8 +67,8 @@ func TestOverride_RefusesWhatTheSchemaDoesNotKnow(t *testing.T) {
 		set  Set
 		want string
 	}{
-		{Set{Path: "migrate.prunee", Value: "true"}, "prunee"},
-		{Set{Path: "migrate.prune", Value: "[unclosed"}, "not valid YAML"},
+		{Set{Path: "migrate.lifecycle.prunee", Value: "true"}, "prunee"},
+		{Set{Path: "migrate.lifecycle.prune", Value: "[unclosed"}, "not valid YAML"},
 		{Set{Path: "migrate.to.crdFile.deeper", Value: "true"}, "not a map"},
 	} {
 		m := mergedRename(t)
@@ -77,7 +77,7 @@ func TestOverride_RefusesWhatTheSchemaDoesNotKnow(t *testing.T) {
 			t.Errorf("%s: err = %v, want it to mention %q", tc.set, err, tc.want)
 		}
 	}
-	if err := mergedRename(t).Override("nope", []Set{{Path: "migrate.prune", Value: "true"}}); err == nil {
+	if err := mergedRename(t).Override("nope", []Set{{Path: "migrate.lifecycle.prune", Value: "true"}}); err == nil {
 		t.Error("an unknown entry accepted")
 	}
 }

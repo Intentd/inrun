@@ -9,11 +9,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Apply migrates all CRDs in bp that declare migrate.from fields.
-// Returns an error on the first kind-level failure; the caller decides whether
-// to fatal or continue.
+// Apply runs every migration bp declares, forward, as the gateway does at
+// startup. It never prunes: migrate.lifecycle is skipped with a warning, since
+// looking for a source's children needs access to every kind, which the
+// gateway's role does not have; `inrun migrate` prunes. Returns an error on
+// the first kind-level failure; the caller decides whether to fatal or
+// continue.
 func Apply(ctx context.Context, bp *blueprint.Blueprint, kube kubeclient.Interface) error {
-	m := New(ctx, kube, bp.UserFunctions(), ModeForward, MigratorOpts{Strict: true})
+	log := logger.FromContext(ctx)
+	for _, name := range bp.CRDNames() {
+		if entry, ok := bp.CRDEntry(name); ok && entry.HasMigrate() && entry.Migrate.Prunes() {
+			log.Warn().Str("crd", name).Msg("migrate.lifecycle.prune is not run at startup; sources are kept. Run inrun migrate to prune them")
+		}
+	}
+	m := New(ctx, kube, bp.UserFunctions(), ModeForward, MigratorOpts{Strict: true, NoLifecycle: true})
 	results, err := m.Run(ctx, bp)
 	for _, r := range results {
 		logMigrationResult(ctx, r)

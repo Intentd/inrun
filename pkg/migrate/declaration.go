@@ -2,7 +2,6 @@ package migrate
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
@@ -37,7 +36,7 @@ func Declaration(bp *blueprint.Blueprint, kind string) (*declaration.File, error
 // Transitional returns the transitional schema of bp's CRD name's field
 // migration, generated in memory by KOME from its declaration: crdFile with
 // the old path of every move still declared, so CRs keep their values while
-// they move. ok is false when the CRD has no field migration, declares its
+// they move, and those of the migrations it needs (a value moved twice). ok is false when the CRD has no field migration, declares its
 // migrate.transitional (applied from its file), or lacks migrate.from's
 // crdFile or its own.
 func Transitional(bp *blueprint.Blueprint, name string) (schema []byte, ok bool, err error) {
@@ -52,7 +51,10 @@ func Transitional(bp *blueprint.Blueprint, name string) (schema []byte, ok bool,
 	if d.From.Schema == "" || d.To.Schema == "" {
 		return nil, false, nil
 	}
-	f := &declaration.File{Migrations: map[string]declaration.Migration{name: d}}
+	f, err := Declaration(bp, "")
+	if err != nil {
+		return nil, false, err
+	}
 	schema, err = kome.Transitional(f, name)
 	if err != nil {
 		return nil, false, fmt.Errorf("CRD %q: %w", name, err)
@@ -73,6 +75,7 @@ func declarationFor(crd *types.CRDEntry) declaration.Migration {
 			d.From = declaration.Shape{Schema: from.ResolvedCRDFile, Objects: from.ResolvedCRFiles}
 		}
 		d.To.Objects = mig.To.ResolvedCRFiles
+		d.Needs = mig.Needs
 	}
 
 	if crd.HasMigrate() {
@@ -87,7 +90,10 @@ func declarationFor(crd *types.CRDEntry) declaration.Migration {
 		if d.To.Schema == "" {
 			d.To.APIVersion, d.To.Kind, d.To.Plural = to.APIVersion, to.Kind, to.Plural
 		}
-		d.To.Namespace, d.To.CopyStatus, d.Prune = to.Namespace, to.CopyStatus, mig.Prune
+		d.To.Namespace, d.To.CopyStatus = to.Namespace, to.CopyStatus
+		if l := mig.Lifecycle; l != nil {
+			d.Lifecycle = &declaration.Lifecycle{Prune: l.Prune, Children: l.Children, Finalizers: l.Finalizers}
+		}
 		md := to.Metadata
 		if md.PreserveSource != nil || len(md.Labels) > 0 || len(md.Annotations) > 0 {
 			d.To.Metadata = &declaration.Metadata{PreserveSource: md.PreserveSource, Labels: md.Labels, Annotations: md.Annotations}
@@ -112,7 +118,7 @@ func declarationFor(crd *types.CRDEntry) declaration.Migration {
 		if !cfg.HasMigrate() {
 			continue
 		}
-		fl := declaration.Field{From: strings.TrimPrefix(cfg.MigrateFrom(), "spec."), Value: cfg.Value, Values: cfg.Values}
+		fl := declaration.Field{From: cfg.Migrate.SpecPath(), Value: cfg.Value, Values: cfg.Values}
 		if len(cfg.Values) == 0 {
 			fl.To = cfg.SpecPath(key)
 		}

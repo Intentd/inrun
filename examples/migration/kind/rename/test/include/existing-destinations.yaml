@@ -16,7 +16,7 @@ expect:
   - name: Migrate them with prune; the copy is migrated, the newer intent is drift
     timeout: 60s
     commands:
-      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set prune=true -n default,platform-10 --yes -ojson
+      - run: inrun migrate -f ../../blueprint.yaml --kind AppConfig --set lifecycle.prune=true -n default,platform-10 --yes -ojson
         json:
           - path: .totals.pruned
             equals: 1

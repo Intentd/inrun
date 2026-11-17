@@ -2,7 +2,7 @@
 
 Convert a value that may arrive in several shapes (a native list or map, or the same as a JSON or YAML string) into a list, a map or a string, so the functions after it see one shape.
 
-Read lists and maps without guarding every step: get an element by index or a value by key, test membership, take keys and values, or keep and drop keys. Out-of-range and missing keys give zero values, not errors.
+Build lists and maps, and read them without guarding every step: make a list or a map, get an element by index or a value by key, test membership, take keys and values, or keep and drop keys. Out-of-range and missing keys give zero values, not errors.
 
 ## Reference
 
@@ -11,9 +11,11 @@ Read lists and maps without guarding every step: get an element by index or a va
 | [`asList`](#aslist) | Converts input to `[]interface{}`. |
 | [`asMap`](#asmap) | Converts input to `map[string]interface{}`. |
 | [`asString`](#asstring) | Converts any value to a string. |
+| [`list`](#list) | Returns its arguments as a list, for functions that take several values in one argument, such as the failed values of expectState. |
 | [`listGet`](#listget) | Returns the element at a given index. |
 | [`listHas`](#listhas) | Reports whether a list contains a value. |
 | [`listLen`](#listlen) | Returns the number of elements in a list. |
+| [`map`](#map) | Returns a map from alternating keys and values, the counterpart of list. |
 | [`mapGet`](#mapget) | Returns a map value by key. |
 | [`mapKeys`](#mapkeys) | Returns all keys of a map as sorted `[]string`. |
 | [`mapOmit`](#mapomit) | Returns a new map with the specified keys removed. |
@@ -48,6 +50,15 @@ Read lists and maps without guarding every step: get an element by index or a va
 {{ asString .deployment.spec.replicas }}  → "3"
 ```
 
+### list
+
+`list` returns its arguments as a list, for functions that take several values in one argument, such as the failed values of expectState. With no arguments it returns an empty list.
+
+```text
+{{ list "Failed" "Unknown" }}  → [Failed Unknown]
+{{ listLen (list 1 2 3) }}  → 3
+```
+
 ### listGet
 
 `listGet` returns the element at a given index. Returns `nil` for out-of-range indices — no panic.
@@ -71,6 +82,15 @@ Read lists and maps without guarding every step: get an element by index or a va
 
 ```text
 {{ listLen .spec.regions }}  → 2
+```
+
+### map
+
+`map` returns a map from alternating keys and values, the counterpart of list. Keys that are not strings are written as text. With no arguments it returns an empty map. An odd number of arguments is an error: a key without a value.
+
+```text
+{{ mapGet (map "region" "eu-west-1" "replicas" 3) "replicas" }}  → 3
+{{ mapKeys (map "b" 2 "a" 1) }}  → [a b]
 ```
 
 ### mapGet
