@@ -209,8 +209,16 @@ github.com/huandu/xstrings v1.5.0 h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI
 github.com/huandu/xstrings v1.5.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
+github.com/intentd/kel v0.0.0-20261117141904-46d30791a1b5 h1:kEhkZ1qvYZHdUz82c9BYWM2gKyNz0L31HttfZD1OWWk=
+github.com/intentd/kel v0.0.0-20261117141904-46d30791a1b5/go.mod h1:+J9f7EzxVb2pBoIUrYSFQgLdCN+hXaWvWfRoIwVEE9E=
+github.com/intentd/kel/cel v0.0.0-20261117141904-46d30791a1b5 h1:/3dD+nywci8MFqTVNdRFW+4JcZQ/Dt8aN30SYOTvc1s=
+github.com/intentd/kel/cel v0.0.0-20261117141904-46d30791a1b5/go.mod h1:biDqz3G/AqTNX5Tyr7GvKpj0uAETW1VQIKfwjseXuK0=
+github.com/intentd/kome v0.0.0-20261117141910-2eed291cdb7d h1:LlDrV4LV/t9tHVVXwzrmVIB7zueha0ktcrhGJ7Oqsbc=
+github.com/intentd/kome v0.0.0-20261117141910-2eed291cdb7d/go.mod h1:4xwAAS14L266vBotqnQX6zORxTQwgUBgRlKaVGHX/j0=
 github.com/intentd/kubewright v0.1.5 h1:3cniD3gQoAG9pQIoSDoiyscTi4X/AKT80x5f4qpb56Y=
 github.com/intentd/kubewright v0.1.5/go.mod h1:sw+q+L8MKH4wAXU1e3q9s24uHBLRcKPoWRAcYZCl0vo=
+github.com/intentd/tools v0.0.0-20261117141907-81b29dd88d5a h1:Ss3BH3ffa1PGMYUhYdChSJzj2jvmG+Y80LvK2GkyxU4=
+github.com/intentd/tools v0.0.0-20261117141907-81b29dd88d5a/go.mod h1:WM8Fmj0QqLUuikEnBpD5T5OHqjIO+RhhctbFhO2zr6A=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
 github.com/invopop/jsonschema v0.14.0/go.mod h1:ygm6C2EaVNMBDPpaPlnOA2pFAxBnxGjFlMZABxm9n2I=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=

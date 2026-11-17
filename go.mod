@@ -186,11 +186,10 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
 
-// KEL, tools and KOME are being changed alongside Inrun and are not released
-// yet: build against the copies beside this repository.
-replace (
-	github.com/intentd/kel => ../kel
-	github.com/intentd/kel/cel => ../kel/cel
-	github.com/intentd/kome => ../kome
-	github.com/intentd/tools => ../tools
-)
+replace github.com/intentd/kel => github.com/intentd/kel v0.0.0-20261117141904-46d30791a1b5
+
+replace github.com/intentd/kel/cel => github.com/intentd/kel/cel v0.0.0-20261117141904-46d30791a1b5
+
+replace github.com/intentd/kome => github.com/intentd/kome v0.0.0-20261117141910-2eed291cdb7d
+
+replace github.com/intentd/tools => github.com/intentd/tools v0.0.0-20261117141907-81b29dd88d5a

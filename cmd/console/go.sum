@@ -1,5 +1,5 @@
-github.com/intentd/tools v0.0.0-20261114075435-617058b27feb h1:QX9xojTjqqLlchBowps3YD4VpQ/uQLkFy+aRtYkRmx8=
-github.com/intentd/tools v0.0.0-20261114075435-617058b27feb/go.mod h1:8J3a2MP6ZdmKya4294YYPJvXGI5ZQnK1iSsGYfFowDU=
+github.com/intentd/tools v0.0.0-20261117141907-81b29dd88d5a h1:Ss3BH3ffa1PGMYUhYdChSJzj2jvmG+Y80LvK2GkyxU4=
+github.com/intentd/tools v0.0.0-20261117141907-81b29dd88d5a/go.mod h1:WM8Fmj0QqLUuikEnBpD5T5OHqjIO+RhhctbFhO2zr6A=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
