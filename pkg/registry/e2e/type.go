@@ -23,6 +23,7 @@ type Runner struct {
 	clusterCtx                string // non-empty means use this context, skip cluster creation
 	workers                   int    // number of kind worker nodes to provision (0 = control-plane only)
 	kindVersion               string // kind binary version to use ("" = DefaultKindVersion)
+	loadImages                []string
 
 	blueprintFile string
 	crFiles       []string
@@ -104,6 +105,10 @@ type Options struct {
 	// the runner record the spec path relative to the pattern root, so the
 	// report that ships in the artifact does not carry an absolute path.
 	PushTriggered bool
+	// LoadImages are container images to load into the cluster before the test.
+	// Narrows Setup.LoadImages when both are set; standalone when the schema
+	// declares none (eg. CI case).
+	LoadImages []string
 }
 
 type expectationResult struct {

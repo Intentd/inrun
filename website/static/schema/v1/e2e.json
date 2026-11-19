@@ -5328,6 +5328,20 @@
                 "null"
               ]
             },
+            "loadImages": {
+              "description": "LoadImages lists container images to load into the cluster before the test\nruns. Kind-only: each image is loaded with `kind load docker-image`.\n\nManifests that reference these images must set imagePullPolicy to\nIfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the\nloaded image and pulls from the registry instead.\n\nThe CLI flag --load-images narrows this list; it cannot add images the\nschema does not declare. When this list is empty, the CLI flag is the only\nsource — the CI case, where the just-built image is the point.",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "wait": {
               "description": "Wait blocks until all listed resources exist and satisfy conditions.\nRuns after all apply and helm steps. Use per-entry wait for ordered checks.",
               "items": {

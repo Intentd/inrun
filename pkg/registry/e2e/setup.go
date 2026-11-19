@@ -105,3 +105,24 @@ func (r *Runner) ensureDependencies(
 
 	return result, nil
 }
+
+// loadImagesIntoCluster resolves the images this run should load — the
+// schema's setup.loadImages and the --load-images flag — and loads them into
+// the kind cluster. It is a no-op when the run has no cluster or no images.
+func (r *Runner) loadImagesIntoCluster(ctx context.Context) error {
+	images, err := r.e2e.Spec.Setup.EffectiveLoadImages(r.loadImages)
+	if err != nil {
+		return err
+	}
+	if len(images) == 0 {
+		return nil
+	}
+	name, ok := r.kindClusterName(ctx)
+	if !ok {
+		return fmt.Errorf(
+			"loading images requires a kind cluster; current context %q is not kind",
+			r.effectiveContext(ctx),
+		)
+	}
+	return cluster.LoadImages(ctx, name, images)
+}

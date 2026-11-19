@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/intentd/kel/core"
 	"github.com/intentd/tools/cluster"
@@ -61,6 +62,18 @@ type SetupConfig struct {
 	// Wait blocks until all listed resources exist and satisfy conditions.
 	// Runs after all apply and helm steps. Use per-entry wait for ordered checks.
 	Wait []SetupWait `yaml:"wait,omitempty"`
+
+	// LoadImages lists container images to load into the cluster before the test
+	// runs. Kind-only: each image is loaded with `kind load docker-image`.
+	//
+	// Manifests that reference these images must set imagePullPolicy to
+	// IfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the
+	// loaded image and pulls from the registry instead.
+	//
+	// The CLI flag --load-images narrows this list; it cannot add images the
+	// schema does not declare. When this list is empty, the CLI flag is the only
+	// source — the CI case, where the just-built image is the point.
+	LoadImages []string `yaml:"loadImages,omitempty"`
 }
 
 // UnmarshalYAML allows setup: to be written as either a plain list of strings (setup.apply) or a full struct.
@@ -181,6 +194,62 @@ type SetupWait struct {
 	Ready bool `yaml:"ready,omitempty"`
 	// Timeout is a Go duration string. Default: "30s".
 	Timeout string `yaml:"timeout,omitempty"`
+}
+
+// EffectiveLoadImages resolves the images to load into the cluster.
+//
+//   - No schema (nil SetupConfig) or no schema images: the CLI's list, deduped.
+//     This is the CI case, where the image just built is the only one to load.
+//   - No CLI images: the schema's list, as-is.
+//   - Both: the CLI's list must be a subset of the schema's. A CLI image
+//     the schema does not declare is an error: the test does not know
+//     about it, so loading it is either a typo or a widening the schema
+//     should have declared.
+//
+// Errors are returned before the cluster is created, so a misconfiguration
+// fails fast.
+func (s *SetupConfig) EffectiveLoadImages(cliImages []string) ([]string, error) {
+	cli := dedupeStrings(cliImages)
+	if s == nil || len(s.LoadImages) == 0 {
+		return cli, nil
+	}
+	if len(cli) == 0 {
+		return s.LoadImages, nil
+	}
+	allowed := make(map[string]struct{}, len(s.LoadImages))
+	for _, img := range s.LoadImages {
+		allowed[img] = struct{}{}
+	}
+	for _, img := range cli {
+		if _, ok := allowed[img]; !ok {
+			return nil, fmt.Errorf(
+				"setup.loadImages: --load-images %q is not declared in the schema (declared: %s)",
+				img, strings.Join(s.LoadImages, ", "),
+			)
+		}
+	}
+	return cli, nil
+}
+
+// dedupeStrings trims, drops empties, and preserves first-seen order.
+func dedupeStrings(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	return out
 }
 
 // E2E is the top-level document type for declarative end-to-end tests.

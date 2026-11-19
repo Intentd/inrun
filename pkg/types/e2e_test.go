@@ -4,7 +4,10 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
+
+	"github.com/intentd/tools/structured"
 )
 
 // withEnv sets key=value for the duration of the test, restoring the prior
@@ -238,5 +241,74 @@ func TestEnvResolver_Expand(t *testing.T) {
 		if got := r.Expand(in); got != want {
 			t.Errorf("Expand(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestEffectiveLoadImages(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     *SetupConfig
+		cli       []string
+		want      []string
+		wantErr   bool
+		wantInErr string
+	}{
+		{
+			name:  "nil setup, no cli",
+			setup: nil,
+			cli:   nil,
+			want:  nil,
+		},
+		{
+			name:  "nil setup, cli only",
+			setup: nil,
+			cli:   []string{"app:1"},
+			want:  []string{"app:1"},
+		},
+		{
+			name:  "nil setup, cli deduped",
+			setup: nil,
+			cli:   []string{"app:1", "app:1", " "},
+			want:  []string{"app:1"},
+		},
+		{
+			name:  "schema only",
+			setup: &SetupConfig{LoadImages: []string{"app:1"}},
+			cli:   nil,
+			want:  []string{"app:1"},
+		},
+		{
+			name:  "schema and cli subset",
+			setup: &SetupConfig{LoadImages: []string{"app:1", "sidecar:1"}},
+			cli:   []string{"app:1"},
+			want:  []string{"app:1"},
+		},
+		{
+			name:      "cli widens the schema",
+			setup:     &SetupConfig{LoadImages: []string{"app:1"}},
+			cli:       []string{"other:1"},
+			wantErr:   true,
+			wantInErr: `--load-images "other:1" is not declared in the schema`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.setup.EffectiveLoadImages(tc.cli)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tc.wantInErr != "" && !strings.Contains(err.Error(), tc.wantInErr) {
+					t.Errorf("error = %q, want it to contain %q", err, tc.wantInErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !structured.StringSliceEqual(got, tc.want) {
+				t.Errorf("images = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
