@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/intentd/tools/cluster"
 	"github.com/intentd/tools/structured"
 )
 
@@ -273,27 +274,46 @@ func TestEffectiveLoadImages(t *testing.T) {
 		},
 		{
 			name:  "schema only",
-			setup: &SetupConfig{LoadImages: []string{"app:1"}},
+			setup: &SetupConfig{Images: cluster.Images{{Image: "app:1"}}},
 			cli:   nil,
 			want:  []string{"app:1"},
 		},
 		{
-			name:  "schema and cli subset",
-			setup: &SetupConfig{LoadImages: []string{"app:1", "sidecar:1"}},
-			cli:   []string{"app:1"},
-			want:  []string{"app:1"},
+			name: "schema and cli subset",
+			setup: &SetupConfig{Images: cluster.Images{
+				{Image: "app:1"},
+				{Image: "sidecar:1"},
+			}},
+			cli:  []string{"app:1"},
+			want: []string{"app:1"},
 		},
 		{
 			name:      "cli widens the schema",
-			setup:     &SetupConfig{LoadImages: []string{"app:1"}},
+			setup:     &SetupConfig{Images: cluster.Images{{Image: "app:1"}}},
 			cli:       []string{"other:1"},
 			wantErr:   true,
-			wantInErr: `--load-images "other:1" is not declared in the schema`,
+			wantInErr: `--images "other:1" is not declared in the schema`,
+		},
+		{
+			name: "build entry resolves to its image reference",
+			setup: &SetupConfig{Images: cluster.Images{
+				{Image: "built:1", Build: &cluster.Build{Context: "./app"}},
+			}},
+			cli:  nil,
+			want: []string{"built:1"},
+		},
+		{
+			name: "build entry without image gets the default name",
+			setup: &SetupConfig{Images: cluster.Images{
+				{Build: &cluster.Build{Context: "./app"}},
+			}},
+			cli:  nil,
+			want: []string{"jig-myapp-0"},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := tc.setup.EffectiveLoadImages(tc.cli)
+			got, err := tc.setup.EffectiveLoadImages("myapp", tc.cli)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

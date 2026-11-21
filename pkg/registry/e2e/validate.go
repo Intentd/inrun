@@ -133,6 +133,12 @@ func ValidatePaths(baseDir string, spec *types.E2ESpec) []error {
 		check(fmt.Sprintf("valuesFiles[%d]", i), p)
 	}
 	if s := spec.Setup; s != nil {
+		for i, img := range s.Images {
+			if img.Build != nil {
+				check(fmt.Sprintf("setup.images.build[%d].context", i), img.Build.Context)
+				check(fmt.Sprintf("setup.images.build[%d].dockerfile", i), img.Build.DockerfilePath())
+			}
+		}
 		for i, a := range s.Apply {
 			check(fmt.Sprintf("setup.apply[%d].path", i), a.Path)
 		}

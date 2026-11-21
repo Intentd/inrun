@@ -5,9 +5,11 @@ package validate
 import (
 	"errors"
 	"fmt"
-	"github.com/intentd/inrun/pkg/migrate"
 	"sort"
 	"strings"
+
+	"github.com/intentd/inrun/pkg/migrate"
+	"github.com/intentd/kel/ecosystem"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 
@@ -367,6 +369,17 @@ func validateE2EFileOpts(path string, quiet bool) error {
 	// Validate the files the spec names, kubectl blocks and external calls.
 	checkErrs := append(e2e.ValidatePaths(baseDir, &doc.Spec), kubectl.Validate(expanded, baseDir)...)
 	checkErrs = append(checkErrs, expect.ValidateExternal(expanded)...)
+	if s := doc.Spec.Setup; s != nil {
+		if s.Images != nil {
+			for i, img := range s.Images {
+				if img.Image != "" {
+					if !ecosystem.IsValidImageRef(img.Image) {
+						checkErrs = append(checkErrs, fmt.Errorf("spec.setup.images.[%d].image is invalid", i))
+					}
+				}
+			}
+		}
+	}
 	if f := doc.Spec.OnFailure; f != nil {
 		if f.Empty() {
 			checkErrs = append(checkErrs, fmt.Errorf("spec.onFailure: block is empty"))

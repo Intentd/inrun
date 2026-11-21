@@ -63,17 +63,18 @@ type SetupConfig struct {
 	// Runs after all apply and helm steps. Use per-entry wait for ordered checks.
 	Wait []SetupWait `yaml:"wait,omitempty"`
 
-	// LoadImages lists container images to load into the cluster before the test
-	// runs. Kind-only: each image is loaded with `kind load docker-image`.
+	// Images lists container images to load into the cluster before the test
+	// runs. Each entry is either an existing image reference or a build block;
+	// images are built first when a build block is present.
 	//
 	// Manifests that reference these images must set imagePullPolicy to
 	// IfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the
 	// loaded image and pulls from the registry instead.
 	//
-	// The CLI flag --load-images narrows this list; it cannot add images the
+	// The CLI flag --images narrows this list; it cannot add images the
 	// schema does not declare. When this list is empty, the CLI flag is the only
 	// source — the CI case, where the just-built image is the point.
-	LoadImages []string `yaml:"loadImages,omitempty"`
+	Images cluster.Images `yaml:"images,omitempty"`
 }
 
 // UnmarshalYAML allows setup: to be written as either a plain list of strings (setup.apply) or a full struct.
@@ -196,35 +197,40 @@ type SetupWait struct {
 	Timeout string `yaml:"timeout,omitempty"`
 }
 
-// EffectiveLoadImages resolves the images to load into the cluster.
+// EffectiveLoadImages resolves the image references this run loads.
 //
 //   - No schema (nil SetupConfig) or no schema images: the CLI's list, deduped.
 //     This is the CI case, where the image just built is the only one to load.
-//   - No CLI images: the schema's list, as-is.
-//   - Both: the CLI's list must be a subset of the schema's. A CLI image
-//     the schema does not declare is an error: the test does not know
-//     about it, so loading it is either a typo or a widening the schema
-//     should have declared.
+//   - No CLI images: the schema's references, in order.
+//   - Both: the CLI's list must be a subset of the schema's references.
 //
-// Errors are returned before the cluster is created, so a misconfiguration
-// fails fast.
-func (s *SetupConfig) EffectiveLoadImages(cliImages []string) ([]string, error) {
+// Build entries resolve to the reference they produce; the build itself runs
+// later, in loadImagesIntoCluster.
+func (s *SetupConfig) EffectiveLoadImages(specName string, cliImages []string) ([]string, error) {
 	cli := dedupeStrings(cliImages)
-	if s == nil || len(s.LoadImages) == 0 {
+	if s == nil || len(s.Images) == 0 {
 		return cli, nil
 	}
+
+	declared := s.Images.ResolveDefaultNames(specName)
+	refs := make([]string, len(declared))
+	for i, img := range declared {
+		refs[i] = img.Image
+	}
+
 	if len(cli) == 0 {
-		return s.LoadImages, nil
+		return refs, nil
 	}
-	allowed := make(map[string]struct{}, len(s.LoadImages))
-	for _, img := range s.LoadImages {
-		allowed[img] = struct{}{}
+
+	allowed := make(map[string]struct{}, len(refs))
+	for _, ref := range refs {
+		allowed[ref] = struct{}{}
 	}
-	for _, img := range cli {
-		if _, ok := allowed[img]; !ok {
+	for _, ref := range cli {
+		if _, ok := allowed[ref]; !ok {
 			return nil, fmt.Errorf(
-				"setup.loadImages: --load-images %q is not declared in the schema (declared: %s)",
-				img, strings.Join(s.LoadImages, ", "),
+				"setup.images: --images %q is not declared in the schema (declared: %s)",
+				ref, strings.Join(refs, ", "),
 			)
 		}
 	}

@@ -57,7 +57,7 @@ func New(e2eFile string, opts Options) (*Runner, error) {
 		useCurrentCtx:    opts.UseCurrentCtx,
 		workers:          opts.Workers,
 		kindVersion:      opts.KindVersion,
-		loadImages:       opts.LoadImages,
+		images:           opts.Images,
 		devServer:        opts.DevServer,
 		reportFile:       opts.ReportFile,
 		inrunVersion:     opts.InrunVersion,
@@ -137,17 +137,6 @@ func (r *Runner) suitePostOptions() expect.SuitePostOptions {
 
 // Run executes the full E2E test pipeline and returns a structured Result.
 func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
-	needsCluster, err := r.requiresCluster()
-	if err != nil {
-		return nil, err
-	}
-	r.needsCluster = needsCluster
-	if needsCluster {
-		if err := r.loadImagesIntoCluster(ctx); err != nil {
-			return nil, err
-		}
-	}
-
 	name := r.e2e.Metadata.Name
 	start := time.Now()
 
@@ -160,6 +149,11 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 	isPureAgg := r.isPureAggregator()
 	ownsCluster := r.clusterCtx == "" && !r.keepCluster && !r.useCurrentCtx
 
+	needsCluster, err := r.requiresCluster()
+	if err != nil {
+		return nil, err
+	}
+	r.needsCluster = needsCluster
 	// --dry-run=server: every kubectl write, setup included, goes to an
 	// existing cluster as a server dry run; nothing is created or installed.
 	if r.dryRun {
@@ -220,6 +214,9 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 		}
 		if err := r.ensureCluster(ctx); err != nil {
 			return nil, fmt.Errorf("cluster: %w", err)
+		}
+		if err := r.loadImagesIntoCluster(ctx); err != nil {
+			return nil, err
 		}
 		if err := r.buildClient(); err != nil {
 			return nil, fmt.Errorf("k8s client: %w", err)

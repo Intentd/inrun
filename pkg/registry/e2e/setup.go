@@ -107,16 +107,39 @@ func (r *Runner) ensureDependencies(
 }
 
 // loadImagesIntoCluster resolves the images this run should load — the
-// schema's setup.loadImages and the --load-images flag — and loads them into
+// schema's setup.images and the --images flag — and loads them into
 // the kind cluster. It is a no-op when the run has no cluster or no images.
 func (r *Runner) loadImagesIntoCluster(ctx context.Context) error {
-	images, err := r.e2e.Spec.Setup.EffectiveLoadImages(r.loadImages)
+	if !r.needsCluster {
+		return nil
+	}
+	setup := r.e2e.Spec.Setup
+	if setup == nil {
+		return nil
+	}
+
+	declared := setup.Images.ResolveDefaultNames(r.e2e.Metadata.Name)
+	allowed, err := setup.EffectiveLoadImages(r.e2e.Metadata.Name, r.images)
 	if err != nil {
 		return err
 	}
-	if len(images) == 0 {
+	if len(allowed) == 0 {
 		return nil
 	}
+
+	// Keep only the entries the CLI selected, so a narrow --images
+	// skips the builds it did not ask for.
+	selected := make(cluster.Images, 0, len(allowed))
+	set := make(map[string]struct{}, len(allowed))
+	for _, ref := range allowed {
+		set[ref] = struct{}{}
+	}
+	for _, img := range declared {
+		if _, ok := set[img.Image]; ok {
+			selected = append(selected, img)
+		}
+	}
+
 	name, ok := r.kindClusterName(ctx)
 	if !ok {
 		return fmt.Errorf(
@@ -124,5 +147,5 @@ func (r *Runner) loadImagesIntoCluster(ctx context.Context) error {
 			r.effectiveContext(ctx),
 		)
 	}
-	return cluster.LoadImages(ctx, name, images)
+	return cluster.LoadImages(ctx, name, selected)
 }

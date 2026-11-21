@@ -60,7 +60,7 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 		e2eOpts.UseCurrentCtx, _ = cmd.Flags().GetBool("use-current")
 		e2eOpts.ClusterCtx, _ = cmd.Flags().GetString("cluster")
 		e2eOpts.Workers, _ = cmd.Flags().GetInt("workers")
-		e2eOpts.LoadImages, _ = cmd.Flags().GetStringSlice("load-images")
+		e2eOpts.Images, _ = cmd.Flags().GetStringSlice("images")
 		e2eOpts.InrunVersion, _ = cmd.Flags().GetString("version")
 		e2eOpts.InrunChart, err = chartFlag(cmd)
 		if err != nil {
@@ -188,8 +188,8 @@ func init() {
 	e2eCmd.Flags().Bool("use-current", false, "Use the current kubectl context, skip cluster creation")
 	e2eCmd.Flags().String("cluster", "", "Use an existing kubectl context instead of creating a cluster")
 	e2eCmd.Flags().Int("workers", 0, "Number of kind worker nodes to provision (default: 0, control-plane only)")
-	e2eCmd.Flags().StringSlice("load-images", []string{},
-		"Container images to load into the cluster before the test (repeatable or comma-separated). Requires a kind cluster. Narrows setup.loadImages; when setup.loadImages is empty, these are the only images loaded.")
+	e2eCmd.Flags().StringSlice("images", []string{},
+		"Container images to load into the cluster before the test (repeatable or comma-separated). Requires a kind cluster. Narrows setup.images; when setup.images is empty, these are the only images loaded.")
 	e2eCmd.Flags().String("version", "", "Inrun version to install (e.g., v1.2.3)")
 	e2eCmd.Flags().String("chart", "", "Local Inrun chart directory to install instead of the published chart (e.g. ./charts/inrun)")
 	e2eCmd.Flags().StringSlice("values", []string{}, "Helm values files to pass to Inrun installation")

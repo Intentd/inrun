@@ -5328,19 +5328,16 @@
                 "null"
               ]
             },
-            "loadImages": {
-              "description": "LoadImages lists container images to load into the cluster before the test\nruns. Kind-only: each image is loaded with `kind load docker-image`.\n\nManifests that reference these images must set imagePullPolicy to\nIfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the\nloaded image and pulls from the registry instead.\n\nThe CLI flag --load-images narrows this list; it cannot add images the\nschema does not declare. When this list is empty, the CLI flag is the only\nsource — the CI case, where the just-built image is the point.",
-              "items": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean"
-                ]
-              },
-              "type": [
-                "array",
-                "null"
-              ]
+            "images": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/cluster.Images"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Images lists container images to load into the cluster before the test\nruns. Each entry is either an existing image reference or a build block;\nimages are built first when a build block is present.\n\nManifests that reference these images must set imagePullPolicy to\nIfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the\nloaded image and pulls from the registry instead.\n\nThe CLI flag --images narrows this list; it cannot add images the\nschema does not declare. When this list is empty, the CLI flag is the only\nsource — the CI case, where the just-built image is the point."
             },
             "wait": {
               "description": "Wait blocks until all listed resources exist and satisfy conditions.\nRuns after all apply and helm steps. Use per-entry wait for ordered checks.",
@@ -5723,6 +5720,58 @@
     "UserDefinedFunctions": {
       "items": {
         "$ref": "#/$defs/UserDefinedFunction"
+      },
+      "type": "array"
+    },
+    "cluster.Build": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dockerfile": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Image": {
+      "additionalProperties": false,
+      "properties": {
+        "build": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Build"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Images": {
+      "items": {
+        "$ref": "#/$defs/cluster.Image"
       },
       "type": "array"
     },
