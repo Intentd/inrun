@@ -281,7 +281,7 @@ func seedEnvtest(
 ) error {
 	applyOpts := metav1.PatchOptions{FieldManager: "inrun-simulate", Force: ptr.To(true)}
 
-	setup, err := setupObjects(crdEntry, extraSetup)
+	setup, err := prepareObjects(crdEntry, extraSetup)
 	if err != nil {
 		return err
 	}

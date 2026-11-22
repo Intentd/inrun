@@ -755,13 +755,13 @@ func (c *CRDEntry) HasCRFiles() bool {
 	return c != nil && len(c.CRFiles) > 0
 }
 
-// HasSetup reports whether this CRDEntry declares any setup work
+// HasPrepare reports whether this CRDEntry declares any setup work
 // to be done before Inrun starts.
-func (c *CRDEntry) HasSetup() bool {
-	if c == nil || c.Setup == nil {
+func (c *CRDEntry) HasPrepare() bool {
+	if c == nil || c.Prepare == nil {
 		return false
 	}
-	return len(c.Setup.Apply) > 0 || len(c.Setup.Helm) > 0 || len(c.Setup.Wait) > 0
+	return len(c.Prepare.Apply) > 0 || len(c.Prepare.Helm) > 0 || len(c.Prepare.Wait) > 0
 }
 
 // ValidateMetricField returns an error if the field is not a known autoscale metric.

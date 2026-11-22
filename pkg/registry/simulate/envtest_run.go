@@ -99,9 +99,9 @@ func runWithEnvtest(ctx context.Context, opts RunOptions) (*Result, error) {
 	// loopKube methods (AdvanceCycle, OpsForCycle, etc.) work correctly.
 	recKube := &managedKube{Interface: realKube, shared: shared}
 
-	// Apply the CRD's setup objects (e.g. a remote reconciler's token Secret)
+	// Apply the CRD's prepare objects (e.g. a remote reconciler's token Secret)
 	// and the spec's, then the CR, to the real API server before the loop starts.
-	if err := seedEnvtest(ctx, recKube, &entry, opts.Setup, cr); err != nil {
+	if err := seedEnvtest(ctx, recKube, &entry, opts.Prepare, cr); err != nil {
 		return nil, err
 	}
 

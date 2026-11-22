@@ -10,7 +10,7 @@ metadata:
 spec:
   blueprint: ../blueprint.yaml
   crd: ../crd.yaml
-  setup:
+  prepare:
     - ../setup.yaml
   intent: ./primary.yaml
   token: console

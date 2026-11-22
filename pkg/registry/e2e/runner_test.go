@@ -73,8 +73,9 @@ kind: E2E
 metadata:
   name: runner-test
 spec:
-  cluster:
-    provider: none
+  environment:
+    cluster:
+      provider: none
   onFailure:
     commands:
       - run: touch ` + marker + `
@@ -196,8 +197,9 @@ kind: E2E
 metadata:
   name: runner-finally-test
 spec:
-  cluster:
-    provider: none
+  environment:
+    cluster:
+      provider: none
   finally:
     commands:
       - run: echo ran >> ` + marks + `

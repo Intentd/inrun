@@ -95,7 +95,7 @@ func run(ctx context.Context, opts RunOptions) (*Result, error) {
 	if note := crds.missing(entry.GVK()); note != "" {
 		result.Notes = append(result.Notes, note)
 	}
-	fc, err := buildFakeCluster(scheme, cr, &entry, opts.ExistingInstances, opts.Setup, crds)
+	fc, err := buildFakeCluster(scheme, cr, &entry, opts.ExistingInstances, opts.Prepare, crds)
 	if err != nil {
 		return nil, err
 	}

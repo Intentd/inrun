@@ -6,8 +6,9 @@ metadata:
   description: Proves a leaf with no spec.env inherits the suite's.
 
 spec:
-  cluster:
-    provider: none
+  environment:
+    cluster:
+      provider: none
   expect:
     - name: suite env reaches a leaf with no env of its own
       timeout: 5s

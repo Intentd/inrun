@@ -10,11 +10,6 @@ spec:
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
   expect:
     - name: Complete Stack Running
       after: cr-applied

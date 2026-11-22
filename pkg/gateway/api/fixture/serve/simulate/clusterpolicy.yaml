@@ -8,7 +8,7 @@ metadata:
 spec:
   blueprint: ../../blueprint.yaml
   crd: ../../crd.yaml
-  setup:
+  prepare:
     - ../../setup.yaml
   cr: ../../crs/clusterpolicy-basic.yaml
   cycles: 3

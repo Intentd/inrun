@@ -34,7 +34,7 @@ spec:
 - `inrun simulate ./...` runs every `simulate.yaml` below the current directory.
 - A remote reconciler is called for real on each cycle, so start it first.
 - `--envtest` runs the same thing against a local kube-apiserver and etcd, for behaviour the in-memory cluster cannot show (defaulting, validation by the API server).
-- `setup:` lists manifests to apply before the CR, after the Blueprint's own `setup:`, such as the CR's Namespace, which `--envtest` needs to exist. Simulate only applies them: `helm` and `wait` are validation errors.
+- `prepare:` lists manifests to apply before the CR, after the Blueprint's own `prepare:`, such as the CR's Namespace, which `--envtest` needs to exist. Simulate only applies them: `helm` and `wait` are validation errors.
 - `--dev-server` starts a mock HTTP server for testing `reconcile.external` calls.
 
 Because simulate runs the same pass as the cluster, a passing simulation exercises the real code path, not a copy of it.

@@ -15,12 +15,7 @@ spec:
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
-  setup:
+  prepare:
     apply:
       - ../manifests/setup.yaml   # creates platform/team-alpha/team-beta namespaces + source ConfigMap
     wait:

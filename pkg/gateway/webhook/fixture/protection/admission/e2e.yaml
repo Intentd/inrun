@@ -11,11 +11,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr-valid.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
   expect:
     - name: Valid CR accepted — deployment created
       after: cr-applied

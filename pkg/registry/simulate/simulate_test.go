@@ -291,18 +291,18 @@ func TestNoWrites(t *testing.T) {
 	assert.False(t, noWrites(Ops{{Verb: "apply"}}))
 }
 
-func TestSetupObjects_CRDThenSpec(t *testing.T) {
+func TestPrepareObjects_CRDThenSpec(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, body string) string {
 		p := filepath.Join(dir, name)
 		require.NoError(t, os.WriteFile(p, []byte(body), 0o644))
 		return p
 	}
-	crdSetup := write("token.yaml", "apiVersion: v1\nkind: Secret\nmetadata: {name: token}\n")
-	specSetup := write("namespaces.yaml", "apiVersion: v1\nkind: Namespace\nmetadata: {name: team-a}\n---\napiVersion: v1\nkind: Namespace\nmetadata: {name: team-b}\n")
+	crdPrepare := write("token.yaml", "apiVersion: v1\nkind: Secret\nmetadata: {name: token}\n")
+	specPrepare := write("namespaces.yaml", "apiVersion: v1\nkind: Namespace\nmetadata: {name: team-a}\n---\napiVersion: v1\nkind: Namespace\nmetadata: {name: team-b}\n")
 
-	crd := &types.CRDEntry{Setup: &types.SetupConfig{Apply: []types.SetupApplyEntry{{Path: crdSetup}}}}
-	objs, err := setupObjects(crd, []string{specSetup})
+	crd := &types.CRDEntry{Prepare: &types.Prepare{Apply: []types.ProvisionApplyEntry{{Path: crdPrepare}}}}
+	objs, err := prepareObjects(crd, []string{specPrepare})
 	require.NoError(t, err)
 	var names []string
 	for _, o := range objs {
@@ -310,7 +310,7 @@ func TestSetupObjects_CRDThenSpec(t *testing.T) {
 	}
 	assert.Equal(t, []string{"Secret/token", "Namespace/team-a", "Namespace/team-b"}, names)
 
-	objs, err = setupObjects(&types.CRDEntry{}, nil)
+	objs, err = prepareObjects(&types.CRDEntry{}, nil)
 	require.NoError(t, err)
 	assert.Empty(t, objs)
 }

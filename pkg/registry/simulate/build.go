@@ -115,7 +115,7 @@ func buildFakeCluster(
 	for gk, namespaced := range crds.Scopes {
 		kube.SetScope(gk, namespaced)
 	}
-	objs, err := setupObjects(crdEntry, setup)
+	objs, err := prepareObjects(crdEntry, setup)
 	if err != nil {
 		return nil, err
 	}

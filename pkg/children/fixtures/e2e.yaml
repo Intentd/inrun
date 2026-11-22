@@ -13,11 +13,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-children-fixture
-    reuse: false
-
   expect:
     - include: ./include/01-resources.yaml
     - include: ./include/02-cleanup.yaml

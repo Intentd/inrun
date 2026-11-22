@@ -8,10 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/intentd/inrun/pkg/migrate"
-	"github.com/intentd/kel/ecosystem"
-
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/inrun/pkg/migrate"
 
 	"path/filepath"
 
@@ -23,6 +21,7 @@ import (
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
 	modulepkg "github.com/intentd/inrun/pkg/registry/module"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/cluster"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -298,7 +297,7 @@ func validateE2EFileOpts(path string, quiet bool) error {
 		errs = append(errs, "metadata.name is required")
 	}
 	isCustom := doc.Spec.Custom != nil && doc.Spec.Custom.Target != ""
-	noCluster := doc.Spec.Cluster.EffectiveProvider() == types.ProviderNone
+	noCluster := doc.Spec.Environment.Provider() == types.ProviderNone
 	if isCustom {
 		switch doc.Spec.Custom.Target {
 		case types.CustomTargetKubernetes:
@@ -369,17 +368,7 @@ func validateE2EFileOpts(path string, quiet bool) error {
 	// Validate the files the spec names, kubectl blocks and external calls.
 	checkErrs := append(e2e.ValidatePaths(baseDir, &doc.Spec), kubectl.Validate(expanded, baseDir)...)
 	checkErrs = append(checkErrs, expect.ValidateExternal(expanded)...)
-	if s := doc.Spec.Setup; s != nil {
-		if s.Images != nil {
-			for i, img := range s.Images {
-				if img.Image != "" {
-					if !ecosystem.IsValidImageRef(img.Image) {
-						checkErrs = append(checkErrs, fmt.Errorf("spec.setup.images.[%d].image is invalid", i))
-					}
-				}
-			}
-		}
-	}
+	checkErrs = append(checkErrs, e2e.ValidateImages(&doc.Spec)...)
 	if f := doc.Spec.OnFailure; f != nil {
 		if f.Empty() {
 			checkErrs = append(checkErrs, fmt.Errorf("spec.onFailure: block is empty"))
@@ -434,19 +423,35 @@ func validateE2EFileOpts(path string, quiet bool) error {
 		if doc.Spec.CR != "" {
 			fmt.Printf("    %s\n", cmdutil.Gray("cr      : "+doc.Spec.CR))
 		}
-		if s := doc.Spec.Setup; s != nil {
-			if len(s.Apply) > 0 {
-				paths := make([]string, len(s.Apply))
-				for i, e := range s.Apply {
-					paths[i] = e.Path
+		if e := doc.Spec.Environment; e != nil {
+			if len(e.Apply) > 0 {
+				paths := make([]string, len(e.Apply))
+				for i, a := range e.Apply {
+					paths[i] = a.Path
 				}
-				fmt.Printf("    %s\n", cmdutil.Gray("setup.apply : "+strings.Join(paths, ", ")))
+				fmt.Printf("    %s\n", cmdutil.Gray("environment.apply : "+strings.Join(paths, ", ")))
 			}
-			if len(s.Helm) > 0 {
-				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("setup.helm  : %d chart(s)", len(s.Helm))))
+			if len(e.Helm) > 0 {
+				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("environment.helm  : %d chart(s)", len(e.Helm))))
 			}
-			if len(s.Wait) > 0 {
-				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("setup.wait  : %d resource(s)", len(s.Wait))))
+			if len(e.Wait) > 0 {
+				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("environment.wait  : %d resource(s)", len(e.Wait))))
+			}
+			printEnvironmentImages(doc.Metadata.Name, e.Images)
+		}
+		if p := doc.Spec.Prepare; p != nil {
+			if len(p.Apply) > 0 {
+				paths := make([]string, len(p.Apply))
+				for i, a := range p.Apply {
+					paths[i] = a.Path
+				}
+				fmt.Printf("    %s\n", cmdutil.Gray("prepare.apply : "+strings.Join(paths, ", ")))
+			}
+			if len(p.Helm) > 0 {
+				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("prepare.helm  : %d chart(s)", len(p.Helm))))
+			}
+			if len(p.Wait) > 0 {
+				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("prepare.wait  : %d resource(s)", len(p.Wait))))
 			}
 		}
 	}
@@ -499,6 +504,37 @@ func validateE2EFileOpts(path string, quiet bool) error {
 	}
 
 	return nil
+}
+
+// printEnvironmentImages lists the images the run builds, loads and deploys,
+// under one environment.images heading. Default image and deployment names
+// are resolved the same way the run resolves them.
+func printEnvironmentImages(specName string, images cluster.Images) {
+	if len(images) == 0 {
+		return
+	}
+	fmt.Printf("    %s\n", cmdutil.Gray("environment.images :"))
+	for i, img := range images.ResolveDefaultNames(specName) {
+		description := img.Image
+		operations := []string{"load"}
+		if img.Build != nil {
+			description = fmt.Sprintf("build %s (%s) → %s", img.Build.Context, img.Build.DockerfilePath(), img.Image)
+			operations = []string{"build", "load"}
+		}
+		if img.Deploy != nil {
+			operations = append(operations, "deploy")
+		}
+		fmt.Printf("      [%d] %s %s\n", i, description, cmdutil.Gray("("+strings.Join(operations, ", ")+")"))
+
+		if d := img.Deploy; d != nil {
+			namespace := d.Namespace
+			if namespace == "" {
+				namespace = "default"
+			}
+			fmt.Printf("          %s\n", cmdutil.Gray(fmt.Sprintf("deploy  : %s (namespace: %s, port: %d)", d.Name, namespace, d.Port)))
+			fmt.Printf("          %s\n", cmdutil.Gray(fmt.Sprintf("service : %s.%s.svc.cluster.local:%d", d.Name, namespace, d.Port)))
+		}
+	}
 }
 
 // ValidateSimulateFile validates a Simulate spec file and prints a summary.
@@ -582,7 +618,7 @@ func validateSimulateFileOpts(path string, quiet bool) error {
 			}
 		}
 		errs = append(errs, doc.Spec.ValidateSetup()...)
-		for _, p := range doc.Spec.SetupPaths() {
+		for _, p := range doc.Spec.PreparePaths() {
 			if !cmdutil.FileExists(filepath.Join(baseDir, p)) {
 				errs = append(errs, "setup file not found: "+p)
 			}

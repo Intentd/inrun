@@ -32,7 +32,7 @@ spec:
   crds:
     website:
       crdFile: ./manifests/crd.yaml
-      setup: [./manifests/secret.yaml]
+      prepare: [./manifests/secret.yaml]
       serve:
         enabled: true
         namespace: default

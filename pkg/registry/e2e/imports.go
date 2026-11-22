@@ -109,7 +109,7 @@ func (r *Runner) prepareImportsCluster(ctx context.Context) (cleanup func(), fai
 		// one so imports don't run alongside the parent's Inrun install.
 		importCluster := r.clusterName() + "-imports"
 		fmt.Printf("→ Creating imports cluster '%s'...\n", importCluster)
-		if err := cluster.EnsureKindCluster(importCluster, inruncluster.Kind(r.workers, r.kindVersion)); err != nil {
+		if err := cluster.EnsureKind(ctx, importCluster, inruncluster.Kind(r.workers, r.kindVersion)); err != nil {
 			return nil, []expect.ImportResult{{
 				Path: importCluster,
 				Err:  fmt.Errorf("creating imports cluster: %w", err),
@@ -118,7 +118,7 @@ func (r *Runner) prepareImportsCluster(ctx context.Context) (cleanup func(), fai
 		if !r.keepCluster {
 			cleanup = func() {
 				fmt.Printf("→ Deleting imports cluster '%s'...\n", importCluster)
-				_ = deleteKindCluster(ctx, importCluster)
+				_ = cluster.DeleteKind(ctx, importCluster, cluster.KindOptions{})
 			}
 		}
 	}

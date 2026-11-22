@@ -15,17 +15,13 @@ spec:
   crd: ../manifests/crd-appconfig.yaml
   valuesFiles:
     - ./e2e-values.yaml
-  setup:
+  prepare:
     - ../manifests/crd-newconfig.yaml      # destination CRD — both must exist
     - ../manifests/namespaces.yaml
     - ../manifests/crs-appconfig.yaml      # 10 AppConfigs: web/batch/internal/none
 
   runtime: 
     enabled: false
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
 
   env:
     DEV_TOKEN: dev-token

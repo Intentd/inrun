@@ -199,8 +199,8 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 		return fmt.Errorf("simulate config %q: %s", specPath, strings.Join(errs, "; "))
 	}
 	opts := simulate.RunOptions{SkipExternal: doc.Spec.SkipExternal, Verbose: simOpts.Verbose}
-	for _, p := range doc.Spec.SetupPaths() {
-		opts.Setup = append(opts.Setup, cmdutil.JoinPath(specPath, p))
+	for _, p := range doc.Spec.PreparePaths() {
+		opts.Prepare = append(opts.Prepare, cmdutil.JoinPath(specPath, p))
 	}
 
 	m := merger.New(blueprintPath)

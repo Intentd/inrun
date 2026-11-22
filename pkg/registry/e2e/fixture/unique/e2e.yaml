@@ -15,11 +15,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e-unique
-    reuse: false
-
   expect:
     - name: First Website accepted and reaches Ready
       after: cr-applied

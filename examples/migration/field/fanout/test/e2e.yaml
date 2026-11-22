@@ -14,17 +14,13 @@ spec:
   crd: ../manifests/old-crd.yaml
   valuesFiles:
     - ./e2e-values.yaml
-  setup: 
+  prepare: 
     - ../manifests/namespaces.yaml
     - ../manifests/old-crs.yaml     # apply old CRs before new CRD
     - ../manifests/crd.yaml         # new CRD
 
   runtime:
     enabled: false
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
 
   env:
     DEV_TOKEN: dev-token

@@ -106,19 +106,19 @@ var one uint64 = 1
 // shorthands are the types whose UnmarshalYAML accepts more than the
 // reflected struct. Keep in step with those decoders in pkg/types.
 var shorthands = map[string]schemagen.Shorthand{
-	"SetupApplyEntry":    schemagen.Either(schemagen.Str("Path to a manifest")),
-	"E2EKubectlApply":    schemagen.Either(schemagen.Str("Path to a manifest to apply (shorthand for file)")),
-	"E2EKubectlDelete":   schemagen.Either(schemagen.Str("Path to a manifest whose resources to delete (shorthand for file)")),
-	"E2EKubectlPatch":    schemagen.Either(schemagen.Str("A file that is both the target and the merge patch: one partial object (shorthand for file and patchFile)")),
-	"E2EImport":          schemagen.Either(schemagen.Str("Path to another E2E file")),
-	"FileSource":         schemagen.Either(schemagen.Str("Path or URL of the file")),
-	"RegistrySource":     schemagen.Either(schemagen.Str("Pattern reference, e.g. oci://registry/path:tag")),
-	"RetryBackoffConfig": schemagen.Either(schemagen.Str("Initial delay, e.g. 500ms")),
-	"DependsOnCondition": schemagen.Either(schemagen.Str("started or healthy")),
+	"ProvisionApplyEntry": schemagen.Either(schemagen.Str("Path to a manifest")),
+	"E2EKubectlApply":     schemagen.Either(schemagen.Str("Path to a manifest to apply (shorthand for file)")),
+	"E2EKubectlDelete":    schemagen.Either(schemagen.Str("Path to a manifest whose resources to delete (shorthand for file)")),
+	"E2EKubectlPatch":     schemagen.Either(schemagen.Str("A file that is both the target and the merge patch: one partial object (shorthand for file and patchFile)")),
+	"E2EImport":           schemagen.Either(schemagen.Str("Path to another E2E file")),
+	"FileSource":          schemagen.Either(schemagen.Str("Path or URL of the file")),
+	"RegistrySource":      schemagen.Either(schemagen.Str("Pattern reference, e.g. oci://registry/path:tag")),
+	"RetryBackoffConfig":  schemagen.Either(schemagen.Str("Initial delay, e.g. 500ms")),
+	"DependsOnCondition":  schemagen.Either(schemagen.Str("started or healthy")),
 	"IdempotencyKeyConfig": schemagen.Either(&jsonschema.Schema{
 		Type: "boolean", Const: false, Description: "false sends no idempotency key",
 	}),
-	"SetupConfig": schemagen.Either(&jsonschema.Schema{
+	"Prepare": schemagen.Either(&jsonschema.Schema{
 		Type: "array", Items: schemagen.Str("Path to a manifest"), Description: "Shorthand for apply",
 	}),
 	// EnrichTarget is "pods", or {events: {when: [...], or: [...]}}: one key,

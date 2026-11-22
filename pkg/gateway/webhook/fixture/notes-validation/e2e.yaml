@@ -14,11 +14,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr-placeholder.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-webhook-notes-validation
-    reuse: false
-
   expect:
     - include: ./include/01-webhook-deny.yaml
     - include: ./include/02-mutation.yaml

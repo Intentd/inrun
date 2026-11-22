@@ -26,11 +26,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e-probe
-    reuse: false
-
   expect:
     - name: The dev server is running (run with --dev-server)
       timeout: 30s

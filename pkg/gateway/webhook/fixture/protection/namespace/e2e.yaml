@@ -11,12 +11,7 @@ spec:
   crd: ./crd.yaml
   cr: ./cr-allowed.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
-  setup:
+  prepare:
     - ./setup.yaml   # creates production and staging namespaces
 
   expect:

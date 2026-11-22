@@ -13,7 +13,7 @@ spec:
   blueprint: ../blueprint.yaml
   cr: ../manifests/cr.yaml
   cycles: 1
-  setup:
+  prepare:
     - ../manifests/setup.yaml
 
   expect:

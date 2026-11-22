@@ -20,7 +20,7 @@ spec:
       crdFile: ./manifests/crd.yaml
       crFiles:
         - ./manifests/cr.yaml
-      setup:
+      prepare:
         apply:
           - ./manifests/setup.yaml
         wait:

@@ -15,11 +15,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-coordinator-probe
-    reuse: false
-
   expect:
     - include: ./include/01-pending.yaml
     - include: ./include/02-crds-applied.yaml

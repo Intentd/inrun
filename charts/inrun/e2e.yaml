@@ -15,12 +15,7 @@ spec:
   custom:
     target: kubernetes
 
-  cluster:
-    provider: kind
-    name: inrun-chart-e2e
-    reuse: false
-
-  setup:
+  prepare:
     apply:
       - path: fixtures/crd.yaml
         wait:

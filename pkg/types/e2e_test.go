@@ -248,39 +248,39 @@ func TestEnvResolver_Expand(t *testing.T) {
 func TestEffectiveLoadImages(t *testing.T) {
 	tests := []struct {
 		name      string
-		setup     *SetupConfig
+		env       *E2EEnvironment
 		cli       []string
 		want      []string
 		wantErr   bool
 		wantInErr string
 	}{
 		{
-			name:  "nil setup, no cli",
-			setup: nil,
-			cli:   nil,
-			want:  nil,
+			name: "nil environment, no cli",
+			env:  nil,
+			cli:  nil,
+			want: nil,
 		},
 		{
-			name:  "nil setup, cli only",
-			setup: nil,
-			cli:   []string{"app:1"},
-			want:  []string{"app:1"},
+			name: "nil environment, cli only",
+			env:  nil,
+			cli:  []string{"app:1"},
+			want: []string{"app:1"},
 		},
 		{
-			name:  "nil setup, cli deduped",
-			setup: nil,
-			cli:   []string{"app:1", "app:1", " "},
-			want:  []string{"app:1"},
+			name: "nil environment, cli deduped",
+			env:  nil,
+			cli:  []string{"app:1", "app:1", " "},
+			want: []string{"app:1"},
 		},
 		{
-			name:  "schema only",
-			setup: &SetupConfig{Images: cluster.Images{{Image: "app:1"}}},
-			cli:   nil,
-			want:  []string{"app:1"},
+			name: "schema only",
+			env:  &E2EEnvironment{Images: cluster.Images{{Image: "app:1"}}},
+			cli:  nil,
+			want: []string{"app:1"},
 		},
 		{
 			name: "schema and cli subset",
-			setup: &SetupConfig{Images: cluster.Images{
+			env: &E2EEnvironment{Images: cluster.Images{
 				{Image: "app:1"},
 				{Image: "sidecar:1"},
 			}},
@@ -289,14 +289,14 @@ func TestEffectiveLoadImages(t *testing.T) {
 		},
 		{
 			name:      "cli widens the schema",
-			setup:     &SetupConfig{Images: cluster.Images{{Image: "app:1"}}},
+			env:       &E2EEnvironment{Images: cluster.Images{{Image: "app:1"}}},
 			cli:       []string{"other:1"},
 			wantErr:   true,
 			wantInErr: `--images "other:1" is not declared in the schema`,
 		},
 		{
 			name: "build entry resolves to its image reference",
-			setup: &SetupConfig{Images: cluster.Images{
+			env: &E2EEnvironment{Images: cluster.Images{
 				{Image: "built:1", Build: &cluster.Build{Context: "./app"}},
 			}},
 			cli:  nil,
@@ -304,7 +304,7 @@ func TestEffectiveLoadImages(t *testing.T) {
 		},
 		{
 			name: "build entry without image gets the default name",
-			setup: &SetupConfig{Images: cluster.Images{
+			env: &E2EEnvironment{Images: cluster.Images{
 				{Build: &cluster.Build{Context: "./app"}},
 			}},
 			cli:  nil,
@@ -313,7 +313,7 @@ func TestEffectiveLoadImages(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := tc.setup.EffectiveLoadImages("myapp", tc.cli)
+			got, err := tc.env.EffectiveLoadImages("myapp", tc.cli)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

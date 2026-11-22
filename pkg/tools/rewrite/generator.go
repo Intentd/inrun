@@ -226,10 +226,11 @@ spec:
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 
+  environment:
   cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
+      provider: kind
+      name: inrun-e2e
+      reuse: false
 
   expect:
     - name: CR created

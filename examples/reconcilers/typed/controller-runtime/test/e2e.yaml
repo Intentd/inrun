@@ -12,11 +12,6 @@ spec:
   valuesFiles:
     - ./values.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
   expect:
     - name: Deployment and Service created
       after: cr-applied

@@ -13,11 +13,6 @@ spec:
   crd: ./crd.yaml
   cr: ./e2e-cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-external-redis
-    reuse: false
-
   expect:
     - include: ./include/01-redis-deploy.yaml
     - include: ./include/02-assertions.yaml

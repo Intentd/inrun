@@ -86,9 +86,9 @@ type CRDEntry struct {
 	// Same path resolution as CRDFile. Dev mode only.
 	CRFiles []string `yaml:"crFiles,omitempty" json:"crFiles,omitempty"`
 
-	// Setup declares prerequisite resources to apply before Inrun starts.
+	// Prepare declares prerequisite resources to apply before Inrun starts.
 	// Shorthand: a plain list of strings applies each file
-	Setup *SetupConfig `yaml:"setup,omitempty" json:"setup,omitempty"`
+	Prepare *Prepare `yaml:"prepare,omitempty" json:"prepare,omitempty"`
 
 	// ── Computed GVK/GVR ─────────────────────────────────────────────────────
 	// Set by setGroupVersionKind() during Blueprint validation.

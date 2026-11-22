@@ -11,12 +11,7 @@ spec:
   crd: ./crd-protected.yaml
   cr: ./cr-app.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
-  setup:
+  prepare:
     - ./crd-unprotected.yaml   # LogStream CRD — not protected, included to test contrast
 
   expect:

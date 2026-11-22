@@ -9,7 +9,7 @@ spec:
   blueprint: ../blueprint.yaml
   crd: ../crd.yaml
   cr: ../cr.yaml
-  setup:
+  prepare:
     - ../setup.yaml
   cycles: 2
 

@@ -30,16 +30,28 @@ const teardownTimeout = "60s"
 // The suite's CRs and the custom resources from setup files go first, while
 // the controllers that finalize them are still running. The rest is the
 // reverse of apply order: Inrun → bundle → setup helm → setup files → CRDs.
+// TeardownConfig carries what teardown needs from a run. The two phases are
+// kept separate because they are torn down in the reverse of the order they
+// ran: prepare (the workload and its dependencies) before environment
+// (cluster furniture).
 type TeardownConfig struct {
-	// CRPaths are the suite's CR files. A run that fails or stops before its
-	// cr-deleted expectations leaves them; one that got there deleted them
-	// already, and deleting them again is a no-op.
-	CRPaths        []string
-	CRDPaths       []string
-	BundlePath     string
-	SetupPaths     []string
-	Setup          *types.SetupConfig
-	SharedInrun    bool
+	// CRPaths are the suite's CR files.
+	CRPaths []string
+	// CRDPaths are the CRD files.
+	CRDPaths []string
+	// BundlePath is the generated bundle.
+	BundlePath string
+	// PreparePaths are the manifests applied by prepare.apply.
+	PreparePaths []string
+	// EnvironmentPaths are the manifests applied by environment.apply.
+	EnvironmentPaths []string
+	// Prepare is the prepare phase, for its helm releases.
+	Prepare *types.Prepare
+	// Environment is the environment phase, for its helm releases.
+	Environment *types.E2EEnvironment
+	// SharedInrun: the Inrun install is shared, so do not uninstall it.
+	SharedInrun bool
+	// UninstallInrun: uninstall the Inrun release this run installed.
 	UninstallInrun bool
 }
 
@@ -51,28 +63,18 @@ func Teardown(ctx context.Context, cfg TeardownConfig) {
 	for _, path := range cfg.CRPaths {
 		deleteStep(ctx, fmt.Sprintf("Deleting CR %s...", filepath.Base(path)), path)
 	}
-	for i := len(cfg.SetupPaths) - 1; i >= 0; i-- {
-		deleteCustomResources(ctx, cfg.SetupPaths[i])
+	// The prepare phase's custom resources, in reverse.
+	for i := len(cfg.PreparePaths) - 1; i >= 0; i-- {
+		deleteCustomResources(ctx, cfg.PreparePaths[i])
 	}
 
-	// Helm uninstall inrun — must happen before bundle delete so the
-	// runtime is stopped before its RBAC and ConfigMap are removed.
+	// Helm uninstall inrun — before bundle delete so the runtime is stopped
+	// before its RBAC and ConfigMap are removed.
 	if cfg.UninstallInrun && !cfg.SharedInrun {
-		sp := startSpinner("Uninstalling Inrun...")
-		cmd := exec.CommandContext(ctx, "helm", "uninstall", inruncluster.Inrun,
-			"--namespace", inruncluster.InrunNamespace, "--ignore-not-found")
-		if out, err := cmd.CombinedOutput(); err != nil {
-			sp.Failure()
-			fmt.Printf("    %v\n%s\n", err, out)
-		} else {
-			sp.Success()
-		}
+		uninstallInrun(ctx)
 	}
 
 	// Bundle (RBAC, ConfigMap, Namespace created by inrun generate bundle).
-	// sharedInrun: skip kubectl delete — the bundle contains inrun-system namespace;
-	// deleting it cascades to the Inrun deployment managed by the coordinator.
-	// The temp file is still removed.
 	if cfg.BundlePath != "" {
 		if !cfg.SharedInrun {
 			deleteStep(ctx, "Deleting bundle resources...", cfg.BundlePath)
@@ -80,25 +82,27 @@ func Teardown(ctx context.Context, cfg TeardownConfig) {
 		os.Remove(cfg.BundlePath)
 	}
 
-	// Setup helm releases in reverse order.
-	if cfg.Setup != nil {
-		helms := cfg.Setup.Helm
-		for i := len(helms) - 1; i >= 0; i-- {
-			h := helms[i]
-			sp := startSpinner(fmt.Sprintf("Uninstalling setup helm %s...", h.ReleaseName()))
-			if err := cluster.HelmUninstall(ctx, h.HelmRelease()); err != nil {
-				sp.Failure()
-				fmt.Printf("    %v\n", err)
-			} else {
-				sp.Success()
-			}
-		}
+	// Prepare helm releases, reverse order: the workload's charts before the
+	// cluster furniture they depend on.
+	if cfg.Prepare != nil {
+		uninstallHelm(ctx, "prepare", cfg.Prepare.Helm)
 	}
 
-	// Setup files in reverse order.
-	for i := len(cfg.SetupPaths) - 1; i >= 0; i-- {
-		path := cfg.SetupPaths[i]
-		deleteStep(ctx, fmt.Sprintf("Deleting setup %s...", filepath.Base(path)), path)
+	// Environment helm releases, reverse order: cluster furniture last.
+	if cfg.Environment != nil {
+		uninstallHelm(ctx, "environment", cfg.Environment.Helm)
+	}
+
+	// Prepare manifests in reverse order.
+	for i := len(cfg.PreparePaths) - 1; i >= 0; i-- {
+		path := cfg.PreparePaths[i]
+		deleteStep(ctx, fmt.Sprintf("Deleting prepare %s...", filepath.Base(path)), path)
+	}
+
+	// Environment manifests in reverse order: cluster furniture last.
+	for i := len(cfg.EnvironmentPaths) - 1; i >= 0; i-- {
+		path := cfg.EnvironmentPaths[i]
+		deleteStep(ctx, fmt.Sprintf("Deleting environment %s...", filepath.Base(path)), path)
 	}
 
 	// CRDs last — deleting a CRD cascades to all CRs of that type.
@@ -107,6 +111,34 @@ func Teardown(ctx context.Context, cfg TeardownConfig) {
 	}
 
 	fmt.Printf("  %s Cleanup complete\n", successMark())
+}
+
+// uninstallInrun uninstalls the Inrun release this run installed.
+func uninstallInrun(ctx context.Context) {
+	sp := startSpinner("Uninstalling Inrun...")
+	cmd := exec.CommandContext(ctx, "helm", "uninstall", inruncluster.Inrun,
+		"--namespace", inruncluster.InrunNamespace, "--ignore-not-found")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		sp.Failure()
+		fmt.Printf("    %v\n%s\n", err, out)
+	} else {
+		sp.Success()
+	}
+}
+
+// uninstallHelm uninstalls releases in reverse order, labelled with the phase
+// they belong to so a failure names it.
+func uninstallHelm(ctx context.Context, phase string, releases []types.ProvisionHelmInstall) {
+	for i := len(releases) - 1; i >= 0; i-- {
+		h := releases[i]
+		sp := startSpinner(fmt.Sprintf("Uninstalling %s helm %s...", phase, h.ReleaseName()))
+		if err := cluster.HelmUninstall(ctx, h.HelmRelease()); err != nil {
+			sp.Failure()
+			fmt.Printf("    %v\n", err)
+		} else {
+			sp.Success()
+		}
+	}
 }
 
 // deleteStep deletes path behind a spinner labelled msg.

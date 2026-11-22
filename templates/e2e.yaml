@@ -12,16 +12,17 @@ spec:
   cr: ./cr.yaml
 
   # --- Cluster --------------------------------------------------------------
-  cluster:
-    provider: kind       # kind (default) | existing
-    name: inrun-e2e
-    reuse: false         # false = clean cluster every run
+  environment:
+    cluster:
+      provider: kind       # kind (default) | existing
+      name: inrun-e2e
+      reuse: false         # false = clean cluster every run
 
   # --- Setup (optional) -----------------------------------------------------
   # Apply prerequisite resources before the operator starts.
-  # Shorthand: setup: - ./prereqs.yaml   (backward compatible)
+  # Shorthand: prepare: - ./prereqs.yaml   (backward compatible)
   # Full form:
-  setup:
+  prepare:
     apply:
       - ./setup.yaml     # namespaces, secrets, extra CRDs — applied in order
     # helm:              # install Helm charts before the operator starts

@@ -13,18 +13,13 @@ metadata:
 spec:
   blueprint: ../blueprint.yaml
   crd: ../manifests/crd-appconfig.yaml
-  setup:
+  prepare:
     - ../manifests/crd-appconfig-cluster.yaml
     - ../manifests/namespaces.yaml
     - ../manifests/crs.yaml
 
   runtime:
     enabled: false
-
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
 
   env:
     DEV_TOKEN: dev-token

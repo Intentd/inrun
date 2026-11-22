@@ -9,8 +9,9 @@ metadata:
     own spec.env overrides it on collision.
 
 spec:
-  cluster: 
-    provider: none
+  environment:
+    cluster:
+      provider: none
   env:
     DEV_TOKEN: from-suite
     SHARED: suite-value

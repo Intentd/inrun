@@ -61,7 +61,7 @@ func (r *Runner) resolveSource() error {
 	case len(r.e2e.Imports) > 0:
 		// Pure aggregator — no own blueprint/CR, just orchestrates imports.
 		return nil
-	case spec.Cluster.Provider == types.ProviderNone:
+	case spec.Environment.Cluster.Provider == types.ProviderNone:
 		// Running e2e without a cluster: for just commands: useful for testing
 		return nil
 

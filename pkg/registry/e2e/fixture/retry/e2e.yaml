@@ -12,9 +12,9 @@ metadata:
 spec:
   custom:
     target: kubernetes
-  cluster:
-    provider: none
-
+  environment:
+    cluster:
+      provider: none
   env:
     SPEC_TOKEN: from-spec
 

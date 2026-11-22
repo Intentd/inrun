@@ -6,9 +6,9 @@ metadata:
   description: Proves spec.env and expect.env resolve into commands:.
 
 spec:
-  cluster:
-    provider: none
-
+  environment:
+    cluster:
+      provider: none
   env:
     DEV_TOKEN: from-spec
     SHARED: spec-value

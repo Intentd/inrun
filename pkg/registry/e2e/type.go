@@ -9,11 +9,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const (
-	defaultClusterName = "inrun-e2e"
-	defaultProvider    = "kind"
-)
-
 // Runner executes a single E2E spec end-to-end.
 type Runner struct {
 	e2e                       types.E2E
@@ -118,9 +113,10 @@ type expectationResult struct {
 }
 
 type dependencyResult struct {
-	appliedCRDPaths   []string
-	appliedBundlePath string
-	appliedSetupPaths []string
-	expects           types.E2EExpectations
-	installedInrun    bool
+	appliedCRDPaths         []string
+	appliedBundlePath       string
+	appliedPreparePaths     []string
+	appliedEnvironmentPaths []string
+	expects                 types.E2EExpectations
+	installedInrun          bool
 }

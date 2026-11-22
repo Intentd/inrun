@@ -12,11 +12,6 @@ spec:
   crd: ./crd.yaml
   cr: ./e2e-cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-external-mongo
-    reuse: false
-
   expect:
     - include: ./include/01-mongo-deploy.yaml
     - include: ./include/02-assertions.yaml

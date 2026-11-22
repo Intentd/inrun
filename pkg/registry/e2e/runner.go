@@ -169,11 +169,12 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 	}
 
 	var (
-		appliedCRDPaths   []string
-		appliedBundlePath string
-		appliedSetupPaths []string
-		installedInrun    bool
-		clusterDeleted    bool
+		appliedCRDPaths         []string
+		appliedBundlePath       string
+		appliedPreparePaths     []string
+		appliedEnvironmentPaths []string
+		installedInrun          bool
+		clusterDeleted          bool
 	)
 
 	if needsCluster {
@@ -189,13 +190,15 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 					crPaths = r.crFiles
 				}
 				post.Teardown(context.Background(), post.TeardownConfig{
-					CRPaths:        crPaths,
-					BundlePath:     appliedBundlePath,
-					CRDPaths:       appliedCRDPaths,
-					SetupPaths:     appliedSetupPaths,
-					Setup:          r.e2e.Spec.Setup,
-					SharedInrun:    r.sharedInrun,
-					UninstallInrun: installedInrun,
+					CRPaths:          crPaths,
+					BundlePath:       appliedBundlePath,
+					CRDPaths:         appliedCRDPaths,
+					PreparePaths:     appliedPreparePaths,
+					Prepare:          r.e2e.Spec.Prepare,
+					EnvironmentPaths: appliedEnvironmentPaths,
+					Environment:      r.e2e.Spec.Environment,
+					SharedInrun:      r.sharedInrun,
+					UninstallInrun:   installedInrun,
 				})
 			}()
 		}
@@ -206,7 +209,7 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 			defer func() {
 				if !clusterDeleted {
 					fmt.Printf("\n→ Deleting cluster '%s' (run stopped early)...\n", r.clusterName())
-					if err := r.deleteCluster(context.Background()); err != nil {
+					if err := r.deleteCluster(ctx); err != nil {
 						fmt.Printf("  ! Could not delete cluster: %v\n", err)
 					}
 				}
@@ -215,11 +218,11 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 		if err := r.ensureCluster(ctx); err != nil {
 			return nil, fmt.Errorf("cluster: %w", err)
 		}
-		if err := r.loadImagesIntoCluster(ctx); err != nil {
-			return nil, err
-		}
 		if err := r.buildClient(); err != nil {
 			return nil, fmt.Errorf("k8s client: %w", err)
+		}
+		if err := r.prepareImages(ctx); err != nil {
+			return nil, err
 		}
 	}
 
@@ -242,7 +245,7 @@ func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
 	if depsResult != nil {
 		appliedCRDPaths = depsResult.appliedCRDPaths
 		appliedBundlePath = depsResult.appliedBundlePath
-		appliedSetupPaths = depsResult.appliedSetupPaths
+		appliedPreparePaths = depsResult.appliedPreparePaths
 		installedInrun = depsResult.installedInrun
 	}
 	if err != nil {

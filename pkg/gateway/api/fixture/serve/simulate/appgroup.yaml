@@ -10,7 +10,7 @@ spec:
   crdFiles:
     - ../../crd.yaml
     - ../../argocd/crd.yaml
-  setup:
+  prepare:
     - ../../setup.yaml
     - ../../argocd/setup.yaml
   cr: ../../crs/appgroup-basic.yaml

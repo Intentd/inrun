@@ -6,9 +6,9 @@ metadata:
   description: Every assertion form on one step's output — inline, text and json.
 
 spec:
-  cluster:
-    provider: none
-
+  environment:
+    cluster:
+      provider: none
   expect:
     - name: Inline — one comparison
       commands:

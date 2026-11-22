@@ -43,7 +43,7 @@ Downloads kind automatically if not found in PATH.
 
 		for _, n := range names {
 			fmt.Printf("→ Creating cluster '%s'...\n", n)
-			if err := cluster.EnsureKindCluster(n, inruncluster.Kind(workers, version)); err != nil {
+			if err := cluster.EnsureKind(cmdutil.Ctx, n, inruncluster.Kind(workers, version)); err != nil {
 				return err
 			}
 			fmt.Printf("\nCluster '%s' is ready.\n", n)

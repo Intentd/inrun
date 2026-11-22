@@ -19,7 +19,7 @@ spec:
       crdFile: crd.yaml
       crFiles:
         - cr.yaml
-      setup:
+      prepare:
         - configmap-shared.yaml
       operatorBox:
         reconcile:

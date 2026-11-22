@@ -15,12 +15,7 @@ spec:
   crd: ./crd.yaml
   cr: ./cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-informer-probe
-    reuse: false
-
-  setup:
+  prepare:
     apply:
       - ./setup.yaml
 

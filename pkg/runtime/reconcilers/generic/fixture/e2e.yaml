@@ -15,11 +15,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr-suite.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-reconciler-probe
-    reuse: false
-
   expect:
     - name: The dev server is running (run with --dev-server)
       timeout: 30s

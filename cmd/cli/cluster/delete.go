@@ -33,7 +33,7 @@ var deleteClusterCmd = &cobra.Command{
 		nameList := cmdutil.SplitCommaSeparated(name)
 		for _, n := range nameList {
 			fmt.Printf("→ Deleting cluster '%s'...\n", n)
-			if err := cluster.DeleteKindCluster(n, inruncluster.Kind(0, "")); err != nil {
+			if err := cluster.DeleteKind(cmdutil.Ctx, n, inruncluster.Kind(0, "")); err != nil {
 				return err
 			}
 			fmt.Printf("Cluster '%s' deleted.\n", n)

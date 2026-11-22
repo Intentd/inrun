@@ -9,6 +9,12 @@ import (
 	"github.com/intentd/tools/cluster"
 )
 
+// ensureDependencies expands expectation includes, checks required tools,
+// and prepares the cluster dependencies needed by the run.
+//
+// It skips cluster setup for commands-only runs and server dry runs. Any
+// resources applied before an error are recorded in dependencyResult so the
+// caller can clean them up.
 func (r *Runner) ensureDependencies(
 	ctx context.Context,
 	isPureAgg bool,
@@ -27,6 +33,7 @@ func (r *Runner) ensureDependencies(
 	if err != nil {
 		return nil, err
 	}
+
 	if err := ensureTools(r.e2e); err != nil {
 		return nil, err
 	}
@@ -60,26 +67,30 @@ func (r *Runner) ensureDependencies(
 		if err := r.pullOCIImports(ctx); err != nil {
 			return result, fmt.Errorf("pulling OCI imports: %w", err)
 		}
+
 		bundleFile, err := r.generateBundle(ctx)
 		if err != nil {
 			return result, fmt.Errorf("generate bundle: %w", err)
 		}
+
 		if ownsCluster {
 			defer os.Remove(bundleFile)
 		} else {
 			result.appliedBundlePath = bundleFile
 		}
+
 		fmt.Println("→ Applying bundle...")
 		if out, err := kubectl.Apply(ctx, kubectl.ApplyOptions{File: bundleFile}); err != nil {
 			return result, fmt.Errorf("apply bundle: %w\n%s", err, out)
 		}
+
 		fmt.Printf("  %s Bundle applied\n", successMark())
 	}
 
-	setupPaths, err := r.applySetup(ctx)
-	result.appliedSetupPaths = setupPaths
+	setupPaths, err := r.applyPrepare(ctx)
+	result.appliedPreparePaths = setupPaths
 	if err != nil {
-		return result, fmt.Errorf("setup: %w", err)
+		return result, fmt.Errorf("prepare: %w", err)
 	}
 
 	if r.devServer {
@@ -87,7 +98,9 @@ func (r *Runner) ensureDependencies(
 		if err != nil {
 			return result, fmt.Errorf("dev server: %w", err)
 		}
-		result.appliedSetupPaths = append(result.appliedSetupPaths, devManifest)
+
+		result.appliedPreparePaths = append(result.appliedPreparePaths, devManifest)
+
 		fmt.Println("→ Waiting for dev server to be ready...")
 		if err := checkDevServerHealth(); err != nil {
 			return result, err
@@ -95,7 +108,7 @@ func (r *Runner) ensureDependencies(
 		fmt.Printf("  %s Dev server ready\n", successMark())
 	}
 
-	// Install Inrun
+	// Install Inrun.
 	if !r.kubernetesTarget {
 		if err := r.installInrun(); err != nil {
 			return result, err
@@ -106,34 +119,58 @@ func (r *Runner) ensureDependencies(
 	return result, nil
 }
 
-// loadImagesIntoCluster resolves the images this run should load — the
-// schema's setup.images and the --images flag — and loads them into
-// the kind cluster. It is a no-op when the run has no cluster or no images.
+// prepareImages loads and deploys the images selected for this run.
+//
+// Images are loaded before their Deployments are applied so that locally
+// built images are available to the cluster when the pods are scheduled.
+func (r *Runner) prepareImages(ctx context.Context) error {
+	if err := r.loadImagesIntoCluster(ctx); err != nil {
+		return err
+	}
+
+	if err := r.deployImagesToCluster(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// loadImagesIntoCluster resolves the images this run should load and loads them
+// into the cluster.
+//
+// It is a no-op when the run does not need a cluster or has no images to
+// load. A CLI --images selection limits which declared images are loaded.
 func (r *Runner) loadImagesIntoCluster(ctx context.Context) error {
 	if !r.needsCluster {
 		return nil
 	}
-	setup := r.e2e.Spec.Setup
-	if setup == nil {
+
+	env := r.e2e.Spec.Environment
+	if env == nil {
 		return nil
 	}
 
-	declared := setup.Images.ResolveDefaultNames(r.e2e.Metadata.Name)
-	allowed, err := setup.EffectiveLoadImages(r.e2e.Metadata.Name, r.images)
+	images, err := env.EffectiveLoadImages(r.e2e.Metadata.Name, r.images)
 	if err != nil {
 		return err
 	}
-	if len(allowed) == 0 {
+
+	if len(images) == 0 {
 		return nil
 	}
 
-	// Keep only the entries the CLI selected, so a narrow --images
-	// skips the builds it did not ask for.
-	selected := make(cluster.Images, 0, len(allowed))
-	set := make(map[string]struct{}, len(allowed))
-	for _, ref := range allowed {
+	// Resolve the selected references back to their full image definitions.
+	// This preserves build configuration for cluster.LoadImages.
+	// Build paths resolve like Compose: context against the spec's directory,
+	// dockerfile against the context.
+	declared := env.Images.ResolveDefaultNames(r.e2e.Metadata.Name).ResolvePaths(r.e2eDir)
+
+	set := make(map[string]struct{}, len(images))
+	for _, ref := range images {
 		set[ref] = struct{}{}
 	}
+
+	selected := make(cluster.Images, 0, len(images))
 	for _, img := range declared {
 		if _, ok := set[img.Image]; ok {
 			selected = append(selected, img)
@@ -148,4 +185,30 @@ func (r *Runner) loadImagesIntoCluster(ctx context.Context) error {
 		)
 	}
 	return cluster.LoadImages(ctx, name, selected)
+}
+
+// deployImagesToCluster applies the Deployments and Services configured for
+// the images selected for this run.
+//
+// It is a no-op when the run does not need a cluster or has no images to
+// deploy. A CLI --images selection limits which declared images are deployed.
+func (r *Runner) deployImagesToCluster(ctx context.Context) error {
+	if !r.needsCluster {
+		return nil
+	}
+
+	env := r.e2e.Spec.Environment
+	if env == nil {
+		return nil
+	}
+
+	images, err := env.EffectiveDeployImages(r.e2e.Metadata.Name, r.images)
+	if err != nil {
+		return err
+	}
+
+	if len(images) == 0 {
+		return nil
+	}
+	return cluster.DeployImages(ctx, r.cs, images, cluster.WithFieldManager("inrun-e2e"), cluster.WithForceOwnership())
 }

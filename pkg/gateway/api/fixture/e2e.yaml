@@ -15,12 +15,7 @@ spec:
   crd: ./crd.yaml
   cr: ./cr-default.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e-gateway-serve
-    reuse: false
-
-  setup:
+  prepare:
     apply:
       - path: ./setup.yaml
         wait:

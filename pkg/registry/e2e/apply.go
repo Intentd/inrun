@@ -176,32 +176,54 @@ func (r *Runner) pullOCIImports(_ context.Context) error {
 	return nil
 }
 
-func (r *Runner) applySetup(ctx context.Context) ([]string, error) {
-	s := r.e2e.Spec.Setup
-	if s == nil {
+// applyEnvironment provisions the environment phase: apply, helm and wait
+// for cluster furniture, after the cluster exists and images are loaded.
+func (r *Runner) applyEnvironment(ctx context.Context) ([]string, error) {
+	env := r.e2e.Spec.Environment
+	if env == nil {
 		return nil, nil
 	}
+	return r.applyProvision(ctx, "environment", env.Provision)
+}
 
+// applyPrepare provisions the prepare phase: ecosystem dependencies, then
+// apply, helm and wait for the workload.
+func (r *Runner) applyPrepare(ctx context.Context) ([]string, error) {
+	p := r.e2e.Spec.Prepare
+	if p == nil {
+		return nil, nil
+	}
+	applied, err := r.applyProvision(ctx, "prepare", p.Provision)
+	if err != nil {
+		return applied, err
+	}
+	return applied, nil
+}
+
+// applyProvision runs the three provision sub-phases in order — apply, helm,
+// wait — for one phase. The phase name appears in every message so a failure
+// says which phase and which step it failed in.
+func (r *Runner) applyProvision(ctx context.Context, phase string, p types.Provision) ([]string, error) {
 	var applied []string
 
 	// ── Phase 1: apply ─────────────────────
-	for _, entry := range s.Apply {
+	for _, entry := range p.Apply {
 		abs := r.abs(entry.Path)
-		fmt.Printf("→ Applying setup %s...\n", entry.Path)
+		fmt.Printf("→ Applying %s %s...\n", phase, entry.Path)
 		if out, err := kubectl.Apply(ctx, kubectl.ApplyOptions{File: abs}); err != nil {
-			return applied, fmt.Errorf("setup apply %s: %w\n%s", entry.Path, err, out)
+			return applied, fmt.Errorf("%s apply %s: %w\n%s", phase, entry.Path, err, out)
 		}
 		fmt.Printf("  %s Applied\n", successMark())
 		applied = append(applied, abs)
 		for _, w := range entry.Wait {
-			if err := runSetupWait(ctx, w); err != nil {
-				return applied, fmt.Errorf("setup apply %s wait: %w", entry.Path, err)
+			if err := runProvisionWait(ctx, w); err != nil {
+				return applied, fmt.Errorf("%s apply %s wait: %w", phase, entry.Path, err)
 			}
 		}
 	}
 
 	// ── Phase 2: helm ──────────────────────
-	for _, h := range s.Helm {
+	for _, h := range p.Helm {
 		if h.IsLocalChart() && !filepath.IsAbs(h.Chart) {
 			h.Chart = r.abs(h.Chart)
 		}
@@ -210,30 +232,30 @@ func (r *Runner) applySetup(ctx context.Context) ([]string, error) {
 				h.ValueFiles[i] = r.abs(f)
 			}
 		}
-		sp := startSpinner(fmt.Sprintf("Installing %s...", h.ReleaseName()))
+		sp := startSpinner(fmt.Sprintf("Installing %s %s...", phase, h.ReleaseName()))
 		if err := cluster.HelmInstall(ctx, h.HelmRelease()); err != nil {
 			sp.Failure()
-			return applied, fmt.Errorf("setup helm %s: %w", h.Chart, err)
+			return applied, fmt.Errorf("%s helm %s: %w", phase, h.Chart, err)
 		}
 		sp.Success()
 		for _, w := range h.Wait {
-			if err := runSetupWait(ctx, w); err != nil {
-				return applied, fmt.Errorf("setup helm %s wait: %w", h.ReleaseName(), err)
+			if err := runProvisionWait(ctx, w); err != nil {
+				return applied, fmt.Errorf("%s helm %s wait: %w", phase, h.ReleaseName(), err)
 			}
 		}
 	}
 
 	// ── Phase 3: wait ──────────────────────
-	for _, w := range s.Wait {
-		if err := runSetupWait(ctx, w); err != nil {
-			return applied, fmt.Errorf("setup wait: %w", err)
+	for _, w := range p.Wait {
+		if err := runProvisionWait(ctx, w); err != nil {
+			return applied, fmt.Errorf("%s wait: %w", phase, err)
 		}
 	}
 
 	return applied, nil
 }
 
-func runSetupWait(ctx context.Context, w types.SetupWait) error {
+func runProvisionWait(ctx context.Context, w types.ProvisionWait) error {
 	loc := w.Kind + " " + w.Name
 	if w.Namespace != "" {
 		loc += " (" + w.Namespace + ")"

@@ -12,11 +12,6 @@ spec:
   crd: ./crd.yaml
   cr: ./e2e-cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-external-kafka
-    reuse: false
-
   expect:
     - include: ./include/01-kafka-deploy.yaml
     - include: ./include/02-assertions.yaml

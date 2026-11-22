@@ -15,16 +15,60 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// SetupConfig declares prerequisite resources to apply before Inrun starts.
+// Provision is the set of operations that make resources exist in the
+// cluster: manifests to apply, charts to install, resources to wait for.
 //
+// It is used by the environment phase (cluster furniture: a namespace, an
+// ingress controller, a storage class) and by the prepare phase (the test's
+// dependencies and the workload under test). Simulate uses it too, for the
+// resources a simulated run needs before it starts.
+//
+// Both phases embed it inline, so the YAML is flat — environment.apply and
+// prepare.apply, not environment.provision.apply.
+type Provision struct {
+	// Apply is an ordered list of manifests to kubectl-apply.
+	// Each entry is either a plain path string or a {path, wait} struct.
+	Apply []ProvisionApplyEntry `yaml:"apply,omitempty"`
+
+	// Helm is an ordered list of Helm charts to install.
+	// Executed as helm upgrade --install.
+	Helm []ProvisionHelmInstall `yaml:"helm,omitempty"`
+
+	// Wait blocks until all listed resources exist and satisfy conditions.
+	// Runs after all apply and helm steps. Use per-entry wait for ordered checks.
+	Wait []ProvisionWait `yaml:"wait,omitempty"`
+}
+
+// applyShorthand returns the apply entries for the plain-list shorthand
+// (a sequence of path strings), or nil when value is not that shorthand.
+func applyShorthand(value *yaml.Node) []ProvisionApplyEntry {
+	if value.Kind != yaml.SequenceNode {
+		return nil
+	}
+	var entries []ProvisionApplyEntry
+	for _, item := range value.Content {
+		if item.Kind != yaml.ScalarNode {
+			break
+		}
+		entries = append(entries, ProvisionApplyEntry{Path: item.Value})
+	}
+	return entries
+}
+
+// Prepare is the second phase of a run: the test's own dependencies and the
+// workload under test.
+//
+// Ecosystem installs infrastructure the workload needs (Postgres, RabbitMQ,
+// Redis) from the data-services chart. Apply, Helm and Wait install the
+// workload and anything it needs that ecosystem does not cover.
 // Shorthand — a plain list of strings is equivalent to setup.apply:
 //
-//	setup:
+//	prepare:
 //	  - ./prereqs/secret.yaml
 //
 // Struct form with per-entry waits:
 //
-//	setup:
+//	prepare:
 //	  apply:
 //	    - ./prereqs/namespace.yaml
 //	    - path: ./prereqs/secret.yaml
@@ -49,48 +93,20 @@ import (
 //	      namespace: cert-manager
 //	      ready: true
 //	      timeout: 120s
-type SetupConfig struct {
-	// Apply is an ordered list of manifests to kubectl-apply.
-	// Each entry is either a plain path string or a {path, wait} struct.
-	// Applied first, before helm installs, after the CRD is installed.
-	Apply []SetupApplyEntry `yaml:"apply,omitempty"`
+type Prepare struct {
+	// Ecosystem declares infrastructure dependencies and their Secrets.
+	Ecosystem *Ecosystem `yaml:"ecosystem,omitempty"`
 
-	// Helm is an ordered list of Helm charts to install before Inrun starts.
-	// Executed as helm upgrade --install — not rendered for Blueprint extraction.
-	Helm []SetupHelmInstall `yaml:"helm,omitempty"`
-
-	// Wait blocks until all listed resources exist and satisfy conditions.
-	// Runs after all apply and helm steps. Use per-entry wait for ordered checks.
-	Wait []SetupWait `yaml:"wait,omitempty"`
-
-	// Images lists container images to load into the cluster before the test
-	// runs. Each entry is either an existing image reference or a build block;
-	// images are built first when a build block is present.
-	//
-	// Manifests that reference these images must set imagePullPolicy to
-	// IfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the
-	// loaded image and pulls from the registry instead.
-	//
-	// The CLI flag --images narrows this list; it cannot add images the
-	// schema does not declare. When this list is empty, the CLI flag is the only
-	// source — the CI case, where the just-built image is the point.
-	Images cluster.Images `yaml:"images,omitempty"`
+	Provision `yaml:",inline"`
 }
 
 // UnmarshalYAML allows setup: to be written as either a plain list of strings (setup.apply) or a full struct.
-func (s *SetupConfig) UnmarshalYAML(value *yaml.Node) error {
-	if value.Kind == yaml.SequenceNode {
-		for _, item := range value.Content {
-			if item.Kind != yaml.ScalarNode {
-				break
-			}
-			s.Apply = append(s.Apply, SetupApplyEntry{Path: item.Value})
-		}
-		if len(s.Apply) > 0 {
-			return nil
-		}
+func (s *Prepare) UnmarshalYAML(value *yaml.Node) error {
+	if entries := applyShorthand(value); len(entries) > 0 {
+		s.Apply = append(s.Apply, entries...)
+		return nil
 	}
-	type plain SetupConfig
+	type plain Prepare
 	raw, err := yaml.Marshal(value)
 	if err != nil {
 		return err
@@ -98,7 +114,7 @@ func (s *SetupConfig) UnmarshalYAML(value *yaml.Node) error {
 	return strictUnmarshal(raw, (*plain)(s))
 }
 
-// SetupApplyEntry is a single manifest to kubectl-apply during setup.
+// ProvisionApplyEntry is a single manifest to kubectl-apply during setup.
 // It is either a plain path string or a struct with an optional per-entry wait.
 //
 //	# flat form
@@ -111,21 +127,21 @@ func (s *SetupConfig) UnmarshalYAML(value *yaml.Node) error {
 //	      name: my-secret
 //	      namespace: default
 //	      timeout: 30s
-type SetupApplyEntry struct {
+type ProvisionApplyEntry struct {
 	// Path is the YAML file path to kubectl-apply.
 	Path string `yaml:"path"`
 	// Wait blocks after this apply until all listed resources satisfy their conditions.
-	Wait []SetupWait `yaml:"wait,omitempty"`
+	Wait []ProvisionWait `yaml:"wait,omitempty"`
 }
 
-// UnmarshalYAML allows a SetupApplyEntry to be written as either a plain string
+// UnmarshalYAML allows a ProvisionApplyEntry to be written as either a plain string
 // (the path) or a full {path, wait} struct.
-func (e *SetupApplyEntry) UnmarshalYAML(value *yaml.Node) error {
+func (e *ProvisionApplyEntry) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
 		e.Path = value.Value
 		return nil
 	}
-	type plain SetupApplyEntry
+	type plain ProvisionApplyEntry
 	raw, err := yaml.Marshal(value)
 	if err != nil {
 		return err
@@ -133,10 +149,10 @@ func (e *SetupApplyEntry) UnmarshalYAML(value *yaml.Node) error {
 	return strictUnmarshal(raw, (*plain)(e))
 }
 
-// SetupHelmInstall installs a Helm chart as a real release into the cluster.
+// ProvisionHelmInstall installs a Helm chart as a real release into the cluster.
 // Unlike HelmSource (which renders charts to extract Blueprint documents),
 // this runs helm upgrade --install for a prerequisite chart.
-type SetupHelmInstall struct {
+type ProvisionHelmInstall struct {
 	// Repo is the Helm repository URL. Omit for local chart paths.
 	Repo string `yaml:"repo,omitempty"`
 	// Chart is the chart name within the repository, or a local path (e.g. ./).
@@ -154,11 +170,11 @@ type SetupHelmInstall struct {
 	// CreateNamespace passes --create-namespace to helm.
 	CreateNamespace bool `yaml:"createNamespace,omitempty"`
 	// Wait blocks after this helm install until all listed resources satisfy conditions.
-	Wait []SetupWait `yaml:"wait,omitempty"`
+	Wait []ProvisionWait `yaml:"wait,omitempty"`
 }
 
 // HelmRelease returns the release to install.
-func (h SetupHelmInstall) HelmRelease() cluster.HelmRelease {
+func (h ProvisionHelmInstall) HelmRelease() cluster.HelmRelease {
 	return cluster.HelmRelease{
 		Repo: h.Repo, Chart: h.Chart, Release: h.Release, Namespace: h.Namespace,
 		Version: h.Version, ValueFiles: h.ValueFiles, Values: h.Values,
@@ -167,24 +183,26 @@ func (h SetupHelmInstall) HelmRelease() cluster.HelmRelease {
 }
 
 // ReleaseName returns the effective Helm release name.
-func (h SetupHelmInstall) ReleaseName() string { return h.HelmRelease().ReleaseName() }
+func (h ProvisionHelmInstall) ReleaseName() string { return h.HelmRelease().ReleaseName() }
 
 // EffectiveNamespace returns the effective namespace, defaulting to "default".
-func (h SetupHelmInstall) EffectiveNamespace() string { return h.HelmRelease().EffectiveNamespace() }
+func (h ProvisionHelmInstall) EffectiveNamespace() string {
+	return h.HelmRelease().EffectiveNamespace()
+}
 
 // IsLocalChart reports whether the chart field is a local filesystem path.
-func (h SetupHelmInstall) IsLocalChart() bool { return h.HelmRelease().IsLocalChart() }
+func (h ProvisionHelmInstall) IsLocalChart() bool { return h.HelmRelease().IsLocalChart() }
 
 // Validate returns an error when required fields are missing.
-func (h SetupHelmInstall) Validate() error {
+func (h ProvisionHelmInstall) Validate() error {
 	if err := h.HelmRelease().Validate(); err != nil {
 		return fmt.Errorf("setup.helm: %w", err)
 	}
 	return nil
 }
 
-// SetupWait describes a single resource to wait for before the operator starts.
-type SetupWait struct {
+// ProvisionWait describes a single resource to wait for before the operator starts.
+type ProvisionWait struct {
 	// Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).
 	Kind string `yaml:"kind"`
 	// Name is the exact resource name.
@@ -197,47 +215,216 @@ type SetupWait struct {
 	Timeout string `yaml:"timeout,omitempty"`
 }
 
-// EffectiveLoadImages resolves the image references this run loads.
+// E2EEnvironment is the first phase of a run: the cluster it executes against
+// and the infrastructure it needs before the test's own dependencies are
+// installed.
 //
-//   - No schema (nil SetupConfig) or no schema images: the CLI's list, deduped.
-//     This is the CI case, where the image just built is the only one to load.
-//   - No CLI images: the schema's references, in order.
-//   - Both: the CLI's list must be a subset of the schema's references.
+// The cluster is either created (kind) or selected (an existing context).
+// Images are built and loaded into it. Apply, Helm and Wait provision cluster
+// furniture — a namespace, an ingress controller, a storage class — that the
+// prepare phase's charts and manifests expect to exist.
+type E2EEnvironment struct {
+	// Cluster controls which cluster to use and how it is provisioned.
+	Cluster E2ECluster `yaml:"cluster,omitempty"`
+
+	// Images lists container images to build and load into the cluster before
+	// the test runs. Kind-only: each image is loaded with `kind load`.
+	//
+	// Manifests that reference these images must set imagePullPolicy to
+	// IfNotPresent or Never. A manifest with imagePullPolicy: Always ignores
+	// the loaded image and pulls from the registry instead.
+	//
+	// The CLI flag --images narrows this list; it cannot add images the
+	// schema does not declare. When this list is empty, the CLI flag is the
+	// only source — the CI case, where the just-built image is the point.
+	Images cluster.Images `yaml:"images,omitempty"`
+
+	Provision `yaml:",inline"`
+}
+
+// UnmarshalYAML allows environment: to be written as a plain list of
+// manifest paths, equivalent to environment.apply:
 //
-// Build entries resolve to the reference they produce; the build itself runs
-// later, in loadImagesIntoCluster.
-func (s *SetupConfig) EffectiveLoadImages(specName string, cliImages []string) ([]string, error) {
+//	environment:
+//	  - ./prereqs/namespace.yaml
+func (e *E2EEnvironment) UnmarshalYAML(value *yaml.Node) error {
+	if entries := applyShorthand(value); len(entries) > 0 {
+		e.Apply = append(e.Apply, entries...)
+		return nil
+	}
+	type plain E2EEnvironment
+	raw, err := yaml.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return strictUnmarshal(raw, (*plain)(e))
+}
+
+// HasImage reports whether the environment declares any images.
+func (e *E2EEnvironment) HasImage() bool {
+	return e != nil && len(e.Images) > 0
+}
+
+const defaultClusterName = "inrun-e2e"
+
+// Provider returns the cluster provider this run uses, defaulting to kind
+// when no environment is declared. nil-safe: a spec without an environment
+// still runs against a kind cluster.
+func (e *E2EEnvironment) Provider() ClusterProvider {
+	if e == nil {
+		return ProviderKind
+	}
+	return e.Cluster.EffectiveProvider()
+}
+
+// ClusterName returns the kind cluster's name, defaulting to
+// defaultClusterName when no environment is declared or the name is empty.
+// nil-safe.
+func (e *E2EEnvironment) ClusterName() string {
+	if e == nil || e.Cluster.Name == "" {
+		return defaultClusterName
+	}
+	return e.Cluster.Name
+}
+
+// Reuse reports whether an existing cluster is reused instead of recreated.
+// nil-safe: no environment means no reuse decision, so false.
+func (e *E2EEnvironment) Reuse() bool {
+	if e == nil {
+		return false
+	}
+	return e.Cluster.Reuse
+}
+
+// EffectiveLoadImages resolves the image references this run should load.
+//
+// If the environment is nil or declares no images, the CLI image list is
+// returned, deduplicated.
+//
+// If no CLI images are supplied, all declared images that need loading are
+// returned in declaration order.
+//
+// If CLI images are supplied alongside declared images, they must be a
+// subset of the declared references. Only selected images that need loading
+// are returned.
+//
+// An image with deploy configured but no build is treated as a registry
+// image: it is deployed directly and does not need loading into kind.
+func (e *E2EEnvironment) EffectiveLoadImages(
+	specName string,
+	cliImages []string,
+) ([]string, error) {
 	cli := dedupeStrings(cliImages)
-	if s == nil || len(s.Images) == 0 {
+
+	if e == nil || len(e.Images) == 0 {
 		return cli, nil
 	}
 
-	declared := s.Images.ResolveDefaultNames(specName)
-	refs := make([]string, len(declared))
-	for i, img := range declared {
-		refs[i] = img.Image
+	selected, err := e.selectedImages(specName, cli)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(cli) == 0 {
-		return refs, nil
+	refs := make([]string, 0, len(selected))
+	for _, img := range selected {
+		if img.Deploy != nil && img.Build == nil {
+			continue
+		}
+		refs = append(refs, img.Image)
 	}
 
-	allowed := make(map[string]struct{}, len(refs))
-	for _, ref := range refs {
-		allowed[ref] = struct{}{}
+	return refs, nil
+}
+
+// EffectiveDeployImages resolves the declared images this run should deploy.
+//
+// If the environment is nil or declares no images, no images can be deployed.
+//
+// If no CLI images are supplied, all declared images with deploy configuration
+// are returned in declaration order.
+//
+// If CLI images are supplied, they must be a subset of the declared image
+// references. Only selected images with deploy configuration are returned.
+//
+// The returned images have their default image references, deployment names,
+// and other resolved defaults applied.
+func (e *E2EEnvironment) EffectiveDeployImages(
+	specName string,
+	cliImages []string,
+) (cluster.Images, error) {
+	if e == nil || len(e.Images) == 0 {
+		return nil, nil
 	}
-	for _, ref := range cli {
+
+	selected, err := e.selectedImages(specName, dedupeStrings(cliImages))
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := make(cluster.Images, 0, len(selected))
+	for _, img := range selected {
+		if img.Deploy == nil {
+			continue
+		}
+		deployments = append(deployments, img)
+	}
+
+	return deployments, nil
+}
+
+// selectedImages resolves the declared image defaults and applies the CLI
+// selection. It returns all declared images when the CLI selection is empty.
+//
+// When the CLI selection is non-empty, every requested reference must match
+// a declared image. The returned images retain their original declaration
+// order, regardless of the order of the CLI arguments.
+func (e *E2EEnvironment) selectedImages(
+	specName string,
+	cliImages []string,
+) (cluster.Images, error) {
+	declared := e.Images.ResolveDefaultNames(specName)
+
+	if len(cliImages) == 0 {
+		return declared, nil
+	}
+
+	allowed := make(map[string]struct{}, len(declared))
+	for _, img := range declared {
+		allowed[img.Image] = struct{}{}
+	}
+
+	for _, ref := range cliImages {
 		if _, ok := allowed[ref]; !ok {
+			refs := make([]string, 0, len(declared))
+			for _, img := range declared {
+				refs = append(refs, img.Image)
+			}
+
 			return nil, fmt.Errorf(
-				"setup.images: --images %q is not declared in the schema (declared: %s)",
-				ref, strings.Join(refs, ", "),
+				"environment.images: --images %q is not declared in the schema (declared: %s)",
+				ref,
+				strings.Join(refs, ", "),
 			)
 		}
 	}
-	return cli, nil
+
+	selected := make(cluster.Images, 0, len(cliImages))
+	set := make(map[string]struct{}, len(cliImages))
+	for _, ref := range cliImages {
+		set[ref] = struct{}{}
+	}
+
+	for _, img := range declared {
+		if _, ok := set[img.Image]; ok {
+			selected = append(selected, img)
+		}
+	}
+
+	return selected, nil
 }
 
-// dedupeStrings trims, drops empties, and preserves first-seen order.
+// dedupeStrings trims image references, drops empty values, and preserves
+// the order of their first occurrence.
 func dedupeStrings(in []string) []string {
 	if len(in) == 0 {
 		return nil
@@ -366,20 +553,23 @@ type E2ESpec struct {
 	// Inrun helm install/uninstall are skipped.
 	//
 	// Use this when your operator, Helm chart, or any Kubernetes workload is
-	// installed via setup.helm or is already present in the cluster.
-	// See the custom target in docs/reference/schema/e2e/complete-example.md.
+	// installed via prepare.helm or is already present in the cluster.
 	Custom *E2ECustomConfig `yaml:"custom,omitempty"`
 
 	// Init uses an example pack — for Inrun's own CI.
 	Init *E2EInit `yaml:"init,omitempty"`
 
-	// Cluster controls which cluster to use.
-	Cluster E2ECluster `yaml:"cluster"`
+	// Environment is the cluster the run executes against and the
+	// infrastructure it needs before the test's own dependencies are
+	// installed: the cluster itself, the images to build and load, and
+	// cluster furniture (namespaces, an ingress controller, a storage class)
+	// that the prepare phase's charts and manifests expect to exist.
+	Environment *E2EEnvironment `yaml:"environment,omitempty"`
 
-	// Setup declares prerequisite resources to apply before Inrun starts.
-	// Shorthand: a plain list of strings applies each file
-	// Struct form adds helm installs and resource waiting.
-	Setup *SetupConfig `yaml:"setup,omitempty"`
+	// Prepare is the test's own dependencies and the workload under test:
+	// ecosystem infrastructure (Postgres, RabbitMQ, Redis) and the manifests
+	// and charts that install the workload.
+	Prepare *Prepare `yaml:"prepare,omitempty"`
 
 	// ValuesFiles is a list of Helm values files passed to the Inrun chart
 	// installation during e2e. Paths are relative to the e2e.yaml file.

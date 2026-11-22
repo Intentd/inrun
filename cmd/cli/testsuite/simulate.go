@@ -377,8 +377,8 @@ func RunSimulateFromSpec(ctx context.Context, path string, simOpts CliSimulateOp
 		crdPaths = append(crdPaths, abs)
 	}
 
-	for _, p := range doc.Spec.SetupPaths() {
-		opts.Setup = append(opts.Setup, cmdutil.JoinPath(path, p))
+	for _, p := range doc.Spec.PreparePaths() {
+		opts.Prepare = append(opts.Prepare, cmdutil.JoinPath(path, p))
 	}
 
 	m := merger.New(blueprintPath)

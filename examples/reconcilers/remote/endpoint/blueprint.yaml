@@ -31,7 +31,7 @@ spec:
       crdFile: ./manifests/crd.yaml
       crFiles:
         - ./manifests/cr.yaml
-      setup:
+      prepare:
         - ./manifests/secret.yaml
       operatorBox:
         reconcile:

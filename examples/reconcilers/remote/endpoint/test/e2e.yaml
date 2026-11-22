@@ -13,12 +13,7 @@ spec:
   crd: ../manifests/crd.yaml
   cr: ../manifests/cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
-  setup:
+  prepare:
     apply:
       - path: ../manifests/secret.yaml
       - path: ../reconciler/deploy.yaml

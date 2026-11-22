@@ -7,8 +7,10 @@ import (
 
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/kel/ecosystem"
 	"github.com/intentd/tools/fileio"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // IsE2EDoc returns true when the file's kind is "E2E".
@@ -71,12 +73,12 @@ func ValidateCluster(spec *types.E2ESpec) []error {
 	}
 
 	var errs []error
-	provider := spec.Cluster.EffectiveProvider()
+	provider := spec.Environment.Provider()
 
 	if !provider.IsValid() {
 		return []error{fmt.Errorf(
 			"cluster.provider %q is not supported — use one of: %s",
-			spec.Cluster.Provider, strings.Join(types.ValidClusterProviders(), ", "))}
+			spec.Environment.Cluster.Provider, strings.Join(types.ValidClusterProviders(), ", "))}
 	}
 
 	if provider == types.ProviderNone {
@@ -132,25 +134,124 @@ func ValidatePaths(baseDir string, spec *types.E2ESpec) []error {
 	for i, p := range spec.ValuesFiles {
 		check(fmt.Sprintf("valuesFiles[%d]", i), p)
 	}
-	if s := spec.Setup; s != nil {
-		for i, img := range s.Images {
+	if e := spec.Environment; e != nil {
+		for i, img := range e.Images {
 			if img.Build != nil {
-				check(fmt.Sprintf("setup.images.build[%d].context", i), img.Build.Context)
-				check(fmt.Sprintf("setup.images.build[%d].dockerfile", i), img.Build.DockerfilePath())
+				// The dockerfile is relative to the context, as in Compose.
+				b := img.Build.ResolvePaths(baseDir)
+				check(fmt.Sprintf("environment.images[%d].build.context", i), img.Build.Context)
+				check(fmt.Sprintf("environment.images[%d].build.dockerfile", i), b.Dockerfile)
 			}
 		}
-		for i, a := range s.Apply {
-			check(fmt.Sprintf("setup.apply[%d].path", i), a.Path)
+		for i, a := range e.Apply {
+			check(fmt.Sprintf("environment.apply[%d].path", i), a.Path)
 		}
-		for i, h := range s.Helm {
+		for i, h := range e.Helm {
 			// The run decides the same way which charts are local paths.
 			if h.IsLocalChart() {
-				check(fmt.Sprintf("setup.helm[%d].chart", i), h.Chart)
+				check(fmt.Sprintf("environment.helm[%d].chart", i), h.Chart)
 			}
 			for j, f := range h.ValueFiles {
-				check(fmt.Sprintf("setup.helm[%d].valueFiles[%d]", i, j), f)
+				check(fmt.Sprintf("environment.helm[%d].valueFiles[%d]", i, j), f)
 			}
 		}
 	}
+	if p := spec.Prepare; p != nil {
+		for i, a := range p.Apply {
+			check(fmt.Sprintf("prepare.apply[%d].path", i), a.Path)
+		}
+		for i, h := range p.Helm {
+			// The run decides the same way which charts are local paths.
+			if h.IsLocalChart() {
+				check(fmt.Sprintf("prepare.helm[%d].chart", i), h.Chart)
+			}
+			for j, f := range h.ValueFiles {
+				check(fmt.Sprintf("prepare.helm[%d].valueFiles[%d]", i, j), f)
+			}
+		}
+	}
+	return errs
+}
+
+// ValidateImages validates image references and deployment configuration
+// declared in the environment.
+//
+// Build contexts and Dockerfiles are checked separately by ValidatePaths.
+func ValidateImages(spec *types.E2ESpec) []error {
+	if spec == nil || spec.Environment == nil {
+		return nil
+	}
+
+	var errs []error
+	deployments := make(map[string]int)
+
+	for i, img := range spec.Environment.Images {
+		prefix := fmt.Sprintf("spec.environment.images[%d]", i)
+
+		if img.Image != "" {
+			if !ecosystem.IsValidImageRef(img.Image) {
+				errs = append(errs, fmt.Errorf("%s.image %q is invalid", prefix, img.Image))
+			}
+		} else if img.Build == nil {
+			errs = append(errs, fmt.Errorf("%s requires image or build", prefix))
+		}
+
+		if img.Deploy == nil {
+			continue
+		}
+
+		d := img.Deploy
+
+		name := d.Name
+		if name == "" {
+			name = img.DefaultDeployName()
+		}
+
+		namespace := d.Namespace
+		if namespace == "" {
+			namespace = "default"
+		}
+
+		if name != "" {
+			if problems := validation.IsDNS1123Label(name); len(problems) > 0 {
+				errs = append(errs, fmt.Errorf(
+					"%s.deploy.name %q is invalid: %s",
+					prefix, name, strings.Join(problems, ", "),
+				))
+			}
+
+			key := namespace + "/" + name
+			if previous, exists := deployments[key]; exists {
+				errs = append(errs, fmt.Errorf(
+					"%s.deploy duplicates deployment %q from images[%d]",
+					prefix, key, previous,
+				))
+			} else {
+				deployments[key] = i
+			}
+		}
+
+		if problems := validation.IsDNS1123Label(namespace); len(problems) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s.deploy.namespace %q is invalid: %s",
+				prefix, namespace, strings.Join(problems, ", "),
+			))
+		}
+
+		if d.Port < 1 || d.Port > 65535 {
+			errs = append(errs, fmt.Errorf(
+				"%s.deploy.port must be between 1 and 65535",
+				prefix,
+			))
+		}
+
+		if d.Replicas != nil && *d.Replicas < 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s.deploy.replicas cannot be negative",
+				prefix,
+			))
+		}
+	}
+
 	return errs
 }

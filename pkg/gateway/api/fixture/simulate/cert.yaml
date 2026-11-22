@@ -10,7 +10,7 @@ spec:
   crdFiles:
     - fakecrd.yaml
     - ../crd.yaml
-  setup:
+  prepare:
     - ../setup.yaml
   cr: ../crs/cert-valid.yaml
   cycles: 3

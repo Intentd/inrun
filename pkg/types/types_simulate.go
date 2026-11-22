@@ -52,12 +52,12 @@ type SimulateSpec struct {
 	CRD string `yaml:"crd,omitempty"`
 	// CRDFiles — several CRD manifests for --envtest.
 	CRDFiles []string `yaml:"crdFiles,omitempty"`
-	// Setup — manifests applied before the CR, after the Blueprint's own
-	// setup: what the test needs in the cluster, such as the CR's
-	// Namespace. Paths relative to this file, as a list or setup.apply;
+	// Prepare — manifests applied before the CR, after the Blueprint's own
+	// prepare: what the test needs in the cluster, such as the CR's
+	// Namespace. Paths relative to this file, as a list or prepare.apply;
 	// simulate applies them only, so helm and wait are rejected.
-	Setup  *SetupConfig `yaml:"setup,omitempty"`
-	Cycles int          `yaml:"cycles,omitempty"` // default 10 when unset
+	Prepare *Prepare `yaml:"prepare,omitempty"`
+	Cycles  int      `yaml:"cycles,omitempty"` // default 10 when unset
 	// SkipExternal — answer external calls with an empty 200 instead of
 	// making them.
 	SkipExternal bool   `yaml:"skipExternal,omitempty"`
@@ -90,35 +90,35 @@ func (s *SimulateSpec) AllCRDPaths() []string {
 	return paths
 }
 
-// SetupPaths returns the setup.apply manifest paths, as written.
-func (s *SimulateSpec) SetupPaths() []string {
-	if s.Setup == nil {
+// PreparePaths returns the prepare.apply manifest paths, as written.
+func (s *SimulateSpec) PreparePaths() []string {
+	if s.Prepare == nil {
 		return nil
 	}
-	paths := make([]string, 0, len(s.Setup.Apply))
-	for _, e := range s.Setup.Apply {
+	paths := make([]string, 0, len(s.Prepare.Apply))
+	for _, e := range s.Prepare.Apply {
 		paths = append(paths, e.Path)
 	}
 	return paths
 }
 
-// ValidateSetup reports what simulate cannot do with setup: it applies
+// ValidateSetup reports what simulate cannot do with prepare: it applies
 // manifests and nothing else, so helm, wait and an apply entry's wait are
 // errors.
 func (s *SimulateSpec) ValidateSetup() []string {
-	if s.Setup == nil {
+	if s.Prepare == nil {
 		return nil
 	}
 	var errs []string
-	if len(s.Setup.Helm) > 0 {
-		errs = append(errs, "spec.setup.helm: simulate applies manifests only; install charts in an e2e test")
+	if len(s.Prepare.Helm) > 0 {
+		errs = append(errs, "spec.prepare.helm: simulate applies manifests only; install charts in an e2e test")
 	}
-	if len(s.Setup.Wait) > 0 {
-		errs = append(errs, "spec.setup.wait: simulate applies manifests only; there is nothing to wait for")
+	if len(s.Prepare.Wait) > 0 {
+		errs = append(errs, "spec.prepare.wait: simulate applies manifests only; there is nothing to wait for")
 	}
-	for i, e := range s.Setup.Apply {
+	for i, e := range s.Prepare.Apply {
 		if len(e.Wait) > 0 {
-			errs = append(errs, fmt.Sprintf("spec.setup.apply[%d].wait: simulate applies manifests only; there is nothing to wait for", i))
+			errs = append(errs, fmt.Sprintf("spec.prepare.apply[%d].wait: simulate applies manifests only; there is nothing to wait for", i))
 		}
 	}
 	return errs

@@ -12,7 +12,7 @@ spec:
   crdFiles:
     - ../simulate/fakecrd.yaml
     - ../crd.yaml
-  setup:
+  prepare:
     - ../setup.yaml
   intent: ./primary.yaml
   token: console

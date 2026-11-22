@@ -16,7 +16,7 @@ spec:
       crdFile: ./crd.yaml
       crFiles:
         - ./cr.yaml
-      setup:
+      prepare:
         - ./secret.yaml
       operatorBox:
         reconcile:

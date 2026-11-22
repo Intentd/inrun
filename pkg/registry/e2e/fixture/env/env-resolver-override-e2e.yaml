@@ -9,8 +9,9 @@ metadata:
     parent's value fills in the keys the leaf doesn't declare.
 
 spec:
-  cluster:
-    provider: none
+  environment:
+    cluster:
+      provider: none
   env:
     DEV_TOKEN: from-leaf          # collides with the suite's value — leaf wins
     LEAF_ONLY: leaf-value         # suite doesn't declare this

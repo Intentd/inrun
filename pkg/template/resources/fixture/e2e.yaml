@@ -17,11 +17,6 @@ spec:
   valuesFiles:
     - ./values.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-resource-probe
-    reuse: false
-
   expect:
     - include: ./include/01-resources.yaml
     - include: ./include/02-cleanup.yaml

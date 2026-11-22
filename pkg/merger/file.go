@@ -130,10 +130,10 @@ func (m *Merger) loadBlueprint(path string, doc *types.BlueprintFile) (map[strin
 				crd.CRFiles[i] = filepath.Join(blueprintDir, cf)
 			}
 		}
-		if crd.Setup != nil {
-			for i, entry := range crd.Setup.Apply {
+		if crd.Prepare != nil {
+			for i, entry := range crd.Prepare.Apply {
 				if !filepath.IsAbs(entry.Path) && !strings.HasPrefix(entry.Path, "http") {
-					crd.Setup.Apply[i].Path = filepath.Join(blueprintDir, entry.Path)
+					crd.Prepare.Apply[i].Path = filepath.Join(blueprintDir, entry.Path)
 				}
 			}
 		}

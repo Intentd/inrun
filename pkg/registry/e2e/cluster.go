@@ -3,8 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
@@ -101,30 +99,31 @@ func (r *Runner) ensureCluster(ctx context.Context) error {
 	}
 
 	name := r.clusterName()
-	spec := r.e2e.Spec.Cluster
+	env := r.e2e.Spec.Environment
 
-	if !spec.Reuse {
+	if !env.Reuse() {
 		// Delete if already exists for a clean state.
-		if clusterExists(name) {
+		if cluster.KindExists(ctx, name) {
 			fmt.Printf("→ Recreating cluster '%s' (reuse: false)...\n", name)
-			if err := deleteKindCluster(ctx, name); err != nil {
+			if err := r.deleteCluster(ctx); err != nil {
 				return fmt.Errorf("deleting old cluster: %w", err)
 			}
 		}
 	}
 
-	return cluster.EnsureKindCluster(name, inruncluster.Kind(r.workers, r.kindVersion))
+	return cluster.EnsureKind(ctx, name, inruncluster.Kind(r.workers, r.kindVersion))
 }
 
 func (r *Runner) deleteCluster(ctx context.Context) error {
-	return deleteKindCluster(ctx, r.clusterName())
+	return cluster.DeleteKind(ctx, r.clusterName(), cluster.KindOptions{})
 }
 
 func (r *Runner) clusterName() string {
-	if r.e2e.Spec.Cluster.Name != "" {
-		return r.e2e.Spec.Cluster.Name
-	}
-	return defaultClusterName
+	return r.e2e.Spec.Environment.ClusterName()
+}
+
+func (r *Runner) provider() types.ClusterProvider {
+	return r.e2e.Spec.Environment.Provider()
 }
 
 // kindClusterName returns the kind cluster's name. When the runner created
@@ -159,25 +158,4 @@ func (r *Runner) effectiveContext(ctx context.Context) string {
 		return ctx
 	}
 	return ""
-}
-
-func (r *Runner) provider() types.ClusterProvider {
-	return r.e2e.Spec.Cluster.EffectiveProvider()
-}
-
-func clusterExists(name string) bool {
-	out, _ := exec.Command("kind", "get", "clusters").Output()
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if strings.TrimSpace(line) == name {
-			return true
-		}
-	}
-	return false
-}
-
-func deleteKindCluster(ctx context.Context, name string) error {
-	cmd := exec.CommandContext(ctx, "kind", "delete", "cluster", "--name", name)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }

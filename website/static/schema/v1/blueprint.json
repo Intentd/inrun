@@ -1274,6 +1274,17 @@
             }
           ]
         },
+        "prepare": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Prepare"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Prepare declares prerequisite resources to apply before Inrun starts.\nShorthand: a plain list of strings applies each file"
+        },
         "serve": {
           "anyOf": [
             {
@@ -1284,17 +1295,6 @@
             }
           ],
           "description": "Serve exposes this CRD through the Gateway API as a stable delivery surface.\nWhen enabled, the Console renders a [+ Create] button for this CRD\nand serves its schema via GET /api/v1/schema/{kind}."
-        },
-        "setup": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SetupConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Setup declares prerequisite resources to apply before Inrun starts.\nShorthand: a plain list of strings applies each file"
         },
         "workersActive": {
           "description": "WorkersActive — records number of active concurrent reconcile workers for this CRD.",
@@ -3563,6 +3563,495 @@
             "boolean",
             "null"
           ]
+        }
+      },
+      "type": "object"
+    },
+    "Ecosystem": {
+      "additionalProperties": false,
+      "description": "Ecosystem declares the infrastructure dependencies a run needs and the Secrets that carry their connection details to the workload.",
+      "properties": {
+        "kafka": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemKafka"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mysql": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemMysql"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "postgres": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemPostgres"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Postgres, RabbitMQ, Kafka, MySQL, Redis declare dependencies. Each is\noptional; the chart installs only what is declared."
+        },
+        "rabbitmq": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemRabbitmq"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "redis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemRedis"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "secrets": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemSecrets"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Secrets declares how the resolved connection details reach the\nworkload: export writes the tool's canonical variables, define writes\nSecrets the test names with the app's own keys."
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemDefine": {
+      "additionalProperties": false,
+      "description": "EcosystemDefine is a Secret the test names.",
+      "properties": {
+        "keys": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Keys maps the app's env var names to resolver paths:\n\n\tkeys:\n\t  POSTGRES_HOST_PROD: postgres.host\n\t  KAFKA_TOPIC: kafka.topics[0]",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret namespace. Default: the spec's default namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemExport": {
+      "additionalProperties": false,
+      "description": "EcosystemExport writes the canonical variables for the named tools.",
+      "properties": {
+        "name": {
+          "description": "Name is the Secret name. Default: \"inrun-ecosystem\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the Secret namespace. Default: the spec's default namespace.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "tools": {
+          "description": "Tools names the dependencies to export. Omitted: all declared.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemKafka": {
+      "additionalProperties": false,
+      "description": "EcosystemKafka declares a Kafka instance.",
+      "properties": {
+        "database": {
+          "description": "Database is owned by the role. Default: same as User.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the instance. Default: \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "description": "Password is the role's or instance's password. Omitted: the chart's\ndefault.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "replicas": {
+          "description": "Replicas is the replica count. Default: 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "storage": {
+          "description": "Storage is the PVC size. Omitted: the chart's default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "topics": {
+          "description": "Topics lists the topics to create.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "user": {
+          "description": "User is the application role. Default: \"app\", with login: true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemMysql": {
+      "additionalProperties": false,
+      "description": "EcosystemMysql declares a MySQL instance.",
+      "properties": {
+        "database": {
+          "description": "Database is owned by the role. Default: same as User.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the instance. Default: \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "description": "Password is the role's or instance's password. Omitted: the chart's\ndefault.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "replicas": {
+          "description": "Replicas is the replica count. Default: 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "storage": {
+          "description": "Storage is the PVC size. Omitted: the chart's default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "description": "User is the application role. Default: \"app\", with login: true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemPostgres": {
+      "additionalProperties": false,
+      "description": "EcosystemPostgres declares a Postgres instance.",
+      "properties": {
+        "database": {
+          "description": "Database is owned by the role. Default: same as User.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the instance. Default: \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "description": "Password is the role's or instance's password. Omitted: the chart's\ndefault.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "replicas": {
+          "description": "Replicas is the replica count. Default: 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "storage": {
+          "description": "Storage is the PVC size. Omitted: the chart's default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "description": "User is the application role. Default: \"app\", with login: true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemRabbitmq": {
+      "additionalProperties": false,
+      "description": "EcosystemRabbitmq declares a RabbitMQ instance.",
+      "properties": {
+        "database": {
+          "description": "Database is owned by the role. Default: same as User.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the instance. Default: \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "description": "Password is the role's or instance's password. Omitted: the chart's\ndefault.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "replicas": {
+          "description": "Replicas is the replica count. Default: 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "storage": {
+          "description": "Storage is the PVC size. Omitted: the chart's default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "description": "User is the application role. Default: \"app\", with login: true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "vhosts": {
+          "description": "Vhosts lists the vhosts to create. Default: [default].",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemRedis": {
+      "additionalProperties": false,
+      "description": "EcosystemRedis declares a Redis instance.",
+      "properties": {
+        "database": {
+          "description": "Database is owned by the role. Default: same as User.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the instance. Default: \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "description": "Password is the role's or instance's password. Omitted: the chart's\ndefault.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "replicas": {
+          "description": "Replicas is the replica count. Default: 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "storage": {
+          "description": "Storage is the PVC size. Omitted: the chart's default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "description": "User is the application role. Default: \"app\", with login: true.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "EcosystemSecrets": {
+      "additionalProperties": false,
+      "description": "EcosystemSecrets declares how dependency connection details reach the workload.",
+      "properties": {
+        "define": {
+          "additionalProperties": {
+            "$ref": "#/$defs/EcosystemDefine"
+          },
+          "description": "Define writes Secrets the test names, with the app's own keys and\nresolver paths.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EcosystemExport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Export writes the tool's canonical variables (POSTGRES_URL, REDIS_HOST,\n…) for the named tools into one Secret."
         }
       },
       "type": "object"
@@ -7487,6 +7976,71 @@
       },
       "type": "object"
     },
+    "Prepare": {
+      "anyOf": [
+        {
+          "description": "Shorthand for apply",
+          "items": {
+            "description": "Path to a manifest",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Prepare is the second phase of a run: the test's own dependencies and the workload under test.",
+          "properties": {
+            "apply": {
+              "description": "Apply is an ordered list of manifests to kubectl-apply.\nEach entry is either a plain path string or a {path, wait} struct.",
+              "items": {
+                "$ref": "#/$defs/ProvisionApplyEntry"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "ecosystem": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Ecosystem"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ecosystem declares infrastructure dependencies and their Secrets."
+            },
+            "helm": {
+              "description": "Helm is an ordered list of Helm charts to install.\nExecuted as helm upgrade --install.",
+              "items": {
+                "$ref": "#/$defs/ProvisionHelmInstall"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "wait": {
+              "description": "Wait blocks until all listed resources exist and satisfy conditions.\nRuns after all apply and helm steps. Use per-entry wait for ordered checks.",
+              "items": {
+                "$ref": "#/$defs/ProvisionWait"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Prepare is the second phase of a run: the test's own dependencies and the workload under test."
+    },
     "PresetRegistry": {
       "additionalProperties": false,
       "description": "PresetRegistry holds all user-defined presets declared in a Blueprint or Module.",
@@ -7607,6 +8161,185 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ProvisionApplyEntry": {
+      "anyOf": [
+        {
+          "description": "Path to a manifest",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "ProvisionApplyEntry is a single manifest to kubectl-apply during setup.",
+          "properties": {
+            "path": {
+              "description": "Path is the YAML file path to kubectl-apply.",
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "wait": {
+              "description": "Wait blocks after this apply until all listed resources satisfy their conditions.",
+              "items": {
+                "$ref": "#/$defs/ProvisionWait"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "ProvisionApplyEntry is a single manifest to kubectl-apply during setup."
+    },
+    "ProvisionHelmInstall": {
+      "additionalProperties": false,
+      "description": "ProvisionHelmInstall installs a Helm chart as a real release into the cluster.",
+      "properties": {
+        "chart": {
+          "description": "Chart is the chart name within the repository, or a local path (e.g. ./).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "createNamespace": {
+          "description": "CreateNamespace passes --create-namespace to helm.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the release. Defaults to \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "release": {
+          "description": "Release is the Helm release name. Defaults to the chart name when empty.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "repo": {
+          "description": "Repo is the Helm repository URL. Omit for local chart paths.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "valueFiles": {
+          "description": "ValueFiles is an ordered list of values files (local paths or URLs).",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "values": {
+          "description": "Values are inline key-value overrides, equivalent to helm --set.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version pins the chart version. Leave empty for latest or local charts.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "wait": {
+          "description": "Wait blocks after this helm install until all listed resources satisfy conditions.",
+          "items": {
+            "$ref": "#/$defs/ProvisionWait"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ProvisionWait": {
+      "additionalProperties": false,
+      "description": "ProvisionWait describes a single resource to wait for before the operator starts.",
+      "properties": {
+        "kind": {
+          "description": "Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the exact resource name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace to look in. Omit for cluster-scoped resources.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ready": {
+          "description": "Ready waits for an available/ready condition, not just existence.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "Timeout is a Go duration string. Default: \"30s\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
             "null"
           ]
         }
@@ -10539,250 +11272,6 @@
       },
       "type": "object"
     },
-    "SetupApplyEntry": {
-      "anyOf": [
-        {
-          "description": "Path to a manifest",
-          "type": [
-            "string",
-            "number",
-            "boolean"
-          ]
-        },
-        {
-          "additionalProperties": false,
-          "description": "SetupApplyEntry is a single manifest to kubectl-apply during setup.",
-          "properties": {
-            "path": {
-              "description": "Path is the YAML file path to kubectl-apply.",
-              "type": [
-                "string",
-                "number",
-                "boolean",
-                "null"
-              ]
-            },
-            "wait": {
-              "description": "Wait blocks after this apply until all listed resources satisfy their conditions.",
-              "items": {
-                "$ref": "#/$defs/SetupWait"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "SetupApplyEntry is a single manifest to kubectl-apply during setup."
-    },
-    "SetupConfig": {
-      "anyOf": [
-        {
-          "description": "Shorthand for apply",
-          "items": {
-            "description": "Path to a manifest",
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": "array"
-        },
-        {
-          "additionalProperties": false,
-          "description": "SetupConfig declares prerequisite resources to apply before Inrun starts.",
-          "properties": {
-            "apply": {
-              "description": "Apply is an ordered list of manifests to kubectl-apply.\nEach entry is either a plain path string or a {path, wait} struct.\nApplied first, before helm installs, after the CRD is installed.",
-              "items": {
-                "$ref": "#/$defs/SetupApplyEntry"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "helm": {
-              "description": "Helm is an ordered list of Helm charts to install before Inrun starts.\nExecuted as helm upgrade --install — not rendered for Blueprint extraction.",
-              "items": {
-                "$ref": "#/$defs/SetupHelmInstall"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "images": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/cluster.Images"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Images lists container images to load into the cluster before the test\nruns. Each entry is either an existing image reference or a build block;\nimages are built first when a build block is present.\n\nManifests that reference these images must set imagePullPolicy to\nIfNotPresent or Never. A manifest with imagePullPolicy: Always ignores the\nloaded image and pulls from the registry instead.\n\nThe CLI flag --images narrows this list; it cannot add images the\nschema does not declare. When this list is empty, the CLI flag is the only\nsource — the CI case, where the just-built image is the point."
-            },
-            "wait": {
-              "description": "Wait blocks until all listed resources exist and satisfy conditions.\nRuns after all apply and helm steps. Use per-entry wait for ordered checks.",
-              "items": {
-                "$ref": "#/$defs/SetupWait"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "SetupConfig declares prerequisite resources to apply before Inrun starts."
-    },
-    "SetupHelmInstall": {
-      "additionalProperties": false,
-      "description": "SetupHelmInstall installs a Helm chart as a real release into the cluster.",
-      "properties": {
-        "chart": {
-          "description": "Chart is the chart name within the repository, or a local path (e.g. ./).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "createNamespace": {
-          "description": "CreateNamespace passes --create-namespace to helm.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "namespace": {
-          "description": "Namespace for the release. Defaults to \"default\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "release": {
-          "description": "Release is the Helm release name. Defaults to the chart name when empty.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "repo": {
-          "description": "Repo is the Helm repository URL. Omit for local chart paths.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "valueFiles": {
-          "description": "ValueFiles is an ordered list of values files (local paths or URLs).",
-          "items": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "values": {
-          "description": "Values are inline key-value overrides, equivalent to helm --set.",
-          "type": [
-            "object",
-            "null"
-          ]
-        },
-        "version": {
-          "description": "Version pins the chart version. Leave empty for latest or local charts.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "wait": {
-          "description": "Wait blocks after this helm install until all listed resources satisfy conditions.",
-          "items": {
-            "$ref": "#/$defs/SetupWait"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "SetupWait": {
-      "additionalProperties": false,
-      "description": "SetupWait describes a single resource to wait for before the operator starts.",
-      "properties": {
-        "kind": {
-          "description": "Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "name": {
-          "description": "Name is the exact resource name.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "namespace": {
-          "description": "Namespace to look in. Omit for cluster-scoped resources.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "ready": {
-          "description": "Ready waits for an available/ready condition, not just existence.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "timeout": {
-          "description": "Timeout is a Go duration string. Default: \"30s\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
     "StackAccept": {
       "additionalProperties": false,
       "description": "StackAccept is valid only on a Stack.",
@@ -12161,58 +12650,6 @@
         }
       },
       "type": "object"
-    },
-    "cluster.Build": {
-      "additionalProperties": false,
-      "properties": {
-        "context": {
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "dockerfile": {
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "cluster.Image": {
-      "additionalProperties": false,
-      "properties": {
-        "build": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/cluster.Build"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "image": {
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "cluster.Images": {
-      "items": {
-        "$ref": "#/$defs/cluster.Image"
-      },
-      "type": "array"
     },
     "condition.DayOfWeek": {
       "additionalProperties": false,

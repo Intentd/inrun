@@ -65,7 +65,7 @@ spec:
         kind: WebApp
         plural: webapps
       crdFile: ./crd.yaml
-      setup:
+      prepare:
         - ./secret.yaml
       operatorBox:
         reconcile:

@@ -15,11 +15,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr-active.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-filter-probe
-    reuse: false
-
   expect:
     # Active CR — filter passes, reconciler runs, ConfigMap created.
     - name: Active CR reconciled — ConfigMap created, health healthy

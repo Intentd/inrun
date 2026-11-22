@@ -46,9 +46,9 @@ type RunOptions struct {
 	// Target specifies the target to use for this simulation
 	Target string
 
-	// Setup holds manifest paths applied after the CRD's own setup and
-	// before the CR: the simulate spec's setup.
-	Setup []string
+	// Prepare holds manifest paths applied after the CRD's own prepare and
+	// before the CR: the simulate spec's prepare.
+	Prepare []string
 
 	// Verbose keeps the reconciler's logs, which are otherwise discarded.
 	Verbose bool

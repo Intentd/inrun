@@ -68,7 +68,7 @@ func ensureClusterReady(dev bool) error {
 		fmt.Println("\n  Cannot reach a Kubernetes cluster.")
 		fmt.Printf("  Creating local Kind cluster '%s'...\n", inruncluster.KindClusterName)
 
-		if err := cluster.EnsureKindCluster(inruncluster.KindClusterName, inruncluster.Kind(0, "")); err != nil {
+		if err := cluster.EnsureKind(cmdutil.Ctx, inruncluster.KindClusterName, inruncluster.Kind(0, "")); err != nil {
 			return fmt.Errorf("setting up kind cluster: %w", err)
 		}
 
@@ -290,12 +290,12 @@ func applySetupIfNeeded(ctx context.Context, blueprintPath string, m *merger.Mer
 	blueprintDir := filepath.Dir(blueprintPath)
 
 	for crdName, entry := range m.All() {
-		if !entry.HasSetup() {
+		if !entry.HasPrepare() {
 			continue
 		}
 
-		for _, setupFile := range entry.Setup.Apply {
-			path := setupFile.Path
+		for _, prepFile := range entry.Prepare.Apply {
+			path := prepFile.Path
 			if !filepath.IsAbs(path) && !strings.HasPrefix(path, "http") {
 				path = filepath.Join(blueprintDir, path)
 			}

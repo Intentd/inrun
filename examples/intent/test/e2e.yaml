@@ -14,12 +14,7 @@ spec:
   valuesFiles:
     - ./e2e-values.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-e2e
-    reuse: false
-
-  setup:
+  prepare:
     apply:
       - path: ../manifests/secret.yaml
       - path: ../reconciler/deploy.yaml

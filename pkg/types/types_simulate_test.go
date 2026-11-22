@@ -9,19 +9,19 @@ import (
 )
 
 func TestSimulateSpec_ValidateSetup(t *testing.T) {
-	apply := &types.SimulateSpec{Setup: &types.SetupConfig{Apply: []types.SetupApplyEntry{{Path: "./ns.yaml"}}}}
+	apply := &types.SimulateSpec{Prepare: &types.Prepare{Apply: []types.ProvisionApplyEntry{{Path: "./ns.yaml"}}}}
 	assert.Empty(t, apply.ValidateSetup(), "manifests are what simulate applies")
-	assert.Equal(t, []string{"./ns.yaml"}, apply.SetupPaths())
+	assert.Equal(t, []string{"./ns.yaml"}, apply.PreparePaths())
 	assert.Empty(t, (&types.SimulateSpec{}).ValidateSetup())
 
-	beyond := &types.SimulateSpec{Setup: &types.SetupConfig{
-		Apply: []types.SetupApplyEntry{{Path: "./ns.yaml", Wait: []types.SetupWait{{Kind: "Namespace", Name: "a"}}}},
-		Helm:  []types.SetupHelmInstall{{}},
-		Wait:  []types.SetupWait{{Kind: "Namespace", Name: "a"}},
+	beyond := &types.SimulateSpec{Prepare: &types.Prepare{
+		Apply: []types.ProvisionApplyEntry{{Path: "./ns.yaml", Wait: []types.ProvisionWait{{Kind: "Namespace", Name: "a"}}}},
+		Helm:  []types.ProvisionHelmInstall{{}},
+		Wait:  []types.ProvisionWait{{Kind: "Namespace", Name: "a"}},
 	}}
 	errs := beyond.ValidateSetup()
 	assert.Len(t, errs, 3)
-	assert.Contains(t, errs[0], "spec.setup.helm")
-	assert.Contains(t, errs[1], "spec.setup.wait")
-	assert.Contains(t, errs[2], "spec.setup.apply[0].wait")
+	assert.Contains(t, errs[0], "spec.prepare.helm")
+	assert.Contains(t, errs[1], "spec.prepare.wait")
+	assert.Contains(t, errs[2], "spec.prepare.apply[0].wait")
 }

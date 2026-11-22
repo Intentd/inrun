@@ -12,8 +12,9 @@ metadata:
 spec:
   custom:
     target: kubernetes
-  cluster:
-    provider: none
+  environment:
+    cluster:
+      provider: none
 
   expect:
     - name: the failing suite fails

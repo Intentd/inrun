@@ -13,11 +13,6 @@ spec:
   crd: ./crd.yaml
   cr: ./cr.yaml
 
-  cluster:
-    provider: kind
-    name: inrun-health-probe
-    reuse: false
-
   expect:
     - name: HealthProbe CR reaches Running status
       after: cr-applied

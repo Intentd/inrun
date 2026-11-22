@@ -99,14 +99,14 @@ func IsSimulateDoc(path string) bool {
 	return head.Kind == config.SimulateKind()
 }
 
-// setupObjects reads the CRD's setup.apply files — the objects inrun applies
+// prepareObjects reads the CRD's setup.apply files — the objects inrun applies
 // before the operator starts, such as a remote reconciler's token Secret —
 // then the extra files, the simulate spec's setup. All paths are absolute:
 // the merger resolves the CRD's, the caller the spec's.
-func setupObjects(crd *types.CRDEntry, extra []string) ([]*unstructured.Unstructured, error) {
+func prepareObjects(crd *types.CRDEntry, extra []string) ([]*unstructured.Unstructured, error) {
 	var paths []string
-	if crd.Setup != nil {
-		for _, entry := range crd.Setup.Apply {
+	if crd.Prepare != nil {
+		for _, entry := range crd.Prepare.Apply {
 			paths = append(paths, entry.Path)
 		}
 	}
