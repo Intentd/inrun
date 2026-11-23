@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/intentd/tools/fileio"
+	"github.com/intentd/tools/schemagen"
+	"github.com/invopop/jsonschema"
 )
 
 // FileSource represents one file source entry.
@@ -81,6 +83,11 @@ func (f *FileSource) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	*f = FileSource(alias)
 	return nil
+}
+
+// JSONSchemaExtend accepts a path or URL beside the object, as UnmarshalYAML does.
+func (FileSource) JSONSchemaExtend(s *jsonschema.Schema) {
+	schemagen.Accept(s, schemagen.Str("Path or URL of the file"))
 }
 
 // Resolve resolves the FileSourceAuth to a fileio.FileAuth.

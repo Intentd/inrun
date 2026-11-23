@@ -138,49 +138,6 @@ func IsSimulateOpsRuleIncludeDoc(path string) (bool, error) {
 	return true, nil
 }
 
-// E2EExpectInclude is the file an include: entry in an E2E suite's expect list
-// names: the expectations that replace the entry, run from the file's
-// directory.
-type E2EExpectInclude struct {
-	Expect E2EExpectations `yaml:"expect"`
-}
-
-// IsE2EExpectIncludeDoc returns true when the file is a valid E2E expect include.
-func IsE2EExpectIncludeDoc(path string) (bool, error) {
-	data, err := readLocal(path)
-	if err != nil {
-		return false, err
-	}
-
-	var include E2EExpectInclude
-	if err := strictUnmarshal(data, &include); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// E2EExternalInclude is the file an include: entry in an expectation's
-// external checks names: the checks that replace the entry.
-type E2EExternalInclude struct {
-	Calls E2EExternalChecks `yaml:"calls"`
-}
-
-// IsE2EExternalIncludeDoc returns true when the file is a valid E2E external check include.
-func IsE2EExternalIncludeDoc(path string) (bool, error) {
-	data, err := readLocal(path)
-	if err != nil {
-		return false, err
-	}
-
-	var include E2EExternalInclude
-	if err := strictUnmarshal(data, &include); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
 // IncludeSchemas maps each include file's schema, under SchemaBaseURL, to the
 // type it is generated from. A serve target's include file holds a target
 // config, so its schema comes from ServeTargetConfig.
@@ -202,4 +159,7 @@ var IncludeSchemas = map[string]any{
 	"include/simulate-ops-rule.json": SimulateOpsRuleInclude{},
 	"include/e2e-expect.json":        E2EExpectInclude{},
 	"include/e2e-external.json":      E2EExternalInclude{},
+	"include/e2e-images.json":        E2EImagesInclude{},
+	"include/e2e-apply.json":         E2EApplyInclude{},
+	"include/e2e-helm.json":          E2EHelmInclude{},
 }

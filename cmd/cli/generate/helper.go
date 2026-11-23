@@ -13,6 +13,8 @@ import (
 	"github.com/intentd/inrun/pkg/tools/generate"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/spf13/cobra"
+
+	"github.com/intentd/tools/command"
 )
 
 // bundleOptsFromFor reads the --for flag and returns the corresponding BundleOptions.
@@ -169,15 +171,13 @@ func goGetModules(mods []string, timeoutPerModule time.Duration, dryRun bool) er
 		ctx, cancel := context.WithTimeout(context.Background(), timeoutPerModule)
 		defer cancel()
 
-		cmd := exec.CommandContext(ctx, "go", "get", mod)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		// inherit environment so GOPRIVATE/GONOSUMDB etc work if user set them
-		cmd.Env = os.Environ()
+		// The process environment is inherited, so GOPRIVATE/GONOSUMDB etc
+		// work if the user set them.
+		c := command.Args("go", "get", mod)
+		c.Stream = os.Stdout
 
 		fmt.Printf("running: go get %s", mod)
-		if err := cmd.Run(); err != nil {
+		if err := command.Exec(ctx, c); err != nil {
 
 			msg := fmt.Sprintf(
 				"\nfailed to 'go get %q': %q\n"+

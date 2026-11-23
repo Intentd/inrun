@@ -1,7 +1,11 @@
 // pkg/types/registry.go
 package types
 
-import "strings"
+import (
+	"github.com/intentd/tools/schemagen"
+	"github.com/invopop/jsonschema"
+	"strings"
+)
 
 // RegistrySource declares one pattern to pull from a registry.
 //
@@ -187,6 +191,11 @@ func (r *RegistrySource) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	}
 	*r = RegistrySource(alias)
 	return nil
+}
+
+// JSONSchemaExtend accepts a reference beside the object, as UnmarshalYAML does.
+func (RegistrySource) JSONSchemaExtend(s *jsonschema.Schema) {
+	schemagen.Accept(s, schemagen.Str("Pattern reference, e.g. oci://registry/path:tag"))
 }
 
 // IsOCI returns true when this source should be pulled as an OCI artifact.

@@ -90,7 +90,7 @@
           ]
         },
         "exists": {
-          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "description": "Exists, when true, passes when the field is present and non-empty;\nfalse is notExists: true. A condition with no comparison at all means\nexists.",
           "type": [
             "boolean",
             "null"
@@ -185,7 +185,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "description": "NotExists, when true, passes when the field is absent or empty;\nfalse is exists: true.",
           "type": [
             "boolean",
             "null"
@@ -543,7 +543,7 @@
         "retryBackoff": {
           "anyOf": [
             {
-              "$ref": "#/$defs/RetryBackoffConfig"
+              "$ref": "#/$defs/retry.BackoffConfig"
             },
             {
               "type": "null"
@@ -698,62 +698,6 @@
       },
       "type": "object"
     },
-    "RetryBackoffConfig": {
-      "anyOf": [
-        {
-          "description": "Initial delay, e.g. 500ms",
-          "type": [
-            "string",
-            "number",
-            "boolean"
-          ]
-        },
-        {
-          "additionalProperties": false,
-          "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff.",
-          "properties": {
-            "initial": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Initial is the first backoff delay. Default: 500ms."
-            },
-            "max": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Max caps the delay so it does not grow unboundedly. Default: 30s."
-            },
-            "maxAttempts": {
-              "description": "MaxAttempts is the total number of calls including the first. Default: 3.",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "multiplier": {
-              "description": "Multiplier scales the delay after each attempt. Default: 2.0.",
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff."
-    },
     "condition.DayOfWeek": {
       "additionalProperties": false,
       "description": "DayOfWeek declares which days the condition is active.",
@@ -834,6 +778,56 @@
         "string",
         "number",
         "boolean"
+      ]
+    },
+    "retry.BackoffConfig": {
+      "anyOf": [
+        {
+          "description": "Initial delay, e.g. 500ms",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "initial": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/duration.Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/duration.Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maxAttempts": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "multiplier": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
       ]
     }
   },

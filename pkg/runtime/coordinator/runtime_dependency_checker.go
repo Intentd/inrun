@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/intentd/inrun/pkg/runtime/coordinator/vitals"
-	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/structured"
 )
 
 // dependencyHealthChecker runs continuously during the lifetime of the controller.
@@ -107,12 +107,12 @@ func (dc *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
 		}
 
 		// Determine runtime dependency state
-		state := types.DependencyConditionDegraded
+		state := structured.DependencyConditionDegraded
 		acceptableCondition := depCond.Condition
 		satisfied := false
 
 		if depHealth.IsHealthy() {
-			state = types.DependencyConditionHealthy
+			state = structured.DependencyConditionHealthy
 
 			// Signal healthyCh exactly once when dependency becomes healthy
 			if !depHealth.SignaledHealthy() {
@@ -121,12 +121,12 @@ func (dc *DependencyCoordinator) checkDependencyHealthForGVK(gvk string) {
 				depHealth.SetStarted()
 			}
 
-		} else if depHealth.Started() && depCond.Condition == string(types.DependencyConditionStarted) {
-			state = types.DependencyConditionStarted
+		} else if depHealth.Started() && depCond.Condition == string(structured.DependencyConditionStarted) {
+			state = structured.DependencyConditionStarted
 		} else if depHealth.Pending() {
-			state = types.DependencyCondtionPending
+			state = structured.DependencyCondtionPending
 		} else {
-			state = types.DependencyConditionDegraded
+			state = structured.DependencyConditionDegraded
 		}
 
 		if acceptableCondition == string(state) || depHealth.IsHealthy() {

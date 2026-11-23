@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/intentd/tools/schemagen"
+	"github.com/invopop/jsonschema"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,6 +54,15 @@ func (s *ServeTargetValue) UnmarshalYAML(value *yaml.Node) error {
 	default:
 		return fmt.Errorf("serve.target must be a string or a map")
 	}
+}
+
+// JSONSchemaExtend is what UnmarshalYAML reads: the one target's name, or a
+// map of targets.
+func (ServeTargetValue) JSONSchemaExtend(s *jsonschema.Schema) {
+	schemagen.Replace(s, &jsonschema.Schema{AnyOf: []*jsonschema.Schema{
+		schemagen.Str("The one target's name"),
+		{Type: "object", AdditionalProperties: schemagen.Ref("ServeTargetConfig")},
+	}})
 }
 
 // ─── ServeTargetValue marshaling ─────────────────────────────────────────────

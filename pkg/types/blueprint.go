@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intentd/tools/schemagen"
+	"github.com/invopop/jsonschema"
 	"gopkg.in/yaml.v3"
 )
 
@@ -104,6 +106,18 @@ func (c *GatewayClustersConfig) UnmarshalYAML(value *yaml.Node) error {
 		}
 	}
 	return nil
+}
+
+// JSONSchemaExtend is what UnmarshalYAML reads: clusters by name, and an
+// include key naming a file with more.
+func (GatewayClustersConfig) JSONSchemaExtend(s *jsonschema.Schema) {
+	props := jsonschema.NewProperties()
+	props.Set("include", schemagen.Str("Path to a file whose clusters: key holds more entries"))
+	schemagen.Replace(s, &jsonschema.Schema{
+		Type:                 "object",
+		Properties:           props,
+		AdditionalProperties: schemagen.Ref("GatewayClusterConfig"),
+	})
 }
 
 // MarshalYAML serialises as a plain map (include is cleared after expansion).

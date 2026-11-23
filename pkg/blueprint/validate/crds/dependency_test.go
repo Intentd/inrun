@@ -5,6 +5,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/tools/structured"
 )
 
 func crdMapForCycle(crds ...types.CRDEntry) map[string]types.CRDEntry {
@@ -18,9 +19,9 @@ func crdMapForCycle(crds ...types.CRDEntry) map[string]types.CRDEntry {
 func depEntry(name string, deps ...string) types.CRDEntry {
 	e := types.CRDEntry{Name: name}
 	if len(deps) > 0 {
-		e.DependsOn = make(types.DependsOnMap, len(deps))
+		e.DependsOn = make(structured.DependsOnMap, len(deps))
 		for _, d := range deps {
-			e.DependsOn[d] = types.DependsOnCondition{Condition: "started"}
+			e.DependsOn[d] = structured.DependsOnCondition{Condition: "started"}
 		}
 	}
 	return e

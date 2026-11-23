@@ -1,15 +1,14 @@
 package inruncluster
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/intentd/tools/cluster"
+	"github.com/intentd/tools/command"
 )
 
 const (
@@ -104,28 +103,25 @@ func SyncGateway() error {
 // changes or was touched by the most recent commit.
 func BlueprintChanged(dir string) bool {
 	blueprintPath := filepath.Join(".inrun", "blueprint.yaml")
-	if out, err := exec.Command("git", "-C", dir, "diff", "HEAD", "--", blueprintPath).Output(); err == nil {
-		if len(bytes.TrimSpace(out)) > 0 {
-			return true
-		}
+	ctx := context.Background()
+	if out, err := command.Output(ctx, command.Args("git", "-C", dir, "diff", "HEAD", "--", blueprintPath)); err == nil && out != "" {
+		return true
 	}
-	if out, err := exec.Command("git", "-C", dir, "diff", "HEAD~1", "HEAD", "--", blueprintPath).Output(); err == nil {
-		if len(bytes.TrimSpace(out)) > 0 {
-			return true
-		}
+	if out, err := command.Output(ctx, command.Args("git", "-C", dir, "diff", "HEAD~1", "HEAD", "--", blueprintPath)); err == nil && out != "" {
+		return true
 	}
 	return false
 }
 
 // crashLoopReason names a runtime pod in CrashLoopBackOff, "" when none is.
 func crashLoopReason(ctx context.Context) string {
-	out, err := exec.CommandContext(ctx, "kubectl", "get", "pods",
+	out, err := command.Output(ctx, command.Args("kubectl", "get", "pods",
 		"-n", InrunNamespace,
-		"-o", `jsonpath={range .items[*]}{.metadata.name}{"\t"}{range .status.containerStatuses[*]}{.state.waiting.reason}{end}{"\n"}{end}`).Output()
+		"-o", `jsonpath={range .items[*]}{.metadata.name}{"\t"}{range .status.containerStatuses[*]}{.state.waiting.reason}{end}{"\n"}{end}`))
 	if err != nil {
 		return ""
 	}
-	for _, line := range strings.Split(string(out), "\n") {
+	for _, line := range strings.Split(out, "\n") {
 		parts := strings.SplitN(strings.TrimSpace(line), "\t", 2)
 		if len(parts) == 2 && strings.Contains(parts[0], "runtime") && parts[1] == "CrashLoopBackOff" {
 			return fmt.Sprintf("pod %s is in CrashLoopBackOff", parts[0])

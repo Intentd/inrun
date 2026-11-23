@@ -6,7 +6,7 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kome"
-	"github.com/intentd/kome/declaration"
+	"github.com/intentd/kome/pkg/declaration"
 )
 
 // Declaration is the KOME file bp's migrations amount to,

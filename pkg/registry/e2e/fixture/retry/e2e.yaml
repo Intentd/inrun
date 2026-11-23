@@ -10,8 +10,6 @@ metadata:
     finally deletes it so the next run starts clean.
 
 spec:
-  custom:
-    target: kubernetes
   environment:
     cluster:
       provider: none

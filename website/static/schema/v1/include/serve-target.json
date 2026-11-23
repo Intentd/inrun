@@ -241,7 +241,7 @@
         "retryBackoff": {
           "anyOf": [
             {
-              "$ref": "#/$defs/RetryBackoffConfig"
+              "$ref": "#/$defs/retry.BackoffConfig"
             },
             {
               "type": "null"
@@ -563,7 +563,7 @@
           ]
         },
         "exists": {
-          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "description": "Exists, when true, passes when the field is present and non-empty;\nfalse is notExists: true. A condition with no comparison at all means\nexists.",
           "type": [
             "boolean",
             "null"
@@ -658,7 +658,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "description": "NotExists, when true, passes when the field is absent or empty;\nfalse is exists: true.",
           "type": [
             "boolean",
             "null"
@@ -2392,7 +2392,7 @@
         "retryBackoff": {
           "anyOf": [
             {
-              "$ref": "#/$defs/RetryBackoffConfig"
+              "$ref": "#/$defs/retry.BackoffConfig"
             },
             {
               "type": "null"
@@ -5130,7 +5130,7 @@
         "retryBackoff": {
           "anyOf": [
             {
-              "$ref": "#/$defs/RetryBackoffConfig"
+              "$ref": "#/$defs/retry.BackoffConfig"
             },
             {
               "type": "null"
@@ -5699,7 +5699,7 @@
         "retryBackoff": {
           "anyOf": [
             {
-              "$ref": "#/$defs/RetryBackoffConfig"
+              "$ref": "#/$defs/retry.BackoffConfig"
             },
             {
               "type": "null"
@@ -6259,62 +6259,6 @@
       },
       "type": "array"
     },
-    "RetryBackoffConfig": {
-      "anyOf": [
-        {
-          "description": "Initial delay, e.g. 500ms",
-          "type": [
-            "string",
-            "number",
-            "boolean"
-          ]
-        },
-        {
-          "additionalProperties": false,
-          "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff.",
-          "properties": {
-            "initial": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Initial is the first backoff delay. Default: 500ms."
-            },
-            "max": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Max caps the delay so it does not grow unboundedly. Default: 30s."
-            },
-            "maxAttempts": {
-              "description": "MaxAttempts is the total number of calls including the first. Default: 3.",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "multiplier": {
-              "description": "Multiplier scales the delay after each attempt. Default: 2.0.",
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff."
-    },
     "RoleBindingTemplateSource": {
       "additionalProperties": false,
       "description": "RoleBindingTemplateSource declares one RoleBinding to be managed by Inrun.",
@@ -6758,7 +6702,7 @@
         "tls": {
           "anyOf": [
             {
-              "$ref": "#/$defs/TLSSpec"
+              "$ref": "#/$defs/kube.TLSSpec"
             },
             {
               "type": "null"
@@ -7810,54 +7754,6 @@
       },
       "type": "object"
     },
-    "TLSSpec": {
-      "additionalProperties": false,
-      "description": "TLSSpec declares TLS certificate generation for a secret.",
-      "properties": {
-        "commonName": {
-          "description": "CommonName is the certificate's CN field.\n  commonName: \"{{ .metadata.name }}.{{ .metadata.namespace }}.svc\"",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "dnsNames": {
-          "description": "DNSNames are the Subject Alternative Names.\nTemplate expressions supported per entry.",
-          "items": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "organization": {
-          "description": "Organization is the cert's O field. Default: \"inrun\"",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "validFor": {
-          "description": "ValidFor is the certificate validity period.\nDefault: same as rotateAfter, or 1y if rotateAfter is not set.\nMust be \u003e= rotateAfter to avoid immediate expiry on rotation.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
     "VolumeClaimTemplateSource": {
       "additionalProperties": false,
       "description": "VolumeClaimTemplateSource declares one PersistentVolumeClaim template for a StatefulSet.",
@@ -8351,6 +8247,49 @@
         "number",
         "boolean"
       ]
+    },
+    "kube.TLSSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "commonName": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dnsNames": {
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "organization": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "validFor": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
     },
     "kubewright.CapabilitiesConfig": {
       "additionalProperties": false,
@@ -9535,6 +9474,56 @@
         }
       },
       "type": "object"
+    },
+    "retry.BackoffConfig": {
+      "anyOf": [
+        {
+          "description": "Initial delay, e.g. 500ms",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "initial": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/duration.Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/duration.Duration"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maxAttempts": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "multiplier": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ]
     }
   },
   "$id": "https://inrun.dev/schema/v1/include/serve-target.json",

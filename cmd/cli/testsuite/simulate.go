@@ -312,6 +312,11 @@ func RunSimulateFromSpec(ctx context.Context, path string, simOpts CliSimulateOp
 	}
 
 	dir := filepath.Dir(path)
+	if doc.Spec != nil {
+		if err := types.ExpandSimulatePrepareIncludes(doc.Spec.Prepare, dir); err != nil {
+			return nil, fmt.Errorf("expanding simulate prepare includes in %s: %w", path, err)
+		}
+	}
 	start := time.Now()
 
 	// Aggregator: imports but no spec.

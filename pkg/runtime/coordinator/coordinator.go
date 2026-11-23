@@ -2,10 +2,12 @@ package coordinator
 
 import (
 	"context"
-	kubeutil "github.com/intentd/tools/kube"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	kubeutil "github.com/intentd/tools/kube"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/types"
@@ -242,7 +244,7 @@ func (dc *DependencyCoordinator) dependenciesReady(crd types.CRDEntry, nameToGVK
 			return false
 		}
 		switch strings.ToLower(depCond.Condition) {
-		case string(types.DependencyConditionHealthy):
+		case string(structured.DependencyConditionHealthy):
 			select {
 			case <-dc.healthyCh[depGVK]:
 				// channel closed → dependency healthy

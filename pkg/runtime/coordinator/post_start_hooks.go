@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/structured"
 
 	"github.com/intentd/inrun/pkg/runtime/informer"
 	"github.com/intentd/inrun/pkg/runtime/queue"
@@ -97,7 +98,7 @@ func (dc *DependencyCoordinator) retryMissingCRDs(ctx context.Context) {
 					deps := dc.depGraph.GetDependents(entry.Name)
 					for _, dep := range deps {
 						crd := dc.depGraph.GetNode(dep).CRD
-						if crd.DependsOn[entry.Name].Condition == string(types.DependencyConditionHealthy) {
+						if crd.DependsOn[entry.Name].Condition == string(structured.DependencyConditionHealthy) {
 							if h := dc.crdHealthMap[crd.GVKString()]; h != nil {
 								h.SetDegraded()
 							}

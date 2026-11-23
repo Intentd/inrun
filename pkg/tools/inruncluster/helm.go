@@ -1,9 +1,11 @@
 package inruncluster
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
+
+	"github.com/intentd/tools/command"
 )
 
 // InstallOrUpgradeInrun installs or upgrades the Inrun Helm chart
@@ -16,10 +18,11 @@ import (
 // latest published chart. Additional Helm flags (e.g. --set, --atomic) are
 // passed through args.
 func InstallOrUpgradeInrun(chart, version string, valueFiles []string, args ...string) error {
+	ctx := context.Background()
 	ref := chart
 	if ref == "" {
-		_ = exec.Command("helm", "repo", "add", Inrun, InrunChartRepo).Run()
-		_ = exec.Command("helm", "repo", "update", Inrun).Run()
+		_, _ = command.Run(ctx, command.Args("helm", "repo", "add", Inrun, InrunChartRepo))
+		_, _ = command.Run(ctx, command.Args("helm", "repo", "update", Inrun))
 		ref = fmt.Sprintf("%s/%s", Inrun, InrunChartName)
 	}
 
@@ -40,9 +43,8 @@ func InstallOrUpgradeInrun(chart, version string, valueFiles []string, args ...s
 	}
 	helmArgs = append(helmArgs, args...)
 
-	cmd := exec.Command("helm", helmArgs...)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("installing/upgrading Inrun: %w\n%s", err, out)
+	if err := command.Exec(ctx, command.Args("helm", helmArgs...)); err != nil {
+		return fmt.Errorf("installing/upgrading Inrun: %w", err)
 	}
 	return nil
 }

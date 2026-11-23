@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/intentd/tools/schemagen"
+	"github.com/invopop/jsonschema"
 	"gopkg.in/yaml.v3"
 )
 
@@ -112,6 +114,11 @@ func (c *IdempotencyKeyConfig) UnmarshalYAML(n *yaml.Node) error {
 	}
 	*c = IdempotencyKeyConfig{Header: f.Header, Value: f.Value}
 	return nil
+}
+
+// JSONSchemaExtend accepts false (no key) beside the object, as UnmarshalYAML does.
+func (IdempotencyKeyConfig) JSONSchemaExtend(s *jsonschema.Schema) {
+	schemagen.Accept(s, &jsonschema.Schema{Type: "boolean", Const: false, Description: "false sends no idempotency key"})
 }
 
 // MarshalYAML writes false for a disabled key.

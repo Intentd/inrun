@@ -15,6 +15,18 @@ spec:
     - ./crd-unprotected.yaml   # LogStream CRD — not protected, included to test contrast
 
   expect:
+    - name: The admission webhook is registered
+      timeout: 60s
+      onFailure:
+        stop: true
+      resources:
+        - kind: Deployment
+          name: inrun-gateway
+          namespace: inrun-system
+          ready: true
+        - kind: ValidatingWebhookConfiguration
+          name: inrun-deletion-protection
+
     - name: CR created
       after: cr-applied
       timeout: 60s

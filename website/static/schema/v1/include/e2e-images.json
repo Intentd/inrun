@@ -1,0 +1,712 @@
+{
+  "$defs": {
+    "cluster.Build": {
+      "additionalProperties": false,
+      "description": "Build is the build block of an Image.",
+      "properties": {
+        "args": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Args are the Dockerfile's ARG values, as Docker Compose's build.args:\n--build-arg NAME=VALUE, in name order.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "context": {
+          "description": "Context is the build context directory.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dockerfile": {
+          "description": "Dockerfile is the Dockerfile path. Defaults to \"Dockerfile\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "Target is the stage of a multi-stage Dockerfile to build: --target.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.EnvFiles": {
+      "anyOf": [
+        {
+          "description": "Path to a .env file",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "description": "EnvFiles are .env file paths: one, or a list.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": "array"
+        }
+      ],
+      "description": "EnvFiles are .env file paths: one, or a list."
+    },
+    "cluster.Git": {
+      "additionalProperties": false,
+      "description": "Git is where an image's build comes from: a remote repository, cloned, or a local one, used as it is or at a branch or ref.",
+      "properties": {
+        "branch": {
+          "description": "Branch or Ref picks what to build; neither is the default branch\n(remote) or the working tree as it is (local).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "pull": {
+          "description": "Pull says when a remote clone is fetched: Always (the default: every\nrun, so a branch is its latest commit) or IfNotPresent (a cached\nclone is used as it is). A local repository is never pulled.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ref": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "URL is a remote repository (https://…, git@host:org/repo.git) or a\nlocal path to one.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Healthcheck": {
+      "additionalProperties": false,
+      "description": "Healthcheck is one check, written as Docker Compose writes it, and the Kubernetes probes it becomes.",
+      "properties": {
+        "as": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Probes"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "As names the probes this check becomes. Default: [readiness]."
+        },
+        "interval": {
+          "description": "Interval, Timeout, Retries and StartPeriod are Compose's fields.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "retries": {
+          "description": "→ failureThreshold",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "start_period": {
+          "description": "→ initialDelaySeconds",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "test": {
+          "description": "Test is the check, as Compose writes it: [\"CMD\", ...] or\n[\"CMD-SHELL\", \"...\"]. A CMD form that is a single HTTP GET is\ntranslated to httpGet; anything else is translated to exec.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "→ timeoutSeconds",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Healthchecks": {
+      "additionalProperties": false,
+      "description": "Healthchecks is an image's health check: one check for the probes its as names (the flat form), or one check per probe (the named form), not both.",
+      "properties": {
+        "as": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Probes"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "As names the probes this check becomes. Default: [readiness]."
+        },
+        "interval": {
+          "description": "Interval, Timeout, Retries and StartPeriod are Compose's fields.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "liveness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Healthcheck"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "readiness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Healthcheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Named form: one check per probe."
+        },
+        "retries": {
+          "description": "→ failureThreshold",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "start_period": {
+          "description": "→ initialDelaySeconds",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "startup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Healthcheck"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "test": {
+          "description": "Test is the check, as Compose writes it: [\"CMD\", ...] or\n[\"CMD-SHELL\", \"...\"]. A CMD form that is a single HTTP GET is\ntranslated to httpGet; anything else is translated to exec.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "→ timeoutSeconds",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Image": {
+      "additionalProperties": false,
+      "description": "Image is one entry in Images.",
+      "properties": {
+        "build": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Build"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Build, when set, builds the image before loading it."
+        },
+        "deploy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.ImageDeploy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Deploy, when set, deploys this image as a Kubernetes Deployment\nand exposes it through a ClusterIP Service."
+        },
+        "forEach": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/structured.ForEach"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ForEach repeats the entry once per row (Images.ExpandForEach): until\nthen its other values are templates that read .item, kept as written."
+        },
+        "git": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Git"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Git is the repository the build comes from: build.context and\ndockerfile resolve inside its checkout. Without it, they resolve\nfrom the file that declares the image."
+        },
+        "image": {
+          "description": "Image is the reference the entry loads or deploys.\nFor a build, it is also the reference the build produces.\nDefaults to jig-\u003cname\u003e-\u003cindex\u003e or jig-image-\u003cindex\u003e when omitted on a build.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "include": {
+          "description": "Include names a file whose images replace this entry, with their\nbuild paths resolved from that file. It stands alone: an entry with\ninclude sets nothing else. The caller expands it before using the list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is how other images' needs refer to this one. Defaults to its\nDeployment's name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "needs": {
+          "description": "Needs are the images this one's Deployment comes after: each is\ndeployed and ready first, as GitHub Actions jobs need others.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.ImageDeploy": {
+      "additionalProperties": false,
+      "description": "ImageDeploy configures a Kubernetes Deployment and Service for an image.",
+      "properties": {
+        "env": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Env are the container's environment variables, as Compose's\nenvironment: the caller resolves their values before deploying.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "envFile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.EnvFiles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "EnvFile are .env files, as Compose's env_file: their variables become\na Secret (\u003cname\u003e-env), loaded with envFrom; a later file wins."
+        },
+        "envFrom": {
+          "description": "EnvFrom are Secrets the container loads whole, each key a variable,\nin the Deployment's namespace.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "healthcheck": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Healthchecks"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Healthcheck is the container's check, as Docker Compose writes it,\nand the probes it becomes."
+        },
+        "init": {
+          "description": "Init are containers run to completion, in order, before the app's\nstarts: Kubernetes' initContainers, in the same pod (its network, its\nenv), for what Compose does with a separate service and depends_on\n(a migration, waiting for a dependency).",
+          "items": {
+            "$ref": "#/$defs/cluster.InitContainer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the Deployment and Service name.\nDefaults to the image name without its tag or digest.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace is the target namespace.\nDefaults to \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ports": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Ports"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Ports are the container's ports, each with a Service port and a\nforward to localhost (Port). At least one. TCP is used."
+        },
+        "replicas": {
+          "description": "Replicas is the desired number of Deployment replicas.\nDefaults to 1.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Images": {
+      "description": "Images is the ordered list of container images a run loads into the cluster.",
+      "items": {
+        "$ref": "#/$defs/cluster.Image"
+      },
+      "type": "array"
+    },
+    "cluster.InitContainer": {
+      "additionalProperties": false,
+      "description": "InitContainer is one entry in deploy.init.",
+      "properties": {
+        "args": {
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "command": {
+          "description": "Command must exit: an init that runs an app's entrypoint never\nfinishes, and the pod never starts.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Env, EnvFrom and EnvFile are as the app's container has them; an\ninit's EnvFile is a Secret of its own (\u003cname\u003e-\u003cinit\u003e-env).",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "envFile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.EnvFiles"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "envFrom": {
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "image": {
+          "description": "Image defaults to the app's image. It is a reference: an image built\nby an images entry, or one the cluster pulls; never built here.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the container's name. Defaults to init-\u003cindex\u003e.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Port": {
+      "anyOf": [
+        {
+          "description": "The container port, forwarded on the same localhost port",
+          "type": "integer"
+        },
+        {
+          "description": "host:container, e.g. 8081:8080",
+          "pattern": "^\\d+(:\\d+)?$",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "Port is one entry in deploy.ports.",
+          "properties": {
+            "expose": {
+              "description": "Expose reports whether the Service has this port. Default true; false\nis a container port only: no Service port, no forward.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "forward": {
+              "description": "Forward reports whether jig forwards this port to localhost. Default\ntrue. Set false for a port reachable in-cluster but not needed on the\ndeveloper's machine.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "host": {
+              "description": "Host is the localhost port the forward listens on. Defaults to Port\nwhen omitted.",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "port": {
+              "description": "Port is the container port. The Service targets it, and the\nDeployment's containerPort is it.",
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Port is one entry in deploy.ports."
+    },
+    "cluster.Ports": {
+      "items": {
+        "$ref": "#/$defs/cluster.Port"
+      },
+      "type": "array"
+    },
+    "cluster.Probes": {
+      "description": "Probes is the set of Kubernetes probes a healthcheck becomes.",
+      "items": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      },
+      "type": "array"
+    },
+    "spec.ImagesInclude": {
+      "additionalProperties": false,
+      "description": "ImagesInclude is the file an include: entry in an images list names.",
+      "properties": {
+        "images": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Images"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "structured.ForEach": {
+      "additionalProperties": false,
+      "properties": {
+        "as": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exclude": {
+          "items": {
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "include": {
+          "items": {
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "items": {
+          "items": true,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "matrix": {
+          "additionalProperties": {
+            "items": true,
+            "type": "array"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/e2e-images.json",
+  "$ref": "#/$defs/spec.ImagesInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: e2e-images"
+}

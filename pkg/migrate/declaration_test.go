@@ -17,7 +17,7 @@ import (
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/merger"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kome/declaration"
+	"github.com/intentd/kome/pkg/declaration"
 	"github.com/intentd/tools/fileio"
 )
 

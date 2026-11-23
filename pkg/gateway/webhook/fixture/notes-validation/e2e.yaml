@@ -15,6 +15,18 @@ spec:
   cr: ./cr-placeholder.yaml
 
   expect:
+    - name: The admission webhook is registered
+      timeout: 60s
+      onFailure:
+        stop: true
+      resources:
+        - kind: Deployment
+          name: inrun-gateway
+          namespace: inrun-system
+          ready: true
+        - kind: ValidatingWebhookConfiguration
+          name: inrun-admission-validation
+
     - include: ./include/01-webhook-deny.yaml
     - include: ./include/02-mutation.yaml
     - include: ./include/03-cleanup.yaml

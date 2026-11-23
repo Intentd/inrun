@@ -129,9 +129,17 @@ func initProject(name, pack string, refresh bool) error {
 	}
 
 	if refresh {
+		var archivePath string
+
 		steps = append(steps,
-			initStep{"Downloading example pack", func() error { return downloadExamplePack(name, pack, ver, refresh) }},
-			initStep{"Extracting example pack", func() error { return extractExamplePack(name, pack, ver) }},
+			initStep{"Downloading example pack", func() error {
+				var err error
+				archivePath, err = downloadExamplePack(pack, ver, refresh)
+				return err
+			}},
+			initStep{"Extracting example pack", func() error {
+				return extractExamplePack(name, pack, archivePath)
+			}},
 		)
 	} else {
 		steps = append(steps,

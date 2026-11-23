@@ -45,7 +45,7 @@ func (r *Reconciler) reconcileMapped(ctx context.Context, req domain.Request) (d
 	if r.kube != nil {
 		cs = r.kube.Clientset()
 	}
-	entry, err := external.Call(ctx, r.gvk.String(), "remote", resolver, call.spec, cs)
+	entry, err := external.Call(ctx, r.gvk.String(), "remote", resolver.Core(), call.spec, cs)
 	if err != nil {
 		return domain.Result{}, fmt.Errorf("remote reconciler: %w", err)
 	}

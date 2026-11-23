@@ -55,7 +55,7 @@ func TestE2EEnvironment_Unmarshal(t *testing.T) {
           context: ./app
           dockerfile: Dockerfile.dev
         deploy:
-          port: 8080
+          ports: [8080]
     apply:
       - ./ns.yaml
       - path: ./secret.yaml
@@ -84,7 +84,7 @@ func TestE2EEnvironment_Unmarshal(t *testing.T) {
 	}
 	img := env.Images[1]
 	if img.Image != "my-app:ci-123" || img.Build == nil || img.Build.Context != "./app" ||
-		img.Build.Dockerfile != "Dockerfile.dev" || img.Deploy == nil || img.Deploy.Port != 8080 {
+		img.Build.Dockerfile != "Dockerfile.dev" || img.Deploy == nil || img.Deploy.Ports[0].Port != 8080 {
 		t.Errorf("images[1] (long form) = %+v build=%+v deploy=%+v", img, img.Build, img.Deploy)
 	}
 

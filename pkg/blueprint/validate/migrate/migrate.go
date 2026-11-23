@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/kome/declaration"
+	"github.com/intentd/kome/pkg/declaration"
 	"github.com/intentd/tools/kube"
 )
 

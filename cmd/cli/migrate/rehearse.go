@@ -12,8 +12,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
 	"github.com/intentd/inrun/pkg/migrate"
 	"github.com/intentd/kome"
-	"github.com/intentd/kome/declaration"
-	"github.com/intentd/kome/rehearse"
+	"github.com/intentd/kome/pkg/declaration"
+	"github.com/intentd/kome/pkg/rehearse"
 )
 
 var rehearseCmd = &cobra.Command{

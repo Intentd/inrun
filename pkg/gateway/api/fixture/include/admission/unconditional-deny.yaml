@@ -14,10 +14,11 @@ expect:
           spec:
             workloadType: app
             environment: staging
+            productionApproval: CHG-E2E-0001   # required for staging (serve rule)
           EOF
         exitCode: 1
         assert:
-          contains: "spec.team is required"
+          contains: "spec.team: Required value"   # the CRD schema rejects it before the webhook
 
   - name: Admission blocks invalid workloadType
     after: cr-applied
@@ -34,7 +35,8 @@ expect:
             workloadType: unknown-type
             team: team-payments
             environment: staging
+            productionApproval: CHG-E2E-0001   # required for staging (serve rule)
           EOF
         exitCode: 1
         assert:
-          contains: "must be one of: app, cert, monitoring"
+          contains: 'spec.workloadType: Unsupported value: "unknown-type"'   # the CRD schema's enum

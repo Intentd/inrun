@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "spec.HelmInclude": {
+      "additionalProperties": false,
+      "description": "HelmInclude is the file an include: entry in a helm list, or a step's helm, names.",
+      "properties": {
+        "helm": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.HelmInstalls"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.HelmInstall": {
+      "additionalProperties": false,
+      "description": "HelmInstall installs a Helm chart as a real release into the cluster.",
+      "properties": {
+        "chart": {
+          "description": "Chart is the chart name within the repository, or a local path (e.g. ./).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "createNamespace": {
+          "description": "CreateNamespace passes --create-namespace to helm.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "include": {
+          "description": "Include names a file whose releases replace this one, their local\nchart and values paths resolved from that file. It stands alone.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace for the release. Defaults to \"default\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "release": {
+          "description": "Release is the Helm release name. Defaults to the chart name when empty.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "repo": {
+          "description": "Repo is the Helm repository URL. Omit for local chart paths.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "valueFiles": {
+          "description": "ValueFiles is an ordered list of values files (local paths or URLs).",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "values": {
+          "description": "Values are inline key-value overrides, equivalent to helm --set.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version pins the chart version. Leave empty for latest or local charts.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "wait": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.Waits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wait blocks after this helm install until all listed resources satisfy conditions."
+        }
+      },
+      "type": "object"
+    },
+    "spec.HelmInstalls": {
+      "description": "HelmInstalls are charts to install, in order.",
+      "items": {
+        "$ref": "#/$defs/spec.HelmInstall"
+      },
+      "type": "array"
+    },
+    "spec.Wait": {
+      "additionalProperties": false,
+      "description": "Wait describes a single resource to wait for before the operator starts.",
+      "properties": {
+        "kind": {
+          "description": "Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the exact resource name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace to look in. Omit for cluster-scoped resources.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ready": {
+          "description": "Ready waits for an available/ready condition, not just existence.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "Timeout is a Go duration string. Default: \"30s\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.Waits": {
+      "description": "Waits are resources to wait for.",
+      "items": {
+        "$ref": "#/$defs/spec.Wait"
+      },
+      "type": "array"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/e2e-helm.json",
+  "$ref": "#/$defs/spec.HelmInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: e2e-helm"
+}

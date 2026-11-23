@@ -15,6 +15,7 @@ expect:
             workloadType: app
             team: team-platform
             environment: staging
+            productionApproval: CHG-E2E-0001   # required for staging (serve rule)
           EOF
         exitCode: 1
         assert:
@@ -35,6 +36,7 @@ expect:
             workloadType: monitoring
             team: team-platform
             environment: staging
+            productionApproval: CHG-E2E-0001   # required for staging (serve rule)
             scrapeInterval: 15s
           EOF
         exitCode: 1
@@ -56,6 +58,7 @@ expect:
               workloadType: monitoring
               team: team-platform
               environment: staging
+              productionApproval: CHG-E2E-0001   # required for staging (serve rule)
               repoURL: https://github.com/myorg/platform
               scrapeInterval: 30s
     resources:
@@ -86,6 +89,7 @@ expect:
               workloadType: cert
               team: team-platform
               environment: staging
+              productionApproval: CHG-E2E-0001   # required for staging (serve rule)
               domain: infra.example.com
               issuer: letsencrypt-staging
     resources:

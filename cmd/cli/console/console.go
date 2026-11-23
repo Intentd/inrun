@@ -5,6 +5,7 @@
 package console
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/intentd/inrun/cmd/cli/cmdutil"
+	"github.com/intentd/tools/command"
 	"github.com/intentd/tools/version"
 
 	"github.com/spf13/cobra"
@@ -134,11 +136,9 @@ func showConsoleVersion() error {
 		return fmt.Errorf("inrun-console not found: %w", err)
 	}
 
-	cmd := exec.Command(consolePath, "--version")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
+	c := command.Args(consolePath, "--version")
+	c.Stream = os.Stdout
+	return command.Exec(context.Background(), c)
 }
 
 // FindBinary locates the inrun-console binary: PATH, next to inrun, then

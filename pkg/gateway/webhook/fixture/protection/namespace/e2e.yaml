@@ -15,6 +15,18 @@ spec:
     - ./setup.yaml   # creates production and staging namespaces
 
   expect:
+    - name: The admission webhook is registered
+      timeout: 60s
+      onFailure:
+        stop: true
+      resources:
+        - kind: Deployment
+          name: inrun-gateway
+          namespace: inrun-system
+          ready: true
+        - kind: ValidatingWebhookConfiguration
+          name: inrun-namespace-protection
+
     - name: Allowed CRs accepted — deployments in production
       after: cr-applied
       timeout: 90s

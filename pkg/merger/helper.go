@@ -3,13 +3,13 @@ package merger
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/intentd/tools/command"
 	"github.com/intentd/tools/fileio"
 	"github.com/intentd/tools/structured"
 
@@ -88,25 +88,17 @@ func gitClone(repo, dst, ref string) error {
 	}
 
 	// First attempt: shallow clone at branch/tag
-	cmd := exec.Command("git", "clone",
-		"--depth", "1",
-		"--branch", ref,
-		repo,
-		dst,
-	)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
-
-	if err := cmd.Run(); err == nil {
+	ctx := context.Background()
+	if command.Succeeds(ctx, command.Args("git", "clone", "--depth", "1", "--branch", ref, repo, dst)) {
 		return nil
 	}
 
 	// Fallback: full clone + checkout (for commit hashes)
-	if err := exec.Command("git", "clone", repo, dst).Run(); err != nil {
+	if err := command.Exec(ctx, command.Args("git", "clone", repo, dst)); err != nil {
 		return fmt.Errorf("git clone failed for %q: %w", repo, err)
 	}
 
-	if err := exec.Command("git", "-C", dst, "checkout", ref).Run(); err != nil {
+	if err := command.Exec(ctx, command.Args("git", "-C", dst, "checkout", ref)); err != nil {
 		return fmt.Errorf("git checkout %q failed in %q: %w", ref, repo, err)
 	}
 

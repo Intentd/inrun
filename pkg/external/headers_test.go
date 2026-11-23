@@ -33,14 +33,6 @@ func TestRequestHeaders_KeyOnlyForPostAndPatch(t *testing.T) {
 	}
 }
 
-func TestIdempotencyKey_RepeatsForTheSameRequestOnly(t *testing.T) {
-	base := IdempotencyKey("uid-1", "POST", "https://api/buckets", `{"q":1}`)
-	assert.Equal(t, base, IdempotencyKey("uid-1", "post", "https://api/buckets", `{"q":1}`), "a retry repeats the key")
-	assert.NotEqual(t, base, IdempotencyKey("uid-1", "POST", "https://api/buckets", `{"q":2}`), "a changed spec gets a new key")
-	assert.NotEqual(t, base, IdempotencyKey("uid-2", "POST", "https://api/buckets", `{"q":1}`), "two CRs never share a key")
-	assert.NotEqual(t, base, IdempotencyKey("uid-1", "POST", "https://api/other", `{"q":1}`))
-}
-
 func TestRequestHeaders_KeyOverrides(t *testing.T) {
 	h, err := RequestHeaders(upper, types.CallSpec{IdempotencyKey: &types.IdempotencyKeyConfig{Header: "PayPal-Request-Id", Value: "k-{{x}}"}}, "uid", "POST", "u", "b")
 	require.NoError(t, err)

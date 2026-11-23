@@ -3,10 +3,8 @@
 package run
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/tools/inruncluster"
 	"github.com/intentd/tools/cluster"
+	"github.com/intentd/tools/command"
 	"github.com/intentd/tools/logger"
 )
 
@@ -129,12 +128,12 @@ func applyCRFilesIfNeeded(ctx context.Context, blueprintPath string, m *merger.M
 				path = filepath.Join(blueprintDir, path)
 			}
 
-			out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", path).CombinedOutput()
+			out, err := kubectl(ctx, "", "apply", "-f", path)
 			if err != nil {
 				logger.Warn().
 					Str("crd", crdName).
 					Str("path", path).
-					Str("output", strings.TrimSpace(string(out))).
+					Str("output", out).
 					Err(err).
 					Msg("crFile pre-apply failed (continuing)")
 			} else {
@@ -167,16 +166,16 @@ func waitForCRDsEstablished(ctx context.Context, m *merger.Merger) {
 
 		crdFullName := plural + "." + group
 
-		out, err := exec.CommandContext(ctx, "kubectl", "wait",
+		out, err := kubectl(ctx, "", "wait",
 			"--for=condition=Established",
 			"--timeout=30s",
 			"crd/"+crdFullName,
-		).CombinedOutput()
+		)
 		if err != nil {
 			logger.Warn().
 				Str("crd", crdName).
 				Str("name", crdFullName).
-				Str("output", strings.TrimSpace(string(out))).
+				Str("output", out).
 				Err(err).
 				Msg("CRD not established in time — applying CRs anyway")
 		} else {
@@ -219,12 +218,12 @@ func applyCRDFilesIfNeeded(ctx context.Context, blueprintPath string, m *merger.
 			path = filepath.Join(blueprintDir, path)
 		}
 
-		out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", path).CombinedOutput()
+		out, err := kubectl(ctx, "", "apply", "-f", path)
 		if err != nil {
 			logger.Warn().
 				Str("crd", crdName).
 				Str("path", path).
-				Str("output", strings.TrimSpace(string(out))).
+				Str("output", out).
 				Err(err).
 				Msg("crdFile pre-apply failed (continuing)")
 		} else {
@@ -238,12 +237,10 @@ func applyCRDFilesIfNeeded(ctx context.Context, blueprintPath string, m *merger.
 
 // applyCRDSchema applies a CRD held in memory via kubectl.
 func applyCRDSchema(ctx context.Context, crdName string, schema []byte) {
-	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", "-")
-	cmd.Stdin = bytes.NewReader(schema)
-	if out, err := cmd.CombinedOutput(); err != nil {
+	if out, err := kubectl(ctx, string(schema), "apply", "-f", "-"); err != nil {
 		logger.Warn().
 			Str("crd", crdName).
-			Str("output", strings.TrimSpace(string(out))).
+			Str("output", out).
 			Err(err).
 			Msg("transitional CRD pre-apply failed (continuing)")
 		return
@@ -260,9 +257,9 @@ func applyPatternExamples(ctx context.Context, blueprintPath string, m *merger.M
 
 	if rel := registry.FindPatternFile(dir, registry.FileCRD); rel != "" {
 		crdPath := filepath.Join(dir, rel)
-		out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", crdPath).CombinedOutput()
+		out, err := kubectl(ctx, "", "apply", "-f", crdPath)
 		if err != nil {
-			logger.Warn().Str("path", crdPath).Str("output", strings.TrimSpace(string(out))).Err(err).Msgf("%s apply failed", cmdutil.FileCrd)
+			logger.Warn().Str("path", crdPath).Str("output", out).Err(err).Msgf("%s apply failed", cmdutil.FileCrd)
 		} else {
 			logger.Info().Str("path", crdPath).Msgf("%s applied", cmdutil.FileCrd)
 		}
@@ -271,9 +268,9 @@ func applyPatternExamples(ctx context.Context, blueprintPath string, m *merger.M
 
 	if rel := registry.FindPatternFile(dir, registry.FileCR); rel != "" {
 		crPath := filepath.Join(dir, rel)
-		out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", crPath).CombinedOutput()
+		out, err := kubectl(ctx, "", "apply", "-f", crPath)
 		if err != nil {
-			logger.Warn().Str("path", crPath).Str("output", strings.TrimSpace(string(out))).Err(err).Msgf("%s apply failed", cmdutil.FileCr)
+			logger.Warn().Str("path", crPath).Str("output", out).Err(err).Msgf("%s apply failed", cmdutil.FileCr)
 		} else {
 			logger.Info().Str("path", crPath).Msgf("%s applied", cmdutil.FileCr)
 		}
@@ -300,12 +297,12 @@ func applySetupIfNeeded(ctx context.Context, blueprintPath string, m *merger.Mer
 				path = filepath.Join(blueprintDir, path)
 			}
 
-			out, err := exec.CommandContext(ctx, "kubectl", "apply", "-f", path).CombinedOutput()
+			out, err := kubectl(ctx, "", "apply", "-f", path)
 			if err != nil {
 				logger.Warn().
 					Str("crd", crdName).
 					Str("path", path).
-					Str("output", strings.TrimSpace(string(out))).
+					Str("output", out).
 					Err(err).
 					Msg("setup pre-apply failed (continuing)")
 			} else {
@@ -316,4 +313,16 @@ func applySetupIfNeeded(ctx context.Context, blueprintPath string, m *merger.Mer
 			}
 		}
 	}
+}
+
+// kubectl runs kubectl with args (stdin, when not empty, on its input) and
+// returns its output, trimmed; a non-zero exit is the error.
+func kubectl(ctx context.Context, stdin string, args ...string) (string, error) {
+	c := command.Args("kubectl", args...)
+	c.Stdin = stdin
+	r, err := command.Run(ctx, c)
+	if err == nil {
+		err = r.Err()
+	}
+	return strings.TrimSpace(r.Output), err
 }

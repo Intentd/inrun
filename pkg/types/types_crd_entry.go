@@ -4,6 +4,7 @@ package types
 import (
 	"sort"
 
+	"github.com/intentd/tools/structured"
 	"k8s.io/utils/ptr"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -116,7 +117,7 @@ type CRDEntry struct {
 	// Inrun resolves the dependency graph and starts CRDs in topological order.
 	// Cycle detection runs at validation time — cycles fail fast with a clear error.
 	// Supports three YAML formats (list, key-value, full map) — see DependsOnMap.
-	DependsOn DependsOnMap `yaml:"dependsOn,omitempty" json:"dependsOn,omitempty"`
+	DependsOn structured.DependsOnMap `yaml:"dependsOn,omitempty" json:"dependsOn,omitempty"`
 
 	// ── Enrichment ─────────────────────────────────────────────────────────────
 	// EnrichAll turns on every enrichment: objects related to the children in

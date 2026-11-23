@@ -12,8 +12,6 @@ metadata:
     spec-level onFailure. Run by e2e.yaml; not meant to be run on its own.
 
 spec:
-  custom:
-    target: kubernetes
   environment:
     cluster:
       provider: none

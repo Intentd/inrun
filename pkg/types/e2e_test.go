@@ -3,11 +3,11 @@ package types
 import (
 	"os"
 	"reflect"
-	"sort"
 	"strings"
 	"testing"
 
 	"github.com/intentd/tools/cluster"
+	"github.com/intentd/tools/resolver/env"
 	"github.com/intentd/tools/structured"
 )
 
@@ -50,7 +50,7 @@ func TestEnvResolver_Lookup(t *testing.T) {
 		{"INRUN_TEST_MISSING", ""},             // absent → empty, no panic
 	}
 	for _, tc := range cases {
-		if got := r.Lookup(tc.key); got != tc.want {
+		if got, _ := r.Lookup(tc.key); got != tc.want {
 			t.Fatalf("Lookup(%q) = %q, want %q", tc.key, got, tc.want)
 		}
 	}
@@ -60,7 +60,7 @@ func TestEnvResolver_LookupNilResolverFallsThrough(t *testing.T) {
 	withEnv(t, "INRUN_TEST_PROCESS", "from-process")
 
 	var r EnvResolver // zero value
-	if got := r.Lookup("INRUN_TEST_PROCESS"); got != "from-process" {
+	if got, _ := r.Lookup("INRUN_TEST_PROCESS"); got != "from-process" {
 		t.Fatalf("zero Lookup = %q, want from-process", got)
 	}
 }
@@ -71,48 +71,21 @@ func TestEnvResolver_LookupNilSpec(t *testing.T) {
 	var spec *E2ESpec
 	r := spec.ResolveEnv(E2EExpectation{Env: map[string]string{"A": "exp"}})
 
-	if got := r.Lookup("A"); got != "exp" {
+	if got, _ := r.Lookup("A"); got != "exp" {
 		t.Fatalf("Lookup(A) = %q, want exp", got)
 	}
-	if got := r.Lookup("INRUN_TEST_PROCESS"); got != "from-process" {
+	if got, _ := r.Lookup("INRUN_TEST_PROCESS"); got != "from-process" {
 		t.Fatalf("Lookup(process) = %q, want from-process", got)
 	}
 }
 
-func TestEnvResolver_Pairs(t *testing.T) {
-	spec := &E2ESpec{Env: map[string]string{"A": "spec", "B": "spec"}}
-	exp := E2EExpectation{Env: map[string]string{"B": "exp", "C": "exp"}}
-	r := spec.ResolveEnv(exp)
-
-	got := r.Pairs()
-	sort.Strings(got)
-
-	want := []string{"A=spec", "B=exp", "C=exp"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("Pairs() = %v, want %v", got, want)
-	}
-}
-
-func TestEnvResolver_PairsExcludesProcessEnv(t *testing.T) {
-	withEnv(t, "INRUN_TEST_PROCESS", "from-process")
-
-	r := (&E2ESpec{Env: map[string]string{"A": "1"}}).ResolveEnv(E2EExpectation{})
-	for _, p := range r.Pairs() {
-		if p == "INRUN_TEST_PROCESS=from-process" {
-			t.Fatalf("Pairs() leaked the process env: %v", r.Pairs())
-		}
-	}
-}
-
-func TestEnvResolver_PairsEmpty(t *testing.T) {
-	r := (&E2ESpec{}).ResolveEnv(E2EExpectation{})
-	if got := r.Pairs(); len(got) != 0 {
-		t.Fatalf("Pairs() = %v, want empty", got)
-	}
-
-	var zero EnvResolver
-	if got := zero.Pairs(); len(got) != 0 {
-		t.Fatalf("zero Pairs() = %v, want empty", got)
+// A nil spec resolves to the expectation's env alone. The merge itself is
+// jig's (spec.Expectation.ResolveEnv).
+func TestE2ESpec_ResolveEnvNilSpec(t *testing.T) {
+	var spec *E2ESpec
+	got := spec.ResolveEnv(E2EExpectation{Env: map[string]string{"A": "exp"}}).Vars()
+	if !reflect.DeepEqual(got, env.Vars{"A": "exp"}) {
+		t.Fatalf("Vars() = %v, want only the expectation's", got)
 	}
 }
 
@@ -218,13 +191,13 @@ func TestE2ESpec_InheritEnvIdempotent(t *testing.T) {
 func TestEnvResolver_LookupEnv(t *testing.T) {
 	t.Setenv("INRUN_TEST_PROCESS", "from-process")
 	r := (&E2ESpec{Env: map[string]string{"EMPTY": ""}}).ResolveEnv(E2EExpectation{})
-	if v, ok := r.LookupEnv("EMPTY"); !ok || v != "" {
+	if v, ok := r.Lookup("EMPTY"); !ok || v != "" {
 		t.Errorf("declared empty: got %q, %v; want \"\", true", v, ok)
 	}
-	if v, ok := r.LookupEnv("INRUN_TEST_PROCESS"); !ok || v != "from-process" {
+	if v, ok := r.Lookup("INRUN_TEST_PROCESS"); !ok || v != "from-process" {
 		t.Errorf("process: got %q, %v", v, ok)
 	}
-	if _, ok := r.LookupEnv("INRUN_TEST_UNSET"); ok {
+	if _, ok := r.Lookup("INRUN_TEST_UNSET"); ok {
 		t.Error("unset: want false")
 	}
 }
