@@ -37,7 +37,7 @@ inrun push .
 `inrun push .` takes the name and version from the pattern's `metadata`, or `inrun push payments:v1.0.0 ./payments/` names them. Before anything is uploaded it runs two gates:
 
 1. **simulate**: `test/simulate.yaml` against the in-memory cluster.
-2. **e2e**: `test/e2e.yaml` on a fresh kind cluster (`--use-current` or `--cluster` reuses one).
+2. **e2e**: `test/e2e.yaml` on a fresh kind cluster (`--use-current` or `--context` reuses one).
 
 A failing gate stops the push. A version that is already published is refused: bump `metadata.version`, or `--overwrite` to replace it (the artifact records the digest it replaced). `--no-simulate` and `--no-e2e` skip a gate, and `--force` pushes anyway; the artifact then records what did not pass. `--add-intent intent.json` also runs the intent through the gateway's stages and stores the result, so consumers see what an intent becomes.
 

@@ -5,6 +5,7 @@ package validate
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -17,11 +18,9 @@ import (
 	"github.com/intentd/inrun/pkg/blueprint/pipeline"
 	"github.com/intentd/inrun/pkg/config"
 	"github.com/intentd/inrun/pkg/registry/e2e"
-	"github.com/intentd/inrun/pkg/registry/e2e/expect"
-	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
 	modulepkg "github.com/intentd/inrun/pkg/registry/module"
 	"github.com/intentd/inrun/pkg/types"
-	"github.com/intentd/tools/cluster"
+	"github.com/intentd/jig"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -278,263 +277,29 @@ func validateE2EFileOpts(path string, quiet bool) error {
 		fmt.Println()
 	}
 
-	data, err := cmdutil.ReadLocal(path)
-	if err != nil {
-		return fmt.Errorf("reading %s: %w", path, err)
-	}
-
-	var doc types.E2E
-	if err := cmdutil.StrictUnmarshal(data, &doc); err != nil {
-		return fmt.Errorf("parsing %s: %w", path, err)
-	}
-
-	baseDir := filepath.Dir(path)
-	isAggregator := len(doc.Imports) > 0 && doc.Spec.Blueprint == "" && doc.Spec.Init == nil
-
-	var errs []string
-
-	if doc.Metadata.Name == "" {
-		errs = append(errs, "metadata.name is required")
-	}
-	isCustom := doc.Spec.Custom != nil && doc.Spec.Custom.Target != ""
-	noCluster := doc.Spec.Environment.Provider() == types.ProviderNone
-	if isCustom {
-		switch doc.Spec.Custom.Target {
-		case types.CustomTargetKubernetes:
-			// valid and supported
-		// case types.CustomTargetContainer:
-		// 	return fmt.Errorf("spec.custom.target \"container\" is coming soon — not yet supported in this version")
-		default:
-			errs = append(errs, fmt.Sprintf(
-				"spec.custom.target %q is not supported — valid values: kubernetes",
-				doc.Spec.Custom.Target,
-			))
-		}
-	}
-	expanded := doc.Spec.Expect
-	if !isAggregator {
-		if doc.Spec.Blueprint == "" && doc.Spec.Init == nil && !isCustom && !noCluster {
-			errs = append(errs, "spec.blueprint is required (or spec.init for example packs, spec.custom.target for custom targets, or imports)")
-		}
-		if doc.Spec.CRD == "" && doc.Spec.Init == nil && !isCustom && !noCluster {
-			errs = append(errs, "spec.crd is required (or spec.init for example packs, spec.custom.target for custom targets, or imports)")
-		}
-		if len(doc.Spec.Expect) == 0 {
-			errs = append(errs, "spec.expect must contain at least one expectation")
-		}
-		var expandErr error
-		expanded, expandErr = doc.Spec.Expect.ExpandIncludes(baseDir)
-		if expandErr != nil {
-			errs = append(errs, expandErr.Error())
-			expanded = doc.Spec.Expect
-		}
-		for i, exp := range expanded {
-			if exp.Include != "" {
-				continue
-			}
-			if exp.Name == "" {
-				errs = append(errs, fmt.Sprintf("spec.expect[%d].name is required", i))
-			}
-			after := exp.After
-			if after == "" {
-				after = types.AfterSetupComplete
-			}
-			validAfter := false
-			for _, v := range types.ValidAfterValues {
-				if after == v {
-					validAfter = true
-					break
-				}
-			}
-			if !validAfter {
-				errs = append(errs, fmt.Sprintf("spec.expect[%d].after must be one of %v (got %q)", i, types.ValidAfterValues, exp.After))
-			}
-			var kubectlCount int
-			if k := exp.Kubectl; k != nil {
-				kubectlCount = len(k.Get) + len(k.Logs) + len(k.Describe) + len(k.Exec) +
-					len(k.PortForward) + len(k.Apply) + len(k.Delete) + len(k.Patch) +
-					len(k.Events) + len(k.Auth) + len(k.Cp) + len(k.Top) +
-					len(k.Restart) + len(k.Scale)
-			}
-			if len(exp.Resources) == 0 && len(exp.Commands) == 0 && kubectlCount == 0 && len(exp.External) == 0 {
-				errs = append(errs, fmt.Sprintf("spec.expect[%d] (%q): must have at least one resource, command, kubectl or external check", i, exp.Name))
-			}
-		}
-	}
-
-	// Validate imports (collect per-import errors for display).
-	importErrs := e2e.ValidateImports(baseDir, doc.Imports)
-
-	// Validate the files the spec names, kubectl blocks and external calls.
-	checkErrs := append(e2e.ValidatePaths(baseDir, &doc.Spec), kubectl.Validate(expanded, baseDir)...)
-	checkErrs = append(checkErrs, expect.ValidateExternal(expanded)...)
-	checkErrs = append(checkErrs, e2e.ValidateImages(&doc.Spec)...)
-	if f := doc.Spec.OnFailure; f != nil {
-		if f.Empty() {
-			checkErrs = append(checkErrs, fmt.Errorf("spec.onFailure: block is empty"))
-		}
-		checkErrs = append(checkErrs, kubectl.ValidateBlock("spec.onFailure", f.Kubectl, baseDir, true)...)
-		checkErrs = append(checkErrs, expect.ValidateExternalCalls("spec.onFailure", f.External)...)
-	}
-	if f := doc.Spec.Finally; f != nil {
-		if f.Empty() {
-			checkErrs = append(checkErrs, fmt.Errorf("spec.finally: block is empty"))
-		}
-		checkErrs = append(checkErrs, kubectl.ValidateBlock("spec.finally", f.Kubectl, baseDir, true)...)
-		checkErrs = append(checkErrs, expect.ValidateExternalCalls("spec.finally", f.External)...)
-	}
-
-	if len(errs) > 0 || len(importErrs) > 0 || len(checkErrs) > 0 {
-		for _, e := range errs {
-			fmt.Printf("  %s %s\n", cmdutil.FailureMark(), e)
-		}
-		for _, ie := range importErrs {
-			fmt.Printf("  %s import: %s\n", cmdutil.FailureMark(), ie)
-		}
-		for _, ce := range checkErrs {
-			fmt.Printf("  %s %s\n", cmdutil.FailureMark(), ce)
-		}
-		fmt.Println()
-		return fmt.Errorf("%d validation error(s) in %s", len(errs)+len(importErrs)+len(checkErrs), path)
-	}
-
-	if quiet {
-		return nil
-	}
-
-	icon := cmdutil.HealthIcon("ready")
-	fmt.Printf("%s %s\n", icon, cmdutil.Bold(doc.Metadata.Name))
-	if doc.Metadata.Description != "" {
-		fmt.Printf("    %s\n", cmdutil.Gray(doc.Metadata.Description))
-	}
-	if !isAggregator {
-		if isCustom {
-			fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("mode    : custom target (%s — Inrun install skipped)", doc.Spec.Custom.Target)))
-		}
-		if noCluster {
-			fmt.Printf("    %s\n", cmdutil.Gray("mode    : no cluster (provider: none — commands only, no install)"))
-		}
-		if doc.Spec.Blueprint != "" {
-			fmt.Printf("    %s\n", cmdutil.Gray("blueprint : "+doc.Spec.Blueprint))
-		}
-		if doc.Spec.CRD != "" {
-			fmt.Printf("    %s\n", cmdutil.Gray("crd     : "+doc.Spec.CRD))
-		}
-		if doc.Spec.CR != "" {
-			fmt.Printf("    %s\n", cmdutil.Gray("cr      : "+doc.Spec.CR))
-		}
-		if e := doc.Spec.Environment; e != nil {
-			if len(e.Apply) > 0 {
-				paths := make([]string, len(e.Apply))
-				for i, a := range e.Apply {
-					paths[i] = a.Path
-				}
-				fmt.Printf("    %s\n", cmdutil.Gray("environment.apply : "+strings.Join(paths, ", ")))
-			}
-			if len(e.Helm) > 0 {
-				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("environment.helm  : %d chart(s)", len(e.Helm))))
-			}
-			if len(e.Wait) > 0 {
-				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("environment.wait  : %d resource(s)", len(e.Wait))))
-			}
-			printEnvironmentImages(doc.Metadata.Name, e.Images)
-		}
-		if p := doc.Spec.Prepare; p != nil {
-			if len(p.Apply) > 0 {
-				paths := make([]string, len(p.Apply))
-				for i, a := range p.Apply {
-					paths[i] = a.Path
-				}
-				fmt.Printf("    %s\n", cmdutil.Gray("prepare.apply : "+strings.Join(paths, ", ")))
-			}
-			if len(p.Helm) > 0 {
-				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("prepare.helm  : %d chart(s)", len(p.Helm))))
-			}
-			if len(p.Wait) > 0 {
-				fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("prepare.wait  : %d resource(s)", len(p.Wait))))
-			}
-		}
-	}
-	if len(doc.Imports) > 0 {
-		fmt.Printf("    %s\n", cmdutil.Gray(fmt.Sprintf("imports : %d file(s)", len(doc.Imports))))
-		for _, imp := range doc.Imports {
-			label := imp.Path
-			if imp.FreshCluster {
-				label += " (fresh cluster)"
-			}
-			if imp.Wait != "" {
-				label += " (wait: " + imp.Wait + ")"
-			}
-			fmt.Printf("      %s %s\n", cmdutil.HealthIcon("ready"), cmdutil.Gray(label))
-		}
-	}
-	fmt.Println()
-	for _, exp := range expanded {
-		to := exp.Timeout
-		if to == "" {
-			to = "60s"
-		}
-		after := exp.After
-		if after == "" {
-			after = types.AfterSetupComplete
-		}
-		fmt.Printf("    %s\n",
-			cmdutil.Gray(fmt.Sprintf("%-40s after: %-12s timeout: %s", exp.Name, after, to)))
-	}
-	fmt.Println()
-	fmt.Println(strings.Repeat("─", 60))
-	if isAggregator {
-		fmt.Printf("%d import(s) valid\n", len(doc.Imports))
+	// An Inrun e2e test: Inrun checks its own fields, maps the test to jig
+	// offline, and jig checks the rest. A plain jig test: jig checks it all.
+	var t *jig.Test
+	var problems []error
+	if e2e.IsE2EDoc(path) {
+		t, problems = e2e.Validate(path)
 	} else {
-		fmt.Printf("%d expectation(s) valid", len(expanded))
-		if len(doc.Imports) > 0 {
-			fmt.Printf(", %d import(s) valid", len(doc.Imports))
+		var err error
+		if t, err = jig.FromFile(path); err != nil {
+			return err
+		}
+	}
+	if len(problems) > 0 {
+		for _, p := range problems {
+			fmt.Printf("  %s %s\n", cmdutil.FailureMark(), p)
 		}
 		fmt.Println()
+		return fmt.Errorf("%d validation error(s) in %s", len(problems), path)
 	}
-
-	// ${NAME} nothing declares and this shell doesn't set: a warning, not an
-	// error — CI may set it — but the run fails that expectation if it is
-	// still unset then.
-	for _, exp := range expanded {
-		if unknown := types.UnknownEnv(doc.Spec.ResolveEnv(exp), exp); len(unknown) > 0 {
-			fmt.Printf("\n%s  %q uses ${%s}: not declared in env and not set here\n",
-				cmdutil.Yellow("⚠"), exp.Name, strings.Join(unknown, "}, ${"))
-		}
+	if !quiet {
+		jig.Plan(os.Stdout, t)
 	}
-
 	return nil
-}
-
-// printEnvironmentImages lists the images the run builds, loads and deploys,
-// under one environment.images heading. Default image and deployment names
-// are resolved the same way the run resolves them.
-func printEnvironmentImages(specName string, images cluster.Images) {
-	if len(images) == 0 {
-		return
-	}
-	fmt.Printf("    %s\n", cmdutil.Gray("environment.images :"))
-	for i, img := range images.ResolveDefaultNames(specName) {
-		description := img.Image
-		operations := []string{"load"}
-		if img.Build != nil {
-			description = fmt.Sprintf("build %s (%s) → %s", img.Build.Context, img.Build.DockerfilePath(), img.Image)
-			operations = []string{"build", "load"}
-		}
-		if img.Deploy != nil {
-			operations = append(operations, "deploy")
-		}
-		fmt.Printf("      [%d] %s %s\n", i, description, cmdutil.Gray("("+strings.Join(operations, ", ")+")"))
-
-		if d := img.Deploy; d != nil {
-			namespace := d.Namespace
-			if namespace == "" {
-				namespace = "default"
-			}
-			fmt.Printf("          %s\n", cmdutil.Gray(fmt.Sprintf("deploy  : %s (namespace: %s, port: %d)", d.Name, namespace, d.Port)))
-			fmt.Printf("          %s\n", cmdutil.Gray(fmt.Sprintf("service : %s.%s.svc.cluster.local:%d", d.Name, namespace, d.Port)))
-		}
-	}
 }
 
 // ValidateSimulateFile validates a Simulate spec file and prints a summary.

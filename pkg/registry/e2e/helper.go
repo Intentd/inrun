@@ -10,8 +10,6 @@ import (
 	"github.com/intentd/tools/fileio"
 	"github.com/intentd/tools/structured"
 	"github.com/intentd/tools/term"
-
-	"github.com/intentd/inrun/pkg/types"
 )
 
 var (
@@ -41,32 +39,15 @@ func (r *Runner) resolveSource() error {
 		r.blueprintFile = filepath.Join(candidate, registry.FileBlueprint)
 		r.crFiles = []string{filepath.Join(candidate, registry.FileCR)}
 
-	case spec.Blueprint != "" && len(spec.AllCRPaths()) > 0:
-		r.blueprintFile = r.abs(spec.Blueprint)
-		for _, p := range spec.AllCRPaths() {
-			r.crFiles = append(r.crFiles, r.abs(p))
-		}
-
-	case spec.Blueprint != "":
-		// Blueprint without a CR: the CRs come from the gateway (an intent sent
-		// by an expectation) or from the expectations themselves.
-		r.blueprintFile = r.abs(spec.Blueprint)
-
-	case spec.Custom != nil && spec.Custom.Target != "":
-		// custom.target: both blueprint and cr are optional.
-		for _, p := range spec.AllCRPaths() {
-			r.crFiles = append(r.crFiles, r.abs(p))
-		}
-
-	case len(r.e2e.Imports) > 0:
-		// Pure aggregator — no own blueprint/CR, just orchestrates imports.
-		return nil
-	case spec.Environment.Cluster.Provider == types.ProviderNone:
-		// Running e2e without a cluster: for just commands: useful for testing
-		return nil
-
 	default:
-		return fmt.Errorf("e2e spec must declare a blueprint, init or custom target, or have imports")
+		// Without a blueprint the test is plain Kubernetes: its CRs, if any,
+		// are still applied (cr) and deleted (cr-deleted).
+		if spec.Blueprint != "" {
+			r.blueprintFile = r.abs(spec.Blueprint)
+		}
+		for _, p := range spec.AllCRPaths() {
+			r.crFiles = append(r.crFiles, r.abs(p))
+		}
 	}
 
 	if r.blueprintFile != "" {
@@ -80,19 +61,6 @@ func (r *Runner) resolveSource() error {
 		}
 	}
 	return nil
-}
-
-// isPureAggregator reports whether this E2E exists only to run imported
-// files: it has imports, and none of its own — no blueprint, no CR, no
-// custom target, no expectations.
-func (r *Runner) isPureAggregator() bool {
-	if len(r.e2e.Imports) == 0 {
-		return false
-	}
-	return r.blueprintFile == "" &&
-		len(r.crFiles) == 0 &&
-		!r.kubernetesTarget &&
-		len(r.e2e.Spec.Expect) == 0
 }
 
 func (r *Runner) abs(path string) string {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/registry/e2e"
 	"github.com/intentd/inrun/pkg/registry/simulate"
+	"github.com/intentd/inrun/pkg/template/funcs"
 	"github.com/intentd/tools/cluster"
 	"github.com/intentd/tools/fileio"
 
@@ -32,7 +33,7 @@ The same command runs locally and in CI. The e2e.yaml file is the source of trut
   inrun e2e                 # e2e.yaml here, then test/e2e.yaml
   inrun e2e -f e2e.yaml
   inrun e2e -f e2e.yaml --keep-cluster
-  inrun e2e -f e2e.yaml --cluster my-existing-context
+  inrun e2e -f e2e.yaml --context my-existing-context
   inrun e2e -f e2e.yaml --version v1.2.3 --values values.yaml
 
 Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggregators):
@@ -54,11 +55,13 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 			return fmt.Errorf("no %s found here or in %s/ — pass -f <file>", cmdutil.FileE2e, cmdutil.DirTest)
 		}
 
-		e2eOpts := e2e.Options{}
+		// Inrun's tests use every function a Blueprint can: KEL's and Inrun's.
+		e2eOpts := e2e.Options{Functions: funcs.WithKEL()}
 		var err error
 		e2eOpts.KeepCluster, _ = cmd.Flags().GetBool("keep-cluster")
+		e2eOpts.Keep, _ = cmd.Flags().GetBool("keep")
 		e2eOpts.UseCurrentCtx, _ = cmd.Flags().GetBool("use-current")
-		e2eOpts.ClusterCtx, _ = cmd.Flags().GetString("cluster")
+		e2eOpts.Context, _ = cmd.Flags().GetString("context")
 		e2eOpts.Workers, _ = cmd.Flags().GetInt("workers")
 		e2eOpts.Images, _ = cmd.Flags().GetStringSlice("images")
 		e2eOpts.InrunVersion, _ = cmd.Flags().GetString("version")
@@ -83,9 +86,9 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 		switch dryRunMode {
 		case "", "client":
 		case "server":
-			if !e2eOpts.UseCurrentCtx && e2eOpts.ClusterCtx == "" {
+			if !e2eOpts.UseCurrentCtx && e2eOpts.Context == "" {
 				if !cluster.ClusterReachable() {
-					return fmt.Errorf("--dry-run=server sends writes to an existing cluster: none is reachable; add --use-current or --cluster <context>")
+					return fmt.Errorf("--dry-run=server sends writes to an existing cluster: none is reachable; add --use-current or --context <context>")
 				}
 				// A reachable current context is the cluster a server dry run checks against.
 				e2eOpts.UseCurrentCtx = true
@@ -154,17 +157,13 @@ Discovery mode — runs all *e2e.yaml files found recursively (skips pure aggreg
 			}
 		}
 
-		if ctx := e2eOpts.ClusterCtx; ctx != "" {
+		if ctx := e2eOpts.Context; ctx != "" {
 			if !cluster.CheckContext(ctx) {
 				return fmt.Errorf("Kubernetes context %q does not exist in the current kubeconfig", ctx)
 			}
 		}
 
-		runner, err := e2e.New(file, e2eOpts)
-		if err != nil {
-			return err
-		}
-		_, err = runner.Run(cmd.Context())
+		_, err = e2e.RunFromFile(cmd.Context(), file, e2eOpts)
 		return err
 	},
 }
@@ -185,8 +184,9 @@ func init() {
 	e2eInitCmd.Flags().StringSlice("skip", []string{}, "Comma-separated path patterns to exclude from suite discovery")
 	e2eCmd.Flags().StringP("file", "f", "", "Path to the E2E spec file, or ./... for discovery (default: e2e.yaml here, then test/e2e.yaml)")
 	e2eCmd.Flags().Bool("keep-cluster", false, "Keep the kind cluster after the test completes")
+	e2eCmd.Flags().Bool("keep", false, "Leave everything as the run left it: no teardown, the cluster kept")
 	e2eCmd.Flags().Bool("use-current", false, "Use the current kubectl context, skip cluster creation")
-	e2eCmd.Flags().String("cluster", "", "Use an existing kubectl context instead of creating a cluster")
+	e2eCmd.Flags().StringP("context", "c", "", "Run in this kubectl context instead of creating a cluster")
 	e2eCmd.Flags().Int("workers", 0, "Number of kind worker nodes to provision (default: 0, control-plane only)")
 	e2eCmd.Flags().StringSlice("images", []string{},
 		"Container images to load into the cluster before the test (repeatable or comma-separated). Requires a kind cluster. Narrows setup.images; when setup.images is empty, these are the only images loaded.")

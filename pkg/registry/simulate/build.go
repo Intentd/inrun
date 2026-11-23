@@ -14,7 +14,6 @@ import (
 
 	"github.com/intentd/inrun/domain"
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/runtime/coordinator"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/contract"
 	"github.com/intentd/inrun/pkg/runtime/coordinator/reconcile"
@@ -22,6 +21,7 @@ import (
 	"github.com/intentd/inrun/pkg/runtime/reconcilers"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/kel"
+	"github.com/intentd/tools/external"
 	"github.com/intentd/tools/kubeclient"
 	"github.com/intentd/tools/kubeclient/kubefake"
 	"github.com/intentd/tools/logger"
