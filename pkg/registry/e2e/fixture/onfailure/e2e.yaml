@@ -10,8 +10,6 @@ metadata:
     post blocks left in .marks and the warnings in its report.
 
 spec:
-  custom:
-    target: kubernetes
   environment:
     cluster:
       provider: none

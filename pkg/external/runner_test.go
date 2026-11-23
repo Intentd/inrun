@@ -12,6 +12,7 @@ import (
 	"github.com/intentd/inrun/pkg/template"
 	"github.com/intentd/inrun/pkg/types"
 	"github.com/intentd/tools/condition"
+	toolsexternal "github.com/intentd/tools/external"
 )
 
 // stubTransport returns a fixed response for every request.
@@ -34,9 +35,9 @@ func (s stubTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func withTransport(t *testing.T, transport http.RoundTripper) func() {
 	t.Helper()
-	prev := external.HTTPTransport
-	external.HTTPTransport = transport
-	return func() { external.HTTPTransport = prev }
+	prev := toolsexternal.HTTPTransport
+	toolsexternal.HTTPTransport = transport
+	return func() { toolsexternal.HTTPTransport = prev }
 }
 
 func resolver(data map[string]interface{}) *template.Resolver {
@@ -336,7 +337,7 @@ func TestCall_OneCall(t *testing.T) {
 	defer withTransport(t, stubTransport{status: 200, body: `{"id":"b-1"}`})()
 	r := resolver(map[string]interface{}{"spec": map[string]interface{}{"ready": "no"}})
 
-	entry, err := external.Call(context.Background(), "test", "remote", r,
+	entry, err := external.Call(context.Background(), "test", "remote", r.Core(),
 		types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/buckets/b-1", Method: "PUT"}, Name: "ensure"}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -345,7 +346,7 @@ func TestCall_OneCall(t *testing.T) {
 		t.Errorf("got %v", entry)
 	}
 
-	skipped, err := external.Call(context.Background(), "test", "remote", r, types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x",
+	skipped, err := external.Call(context.Background(), "test", "remote", r.Core(), types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x",
 		When: types.Conditions{{Condition: condition.Condition{Field: "spec.ready", Equals: "yes"}}}}, Name: "gated",
 	}, nil)
 	if err != nil || skipped["called"] != "false" {
@@ -357,7 +358,7 @@ func TestCall_FailureReturnsEntryAndError(t *testing.T) {
 	defer withTransport(t, stubTransport{status: 503, body: `{"reason":"busy"}`})()
 	r := resolver(map[string]interface{}{})
 
-	entry, err := external.Call(context.Background(), "test", "remote", r,
+	entry, err := external.Call(context.Background(), "test", "remote", r.Core(),
 		types.ExternalCallSpec{CallSpec: types.CallSpec{URL: "http://api.internal/x"}, Name: "ensure"}, nil)
 	if err == nil {
 		t.Fatal("a 503 without continueOnError is an error")

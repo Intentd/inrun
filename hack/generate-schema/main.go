@@ -42,8 +42,9 @@ var kinds = []struct {
 // comments are the types whose Go comments become the descriptions.
 var comments = []schemagen.Source{
 	{Module: module, Dirs: []string{"pkg/types", "pkg/blueprint", "domain"}},
+	{Module: "github.com/intentd/jig", Dirs: []string{"spec"}},
 	{Module: "github.com/intentd/kubewright", Dirs: []string{"core/types", "presets"}},
-	{Module: "github.com/intentd/tools", Dirs: []string{"condition", "duration"}},
+	{Module: "github.com/intentd/tools", Dirs: []string{"condition", "duration", "assert", "resolver/env"}},
 }
 
 func main() {
@@ -104,17 +105,19 @@ func sortedKeys(m map[string]any) []string {
 var one uint64 = 1
 
 // shorthands are the types whose UnmarshalYAML accepts more than the
-// reflected struct. Keep in step with those decoders in pkg/types.
+// reflected struct. Keep in step with those decoders in pkg/types and jig's spec.
 var shorthands = map[string]schemagen.Shorthand{
-	"ProvisionApplyEntry": schemagen.Either(schemagen.Str("Path to a manifest")),
-	"E2EKubectlApply":     schemagen.Either(schemagen.Str("Path to a manifest to apply (shorthand for file)")),
-	"E2EKubectlDelete":    schemagen.Either(schemagen.Str("Path to a manifest whose resources to delete (shorthand for file)")),
-	"E2EKubectlPatch":     schemagen.Either(schemagen.Str("A file that is both the target and the merge patch: one partial object (shorthand for file and patchFile)")),
-	"E2EImport":           schemagen.Either(schemagen.Str("Path to another E2E file")),
-	"FileSource":          schemagen.Either(schemagen.Str("Path or URL of the file")),
-	"RegistrySource":      schemagen.Either(schemagen.Str("Pattern reference, e.g. oci://registry/path:tag")),
-	"RetryBackoffConfig":  schemagen.Either(schemagen.Str("Initial delay, e.g. 500ms")),
-	"DependsOnCondition":  schemagen.Either(schemagen.Str("started or healthy")),
+	"spec.ApplyEntry":    schemagen.Either(schemagen.Str("Path to a manifest")),
+	"spec.ApplyEntries":  schemagen.Either(schemagen.Str("Path to a manifest")),
+	"spec.Paths":         schemagen.Either(schemagen.Str("Path to a manifest")),
+	"spec.KubectlApply":  schemagen.Either(schemagen.Str("Path to a manifest to apply (shorthand for file)")),
+	"spec.KubectlDelete": schemagen.Either(schemagen.Str("Path to a manifest whose resources to delete (shorthand for file)")),
+	"spec.KubectlPatch":  schemagen.Either(schemagen.Str("A file that is both the target and the merge patch: one partial object (shorthand for file and patchFile)")),
+	"spec.Import":        schemagen.Either(schemagen.Str("Path to another test file")),
+	"FileSource":         schemagen.Either(schemagen.Str("Path or URL of the file")),
+	"RegistrySource":     schemagen.Either(schemagen.Str("Pattern reference, e.g. oci://registry/path:tag")),
+	"RetryBackoffConfig": schemagen.Either(schemagen.Str("Initial delay, e.g. 500ms")),
+	"DependsOnCondition": schemagen.Either(schemagen.Str("started or healthy")),
 	"IdempotencyKeyConfig": schemagen.Either(&jsonschema.Schema{
 		Type: "boolean", Const: false, Description: "false sends no idempotency key",
 	}),
