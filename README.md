@@ -109,11 +109,12 @@ Each example's README is its guide.
 
 ## Built on
 
-Three libraries that came out of Inrun and stand on their own:
+Four projects that came out of Inrun and stand on their own:
 
 - [KEL](https://github.com/intentd/kel): functions that know Kubernetes, for reading state in templates and Go.
 - [kubewright](https://github.com/intentd/kubewright): building and writing an owner's child resources.
 - [KOME](https://github.com/intentd/kome): moving stored custom resources to a new schema or kind, reversibly.
+- [jig](https://github.com/intentd/jig): declarative Kubernetes tests that own their environment; `inrun e2e` runs through it.
 
 ## Talks
 

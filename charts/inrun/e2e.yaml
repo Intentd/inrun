@@ -4,7 +4,7 @@ kind: E2E
 metadata:
   name: inrun-chart-e2e
   description: >
-    custom.target: kubernetes — Inrun Helm chart installed via setup.helm
+    A plain Kubernetes test (no blueprint): the Inrun Helm chart installed via prepare.helm
     with gateway enabled. CRD, bundle, and fixture CR are applied before the
     chart so Inrun reconciles on first boot. Asserts that all three
     deployments are ready, that conditional templates are not created when their
@@ -12,9 +12,6 @@ metadata:
     CR producing a Deployment and Service.
 
 spec:
-  custom:
-    target: kubernetes
-
   prepare:
     apply:
       - path: fixtures/crd.yaml

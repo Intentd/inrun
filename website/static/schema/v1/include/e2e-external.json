@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "Assertions": {
+    "assert.Assertions": {
       "additionalProperties": false,
       "description": "Assertions checks a step's output: one comparison inline, a list under text, path-scoped ones under json.",
       "properties": {
@@ -32,7 +32,7 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
             "boolean",
             "null"
@@ -59,7 +59,7 @@
         "json": {
           "anyOf": [
             {
-              "$ref": "#/$defs/JSONAssertions"
+              "$ref": "#/$defs/assert.JSONAssertions"
             },
             {
               "type": "null"
@@ -122,7 +122,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -185,7 +185,7 @@
         "text": {
           "anyOf": [
             {
-              "$ref": "#/$defs/TextAssertions"
+              "$ref": "#/$defs/assert.TextAssertions"
             },
             {
               "type": "null"
@@ -196,23 +196,179 @@
       },
       "type": "object"
     },
-    "Auth": {
+    "assert.JSONAssertion": {
       "additionalProperties": false,
-      "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
+      "description": "JSONAssertion asserts on one value in a JSON document.",
       "properties": {
-        "secretRef": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/KubernetesSecretRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "SecretRef locates a Kubernetes Secret whose data key holds a bearer token\nMutually exclusive with Token. inrun validate enforces this"
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
         },
-        "token": {
-          "description": "Token is a bearer token for the endpoint. $ENV_VAR syntax supported.",
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
           "type": [
             "string",
             "number",
@@ -223,9 +379,196 @@
       },
       "type": "object"
     },
-    "Condition": {
+    "assert.JSONAssertions": {
+      "items": {
+        "$ref": "#/$defs/assert.JSONAssertion"
+      },
+      "type": "array"
+    },
+    "assert.TextAssertion": {
       "additionalProperties": false,
-      "description": "Condition is one test against the CR or runtime state.",
+      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "assert.TextAssertions": {
+      "description": "TextAssertions is a list of comparisons on one output.",
+      "items": {
+        "$ref": "#/$defs/assert.TextAssertion"
+      },
+      "type": "array"
+    },
+    "condition.Condition": {
+      "additionalProperties": false,
+      "description": "Condition is one test against a data map.",
       "properties": {
         "between": {
           "description": "Between passes when the field's number is inside an inclusive \"min,max\" range.",
@@ -286,7 +629,7 @@
           ]
         },
         "exists": {
-          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "description": "Exists, when true, passes when the field is present and non-empty;\nfalse is notExists: true. A condition with no comparison at all means\nexists.",
           "type": [
             "boolean",
             "null"
@@ -381,7 +724,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "description": "NotExists, when true, passes when the field is absent or empty;\nfalse is exists: true.",
           "type": [
             "boolean",
             "null"
@@ -432,17 +775,6 @@
             "null"
           ]
         },
-        "source": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/CrossSource"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Source is the HTTP fallback for cross-binary metric observation.\nOnly used when field is a cross.\u003ccrd\u003e.metrics.* field and the CRD\nis not registered in GlobalCrossMetricsRegistry (different binary).\nThe endpoint must be the remote operator's /blueprint/{crd} URL.\n\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        host: \"http://inrun-database-operator:8080\"\n\t\t   crd: managed-database\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        endpoint: \"http://non-inrun-database-operator:8080/api/managed-database/metrics\""
-        },
         "suffix": {
           "description": "Suffix passes when the field's value ends with this text.",
           "type": [
@@ -482,1046 +814,9 @@
       },
       "type": "object"
     },
-    "Conditions": {
+    "condition.Conditions": {
       "items": {
-        "$ref": "#/$defs/Condition"
-      },
-      "type": "array"
-    },
-    "CrossSource": {
-      "additionalProperties": false,
-      "description": "CrossSource declares how to fetch cross-binary/cluster data for a CRD.",
-      "properties": {
-        "auth": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Auth"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Auth handles both ENV-based token and secret reads for cross: authentication\n\tauth:\n\t  secretRef:\n\t\tname: cross-secret\n\t\tnamespace: cross-namespace\n\t\tkey: password"
-        },
-        "cacheFor": {
-          "description": "CacheFor controls how long to cache the result before calling again.\nDefault: 30s — prevents hammering the endpoint on every evaluation.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "endpoint": {
-          "description": "Endpoint is a fully-qualified URL. If set, Inrun uses it directly\nand ignores Host/Protocol/Namespace. Template expressions supported.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "host": {
-          "description": "Host is the base URL of a remote Inrun runtime, e.g.:\n  http://inrun-runtime.loader-system:8080\nCombined with Type to build the final URL.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "namespace": {
-          "description": "Namespace overrides the CR namespace when building info/events URLs.\nOptional — defaults to the CR's own namespace.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "protocol": {
-          "description": "Protocol selects which Inrun-native endpoint to call.\nOne of: \"info\", \"metrics\", \"health\", \"events\".\nDefault: \"info\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "E2EExternalCheck": {
-      "additionalProperties": false,
-      "description": "E2EExternalCheck is one call an e2e step makes and asserts on.",
-      "properties": {
-        "assert": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Assertions"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Assert checks the extracted value. With none, the call succeeding is\nthe check."
-        },
-        "auth": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ExternalAuth"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Auth declares the credential for this call. For the remote request:\ndefault remote.auth."
-        },
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "body": {
-          "description": "Body is the request body for POST/PUT/PATCH. Template expressions supported.\n  body: '{\"name\": \"{{ .metadata.name }}\"}'\nHTTP only.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "cacheFor": {
-          "description": "CacheFor gates re-fetch. Calls within this window return the cached result.\nEmpty: fetch every reconcile. Recommended for stateful protocols where\nconnection establishment is expensive.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "continueOnError": {
-          "description": "ContinueOnError controls whether a failed call halts reconciliation.\nfalse (default): failure returns an error, halting the reconcile.\ntrue:            failure is logged, result has error set, reconcile continues.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "expectedStatus": {
-          "description": "ExpectedStatus lists the HTTP status codes that count as success, e.g.\n[200, 404] for a read where \"not found\" is an answer. HTTP only.\nDefault: any status below 400.",
-          "items": {
-            "type": "integer"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "fires": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/FiresConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Fires controls at which lifecycle points this call executes.\nAbsent: fires at both admission and reconcile time.\nfires.reconcile: false — admission only; reconciler skips this call."
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "headers": {
-          "additionalProperties": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "description": "Headers are additional HTTP headers. Values are templates, like url and\nbody; names are literal. Credentials belong in auth, not here. HTTP only.\n  headers:\n    X-Tenant: \"{{ .metadata.namespace }}\"",
-          "type": [
-            "object",
-            "null"
-          ]
-        },
-        "idempotencyKey": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/IdempotencyKeyConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "IdempotencyKey controls the key Inrun sends on POST and PATCH so a\nretried write is not applied twice. Absent: sent as Idempotency-Key with\na key derived from the CR's UID and the request. HTTP only.\n  idempotencyKey: false\n  idempotencyKey: {header: PayPal-Request-Id}"
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "include": {
-          "description": "Include is a path to a YAML file containing a top-level \"calls:\" list.\nWhen set, this entry is replaced in-place by the listed calls.\nResolved relative to the blueprint file's directory. Cleared after expansion.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "jq": {
-          "description": "JQ selects one value from JSON output with a jq expression (requires format: json and jq).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "jsonPath": {
-          "description": "JSONPath selects one value from JSON output by dot path (in-process).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "method": {
-          "description": "Method is the HTTP method. Default: GET for external calls, POST for\nthe remote request. HTTP only.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "name": {
-          "description": "Name is the identifier used to access the result in template expressions.\n  name: health-check → {{ .external.health-check.status }}",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "or": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Conditions"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Or — at least one condition must pass, alongside When if declared.."
-        },
-        "poolSize": {
-          "description": "PoolSize is the maximum connections maintained per url:.\nOnly meaningful for stateful protocols (postgres, kafka, redis, nats, mqtt).\nDefault: 2.",
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "protocol": {
-          "description": "Protocol identifies the wire protocol. Default (Empty(): HTTP.\n  protocol: prometheus\n  protocol: redis\n  protocol: postgres",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "query": {
-          "description": "Query is a protocol-specific instruction executed after connection.\nHTTP: unused (use body: for request body).\nPrometheus: PromQL expression.\nPostgres: SQL query string.\nRedis: command and args — \"GET mykey\", \"HGET hash field\".\nKafka: \"consumer-group/topic\" or \"@topic\" for topic metadata.\nNATS: \"bucket.key\" for KV; stream name for stream info.\nMQTT: retained topic to read.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "retryBackoff": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RetryBackoffConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "RetryBackoff configures how many times and how long to wait between\nretries before returning an error. Shorthand (\"3s\") sets initial only;\nfull form gives full control."
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "timeout": {
-          "description": "Timeout is the maximum duration for this call. Format: \"5s\", \"1m\",\n\"500ms\". Default: 10s for external calls, remote.timeout for the\nremote request.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "url": {
-          "description": "URL is the endpoint or connection string. Template expressions supported.\n  url: \"{{ .spec.serviceUrl }}/health\"\n  url: \"redis://redis-svc:6379\"\nFor the remote request and finalize: default remote.endpoint.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "when": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Conditions"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "When — every condition must pass for the call to be made this pass."
-        },
-        "yq": {
-          "description": "YQ selects one value from YAML output with a yq expression (requires format: yaml yq).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "E2EExternalChecks": {
-      "items": {
-        "$ref": "#/$defs/E2EExternalCheck"
-      },
-      "type": "array"
-    },
-    "E2EExternalInclude": {
-      "additionalProperties": false,
-      "description": "E2EExternalInclude is the file an include: entry in an expectation's external checks names: the checks that replace the entry.",
-      "properties": {
-        "calls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/E2EExternalChecks"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "ExternalAuth": {
-      "additionalProperties": false,
-      "description": "ExternalAuth declares how to resolve a credential for an external call.",
-      "properties": {
-        "env": {
-          "description": "Env reads the credential from a pod environment variable.\nValue is the variable name without $: env: MY_TOKEN reads $MY_TOKEN.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "header": {
-          "description": "Header is the HTTP header the credential is injected into.\nDefault: \"Authorization\" (produces \"Bearer \u003cvalue\u003e\").\nSet to \"X-Api-Key\" or similar for non-Bearer schemes.\nHTTP only — ignored by stateful protocol clients.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "secretRef": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/KubernetesSecretRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "SecretRef reads the credential from a Kubernetes Secret.\nNamespace defaults to the operator's own namespace if omitted.\nRead via the API server watch cache — no etcd round-trip."
-        }
-      },
-      "type": "object"
-    },
-    "FiresConfig": {
-      "additionalProperties": false,
-      "description": "FiresConfig controls at which lifecycle points an external call is executed.",
-      "properties": {
-        "reconcile": {
-          "description": "Reconcile controls whether the call fires at reconcile time.\nDefault true. Set false for admission-only calls (e.g. image signing checks)\nwhere the admission check is trusted and re-running every reconcile is wasteful.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "IdempotencyKeyConfig": {
-      "anyOf": [
-        {
-          "const": false,
-          "description": "false sends no idempotency key",
-          "type": "boolean"
-        },
-        {
-          "additionalProperties": false,
-          "description": "IdempotencyKeyConfig overrides the idempotency key Inrun sends on POST and PATCH.",
-          "properties": {
-            "header": {
-              "description": "Header is the header name. Default: Idempotency-Key.",
-              "type": [
-                "string",
-                "number",
-                "boolean",
-                "null"
-              ]
-            },
-            "value": {
-              "description": "Value is a template for the key, for an API with its own key format.\nDefault: derived from the CR's UID, the method, the URL and the body.",
-              "type": [
-                "string",
-                "number",
-                "boolean",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "IdempotencyKeyConfig overrides the idempotency key Inrun sends on POST and PATCH."
-    },
-    "JSONAssertion": {
-      "additionalProperties": false,
-      "description": "JSONAssertion asserts on one value in a JSON document.",
-      "properties": {
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "path": {
-          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "JSONAssertions": {
-      "items": {
-        "$ref": "#/$defs/JSONAssertion"
-      },
-      "type": "array"
-    },
-    "KubernetesSecretRef": {
-      "additionalProperties": false,
-      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
-      "properties": {
-        "key": {
-          "description": "Key is the data key within the Secret whose value is the token.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "name": {
-          "description": "Name is the Kubernetes Secret name.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "namespace": {
-          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "rotateAfter": {
-          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "RetryBackoffConfig": {
-      "anyOf": [
-        {
-          "description": "Initial delay, e.g. 500ms",
-          "type": [
-            "string",
-            "number",
-            "boolean"
-          ]
-        },
-        {
-          "additionalProperties": false,
-          "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff.",
-          "properties": {
-            "initial": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Initial is the first backoff delay. Default: 500ms."
-            },
-            "max": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Max caps the delay so it does not grow unboundedly. Default: 30s."
-            },
-            "maxAttempts": {
-              "description": "MaxAttempts is the total number of calls including the first. Default: 3.",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "multiplier": {
-              "description": "Multiplier scales the delay after each attempt. Default: 2.0.",
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff."
-    },
-    "TextAssertion": {
-      "additionalProperties": false,
-      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
-      "properties": {
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "TextAssertions": {
-      "description": "TextAssertions is a list of comparisons on one output.",
-      "items": {
-        "$ref": "#/$defs/TextAssertion"
+        "$ref": "#/$defs/condition.Condition"
       },
       "type": "array"
     },
@@ -1606,10 +901,454 @@
         "number",
         "boolean"
       ]
+    },
+    "spec.ExternalAuth": {
+      "additionalProperties": false,
+      "description": "ExternalAuth is where an external call's bearer token comes from: a Secret or an environment variable, exactly one.",
+      "properties": {
+        "env": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "header": {
+          "description": "Header carries the token; Authorization by default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.SecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.ExternalCheck": {
+      "additionalProperties": false,
+      "description": "ExternalCheck is one call an e2e step makes and asserts on.",
+      "properties": {
+        "assert": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/assert.Assertions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Assert checks the extracted value. With none, the call succeeding is\nthe check."
+        },
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.ExternalAuth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Auth sends a bearer token from a Secret or an environment variable."
+        },
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "body": {
+          "description": "Body is an HTTP request's body; a template.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "cacheFor": {
+          "description": "CacheFor keeps a result for this long.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "continueOnError": {
+          "description": "ContinueOnError records a failed call's result instead of failing.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expectedStatus": {
+          "description": "ExpectedStatus are the HTTP statuses that succeed; empty: below 400.",
+          "items": {
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Headers are sent with an HTTP request; values are templates.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "include": {
+          "description": "Include is a file of external checks, expanded in place of this one.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "jq": {
+          "description": "JQ selects one value from JSON output with a jq expression (requires format: json and jq).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "jsonPath": {
+          "description": "JSONPath selects one value from JSON output by dot path (in-process).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "method": {
+          "description": "Method is the HTTP method; GET by default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name labels the call in messages and results.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "or": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/condition.Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "protocol": {
+          "description": "Protocol is http (the default), prometheus, postgres, redis, mongo or kafka.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "query": {
+          "description": "Query is the protocol's query: PromQL, SQL, a Redis command, a Mongo\n\"db.collection\", a Kafka \"group/topic\" or \"@topic\"; a template.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "Timeout bounds the call (\"10s\" by default).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "URL is the endpoint or connection string; a template.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/condition.Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "When and Or decide whether the call is made."
+        },
+        "yq": {
+          "description": "YQ selects one value from YAML output with a yq expression (requires format: yaml yq).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.ExternalChecks": {
+      "items": {
+        "$ref": "#/$defs/spec.ExternalCheck"
+      },
+      "type": "array"
+    },
+    "spec.ExternalInclude": {
+      "additionalProperties": false,
+      "description": "ExternalInclude is the file an include: entry in an expectation's external checks names: the checks that replace the entry.",
+      "properties": {
+        "calls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.ExternalChecks"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.SecretRef": {
+      "additionalProperties": false,
+      "description": "SecretRef is a key of a Secret.",
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
     }
   },
   "$id": "https://inrun.dev/schema/v1/include/e2e-external.json",
-  "$ref": "#/$defs/E2EExternalInclude",
+  "$ref": "#/$defs/spec.ExternalInclude",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Inrun include: e2e-external"
 }

@@ -21,7 +21,7 @@ var (
 	pushE2EFile       string
 	pushNoE2E         bool
 	pushNoSimulate    bool
-	pushE2ECluster    string
+	pushE2EContext    string
 	pushE2EUseCurrent bool
 	pushE2EWorkers    int
 	pushE2EChart      string
@@ -199,7 +199,7 @@ func init() {
 	pushCmd.Flags().StringVar(&pushE2EFile, "e2e", "", "Path to e2e spec file (default: e2e.yaml in pattern dir)")
 	pushCmd.Flags().BoolVar(&pushNoE2E, "no-e2e", false, "Skip the e2e gate even if e2e.yaml is present")
 	pushCmd.Flags().BoolVar(&pushNoSimulate, "no-simulate", false, "Skip the simulate gate even if simulate.yaml is present")
-	pushCmd.Flags().StringVar(&pushE2ECluster, "cluster", "", "Reuse an existing kind cluster context for the e2e gate (skips cluster creation)")
+	pushCmd.Flags().StringVar(&pushE2EContext, "context", "", "Run the e2e gate in this kubectl context (no cluster created)")
 	pushCmd.Flags().BoolVar(&pushE2EUseCurrent, "use-current", false, "Use the current kubeconfig context for the e2e gate (skips cluster creation)")
 	pushCmd.Flags().IntVar(&pushE2EWorkers, "workers", 0, "Number of kind worker nodes for the e2e gate cluster (0 = control-plane only)")
 	pushCmd.Flags().BoolVar(&pushOverwrite, "overwrite", false, "Replace a version that is already published (anyone who pulled it keeps the old content)")

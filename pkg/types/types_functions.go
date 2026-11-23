@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"github.com/intentd/tools/kube"
+	"github.com/intentd/tools/resolver"
 	"strings"
 )
 
@@ -216,6 +217,15 @@ func isWordIn(s, word string) bool {
 // isIdentByte reports whether b is a valid Go identifier continuation byte.
 func isIdentByte(b byte) bool {
 	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
+}
+
+// Functions returns the definitions as the template resolver calls them.
+func (nr KELFunctionRegistry) Functions() []resolver.Function {
+	out := make([]resolver.Function, 0, len(nr.Definitions))
+	for _, d := range nr.Definitions {
+		out = append(out, resolver.Function{Name: d.Name, Expression: d.Expression})
+	}
+	return out
 }
 
 // Empty reports whether the registry contains no functions.

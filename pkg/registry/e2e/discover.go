@@ -46,9 +46,6 @@ func isE2EPureAggregatorFile(path string) bool {
 			Blueprint string   `yaml:"blueprint"`
 			CR        string   `yaml:"cr"`
 			CRFiles   []string `yaml:"crFiles"`
-			Custom    *struct {
-				Target string `yaml:"target"`
-			} `yaml:"custom"`
 		} `yaml:"spec"`
 	}
 	if err := yaml.Unmarshal(data, &doc); err != nil {
@@ -56,8 +53,7 @@ func isE2EPureAggregatorFile(path string) bool {
 	}
 
 	hasSpec := doc.Spec.Blueprint != "" ||
-		doc.Spec.CR != "" || len(doc.Spec.CRFiles) > 0 ||
-		(doc.Spec.Custom != nil && doc.Spec.Custom.Target != "")
+		doc.Spec.CR != "" || len(doc.Spec.CRFiles) > 0
 
 	return len(doc.Imports) > 0 && !hasSpec
 }
