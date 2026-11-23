@@ -9,6 +9,7 @@ import (
 
 	"github.com/intentd/inrun/pkg/external"
 	"github.com/intentd/inrun/pkg/types"
+	toolsexternal "github.com/intentd/tools/external"
 )
 
 // recordingTransport keeps each request's headers and answers 201.
@@ -43,7 +44,7 @@ func TestRun_PostSendsRenderedHeadersAndKey(t *testing.T) {
 	if got := seen[0].Get("X-Tenant"); got != "team-a" {
 		t.Errorf("X-Tenant: got %q, want the rendered team-a", got)
 	}
-	want := external.IdempotencyKey("uid-1", "POST", "http://buckets.internal/buckets", `{"name": "logs"}`)
+	want := toolsexternal.IdempotencyKey("uid-1", "POST", "http://buckets.internal/buckets", `{"name": "logs"}`)
 	if got := seen[0].Get(types.DefaultIdempotencyHeader); got != want {
 		t.Errorf("Idempotency-Key: got %q, want %q", got, want)
 	}

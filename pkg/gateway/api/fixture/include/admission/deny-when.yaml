@@ -15,6 +15,7 @@ expect:
             workloadType: cert
             team: team-platform
             environment: staging
+            productionApproval: CHG-E2E-0001   # required for staging (serve rule)
             issuer: letsencrypt-staging
           EOF
         exitCode: 1
@@ -67,6 +68,7 @@ expect:
               workloadType: app
               team: team-platform
               environment: staging
+              productionApproval: CHG-E2E-0001   # required for staging (serve rule)
               repoURL: https://github.com/myorg/infra
               targetRevision: main
               targetNamespace: team-platform

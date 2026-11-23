@@ -132,6 +132,11 @@ func (m *Merger) loadBlueprint(path string, doc *types.BlueprintFile) (map[strin
 		}
 		if crd.Prepare != nil {
 			for i, entry := range crd.Prepare.Apply {
+				// An include is expanded with the Blueprint's other includes,
+				// its entries' paths resolved from their own file.
+				if entry.Include != "" {
+					continue
+				}
 				if !filepath.IsAbs(entry.Path) && !strings.HasPrefix(entry.Path, "http") {
 					crd.Prepare.Apply[i].Path = filepath.Join(blueprintDir, entry.Path)
 				}

@@ -2,17 +2,13 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/intentd/inrun/pkg/blueprint"
-	"github.com/intentd/inrun/pkg/registry/e2e/expect"
-	"github.com/intentd/inrun/pkg/registry/e2e/expect/report"
-	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
-	"github.com/intentd/inrun/pkg/registry/e2e/post"
+	"github.com/intentd/inrun/pkg/tools/inruncluster"
 	"github.com/intentd/inrun/pkg/types"
+	"github.com/intentd/jig"
 )
 
 // New loads an E2E spec from a YAML file and constructs a Runner.
@@ -49,31 +45,16 @@ func New(e2eFile string, opts Options) (*Runner, error) {
 	e2e.Spec.InheritEnv(opts.Env)
 
 	r := &Runner{
-		e2e:              e2e,
-		e2eDir:           e2eDir,
-		e2eFile:          e2eFile,
-		keepCluster:      opts.KeepCluster,
-		clusterCtx:       opts.ClusterCtx,
-		useCurrentCtx:    opts.UseCurrentCtx,
-		workers:          opts.Workers,
-		kindVersion:      opts.KindVersion,
-		images:           opts.Images,
-		devServer:        opts.DevServer,
-		reportFile:       opts.ReportFile,
-		inrunVersion:     opts.InrunVersion,
-		inrunChart:       opts.InrunChart,
-		valueFiles:       allValueFiles,
-		helmArgs:         opts.HelmArgs,
-		kubernetesTarget: e2e.Spec.Custom != nil && e2e.Spec.Custom.Target == types.CustomTargetKubernetes,
-		noRuntime:        noRuntime,
-		command:          opts.Command,
-		dryRun:           opts.DryRun,
-		maxFailures:      opts.MaxFailures,
-		pushTriggered:    opts.PushTriggered,
-	}
-
-	if e2e.Spec.Custom != nil && e2e.Spec.Custom.Target == types.CustomTargetContainer {
-		return nil, fmt.Errorf("spec.custom.target \"container\" is coming soon — not yet supported in this version")
+		e2e:          e2e,
+		e2eDir:       e2eDir,
+		e2eFile:      e2eFile,
+		devServer:    opts.DevServer,
+		inrunVersion: opts.InrunVersion,
+		inrunChart:   opts.InrunChart,
+		valueFiles:   allValueFiles,
+		helmArgs:     opts.HelmArgs,
+		noRuntime:    noRuntime,
+		opts:         opts,
 	}
 
 	if err := r.resolveSource(); err != nil {
@@ -100,242 +81,97 @@ func New(e2eFile string, opts Options) (*Runner, error) {
 	return r, nil
 }
 
-// suiteOnFailure runs the spec's onFailure once for the suite: after its
-// expectations when any failed, or when setup failed before they ran. Not for
-// a pure aggregator, whose imports run their own, nor under a server dry run,
-// which changed nothing to diagnose. It returns the block's warnings.
-func (r *Runner) suiteOnFailure(ctx context.Context, isPureAgg bool) []string {
-	if isPureAgg || kubectl.DryRun() {
-		return nil
-	}
-	spec := &r.e2e.Spec
-	if spec.OnFailure == nil {
-		return nil
-	}
-	return expect.SuitePost(ctx, "onFailure", &spec.OnFailure.E2ESideEffects, r.suitePostOptions())
-}
-
-// suiteFinally runs the spec's finally once, at the end of the suite, whatever
-// happened before it. Not under a server dry run, which changed nothing to
-// undo. It returns the block's warnings.
-func (r *Runner) suiteFinally(ctx context.Context) []string {
-	spec := &r.e2e.Spec
-	if spec.Finally == nil || kubectl.DryRun() {
-		return nil
-	}
-	return expect.SuitePost(ctx, "finally", &spec.Finally.E2ESideEffects, r.suitePostOptions())
-}
-
-func (r *Runner) suitePostOptions() expect.SuitePostOptions {
-	return expect.SuitePostOptions{
-		Spec:    &r.e2e.Spec,
-		WorkDir: r.e2eDir,
-		CS:      r.cs,
-		Cfg:     r.cfg,
-	}
-}
-
-// Run executes the full E2E test pipeline and returns a structured Result.
-func (r *Runner) Run(ctx context.Context) (*expect.Result, error) {
-	name := r.e2e.Metadata.Name
-	start := time.Now()
-
-	if desc := r.e2e.Metadata.Description; desc != "" {
-		fmt.Printf("\nRunning E2E: %s — %s\n\n", name, desc)
-	} else {
-		fmt.Printf("\nRunning E2E: %s\n\n", name)
-	}
-
-	isPureAgg := r.isPureAggregator()
-	ownsCluster := r.clusterCtx == "" && !r.keepCluster && !r.useCurrentCtx
-
-	needsCluster, err := r.requiresCluster()
-	if err != nil {
-		return nil, err
-	}
-	r.needsCluster = needsCluster
-	// --dry-run=server: every kubectl write, setup included, goes to an
-	// existing cluster as a server dry run; nothing is created or installed.
-	if r.dryRun {
-		if !needsCluster {
-			return nil, fmt.Errorf("--dry-run=server sends writes to a cluster, but this spec runs without one (cluster.provider: none)")
-		}
-		if ownsCluster {
-			return nil, fmt.Errorf("--dry-run=server needs an existing cluster: use --use-current or --cluster <context>")
-		}
-		kubectl.SetDryRun(true)
-		defer kubectl.SetDryRun(false)
-		fmt.Println("→ Dry run (server): writes are checked by the API server, not applied; commands and assertions are skipped")
-	}
-
-	var (
-		appliedCRDPaths         []string
-		appliedBundlePath       string
-		appliedPreparePaths     []string
-		appliedEnvironmentPaths []string
-		installedInrun          bool
-		clusterDeleted          bool
-	)
-
-	if needsCluster {
-		if restore := preserveKubectlContext(ctx); restore != nil {
-			defer restore()
-		}
-
-		if !ownsCluster {
-			defer func() {
-				// The CRs exist only once their CRDs do.
-				var crPaths []string
-				if len(appliedCRDPaths) > 0 {
-					crPaths = r.crFiles
-				}
-				post.Teardown(context.Background(), post.TeardownConfig{
-					CRPaths:          crPaths,
-					BundlePath:       appliedBundlePath,
-					CRDPaths:         appliedCRDPaths,
-					PreparePaths:     appliedPreparePaths,
-					Prepare:          r.e2e.Spec.Prepare,
-					EnvironmentPaths: appliedEnvironmentPaths,
-					Environment:      r.e2e.Spec.Environment,
-					SharedInrun:      r.sharedInrun,
-					UninstallInrun:   installedInrun,
-				})
-			}()
-		}
-
-		// A cluster this run creates is deleted even when the run stops
-		// early; the normal path deletes it below, after the imports.
-		if ownsCluster {
-			defer func() {
-				if !clusterDeleted {
-					fmt.Printf("\n→ Deleting cluster '%s' (run stopped early)...\n", r.clusterName())
-					if err := r.deleteCluster(ctx); err != nil {
-						fmt.Printf("  ! Could not delete cluster: %v\n", err)
-					}
-				}
-			}()
-		}
-		if err := r.ensureCluster(ctx); err != nil {
-			return nil, fmt.Errorf("cluster: %w", err)
-		}
-		if err := r.buildClient(); err != nil {
-			return nil, fmt.Errorf("k8s client: %w", err)
-		}
-		if err := r.prepareImages(ctx); err != nil {
+// RunFromFile runs the test at path: an Inrun e2e file (kind: E2E) through
+// ToJig, any other file as a plain jig test.
+func RunFromFile(ctx context.Context, path string, opts Options) (*jig.Result, error) {
+	if IsE2EDoc(path) {
+		r, err := New(path, opts)
+		if err != nil {
 			return nil, err
 		}
+		return r.Run(ctx)
 	}
-
-	// The spec's finally runs once: on the normal path just before the report,
-	// so its warnings are in it, and on any earlier return through this defer.
-	// Deferred after the teardown and cluster defers, so it runs before them.
-	finallyRan := false
-	runFinally := func() []string {
-		if finallyRan {
-			return nil
-		}
-		finallyRan = true
-		return r.suiteFinally(ctx)
-	}
-	defer runFinally()
-
-	// What was applied is recorded before the error check, so teardown
-	// removes it when a later dependency fails.
-	depsResult, err := r.ensureDependencies(ctx, isPureAgg, ownsCluster)
-	if depsResult != nil {
-		appliedCRDPaths = depsResult.appliedCRDPaths
-		appliedBundlePath = depsResult.appliedBundlePath
-		appliedPreparePaths = depsResult.appliedPreparePaths
-		installedInrun = depsResult.installedInrun
-	}
-	if err != nil {
-		// A failed setup is the failure diagnostics help most with.
-		r.suiteOnFailure(ctx, isPureAgg)
-		return nil, err
-	}
-
-	expects := depsResult.expects
-	planned := len(expects)
-
-	exp, err := r.runExpectations(ctx, name, start, expects, planned)
+	s, err := jig.FromFile(path)
 	if err != nil {
 		return nil, err
 	}
+	r := &Runner{e2eFile: path, opts: opts}
+	return r.runJig(ctx, s, nil)
+}
 
-	result := exp.result
-	if result == nil {
-		return nil, fmt.Errorf("expectations runner returned a nil result")
+// Run maps the test to jig (ToJig) and runs it with jig.Run.
+func (r *Runner) Run(ctx context.Context) (*jig.Result, error) {
+	s, cleanup, err := r.ToJig(ctx)
+	if err != nil {
+		cleanup()
+		return nil, err
 	}
+	return r.runJig(ctx, s, cleanup)
+}
 
-	stopped := exp.stopped
-	failures := exp.failures
-
-	failureStr := "failure"
-	if failures != 1 {
-		failureStr = "failures"
+// runJig runs t with jig.Run. Its imports are mapped with ToJig when they
+// are Inrun e2e files and read as plain jig tests when not. cleanup, and
+// the imports' cleanups, run afterwards: they remove the files the mapping
+// wrote.
+func (r *Runner) runJig(ctx context.Context, t *jig.Test, cleanup func()) (*jig.Result, error) {
+	cleanups := []func(){}
+	if cleanup != nil {
+		cleanups = append(cleanups, cleanup)
 	}
-
-	if stopped != nil {
-		fmt.Printf("\n  ! stopped after %d %s (%s) — %d of %d expectations run\n",
-			failures, failureStr, result.StopReason, result.Total(), planned)
-	}
-
-	// Print the parent suite's console report before running imports.
-	r.printReport(name, result.Cases, result, isPureAgg)
-	if !result.AllPassed() {
-		result.Warnings = r.suiteOnFailure(ctx, isPureAgg)
-	}
-
-	var runErr error
-	if stopped != nil {
-		runErr = fmt.Errorf("%d of %d expectations failed (%d of %d run): %w",
-			result.Failed(), result.Total(), result.Total(), planned, stopped)
-	} else if !result.AllPassed() {
-		runErr = fmt.Errorf("%d of %d expectations failed",
-			result.Failed(), result.Total())
-	}
-
-	// Run imports and attach their results to the parent report.
-	count := len(r.e2e.Imports)
-	if count > 0 {
-		importText := "imports"
-		if count == 1 {
-			importText = "import"
+	defer func() {
+		for _, c := range cleanups {
+			c()
 		}
-
-		fmt.Printf("\n─── Running %d %s ───\n", count, importText)
-
-		importResults := r.runImports(ctx)
-		result.Imports = importResults
-
-		if importErr := importResults.PrintImportSummary(name); importErr != nil {
-			runErr = errors.Join(runErr, importErr)
-		}
+	}()
+	o := r.opts
+	specPath := r.e2eFile
+	if o.PushTriggered {
+		specPath = r.specPathRel()
 	}
-
-	result.Warnings = append(result.Warnings, runFinally()...)
-
-	// Delete the parent-owned cluster after imports have completed.
-	if r.needsCluster {
-		if ownsCluster {
-			clusterDeleted = true
-			fmt.Printf("\n→ Deleting cluster '%s'...\n", r.clusterName())
-			if err := r.deleteCluster(ctx); err != nil {
-				fmt.Printf("  ! Could not delete cluster: %v\n", err)
-				runErr = errors.Join(runErr, fmt.Errorf("deleting cluster: %w", err))
-			} else {
-				fmt.Printf("  %s Cluster deleted\n", successMark())
+	return jig.Run(ctx, t, jig.Options{
+		Context:            o.Context,
+		UseCurrent:         o.UseCurrentCtx,
+		KeepCluster:        o.KeepCluster,
+		Keep:               o.Keep,
+		Workers:            o.Workers,
+		KindVersion:        o.KindVersion,
+		KindBinDir:         inruncluster.BinDir(),
+		DefaultClusterName: types.DefaultE2EClusterName,
+		Images:             o.Images,
+		Functions:          o.Functions,
+		Env:                o.Env,
+		MaxFailures:        o.MaxFailures,
+		DryRun:             o.DryRun,
+		ReportFile:         o.ReportFile,
+		Caller:             "E2E",
+		Command:            o.Command,
+		SpecPath:           specPath,
+		FieldManager:       "inrun-e2e",
+		Load: func(path string) (*jig.Test, error) {
+			if !IsE2EDoc(path) {
+				return jig.FromFile(path)
 			}
-		}
-	}
+			sub, err := New(path, r.importOptions())
+			if err != nil {
+				return nil, err
+			}
+			s, cleanup, err := sub.ToJig(ctx)
+			cleanups = append(cleanups, cleanup)
+			return s, err
+		},
+	})
+}
 
-	// Only the root runner writes a report. Imported runners contribute
-	// their results to this report instead of creating their own files.
-	if !r.suppressReport {
-		if err := report.Write(r.reportFile, result); err != nil {
-			runErr = errors.Join(runErr, fmt.Errorf("writing report: %w", err))
-		}
+// importOptions are what an imported Inrun e2e file runs with: the Inrun
+// install and dev server as this run's. jig passes the env and the cluster.
+func (r *Runner) importOptions() Options {
+	return Options{
+		DevServer:    r.opts.DevServer,
+		InrunVersion: r.opts.InrunVersion,
+		InrunChart:   r.opts.InrunChart,
+		ValueFiles:   r.opts.ValueFiles,
+		HelmArgs:     r.opts.HelmArgs,
+		NoRuntime:    r.opts.NoRuntime,
+		Functions:    r.opts.Functions,
 	}
-
-	return result, runErr
 }

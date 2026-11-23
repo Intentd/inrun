@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-helm.json
+# The kube-prometheus-stack release the fixture's workloads depend on.
+helm:
+  - repo: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    namespace: monitoring
+    createNamespace: true
+    version: "61.3.2"
+    values:
+      grafana.enabled: "false"
+      alertmanager.enabled: "false"
+      nodeExporter.enabled: "false"
+      kubeStateMetrics.enabled: "false"
+      prometheus.enabled: "false"
+      prometheusOperator.admissionWebhooks.enabled: "false"
+      # The operator's TLS mounts the admission webhooks' certificate
+      # secret, which only their hook jobs create: off with them.
+      prometheusOperator.tls.enabled: "false"
+    wait:
+      - kind: Deployment
+        name: kube-prometheus-stack-operator
+        namespace: monitoring
+        ready: true
+        timeout: 180s

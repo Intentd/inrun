@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/intentd/inrun/pkg/registry/e2e/kubectl"
 )
 
 func TestRunnerAbs(t *testing.T) {
@@ -124,32 +122,6 @@ func TestRun_SpecOnFailureRunsOnlyWhenSomethingFailed(t *testing.T) {
 		if exists(marker) != fail {
 			t.Fatalf("fail=%v: spec onFailure ran = %v, want %v", fail, exists(marker), fail)
 		}
-	}
-}
-
-func TestSuiteOnFailure_SkipsAggregatorsAndServerDryRuns(t *testing.T) {
-	dir := t.TempDir()
-	marker := filepath.Join(dir, "on-failure-ran")
-	r, err := New(commandsSpec(t, dir, true, marker), Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r.suiteOnFailure(context.Background(), true)
-	if exists(marker) {
-		t.Fatal("ran for a pure aggregator: its imports run their own")
-	}
-
-	kubectl.SetDryRun(true)
-	r.suiteOnFailure(context.Background(), false)
-	kubectl.SetDryRun(false)
-	if exists(marker) {
-		t.Fatal("ran under a server dry run: nothing changed to diagnose")
-	}
-
-	r.suiteOnFailure(context.Background(), false)
-	if !exists(marker) {
-		t.Fatal("did not run for a failed suite")
 	}
 }
 

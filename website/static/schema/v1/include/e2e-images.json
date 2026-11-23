@@ -1,0 +1,304 @@
+{
+  "$defs": {
+    "cluster.Build": {
+      "additionalProperties": false,
+      "properties": {
+        "args": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "context": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dockerfile": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "target": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Git": {
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "pull": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ref": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Image": {
+      "additionalProperties": false,
+      "properties": {
+        "build": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Build"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deploy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.ImageDeploy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "forEach": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/structured.ForEach"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "git": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Git"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "include": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "needs": {
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.ImageDeploy": {
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "envFrom": {
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "port": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "replicas": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "cluster.Images": {
+      "items": {
+        "$ref": "#/$defs/cluster.Image"
+      },
+      "type": "array"
+    },
+    "spec.ImagesInclude": {
+      "additionalProperties": false,
+      "description": "ImagesInclude is the file an include: entry in an images list names.",
+      "properties": {
+        "images": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/cluster.Images"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "structured.ForEach": {
+      "additionalProperties": false,
+      "properties": {
+        "as": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exclude": {
+          "items": {
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "include": {
+          "items": {
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "items": {
+          "items": true,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "matrix": {
+          "additionalProperties": {
+            "items": true,
+            "type": "array"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/e2e-images.json",
+  "$ref": "#/$defs/spec.ImagesInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: e2e-images"
+}

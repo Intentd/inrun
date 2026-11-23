@@ -56,6 +56,9 @@ func (c *Blueprint) expandIncludes() error {
 		if err := populateReconcilerFromInclude(&entry, c.blueprintDir); err != nil {
 			return fmt.Errorf("CRD %q: %w", name, err)
 		}
+		if err := populatePrepareFromInclude(&entry, c.blueprintDir); err != nil {
+			return fmt.Errorf("CRD %q: %w", name, err)
+		}
 	}
 	return nil
 }

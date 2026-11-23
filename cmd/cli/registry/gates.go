@@ -13,6 +13,8 @@ import (
 	"github.com/intentd/inrun/cmd/cli/testsuite"
 	"github.com/intentd/inrun/pkg/registry"
 	"github.com/intentd/inrun/pkg/registry/e2e"
+	"github.com/intentd/inrun/pkg/template/funcs"
+	"github.com/intentd/jig"
 	"github.com/intentd/tools/cluster"
 	"github.com/intentd/tools/term"
 	"github.com/spf13/cobra"
@@ -126,10 +128,10 @@ func runPushGates(cmd *cobra.Command, dir string, supportsGates bool) (
 					}
 
 					runner, err := e2e.New(e2eFile, e2e.Options{
-						ClusterCtx: pushE2ECluster, UseCurrentCtx: pushE2EUseCurrent, Workers: pushE2EWorkers,
+						Context: pushE2EContext, UseCurrentCtx: pushE2EUseCurrent, Workers: pushE2EWorkers,
 						InrunVersion: pushE2EVersion, InrunChart: chart, ValueFiles: pushE2EValues,
 						HelmArgs: cmdutil.HelmSetArgs(pushE2ESet), ReportFile: cmdutil.FileReportJSON,
-						PushTriggered: true,
+						PushTriggered: true, Functions: funcs.WithKEL(),
 					})
 					if err != nil {
 						return nil, nil, nil, fmt.Errorf("e2e gate: %w\n\nUse --force or --no-e2e to skip", err)
@@ -137,6 +139,11 @@ func runPushGates(cmd *cobra.Command, dir string, supportsGates bool) (
 
 					fmt.Printf("\nRunning E2E gate (%s)...\n", registry.FileE2E)
 					result, runErr := runner.Run(cmd.Context())
+					if result == nil {
+						// Inrun's mapping failed before jig ran (the bundle,
+						// the OCI imports): nothing ran, the gate fails.
+						result = &jig.Result{Name: e2eFile}
+					}
 
 					e2eMeta = &registry.PatternE2E{
 						Duration:   result.Duration(),

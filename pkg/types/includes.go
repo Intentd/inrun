@@ -380,6 +380,36 @@ func expandSimulateRuleIncludes(rules SimulateOpRules, baseDir, context string) 
 	return expanded, nil
 }
 
+// ExpandPrepareIncludes resolves include entries in prepare.apply and
+// prepare.helm. An entry {include: ./path.yaml} is replaced in-place by the
+// apply: or helm: list from the referenced file, its paths resolved from that
+// file. The include path is resolved relative to baseDir.
+func ExpandPrepareIncludes(p *Prepare, baseDir string) error {
+	if p == nil {
+		return nil
+	}
+	if err := p.Provision.ExpandIncludes(baseDir); err != nil {
+		return fmt.Errorf("prepare.%w", err)
+	}
+	return nil
+}
+
+// ExpandSimulatePrepareIncludes resolves include entries in prepare.apply
+// only: simulate installs no charts, and ValidateSetup reports any
+// prepare.helm entry, an include or not. The include path is resolved
+// relative to baseDir.
+func ExpandSimulatePrepareIncludes(p *Prepare, baseDir string) error {
+	if p == nil {
+		return nil
+	}
+	apply, err := p.Apply.ExpandIncludes(baseDir)
+	if err != nil {
+		return fmt.Errorf("prepare.apply: %w", err)
+	}
+	p.Apply = apply
+	return nil
+}
+
 // ExpandServeInclude resolves the serve.include field by reading the referenced
 // file, unmarshaling its "fields:", "labels:", and "annotations:" maps, and
 // merging them under the inline equivalents. Inline entries take precedence.

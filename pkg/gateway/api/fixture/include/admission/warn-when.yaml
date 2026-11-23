@@ -1,8 +1,20 @@
 # yaml-language-server: $schema=https://inrun.dev/schema/v1/include/e2e-expect.json
 expect:
+  # Outside the serve rule's window the ticket is optional, and the warn
+  # rule reports it; inside it, the ticket is required and the CR is denied.
+  # The window is the serve include's condition, as written there.
   - name: Admission warns on production without approval ticket (warn when)
     after: cr-applied
     timeout: 30s
+    # The serve rule's window for productionApproval (blueprint serve
+    # include), outside it.
+    when:
+      - time:
+          after: "09:00"
+          before: "17:00"
+        dayOfWeek:
+          weekday: true
+        negate: true
     commands:
       - run: |
           kubectl apply -f - <<'EOF'
@@ -22,6 +34,36 @@ expect:
         exitCode: 0
         assert:
           contains: "productionApproval"
+
+  - name: Admission denies production without approval ticket in the approval window
+    after: cr-applied
+    timeout: 30s
+    # Inside the serve rule's window: the ticket is required.
+    when:
+      - time:
+          after: "09:00"
+          before: "17:00"
+        dayOfWeek:
+          weekday: true
+    commands:
+      - run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: gateway.fixture.inrun.dev/v1alpha1
+          kind: PlatformResource
+          metadata:
+            name: payments-api-prod
+            namespace: team-payments
+          spec:
+            workloadType: app
+            team: team-payments
+            environment: production
+            repoURL: https://github.com/myorg/payments
+            targetRevision: main
+            targetNamespace: team-payments
+          EOF
+        exitCode: 1
+        assert:
+          contains: "Production Approval Ticket is required"
 
   - name: Warn rule skipped when approval ticket present
     after: cr-applied
@@ -62,6 +104,7 @@ expect:
               workloadType: app
               team: team-payments
               environment: staging
+              productionApproval: CHG-E2E-0001   # required for staging (serve rule)
               repoURL: https://github.com/myorg/payments
               targetRevision: main
               targetNamespace: team-payments

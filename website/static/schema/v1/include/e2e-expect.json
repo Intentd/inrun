@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "Assertions": {
+    "assert.Assertions": {
       "additionalProperties": false,
       "description": "Assertions checks a step's output: one comparison inline, a list under text, path-scoped ones under json.",
       "properties": {
@@ -32,8 +32,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -59,7 +68,7 @@
         "json": {
           "anyOf": [
             {
-              "$ref": "#/$defs/JSONAssertions"
+              "$ref": "#/$defs/assert.JSONAssertions"
             },
             {
               "type": "null"
@@ -73,6 +82,13 @@
             "string",
             "number",
             "boolean",
+            "null"
+          ]
+        },
+        "match": {
+          "description": "Match — what the JSON output must contain, in its own shape: every\nkey given there and matching, lists element by element, a literal\nequal, a ${ … } or {{ … }} value an expression that must be true. It\nis checked as the json: assertions MatchAssertions makes of it.",
+          "type": [
+            "object",
             "null"
           ]
         },
@@ -122,7 +138,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -185,7 +201,7 @@
         "text": {
           "anyOf": [
             {
-              "$ref": "#/$defs/TextAssertions"
+              "$ref": "#/$defs/assert.TextAssertions"
             },
             {
               "type": "null"
@@ -196,23 +212,188 @@
       },
       "type": "object"
     },
-    "Auth": {
+    "assert.JSONAssertion": {
       "additionalProperties": false,
-      "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
+      "description": "JSONAssertion asserts on one value in a JSON document.",
       "properties": {
-        "secretRef": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/KubernetesSecretRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "SecretRef locates a Kubernetes Secret whose data key holds a bearer token\nMutually exclusive with Token. inrun validate enforces this"
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
         },
-        "token": {
-          "description": "Token is a bearer token for the endpoint. $ENV_VAR syntax supported.",
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
           "type": [
             "string",
             "number",
@@ -223,9 +404,205 @@
       },
       "type": "object"
     },
-    "Condition": {
+    "assert.JSONAssertions": {
+      "items": {
+        "$ref": "#/$defs/assert.JSONAssertion"
+      },
+      "type": "array"
+    },
+    "assert.TextAssertion": {
       "additionalProperties": false,
-      "description": "Condition is one test against the CR or runtime state.",
+      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "assert.TextAssertions": {
+      "description": "TextAssertions is a list of comparisons on one output.",
+      "items": {
+        "$ref": "#/$defs/assert.TextAssertion"
+      },
+      "type": "array"
+    },
+    "condition.Condition": {
+      "additionalProperties": false,
+      "description": "Condition is one test against a data map.",
       "properties": {
         "between": {
           "description": "Between passes when the field's number is inside an inclusive \"min,max\" range.",
@@ -286,7 +663,7 @@
           ]
         },
         "exists": {
-          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "description": "Exists, when true, passes when the field is present and non-empty;\nfalse is notExists: true. A condition with no comparison at all means\nexists.",
           "type": [
             "boolean",
             "null"
@@ -381,7 +758,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "description": "NotExists, when true, passes when the field is absent or empty;\nfalse is exists: true.",
           "type": [
             "boolean",
             "null"
@@ -432,17 +809,6 @@
             "null"
           ]
         },
-        "source": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/CrossSource"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Source is the HTTP fallback for cross-binary metric observation.\nOnly used when field is a cross.\u003ccrd\u003e.metrics.* field and the CRD\nis not registered in GlobalCrossMetricsRegistry (different binary).\nThe endpoint must be the remote operator's /blueprint/{crd} URL.\n\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        host: \"http://inrun-database-operator:8080\"\n\t\t   crd: managed-database\n  when:\n    - field: cross.managed-database.metrics.queueDepth\n      greaterThan: \"500\"\n      source:\n        endpoint: \"http://non-inrun-database-operator:8080/api/managed-database/metrics\""
-        },
         "suffix": {
           "description": "Suffix passes when the field's value ends with this text.",
           "type": [
@@ -482,29 +848,67 @@
       },
       "type": "object"
     },
-    "Conditions": {
+    "condition.Conditions": {
       "items": {
-        "$ref": "#/$defs/Condition"
+        "$ref": "#/$defs/condition.Condition"
       },
       "type": "array"
     },
-    "CrossSource": {
+    "condition.DayOfWeek": {
       "additionalProperties": false,
-      "description": "CrossSource declares how to fetch cross-binary/cluster data for a CRD.",
+      "description": "DayOfWeek declares which days the condition is active.",
       "properties": {
-        "auth": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Auth"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Auth handles both ENV-based token and secret reads for cross: authentication\n\tauth:\n\t  secretRef:\n\t\tname: cross-secret\n\t\tnamespace: cross-namespace\n\t\tkey: password"
+        "in": {
+          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
-        "cacheFor": {
-          "description": "CacheFor controls how long to cache the result before calling again.\nDefault: 30s — prevents hammering the endpoint on every evaluation.",
+        "notIn": {
+          "description": "NotIn — active on all days except these.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "weekday": {
+          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "weekend": {
+          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "condition.TimeWindow": {
+      "additionalProperties": false,
+      "description": "TimeWindow declares a clock-based active window.",
+      "properties": {
+        "after": {
+          "description": "After — active after this time (format: \"HH:MM\" in 24h).",
           "type": [
             "string",
             "number",
@@ -512,35 +916,8 @@
             "null"
           ]
         },
-        "endpoint": {
-          "description": "Endpoint is a fully-qualified URL. If set, Inrun uses it directly\nand ignores Host/Protocol/Namespace. Template expressions supported.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "host": {
-          "description": "Host is the base URL of a remote Inrun runtime, e.g.:\n  http://inrun-runtime.loader-system:8080\nCombined with Type to build the final URL.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "namespace": {
-          "description": "Namespace overrides the CR namespace when building info/events URLs.\nOptional — defaults to the CR's own namespace.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "protocol": {
-          "description": "Protocol selects which Inrun-native endpoint to call.\nOne of: \"info\", \"metrics\", \"health\", \"events\".\nDefault: \"info\".",
+        "before": {
+          "description": "Before — active before this time (format: \"HH:MM\" in 24h).",
           "type": [
             "string",
             "number",
@@ -551,14 +928,22 @@
       },
       "type": "object"
     },
-    "E2ECommand": {
+    "duration.Duration": {
+      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "spec.Command": {
       "additionalProperties": false,
-      "description": "E2ECommand runs a shell command and asserts its result.",
+      "description": "Command runs a shell command and asserts its result.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -594,7 +979,7 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
             "boolean",
             "null"
@@ -604,6 +989,15 @@
           "description": "ExitCode is the expected exit code. Default 0 (success).\nSet to non-zero to assert the command must fail — useful for\nadmission webhook rejection tests.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
             "null"
           ]
         },
@@ -637,7 +1031,7 @@
         "json": {
           "anyOf": [
             {
-              "$ref": "#/$defs/JSONAssertions"
+              "$ref": "#/$defs/assert.JSONAssertions"
             },
             {
               "type": "null"
@@ -709,7 +1103,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -761,7 +1155,7 @@
           ]
         },
         "run": {
-          "description": "Run is a shell command string executed via sh -c. It is not\npre-expanded: the shell expands $NAME and ${NAME} itself, from the\nprocess environment the declared env is added to.",
+          "description": "Run is a shell command string executed via sh -c. Only ${{ env.NAME }}\nis expanded first, as in GitHub Actions: the shell expands $NAME and\n${NAME} itself, from the process environment the declared env is added\nto.",
           "type": [
             "string",
             "number",
@@ -790,14 +1184,21 @@
       },
       "type": "object"
     },
-    "E2EExpectInclude": {
+    "spec.Commands": {
+      "description": "Commands are commands, run in order.",
+      "items": {
+        "$ref": "#/$defs/spec.Command"
+      },
+      "type": "array"
+    },
+    "spec.ExpectInclude": {
       "additionalProperties": false,
-      "description": "E2EExpectInclude is the file an include: entry in an E2E suite's expect list names: the expectations that replace the entry, run from the file's directory.",
+      "description": "ExpectInclude is the file an include: entry in an E2E suite's expect list names: the expectations that replace the entry, run from the file's directory.",
       "properties": {
         "expect": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EExpectations"
+              "$ref": "#/$defs/spec.Expectations"
             },
             {
               "type": "null"
@@ -807,9 +1208,9 @@
       },
       "type": "object"
     },
-    "E2EExpectation": {
+    "spec.Expectation": {
       "additionalProperties": false,
-      "description": "E2EExpectation is one named assertion block.",
+      "description": "Expectation is one named assertion block.",
       "properties": {
         "after": {
           "description": "After is the lifecycle event that triggers this expectation.\nValid values: \"setup-complete\", \"cr-applied\", \"cr-deleted\".",
@@ -821,14 +1222,15 @@
           ]
         },
         "commands": {
-          "description": "Commands are shell commands checked in the same polling loop as resources.",
-          "items": {
-            "$ref": "#/$defs/E2ECommand"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.Commands"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Commands are shell commands checked in the same polling loop as resources."
         },
         "env": {
           "additionalProperties": {
@@ -847,7 +1249,7 @@
         "external": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EExternalChecks"
+              "$ref": "#/$defs/spec.ExternalChecks"
             },
             {
               "type": "null"
@@ -858,16 +1260,16 @@
         "finally": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EFinally"
+              "$ref": "#/$defs/spec.Finally"
             },
             {
               "type": "null"
             }
           ],
-          "description": "Finally declares operations to run after this expectation completes —\nwhether it passed, failed or was skipped — before the next expectation\nruns. It is a post block (see E2ESideEffects): its failures are\nwarnings, never the case's result. Use it to undo what the step changed\nin files or cluster state."
+          "description": "Finally declares operations to run after this expectation completes —\nwhether it passed, failed or was skipped — before the next expectation\nruns. It is a post block (see SideEffects): its failures are\nwarnings, never the case's result. Use it to undo what the step changed\nin files or cluster state."
         },
         "include": {
-          "description": "Include is a path to a YAML file containing a list of E2EExpectation entries.\nWhen set, the file is loaded and its entries are expanded in place of this entry.\nAll other fields must be empty when include is set.\nRelative paths resolve from the e2e.yaml directory.",
+          "description": "Include is a path to a YAML file containing a list of Expectation entries.\nWhen set, the file is loaded and its entries are expanded in place of this entry.\nAll other fields must be empty when include is set.\nRelative paths resolve from the e2e.yaml directory.",
           "type": [
             "string",
             "number",
@@ -878,7 +1280,7 @@
         "kubectl": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EKubectl"
+              "$ref": "#/$defs/spec.Kubectl"
             },
             {
               "type": "null"
@@ -898,7 +1300,7 @@
         "onFailure": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EOnFailure"
+              "$ref": "#/$defs/spec.OnFailure"
             },
             {
               "type": "null"
@@ -909,7 +1311,7 @@
         "or": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Conditions"
+              "$ref": "#/$defs/condition.Conditions"
             },
             {
               "type": "null"
@@ -920,7 +1322,7 @@
         "resources": {
           "description": "Resources is a unified list of resource checks across any kind.",
           "items": {
-            "$ref": "#/$defs/E2EResourceCheck"
+            "$ref": "#/$defs/spec.ResourceCheck"
           },
           "type": [
             "array",
@@ -955,7 +1357,7 @@
         "when": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Conditions"
+              "$ref": "#/$defs/condition.Conditions"
             },
             {
               "type": "null"
@@ -966,21 +1368,55 @@
       },
       "type": "object"
     },
-    "E2EExpectations": {
-      "description": "E2EExpectations is a suite's expect list, or an include file's.",
+    "spec.Expectations": {
+      "description": "Expectations is a suite's expect list, or an include file's.",
       "items": {
-        "$ref": "#/$defs/E2EExpectation"
+        "$ref": "#/$defs/spec.Expectation"
       },
       "type": "array"
     },
-    "E2EExternalCheck": {
+    "spec.ExternalAuth": {
       "additionalProperties": false,
-      "description": "E2EExternalCheck is one call an e2e step makes and asserts on.",
+      "description": "ExternalAuth is where an external call's bearer token comes from: a Secret or an environment variable, exactly one.",
+      "properties": {
+        "env": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "header": {
+          "description": "Header carries the token; Authorization by default.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "secretRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.SecretRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.ExternalCheck": {
+      "additionalProperties": false,
+      "description": "ExternalCheck is one call an e2e step makes and asserts on.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -991,13 +1427,13 @@
         "auth": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ExternalAuth"
+              "$ref": "#/$defs/spec.ExternalAuth"
             },
             {
               "type": "null"
             }
           ],
-          "description": "Auth declares the credential for this call. For the remote request:\ndefault remote.auth."
+          "description": "Auth sends a bearer token from a Secret or an environment variable."
         },
         "between": {
           "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
@@ -1009,7 +1445,7 @@
           ]
         },
         "body": {
-          "description": "Body is the request body for POST/PUT/PATCH. Template expressions supported.\n  body: '{\"name\": \"{{ .metadata.name }}\"}'\nHTTP only.",
+          "description": "Body is an HTTP request's body; a template.",
           "type": [
             "string",
             "number",
@@ -1018,7 +1454,7 @@
           ]
         },
         "cacheFor": {
-          "description": "CacheFor gates re-fetch. Calls within this window return the cached result.\nEmpty: fetch every reconcile. Recommended for stateful protocols where\nconnection establishment is expensive.",
+          "description": "CacheFor keeps a result for this long.",
           "type": [
             "string",
             "number",
@@ -1036,7 +1472,7 @@
           ]
         },
         "continueOnError": {
-          "description": "ContinueOnError controls whether a failed call halts reconciliation.\nfalse (default): failure returns an error, halting the reconcile.\ntrue:            failure is logged, result has error set, reconcile continues.",
+          "description": "ContinueOnError records a failed call's result instead of failing.",
           "type": [
             "boolean",
             "null"
@@ -1052,14 +1488,14 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "expectedStatus": {
-          "description": "ExpectedStatus lists the HTTP status codes that count as success, e.g.\n[200, 404] for a read where \"not found\" is an answer. HTTP only.\nDefault: any status below 400.",
+          "description": "ExpectedStatus are the HTTP statuses that succeed; empty: below 400.",
           "items": {
             "type": "integer"
           },
@@ -1068,16 +1504,14 @@
             "null"
           ]
         },
-        "fires": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/FiresConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Fires controls at which lifecycle points this call executes.\nAbsent: fires at both admission and reconcile time.\nfires.reconcile: false — admission only; reconciler skips this call."
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
         },
         "greaterThan": {
           "description": "GreaterThan — the output, as a number, is above this one (strict).",
@@ -1096,22 +1530,11 @@
               "boolean"
             ]
           },
-          "description": "Headers are additional HTTP headers. Values are templates, like url and\nbody; names are literal. Credentials belong in auth, not here. HTTP only.\n  headers:\n    X-Tenant: \"{{ .metadata.namespace }}\"",
+          "description": "Headers are sent with an HTTP request; values are templates.",
           "type": [
             "object",
             "null"
           ]
-        },
-        "idempotencyKey": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/IdempotencyKeyConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "IdempotencyKey controls the key Inrun sends on POST and PATCH so a\nretried write is not applied twice. Absent: sent as Idempotency-Key with\na key derived from the CR's UID and the request. HTTP only.\n  idempotencyKey: false\n  idempotencyKey: {header: PayPal-Request-Id}"
         },
         "in": {
           "description": "In — the output is one of a comma-separated list.",
@@ -1123,7 +1546,7 @@
           ]
         },
         "include": {
-          "description": "Include is a path to a YAML file containing a top-level \"calls:\" list.\nWhen set, this entry is replaced in-place by the listed calls.\nResolved relative to the blueprint file's directory. Cleared after expansion.",
+          "description": "Include is a file of external checks, expanded in place of this one.",
           "type": [
             "string",
             "number",
@@ -1168,7 +1591,7 @@
           ]
         },
         "method": {
-          "description": "Method is the HTTP method. Default: GET for external calls, POST for\nthe remote request. HTTP only.",
+          "description": "Method is the HTTP method; GET by default.",
           "type": [
             "string",
             "number",
@@ -1186,7 +1609,7 @@
           ]
         },
         "name": {
-          "description": "Name is the identifier used to access the result in template expressions.\n  name: health-check → {{ .external.health-check.status }}",
+          "description": "Name labels the call in messages and results.",
           "type": [
             "string",
             "number",
@@ -1222,7 +1645,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -1258,19 +1681,11 @@
         "or": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Conditions"
+              "$ref": "#/$defs/condition.Conditions"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Or — at least one condition must pass, alongside When if declared.."
-        },
-        "poolSize": {
-          "description": "PoolSize is the maximum connections maintained per url:.\nOnly meaningful for stateful protocols (postgres, kafka, redis, nats, mqtt).\nDefault: 2.",
-          "type": [
-            "integer",
-            "null"
           ]
         },
         "prefix": {
@@ -1283,7 +1698,7 @@
           ]
         },
         "protocol": {
-          "description": "Protocol identifies the wire protocol. Default (Empty(): HTTP.\n  protocol: prometheus\n  protocol: redis\n  protocol: postgres",
+          "description": "Protocol is http (the default), prometheus, postgres, redis, mongo or kafka.",
           "type": [
             "string",
             "number",
@@ -1292,7 +1707,7 @@
           ]
         },
         "query": {
-          "description": "Query is a protocol-specific instruction executed after connection.\nHTTP: unused (use body: for request body).\nPrometheus: PromQL expression.\nPostgres: SQL query string.\nRedis: command and args — \"GET mykey\", \"HGET hash field\".\nKafka: \"consumer-group/topic\" or \"@topic\" for topic metadata.\nNATS: \"bucket.key\" for KV; stream name for stream info.\nMQTT: retained topic to read.",
+          "description": "Query is the protocol's query: PromQL, SQL, a Redis command, a Mongo\n\"db.collection\", a Kafka \"group/topic\" or \"@topic\"; a template.",
           "type": [
             "string",
             "number",
@@ -1309,17 +1724,6 @@
             "null"
           ]
         },
-        "retryBackoff": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RetryBackoffConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "RetryBackoff configures how many times and how long to wait between\nretries before returning an error. Shorthand (\"3s\") sets initial only;\nfull form gives full control."
-        },
         "suffix": {
           "description": "Suffix — the output ends with this text.",
           "type": [
@@ -1330,7 +1734,7 @@
           ]
         },
         "timeout": {
-          "description": "Timeout is the maximum duration for this call. Format: \"5s\", \"1m\",\n\"500ms\". Default: 10s for external calls, remote.timeout for the\nremote request.",
+          "description": "Timeout bounds the call (\"10s\" by default).",
           "type": [
             "string",
             "number",
@@ -1339,7 +1743,7 @@
           ]
         },
         "url": {
-          "description": "URL is the endpoint or connection string. Template expressions supported.\n  url: \"{{ .spec.serviceUrl }}/health\"\n  url: \"redis://redis-svc:6379\"\nFor the remote request and finalize: default remote.endpoint.",
+          "description": "URL is the endpoint or connection string; a template.",
           "type": [
             "string",
             "number",
@@ -1350,13 +1754,13 @@
         "when": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Conditions"
+              "$ref": "#/$defs/condition.Conditions"
             },
             {
               "type": "null"
             }
           ],
-          "description": "When — every condition must pass for the call to be made this pass."
+          "description": "When and Or decide whether the call is made."
         },
         "yq": {
           "description": "YQ selects one value from YAML output with a yq expression (requires format: yaml yq).",
@@ -1370,30 +1774,31 @@
       },
       "type": "object"
     },
-    "E2EExternalChecks": {
+    "spec.ExternalChecks": {
       "items": {
-        "$ref": "#/$defs/E2EExternalCheck"
+        "$ref": "#/$defs/spec.ExternalCheck"
       },
       "type": "array"
     },
-    "E2EFinally": {
+    "spec.Finally": {
       "additionalProperties": false,
-      "description": "E2EFinally declares operations to run after an expectation completes — whether it passed, failed or was skipped — before the next expectation runs.",
+      "description": "Finally declares operations to run after an expectation completes — whether it passed, failed or was skipped — before the next expectation runs.",
       "properties": {
         "commands": {
-          "description": "Commands — shell commands, the same as a step's.",
-          "items": {
-            "$ref": "#/$defs/E2ECommand"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.Commands"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Commands — shell commands, the same as a step's."
         },
         "external": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EExternalChecks"
+              "$ref": "#/$defs/spec.ExternalChecks"
             },
             {
               "type": "null"
@@ -1404,7 +1809,7 @@
         "kubectl": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EKubectl"
+              "$ref": "#/$defs/spec.Kubectl"
             },
             {
               "type": "null"
@@ -1415,14 +1820,14 @@
       },
       "type": "object"
     },
-    "E2EKubectl": {
+    "spec.Kubectl": {
       "additionalProperties": false,
-      "description": "E2EKubectl is the structured kubectl DSL block.",
+      "description": "Kubectl is the structured kubectl DSL block.",
       "properties": {
         "apply": {
           "description": "Apply applies manifests from a file path or inline YAML/JSON content.\nGenerates: kubectl apply -f \u003cfile\u003e  or  echo '\u003cinline\u003e' | kubectl apply -f -",
           "items": {
-            "$ref": "#/$defs/E2EKubectlApply"
+            "$ref": "#/$defs/spec.KubectlApply"
           },
           "type": [
             "array",
@@ -1432,7 +1837,7 @@
         "auth": {
           "description": "Auth checks permissions via kubectl auth can-i and asserts the result.\nGenerates: kubectl auth can-i \u003cverb\u003e \u003cresource\u003e [-n \u003cns\u003e] [--as \u003cas\u003e]",
           "items": {
-            "$ref": "#/$defs/E2EKubectlAuth"
+            "$ref": "#/$defs/spec.KubectlAuth"
           },
           "type": [
             "array",
@@ -1442,7 +1847,7 @@
         "cp": {
           "description": "Cp copies a file out of a container and asserts its content.\nGenerates: kubectl cp \u003cns\u003e/\u003cpod\u003e:\u003csrc\u003e \u003ctempfile\u003e",
           "items": {
-            "$ref": "#/$defs/E2EKubectlCp"
+            "$ref": "#/$defs/spec.KubectlCp"
           },
           "type": [
             "array",
@@ -1452,7 +1857,7 @@
         "delete": {
           "description": "Delete deletes resources by file path or by resource identity.\nGenerates: kubectl delete -f \u003cfile\u003e  or  kubectl delete \u003ckind\u003e \u003cname\u003e -n \u003cns\u003e",
           "items": {
-            "$ref": "#/$defs/E2EKubectlDelete"
+            "$ref": "#/$defs/spec.KubectlDelete"
           },
           "type": [
             "array",
@@ -1462,7 +1867,7 @@
         "describe": {
           "description": "Describe asserts kubectl describe output — useful for events and conditions.\nGenerates: kubectl describe \u003ckind\u003e \u003cname\u003e -n \u003cns\u003e",
           "items": {
-            "$ref": "#/$defs/E2EKubectlDescribe"
+            "$ref": "#/$defs/spec.KubectlDescribe"
           },
           "type": [
             "array",
@@ -1472,7 +1877,7 @@
         "events": {
           "description": "Events lists Kubernetes events for a specific resource and asserts the output.\nGenerates: kubectl events --for=\u003ckind\u003e/\u003cname\u003e -n \u003cns\u003e",
           "items": {
-            "$ref": "#/$defs/E2EKubectlEvents"
+            "$ref": "#/$defs/spec.KubectlEvents"
           },
           "type": [
             "array",
@@ -1482,7 +1887,7 @@
         "exec": {
           "description": "Exec runs a command inside a running container and asserts its output.\nGenerates: kubectl exec -n \u003cns\u003e \u003cpod\u003e -c \u003ccontainer\u003e -- \u003ccommand\u003e",
           "items": {
-            "$ref": "#/$defs/E2EKubectlExec"
+            "$ref": "#/$defs/spec.KubectlExec"
           },
           "type": [
             "array",
@@ -1492,7 +1897,7 @@
         "get": {
           "description": "Get asserts field values on Kubernetes resources.\nGenerates: kubectl get \u003ckind\u003e \u003cname\u003e -n \u003cns\u003e -o jsonpath='\u003cfield\u003e'",
           "items": {
-            "$ref": "#/$defs/E2EKubectlGet"
+            "$ref": "#/$defs/spec.KubectlGet"
           },
           "type": [
             "array",
@@ -1502,7 +1907,7 @@
         "logs": {
           "description": "Logs asserts container log output.\nGenerates: kubectl logs -n \u003cns\u003e -l \u003cselector\u003e -c \u003ccontainer\u003e --since=\u003csince\u003e",
           "items": {
-            "$ref": "#/$defs/E2EKubectlLogs"
+            "$ref": "#/$defs/spec.KubectlLogs"
           },
           "type": [
             "array",
@@ -1512,7 +1917,7 @@
         "patch": {
           "description": "Patch patches a Kubernetes resource with a merge, strategic, or JSON patch.\nGenerates: kubectl patch \u003ckind\u003e \u003cname\u003e -n \u003cns\u003e --type=\u003ctype\u003e -p '\u003cpatch\u003e'",
           "items": {
-            "$ref": "#/$defs/E2EKubectlPatch"
+            "$ref": "#/$defs/spec.KubectlPatch"
           },
           "type": [
             "array",
@@ -1522,7 +1927,7 @@
         "port-forward": {
           "description": "PortForward opens a port-forward to a service or pod, makes an HTTP request,\nand asserts the response. EnsureCurl is called automatically when any entry\ndeclares a path. Generates: kubectl port-forward + curl.",
           "items": {
-            "$ref": "#/$defs/E2EKubectlPortForward"
+            "$ref": "#/$defs/spec.KubectlPortForward"
           },
           "type": [
             "array",
@@ -1532,7 +1937,7 @@
         "restart": {
           "description": "Restart triggers a rollout restart of a Deployment, StatefulSet, or DaemonSet.\nGenerates: kubectl rollout restart \u003ckind\u003e/\u003cname\u003e -n \u003cns\u003e\nWaits for the rollout to complete when ready: true (default).\nThe expect step's timeout governs how long to wait.",
           "items": {
-            "$ref": "#/$defs/E2EKubectlRestart"
+            "$ref": "#/$defs/spec.KubectlRestart"
           },
           "type": [
             "array",
@@ -1542,7 +1947,7 @@
         "scale": {
           "description": "Scale sets the replica count on a Deployment, StatefulSet, or ReplicaSet.\nGenerates: kubectl scale \u003ckind\u003e/\u003cname\u003e --replicas=\u003cn\u003e -n \u003cns\u003e\nWaits for the rollout to complete when ready: true (default).\nThe expect step's timeout governs how long to wait.",
           "items": {
-            "$ref": "#/$defs/E2EKubectlScale"
+            "$ref": "#/$defs/spec.KubectlScale"
           },
           "type": [
             "array",
@@ -1552,7 +1957,7 @@
         "top": {
           "description": "Top queries live CPU and memory usage via kubectl top and asserts the output.\nRequires metrics-server; installed automatically when entries are present.\nGenerates: kubectl top \u003ckind\u003e [-n \u003cns\u003e] [\u003cname\u003e | -l \u003cselector\u003e] [--containers]",
           "items": {
-            "$ref": "#/$defs/E2EKubectlTop"
+            "$ref": "#/$defs/spec.KubectlTop"
           },
           "type": [
             "array",
@@ -1562,7 +1967,7 @@
       },
       "type": "object"
     },
-    "E2EKubectlApply": {
+    "spec.KubectlApply": {
       "anyOf": [
         {
           "description": "Path to a manifest to apply (shorthand for file)",
@@ -1574,12 +1979,12 @@
         },
         {
           "additionalProperties": false,
-          "description": "E2EKubectlApply applies one or more manifests during an expect checkpoint.",
+          "description": "KubectlApply applies one or more manifests during an expect checkpoint.",
           "properties": {
             "assert": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/Assertions"
+                  "$ref": "#/$defs/assert.Assertions"
                 },
                 {
                   "type": "null"
@@ -1615,16 +2020,25 @@
               ]
             },
             "exists": {
-              "description": "Exists — true: the output is non-empty.",
+              "description": "Exists — true: the output is non-empty; false: it is empty.",
               "type": [
                 "boolean",
                 "null"
               ]
             },
             "exitCode": {
-              "description": "ExitCode is the expected exit code. Default 0 (success). Set to\nnon-zero to assert the apply must be rejected — e.g. an admission\nwebhook denial — instead of treating any failure as a broken test.\nSame convention as E2ECommand.ExitCode.",
+              "description": "ExitCode is the expected exit code. Default 0 (success). Set to\nnon-zero to assert the apply must be rejected — e.g. an admission\nwebhook denial — instead of treating any failure as a broken test.\nSame convention as Command.ExitCode.",
               "type": [
                 "integer",
+                "null"
+              ]
+            },
+            "expr": {
+              "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+              "type": [
+                "string",
+                "number",
+                "boolean",
                 "null"
               ]
             },
@@ -1728,7 +2142,7 @@
               ]
             },
             "notExists": {
-              "description": "NotExists — true: the output is empty.",
+              "description": "NotExists — true: the output is empty; false: it is non-empty.",
               "type": [
                 "boolean",
                 "null"
@@ -1792,11 +2206,11 @@
           "type": "object"
         }
       ],
-      "description": "E2EKubectlApply applies one or more manifests during an expect checkpoint."
+      "description": "KubectlApply applies one or more manifests during an expect checkpoint."
     },
-    "E2EKubectlAuth": {
+    "spec.KubectlAuth": {
       "additionalProperties": false,
-      "description": "E2EKubectlAuth checks permissions via kubectl auth can-i and asserts the result.",
+      "description": "KubectlAuth checks permissions via kubectl auth can-i and asserts the result.",
       "properties": {
         "as": {
           "description": "As is the user or service account to impersonate.\nUse the full service account form: system:serviceaccount:\u003cns\u003e:\u003cname\u003e",
@@ -1810,7 +2224,7 @@
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -1846,8 +2260,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -1934,7 +2357,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -2015,14 +2438,14 @@
       },
       "type": "object"
     },
-    "E2EKubectlCp": {
+    "spec.KubectlCp": {
       "additionalProperties": false,
-      "description": "E2EKubectlCp copies a file out of a running container and asserts its content.",
+      "description": "KubectlCp copies a file out of a running container and asserts its content.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -2067,8 +2490,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -2191,7 +2623,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -2272,7 +2704,7 @@
       },
       "type": "object"
     },
-    "E2EKubectlDelete": {
+    "spec.KubectlDelete": {
       "anyOf": [
         {
           "description": "Path to a manifest whose resources to delete (shorthand for file)",
@@ -2284,7 +2716,7 @@
         },
         {
           "additionalProperties": false,
-          "description": "E2EKubectlDelete deletes resources during an expect checkpoint.",
+          "description": "KubectlDelete deletes resources during an expect checkpoint.",
           "properties": {
             "Timeout": {
               "description": "--timeout=\u003cdur\u003e; empty means kubectl's default",
@@ -2330,7 +2762,7 @@
             "leaderElection": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/E2EKubectlLeaderElection"
+                  "$ref": "#/$defs/spec.KubectlLeaderElection"
                 },
                 {
                   "type": "null"
@@ -2360,16 +2792,16 @@
           "type": "object"
         }
       ],
-      "description": "E2EKubectlDelete deletes resources during an expect checkpoint."
+      "description": "KubectlDelete deletes resources during an expect checkpoint."
     },
-    "E2EKubectlDescribe": {
+    "spec.KubectlDescribe": {
       "additionalProperties": false,
-      "description": "E2EKubectlDescribe asserts kubectl describe output.",
+      "description": "KubectlDescribe asserts kubectl describe output.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -2405,8 +2837,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -2520,7 +2961,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -2583,14 +3024,14 @@
       },
       "type": "object"
     },
-    "E2EKubectlEvents": {
+    "spec.KubectlEvents": {
       "additionalProperties": false,
-      "description": "E2EKubectlEvents lists Kubernetes events for a specific resource and asserts the output.",
+      "description": "KubectlEvents lists Kubernetes events for a specific resource and asserts the output.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -2626,8 +3067,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -2732,7 +3182,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -2795,14 +3245,14 @@
       },
       "type": "object"
     },
-    "E2EKubectlExec": {
+    "spec.KubectlExec": {
       "additionalProperties": false,
-      "description": "E2EKubectlExec runs a command inside a running container and asserts its output.",
+      "description": "KubectlExec runs a command inside a running container and asserts its output.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -2861,8 +3311,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -2915,7 +3374,7 @@
         "leaderElection": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EKubectlLeaderElection"
+              "$ref": "#/$defs/spec.KubectlLeaderElection"
             },
             {
               "type": "null"
@@ -2996,7 +3455,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -3068,14 +3527,14 @@
       },
       "type": "object"
     },
-    "E2EKubectlGet": {
+    "spec.KubectlGet": {
       "additionalProperties": false,
-      "description": "E2EKubectlGet asserts a field value on a Kubernetes resource.",
+      "description": "KubectlGet asserts a field value on a Kubernetes resource.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -3111,8 +3570,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -3165,7 +3633,7 @@
         "json": {
           "anyOf": [
             {
-              "$ref": "#/$defs/JSONAssertions"
+              "$ref": "#/$defs/assert.JSONAssertions"
             },
             {
               "type": "null"
@@ -3206,6 +3674,13 @@
             "string",
             "number",
             "boolean",
+            "null"
+          ]
+        },
+        "match": {
+          "description": "Match is what the object must contain, in its own shape: every key\ngiven must be there and match, lists element by element, a literal\nequal and a ${ … } or {{ … }} value an expression that must be true\n(value, object). It is flattened into json: assertions (MatchAssertions).",
+          "type": [
+            "object",
             "null"
           ]
         },
@@ -3273,7 +3748,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -3299,6 +3774,15 @@
         },
         "notSuffix": {
           "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "objects": {
+          "description": "Objects is how many of the objects a labelSelector selects must\nmatch: all (the default) or any.",
           "type": [
             "string",
             "number",
@@ -3345,9 +3829,9 @@
       },
       "type": "object"
     },
-    "E2EKubectlLeaderElection": {
+    "spec.KubectlLeaderElection": {
       "additionalProperties": false,
-      "description": "E2EKubectlLeaderElection resolves the target pod by reading the current holder from a Kubernetes Lease object.",
+      "description": "KubectlLeaderElection resolves the target pod by reading the current holder from a Kubernetes Lease object.",
       "properties": {
         "lease": {
           "description": "Lease is the name of the Kubernetes Lease object that tracks leader election.",
@@ -3370,14 +3854,14 @@
       },
       "type": "object"
     },
-    "E2EKubectlLogs": {
+    "spec.KubectlLogs": {
       "additionalProperties": false,
-      "description": "E2EKubectlLogs asserts container log output.",
+      "description": "KubectlLogs asserts container log output.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -3422,8 +3906,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -3476,7 +3969,7 @@
         "leaderElection": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EKubectlLeaderElection"
+              "$ref": "#/$defs/spec.KubectlLeaderElection"
             },
             {
               "type": "null"
@@ -3557,7 +4050,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -3647,7 +4140,7 @@
       },
       "type": "object"
     },
-    "E2EKubectlPatch": {
+    "spec.KubectlPatch": {
       "anyOf": [
         {
           "description": "A file that is both the target and the merge patch: one partial object (shorthand for file and patchFile)",
@@ -3659,7 +4152,7 @@
         },
         {
           "additionalProperties": false,
-          "description": "E2EKubectlPatch patches Kubernetes resources in place: one by kind and name, or every object in a manifest by file.",
+          "description": "KubectlPatch patches Kubernetes resources in place: one by kind and name, or every object in a manifest by file.",
           "properties": {
             "file": {
               "description": "File is a manifest whose objects are all patched, each in the namespace\nit declares. Relative paths resolve from the directory of the file that\ndeclares the step. Mutually exclusive with kind and name.\nGenerates: kubectl patch -f \u003cfile\u003e",
@@ -3728,16 +4221,16 @@
           "type": "object"
         }
       ],
-      "description": "E2EKubectlPatch patches Kubernetes resources in place: one by kind and name, or every object in a manifest by file."
+      "description": "KubectlPatch patches Kubernetes resources in place: one by kind and name, or every object in a manifest by file."
     },
-    "E2EKubectlPortForward": {
+    "spec.KubectlPortForward": {
       "additionalProperties": false,
-      "description": "E2EKubectlPortForward opens a port-forward to a service or pod, makes an HTTP request via curl, and asserts the response.",
+      "description": "KubectlPortForward opens a port-forward to a service or pod, makes an HTTP request via curl, and asserts the response.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -3791,8 +4284,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -3850,7 +4352,7 @@
         "leaderElection": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EKubectlLeaderElection"
+              "$ref": "#/$defs/spec.KubectlLeaderElection"
             },
             {
               "type": "null"
@@ -3931,7 +4433,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -3965,7 +4467,7 @@
           ]
         },
         "path": {
-          "description": "Path is the HTTP path to request after the port-forward is ready.\nTriggers EnsureCurl pre-flight when set.",
+          "description": "Path is the HTTP path to request after the port-forward is ready.\nDefault \"/\" when the check asserts anything or sends a request\n(statusCode, assertions, an extractor, method, headers, a body);\nwithout either, only the forward is checked, for a port that doesn't\nspeak HTTP.",
           "type": [
             "string",
             "number",
@@ -4053,9 +4555,9 @@
       },
       "type": "object"
     },
-    "E2EKubectlRestart": {
+    "spec.KubectlRestart": {
       "additionalProperties": false,
-      "description": "E2EKubectlRestart triggers a rollout restart of a Deployment, StatefulSet, or DaemonSet.",
+      "description": "KubectlRestart triggers a rollout restart of a Deployment, StatefulSet, or DaemonSet.",
       "properties": {
         "kind": {
           "description": "Kind is the resource kind: Deployment, StatefulSet, or DaemonSet.",
@@ -4094,9 +4596,9 @@
       },
       "type": "object"
     },
-    "E2EKubectlScale": {
+    "spec.KubectlScale": {
       "additionalProperties": false,
-      "description": "E2EKubectlScale sets the replica count on a Deployment, StatefulSet, or ReplicaSet.",
+      "description": "KubectlScale sets the replica count on a Deployment, StatefulSet, or ReplicaSet.",
       "properties": {
         "kind": {
           "description": "Kind is the resource kind: Deployment, StatefulSet, or ReplicaSet.",
@@ -4142,14 +4644,14 @@
       },
       "type": "object"
     },
-    "E2EKubectlTop": {
+    "spec.KubectlTop": {
       "additionalProperties": false,
-      "description": "E2EKubectlTop queries live CPU and memory usage via kubectl top and asserts the output.",
+      "description": "KubectlTop queries live CPU and memory usage via kubectl top and asserts the output.",
       "properties": {
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -4192,8 +4694,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -4307,7 +4818,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -4370,24 +4881,25 @@
       },
       "type": "object"
     },
-    "E2EOnFailure": {
+    "spec.OnFailure": {
       "additionalProperties": false,
-      "description": "E2EOnFailure declares operations to run when an expectation fails.",
+      "description": "OnFailure declares operations to run when an expectation fails.",
       "properties": {
         "commands": {
-          "description": "Commands — shell commands, the same as a step's.",
-          "items": {
-            "$ref": "#/$defs/E2ECommand"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.Commands"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Commands — shell commands, the same as a step's."
         },
         "external": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EExternalChecks"
+              "$ref": "#/$defs/spec.ExternalChecks"
             },
             {
               "type": "null"
@@ -4398,7 +4910,7 @@
         "kubectl": {
           "anyOf": [
             {
-              "$ref": "#/$defs/E2EKubectl"
+              "$ref": "#/$defs/spec.Kubectl"
             },
             {
               "type": "null"
@@ -4416,9 +4928,9 @@
       },
       "type": "object"
     },
-    "E2EResourceCheck": {
+    "spec.ResourceCheck": {
       "additionalProperties": false,
-      "description": "E2EResourceCheck asserts the state of any Kubernetes resource.",
+      "description": "ResourceCheck asserts the state of any Kubernetes resource.",
       "properties": {
         "count": {
           "description": "Count asserts the exact number of matching resources. nil means \"at least 1\".\nSet to 0 to assert none exist (cleanup check).",
@@ -4464,286 +4976,11 @@
       },
       "type": "object"
     },
-    "ExternalAuth": {
+    "spec.SecretRef": {
       "additionalProperties": false,
-      "description": "ExternalAuth declares how to resolve a credential for an external call.",
-      "properties": {
-        "env": {
-          "description": "Env reads the credential from a pod environment variable.\nValue is the variable name without $: env: MY_TOKEN reads $MY_TOKEN.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "header": {
-          "description": "Header is the HTTP header the credential is injected into.\nDefault: \"Authorization\" (produces \"Bearer \u003cvalue\u003e\").\nSet to \"X-Api-Key\" or similar for non-Bearer schemes.\nHTTP only — ignored by stateful protocol clients.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "secretRef": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/KubernetesSecretRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "SecretRef reads the credential from a Kubernetes Secret.\nNamespace defaults to the operator's own namespace if omitted.\nRead via the API server watch cache — no etcd round-trip."
-        }
-      },
-      "type": "object"
-    },
-    "FiresConfig": {
-      "additionalProperties": false,
-      "description": "FiresConfig controls at which lifecycle points an external call is executed.",
-      "properties": {
-        "reconcile": {
-          "description": "Reconcile controls whether the call fires at reconcile time.\nDefault true. Set false for admission-only calls (e.g. image signing checks)\nwhere the admission check is trusted and re-running every reconcile is wasteful.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "IdempotencyKeyConfig": {
-      "anyOf": [
-        {
-          "const": false,
-          "description": "false sends no idempotency key",
-          "type": "boolean"
-        },
-        {
-          "additionalProperties": false,
-          "description": "IdempotencyKeyConfig overrides the idempotency key Inrun sends on POST and PATCH.",
-          "properties": {
-            "header": {
-              "description": "Header is the header name. Default: Idempotency-Key.",
-              "type": [
-                "string",
-                "number",
-                "boolean",
-                "null"
-              ]
-            },
-            "value": {
-              "description": "Value is a template for the key, for an API with its own key format.\nDefault: derived from the CR's UID, the method, the URL and the body.",
-              "type": [
-                "string",
-                "number",
-                "boolean",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "IdempotencyKeyConfig overrides the idempotency key Inrun sends on POST and PATCH."
-    },
-    "JSONAssertion": {
-      "additionalProperties": false,
-      "description": "JSONAssertion asserts on one value in a JSON document.",
-      "properties": {
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "path": {
-          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "JSONAssertions": {
-      "items": {
-        "$ref": "#/$defs/JSONAssertion"
-      },
-      "type": "array"
-    },
-    "KubernetesSecretRef": {
-      "additionalProperties": false,
-      "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
+      "description": "SecretRef is a key of a Secret.",
       "properties": {
         "key": {
-          "description": "Key is the data key within the Secret whose value is the token.",
           "type": [
             "string",
             "number",
@@ -4752,7 +4989,6 @@
           ]
         },
         "name": {
-          "description": "Name is the Kubernetes Secret name.",
           "type": [
             "string",
             "number",
@@ -4761,16 +4997,6 @@
           ]
         },
         "namespace": {
-          "description": "Namespace is the Secret's namespace. Required on an external: call's\nauth (in a Blueprint or an e2e step); for gateway API tokens and the\nremote reconciler's auth it defaults to Inrun's own namespace.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "rotateAfter": {
-          "description": "RotateAfter is an optional duration (e.g. \"90d\", \"720h\").\nWhen set, the gateway checks the inrun.dev/generated-at annotation on\nthe Secret; if the age exceeds this duration, it deletes and recreates\nthe Secret with a new uuidv4 token.",
           "type": [
             "string",
             "number",
@@ -4780,329 +5006,10 @@
         }
       },
       "type": "object"
-    },
-    "RetryBackoffConfig": {
-      "anyOf": [
-        {
-          "description": "Initial delay, e.g. 500ms",
-          "type": [
-            "string",
-            "number",
-            "boolean"
-          ]
-        },
-        {
-          "additionalProperties": false,
-          "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff.",
-          "properties": {
-            "initial": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Initial is the first backoff delay. Default: 500ms."
-            },
-            "max": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/duration.Duration"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Max caps the delay so it does not grow unboundedly. Default: 30s."
-            },
-            "maxAttempts": {
-              "description": "MaxAttempts is the total number of calls including the first. Default: 3.",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "multiplier": {
-              "description": "Multiplier scales the delay after each attempt. Default: 2.0.",
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          },
-          "type": "object"
-        }
-      ],
-      "description": "RetryBackoffConfig is declared under queue.retryBackoff or external[].retryBackoff."
-    },
-    "TextAssertion": {
-      "additionalProperties": false,
-      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
-      "properties": {
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "TextAssertions": {
-      "description": "TextAssertions is a list of comparisons on one output.",
-      "items": {
-        "$ref": "#/$defs/TextAssertion"
-      },
-      "type": "array"
-    },
-    "condition.DayOfWeek": {
-      "additionalProperties": false,
-      "description": "DayOfWeek declares which days the condition is active.",
-      "properties": {
-        "in": {
-          "description": "In — active on these days. Full English names: Monday, Tuesday, etc.",
-          "items": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — active on all days except these.",
-          "items": {
-            "type": [
-              "string",
-              "number",
-              "boolean"
-            ]
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "weekday": {
-          "description": "Weekday — active Mon–Fri. Shorthand for in: [Monday..Friday].",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "weekend": {
-          "description": "Weekend — active Sat–Sun. Shorthand for in: [Saturday, Sunday].",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "condition.TimeWindow": {
-      "additionalProperties": false,
-      "description": "TimeWindow declares a clock-based active window.",
-      "properties": {
-        "after": {
-          "description": "After — active after this time (format: \"HH:MM\" in 24h).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "before": {
-          "description": "Before — active before this time (format: \"HH:MM\" in 24h).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "duration.Duration": {
-      "description": "A duration: Go units (15s, 2m, 1h) or d, w, mo, y",
-      "type": [
-        "string",
-        "number",
-        "boolean"
-      ]
     }
   },
   "$id": "https://inrun.dev/schema/v1/include/e2e-expect.json",
-  "$ref": "#/$defs/E2EExpectInclude",
+  "$ref": "#/$defs/spec.ExpectInclude",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Inrun include: e2e-expect"
 }

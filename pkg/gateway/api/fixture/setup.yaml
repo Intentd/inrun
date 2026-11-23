@@ -12,3 +12,15 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: argocd
+---
+# The console's gateway token, in the namespace the bundle creates. The
+# gateway reads it when it exists and generates one only when it does not,
+# so the e2e's FIXTURE_CONSOLE_TOKEN is this value.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: fixture-console-token
+  namespace: inrun-system
+type: Opaque
+stringData:
+  token: fixture-console-e2e

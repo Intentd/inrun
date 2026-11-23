@@ -37,6 +37,18 @@ spec:
     - include: ./include/clean.yaml
     - include: ./include/existing-destinations.yaml
 
+  # The runtime's and the gateway's logs, when anything fails.
+  onFailure:
+    kubectl:
+      logs:
+        - leaderElection:
+            lease: inrun-leader
+          namespace: inrun-system
+          since: 5m
+        - labelSelector: app.kubernetes.io/component=gateway
+          namespace: inrun-system
+          since: 5m
+
   # Removes what the existing-destinations phase applied, whatever happened before it.
   finally:
     kubectl:

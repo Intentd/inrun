@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "spec.ApplyEntries": {
+      "anyOf": [
+        {
+          "description": "Path to a manifest",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "description": "ApplyEntries are manifests to apply, in order: written as one path, a list of paths, or entries with their own waits.",
+          "items": {
+            "$ref": "#/$defs/spec.ApplyEntry"
+          },
+          "type": "array"
+        }
+      ],
+      "description": "ApplyEntries are manifests to apply, in order: written as one path, a list of paths, or entries with their own waits."
+    },
+    "spec.ApplyEntry": {
+      "anyOf": [
+        {
+          "description": "Path to a manifest",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "description": "ApplyEntry is a single manifest to kubectl-apply during setup.",
+          "properties": {
+            "include": {
+              "description": "Include names a file whose apply entries replace this one, their\npaths resolved from that file. It stands alone.",
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "path": {
+              "description": "Path is the YAML file path to kubectl-apply.",
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "wait": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/spec.Waits"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Wait blocks after this apply until all listed resources satisfy their conditions."
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "ApplyEntry is a single manifest to kubectl-apply during setup."
+    },
+    "spec.ApplyInclude": {
+      "additionalProperties": false,
+      "description": "ApplyInclude is the file an include: entry in an apply list names.",
+      "properties": {
+        "apply": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/spec.ApplyEntries"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.Wait": {
+      "additionalProperties": false,
+      "description": "Wait describes a single resource to wait for before the operator starts.",
+      "properties": {
+        "kind": {
+          "description": "Kind is the Kubernetes resource kind (e.g. Deployment, Secret, Namespace).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Name is the exact resource name.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespace": {
+          "description": "Namespace to look in. Omit for cluster-scoped resources.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "ready": {
+          "description": "Ready waits for an available/ready condition, not just existence.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "timeout": {
+          "description": "Timeout is a Go duration string. Default: \"30s\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "spec.Waits": {
+      "description": "Waits are resources to wait for.",
+      "items": {
+        "$ref": "#/$defs/spec.Wait"
+      },
+      "type": "array"
+    }
+  },
+  "$id": "https://inrun.dev/schema/v1/include/e2e-apply.json",
+  "$ref": "#/$defs/spec.ApplyInclude",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inrun include: e2e-apply"
+}

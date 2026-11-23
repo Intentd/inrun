@@ -1,201 +1,5 @@
 {
   "$defs": {
-    "Assertions": {
-      "additionalProperties": false,
-      "description": "Assertions checks a step's output: one comparison inline, a list under text, path-scoped ones under json.",
-      "properties": {
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "json": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/JSONAssertions"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "JSON — comparisons on values in JSON output, by dot path."
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "text": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TextAssertions"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Text — comparisons on the output, in order."
-        }
-      },
-      "type": "object"
-    },
     "Auth": {
       "additionalProperties": false,
       "description": "Auth is the authentication envelop for handling both ENV-based token and secret reads for cross: authentication",
@@ -286,7 +90,7 @@
           ]
         },
         "exists": {
-          "description": "Exists, when true, passes when the field is present and non-empty. A\ncondition with no comparison at all means exists.",
+          "description": "Exists, when true, passes when the field is present and non-empty;\nfalse is notExists: true. A condition with no comparison at all means\nexists.",
           "type": [
             "boolean",
             "null"
@@ -381,7 +185,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists, when true, passes when the field is absent or empty.",
+          "description": "NotExists, when true, passes when the field is absent or empty;\nfalse is exists: true.",
           "type": [
             "boolean",
             "null"
@@ -551,195 +355,6 @@
       },
       "type": "object"
     },
-    "JSONAssertion": {
-      "additionalProperties": false,
-      "description": "JSONAssertion asserts on one value in a JSON document.",
-      "properties": {
-        "between": {
-          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "contains": {
-          "description": "Contains — the output contains this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "equals": {
-          "description": "Equals — the output is exactly this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "exists": {
-          "description": "Exists — true: the output is non-empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "greaterThan": {
-          "description": "GreaterThan — the output, as a number, is above this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "in": {
-          "description": "In — the output is one of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "lessThan": {
-          "description": "LessThan — the output, as a number, is below this one (strict).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "max": {
-          "description": "Max — the output, as a number, is at most this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "min": {
-          "description": "Min — the output, as a number, is at least this.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notBetween": {
-          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notContains": {
-          "description": "NotContains — the output does not contain this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notEquals": {
-          "description": "NotEquals — the output is not this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notExists": {
-          "description": "NotExists — true: the output is empty.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "notIn": {
-          "description": "NotIn — the output is none of a comma-separated list.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notPrefix": {
-          "description": "NotPrefix — the output does not start with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "notSuffix": {
-          "description": "NotSuffix — the output does not end with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "path": {
-          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "prefix": {
-          "description": "Prefix — the output starts with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "regex": {
-          "description": "Regex — the output matches this RE2 pattern.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "suffix": {
-          "description": "Suffix — the output ends with this text.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "JSONAssertions": {
-      "items": {
-        "$ref": "#/$defs/JSONAssertion"
-      },
-      "type": "array"
-    },
     "KubernetesSecretRef": {
       "additionalProperties": false,
       "description": "KubernetesSecretRef locates a Kubernetes Secret that holds a bearer token.",
@@ -790,7 +405,7 @@
         "assert": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Assertions"
+              "$ref": "#/$defs/assert.Assertions"
             },
             {
               "type": "null"
@@ -840,8 +455,17 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -946,7 +570,7 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -1082,9 +706,9 @@
       },
       "type": "object"
     },
-    "TextAssertion": {
+    "assert.Assertions": {
       "additionalProperties": false,
-      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
+      "description": "Assertions checks a step's output: one comparison inline, a list under text, path-scoped ones under json.",
       "properties": {
         "between": {
           "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
@@ -1114,8 +738,229 @@
           ]
         },
         "exists": {
-          "description": "Exists — true: the output is non-empty.",
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
           "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "json": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/assert.JSONAssertions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "JSON — comparisons on values in JSON output, by dot path."
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "match": {
+          "description": "Match — what the JSON output must contain, in its own shape: every\nkey given there and matching, lists element by element, a literal\nequal, a ${ … } or {{ … }} value an expression that must be true. It\nis checked as the json: assertions MatchAssertions makes of it.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/assert.TextAssertions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text — comparisons on the output, in order."
+        }
+      },
+      "type": "object"
+    },
+    "assert.JSONAssertion": {
+      "additionalProperties": false,
+      "description": "JSONAssertion asserts on one value in a JSON document.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
             "boolean",
             "null"
           ]
@@ -1193,7 +1038,205 @@
           ]
         },
         "notExists": {
-          "description": "NotExists — true: the output is empty.",
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notIn": {
+          "description": "NotIn — the output is none of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notPrefix": {
+          "description": "NotPrefix — the output does not start with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notSuffix": {
+          "description": "NotSuffix — the output does not end with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Path — dot path to the value to assert on, with optional [n] indexes.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "prefix": {
+          "description": "Prefix — the output starts with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "regex": {
+          "description": "Regex — the output matches this RE2 pattern.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "suffix": {
+          "description": "Suffix — the output ends with this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "assert.JSONAssertions": {
+      "items": {
+        "$ref": "#/$defs/assert.JSONAssertion"
+      },
+      "type": "array"
+    },
+    "assert.TextAssertion": {
+      "additionalProperties": false,
+      "description": "TextAssertion compares an output, trimmed, by the condition operators.",
+      "properties": {
+        "between": {
+          "description": "Between — the output, as a number, is inside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "contains": {
+          "description": "Contains — the output contains this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "equals": {
+          "description": "Equals — the output is exactly this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "exists": {
+          "description": "Exists — true: the output is non-empty; false: it is empty.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expr": {
+          "description": "Expr — an expression that must come out true: ${ … } is CEL, {{ … }}\na template, both with KEL's functions. value is what is asserted on\n(a number, boolean, list or map when it is JSON, else the text) and,\nunder json:, object is the whole document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "greaterThan": {
+          "description": "GreaterThan — the output, as a number, is above this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "in": {
+          "description": "In — the output is one of a comma-separated list.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "lessThan": {
+          "description": "LessThan — the output, as a number, is below this one (strict).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "max": {
+          "description": "Max — the output, as a number, is at most this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Min — the output, as a number, is at least this.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notBetween": {
+          "description": "NotBetween — the output, as a number, is outside an inclusive \"min,max\".",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notContains": {
+          "description": "NotContains — the output does not contain this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notEquals": {
+          "description": "NotEquals — the output is not this text.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "notExists": {
+          "description": "NotExists — true: the output is empty; false: it is non-empty.",
           "type": [
             "boolean",
             "null"
@@ -1256,10 +1299,10 @@
       },
       "type": "object"
     },
-    "TextAssertions": {
+    "assert.TextAssertions": {
       "description": "TextAssertions is a list of comparisons on one output.",
       "items": {
-        "$ref": "#/$defs/TextAssertion"
+        "$ref": "#/$defs/assert.TextAssertion"
       },
       "type": "array"
     },

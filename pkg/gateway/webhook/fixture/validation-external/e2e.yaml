@@ -16,6 +16,18 @@ spec:
   cr: ./cr.yaml
 
   expect:
+    - name: The admission webhook is registered
+      timeout: 60s
+      onFailure:
+        stop: true
+      resources:
+        - kind: Deployment
+          name: inrun-gateway
+          namespace: inrun-system
+          ready: true
+        - kind: ValidatingWebhookConfiguration
+          name: inrun-admission-validation
+
     - name: The dev server is running (run with --dev-server)
       timeout: 30s
       onFailure:

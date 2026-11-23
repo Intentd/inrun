@@ -189,6 +189,9 @@ func runSimulateWithCR(ctx context.Context, specPath, crFile string, simOpts tes
 	if doc.Spec == nil {
 		return fmt.Errorf("simulate config %q: missing spec", specPath)
 	}
+	if err := types.ExpandSimulatePrepareIncludes(doc.Spec.Prepare, filepath.Dir(specPath)); err != nil {
+		return fmt.Errorf("simulate config %q: %w", specPath, err)
+	}
 
 	blueprintPath := cmdutil.JoinPath(specPath, doc.Spec.Blueprint)
 	cycles := doc.Spec.Cycles

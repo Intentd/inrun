@@ -88,3 +88,10 @@ func populateReconcilerFromInclude(entry *types.CRDEntry, blueprintDir string) e
 	}
 	return nil
 }
+
+func populatePrepareFromInclude(entry *types.CRDEntry, blueprintDir string) error {
+	if err := types.ExpandPrepareIncludes(entry.Prepare, blueprintDir); err != nil {
+		return err
+	}
+	return nil
+}

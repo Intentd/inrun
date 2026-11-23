@@ -63,18 +63,25 @@ func expandForEach[T any](
 	if !anyHasForEach(len(srcs), func(i int) *types.ForEachSpec { return getForEach(srcs[i]) }) {
 		return srcs // fast path — no forEach in this list
 	}
-	var result []T
-	for _, src := range srcs {
-		fe := getForEach(src)
-		if fe == nil {
-			result = append(result, src)
-			continue
-		}
-		for i, fi := range resolveForEachItems(resolver.Data(), fe.Field) {
-			ir := itemResolver(resolver, fi, fe.As, i)
-			result = append(result, resolve(ir, src))
-		}
-	}
+	// The loop is tools' (structured.ExpandForEach, which jig's images use
+	// too); the rows come from the CR's field, and each is resolved with
+	// Inrun's resolver, map items with .value.
+	result, _ := structured.ExpandForEach(srcs,
+		func(src T) (bool, []any, error) {
+			fe := getForEach(src)
+			if fe == nil {
+				return false, nil, nil
+			}
+			items := resolveForEachItems(resolver.Data(), fe.Field)
+			rows := make([]any, len(items))
+			for i, fi := range items {
+				rows[i] = fi
+			}
+			return true, rows, nil
+		},
+		func(src T, _ int, item any, row int) (T, error) {
+			return resolve(itemResolver(resolver, item.(forEachItem), getForEach(src).As, row), src), nil
+		})
 	return result
 }
 
