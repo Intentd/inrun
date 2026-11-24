@@ -1,0 +1,28 @@
+# Throwaway: builds and pushes the runtime, gateway and console images at a
+# tag of your choice (a release candidate, 0.1.1-rc), from this branch, with
+# the same reusable workflow a release uses. Not for develop.
+name: Build RC Images
+
+on:
+  # A dispatch needs the file on the default branch; a push to a throwaway
+  # branch runs it from there, at 0.1.1-rc.
+  push:
+    branches: ["throwaway/**"]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag, without a v (0.1.1-rc)"
+        required: true
+        default: 0.1.1-rc
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    name: Build and Push Images
+    uses: ./.github/workflows/build-push-images.yml
+    with:
+      image_tag: ${{ inputs.image_tag || '0.1.1-rc' }}
+    secrets: inherit
